@@ -24,7 +24,7 @@ const RESULT_TONE: Record<string, string> = {
   draw: 'bg-neutral-soft text-neutral-ink',
   resigned: 'bg-warn-soft text-warn-ink',
   abandoned: 'bg-warn-soft text-warn-ink',
-  'in progress': 'bg-action-soft text-action-ink',
+  'in progress': 'bg-action text-action-ink',
   unknown: 'bg-neutral-soft text-neutral-ink',
 }
 
@@ -107,7 +107,7 @@ function Totals({ o }: { o: AdminOverview }) {
       <Card title="Matches per game" note="all time, finished" testId="admin-matches-per-game">
         <ul className="grid gap-2">
           {o.matchesPerGame.map((g) => (
-            <li key={g.game} className="grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-sm" data-testid={`admin-game-${g.game}`} data-count={g.count}>
+            <li key={g.game} className="grid grid-cols-[8.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-sm" data-testid={`admin-game-${g.game}`} data-count={g.count}>
               <span className="truncate">{gameName(g.game)}</span>
               <span aria-hidden className="h-2 rounded-full bg-neutral-soft">
                 <span className="block h-2 rounded-full bg-action" style={{ width: `${Math.round((g.count / maxGame) * 100)}%` }} />
@@ -235,7 +235,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
                     <Who name={p.name} kind={p.kind} ref_={p.ref} emails={emails} />
                   </button>
                 </td>
-                <td className="px-2 py-2">{p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action-soft text-action-ink">signed in</Chip>}</td>
+                <td className="px-2 py-2">{p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}</td>
                 <td className="whitespace-nowrap px-2 py-2">{shortDate(p.joinedAt)}</td>
                 <td className="whitespace-nowrap px-2 py-2">{at ? ago(p.lastSeenAt, at) : ''}</td>
                 <td className="px-2 py-2 text-right tabular">{p.matches}</td>
@@ -262,7 +262,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
               <span className="flex items-start justify-between gap-2">
                 <Who name={p.name} kind={p.kind} ref_={p.ref} emails={emails} />
                 <span className="flex shrink-0 gap-1">
-                  {p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action-soft text-action-ink">signed in</Chip>}
+                  {p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}
                   {p.hidden ? <Chip tone="bg-warn-soft text-warn-ink">hidden</Chip> : null}
                 </span>
               </span>
@@ -352,7 +352,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
               <p className="font-mono text-sm text-muted">{email ?? `${(detail?.kind ?? p?.kind) === 'guest' ? 'guest' : 'account'} ${ref}`}</p>
               {detail ? (
                 <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-                  {detail.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action-soft text-action-ink">signed in</Chip>}
+                  {detail.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}
                   {detail.hidden ? <Chip tone="bg-warn-soft text-warn-ink">hidden from the board</Chip> : <Outline>shown on the board</Outline>}
                   <span>Joined {shortDate(detail.joinedAt)}, last seen {shortDate(detail.lastSeenAt)} {utcTime(detail.lastSeenAt)} UTC</span>
                 </p>
