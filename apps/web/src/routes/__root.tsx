@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { PRODUCT } from '@duelwise/core/src/product'
 import appCss from '../styles/app.css?url'
@@ -11,6 +11,7 @@ import { ServiceWorker } from '../components/ServiceWorker'
 import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
 import { shareMeta } from '../lib/site-meta'
+import { installStaleChunkGuard } from '../lib/stale-chunk'
 import { getViewer } from '../server/profile-fns'
 
 /** The last signed-in answer this browser tab got, so a page change with no connection keeps the header as it was. Browser only. */
@@ -41,7 +42,14 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
-  component: () => (
+  component: RootPage,
+  notFoundComponent: NotFound,
+})
+
+function RootPage() {
+  // After a new deploy an open tab can ask for a script that is gone; one fresh load fixes it (guarded, see lib/stale-chunk.ts).
+  useEffect(() => installStaleChunkGuard(), [])
+  return (
     <ErrorBoundary>
       <UploadQueue />
       <ServiceWorker />
@@ -49,9 +57,8 @@ export const Route = createRootRoute({
       <VoiceArm />
       <Outlet />
     </ErrorBoundary>
-  ),
-  notFoundComponent: NotFound,
-})
+  )
+}
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
@@ -83,7 +90,9 @@ function RootDocument({ children }: { children: ReactNode }) {
                   Settings
                 </Link>
               </nav>
-              <UserMenu />
+              <ErrorBoundary fallback={() => null}>
+                <UserMenu />
+              </ErrorBoundary>
             </div>
           </header>
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-content flex-1 px-4 pb-16 outline-none md:px-10">{children}</main>

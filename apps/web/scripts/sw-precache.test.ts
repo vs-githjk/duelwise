@@ -115,3 +115,55 @@ describe('the worker routes requests', () => {
     expect(route('/sw.js')).toBe('pass')
   })
 })
+
+describe('the worker never mixes deploys on a page load', () => {
+  const template = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8').replace('"__DUELWISE_PRECACHE__"', '{"version":"t","required":[],"optional":[],"pages":[]}').replace('const NAV_TIMEOUT_MS = 4000', 'const NAV_TIMEOUT_MS = 30')
+  const htmlOf = (entry: string) => `<!doctype html><link rel="modulepreload" href="${entry}"><script type="module" src="${entry}"></script><link rel="stylesheet" href="/assets/app-aaa.css">`
+  const OLD = htmlOf('/assets/index-OLD.js')
+  const NEW = htmlOf('/assets/index-NEW.js')
+
+  /** A worker scope with fake caches. `network` is what fetch does for the page. */
+  function load(opts: { pages: Record<string, string>; statics: string[]; network: () => Promise<Response> }) {
+    const store = (map: Map<string, Response>) => ({
+      match: async (key: string | Request) => map.get(typeof key === 'string' ? key : new URL(key.url).pathname)?.clone(),
+      put: async (key: string | Request, res: Response) => void map.set(typeof key === 'string' ? key : new URL(key.url).pathname, res),
+    })
+    const pagesMap = new Map(Object.entries(opts.pages).map(([k, v]) => [k, new Response(v, { headers: { 'content-type': 'text/html' } })]))
+    const staticMap = new Map(opts.statics.map((k) => [k, new Response('x')]))
+    const sandbox: Record<string, unknown> = {
+      self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, indexedDB: {}, setTimeout, clearTimeout,
+      caches: { open: async (name: string) => store(name.includes('pages') ? pagesMap : staticMap) },
+      fetch: opts.network,
+    }
+    vm.createContext(sandbox)
+    vm.runInContext(template + '\nthis.navigate = navigate; this.assetUrlsIn = assetUrlsIn', sandbox)
+    return sandbox as { navigate: (r: Request | { url: string }, keep: boolean) => Promise<Response>; assetUrlsIn: (h: string) => string[] }
+  }
+  const req = { url: 'https://duelwise.test/play/chess' }
+
+  test('lists the scripts and styles a page names', () => {
+    const w = load({ pages: {}, statics: [], network: async () => new Response('') })
+    expect(w.assetUrlsIn(NEW).sort()).toEqual(['/assets/app-aaa.css', '/assets/index-NEW.js'])
+    expect(w.assetUrlsIn('<p>no files</p>')).toEqual([])
+  })
+
+  test('a slow network with a saved copy from THIS deploy serves the copy', async () => {
+    const w = load({ pages: { '/play/chess': OLD }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: () => new Promise(() => {}) })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+
+  test('a slow network with a saved copy from ANOTHER deploy waits for the real page instead of serving the stale one', async () => {
+    const w = load({ pages: { '/play/chess': NEW }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: () => new Promise((r) => setTimeout(() => r(new Response(OLD)), 80)) })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+
+  test('offline with a stale copy shows the calm offline page, never a page whose files are missing', async () => {
+    const w = load({ pages: { '/play/chess': NEW }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: async () => { throw new TypeError('Failed to fetch') } })
+    expect(await (await w.navigate(req, true)).text()).toContain('You are offline')
+  })
+
+  test('offline with a usable copy still opens the game', async () => {
+    const w = load({ pages: { '/play/chess': OLD }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: async () => { throw new TypeError('Failed to fetch') } })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+})

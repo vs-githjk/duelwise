@@ -3,7 +3,9 @@
 //
 // Strategy
 //   install   : precache hashed assets, fonts, icons, personas, wasm, models and art, and a few server rendered pages.
-//   navigation: network first (4 s), cached copy when the network is out, a calm offline page when there is no copy.
+//   navigation: network first (4 s), cached copy when the network is out, a calm offline page when there is no copy. A cached page is only
+//               used when every script and style it names is still in the static cache; a copy from another deploy is skipped (a slow
+//               network then waits for the real page) so a reload can never mix old and new files.
 //   static    : cache first (the files are content hashed or versioned by folder), filled on first use when not precached.
 //   everything else (server functions, /api, other methods, other origins): not handled, the browser does it.
 //   update    : a new worker waits; the page shows "New version available" and tells it to take over (SKIP_WAITING).
@@ -89,15 +91,51 @@ function withTimeout(promise, ms) {
   })
 }
 
+/** The hashed scripts and styles a page names (/assets/...). Pure, so it can be tested. */
+function assetUrlsIn(html) {
+  const found = new Set()
+  const re = /["'(=]\s*(\/assets\/[^"'\s)<>?#]+\.(?:js|mjs|css))/g
+  let m
+  while ((m = re.exec(html))) found.add(m[1])
+  return [...found]
+}
+
+/** True when this saved page can run from what the static cache holds. A page saved under another deploy names files that are not there. */
+async function pageIsUsable(hit, statics) {
+  try {
+    const urls = assetUrlsIn(await hit.clone().text())
+    if (urls.length === 0) return false
+    for (const u of urls) if (!(await statics.match(u, { ignoreVary: true }))) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function navigate(request, keep) {
   const pages = await caches.open(PAGES)
+  const network = fetch(request)
+  network.catch(() => {}) // a late failure after we moved on is not an error
+  let timedOut = false
   try {
-    const res = await withTimeout(fetch(request), NAV_TIMEOUT_MS)
+    const res = await withTimeout(network, NAV_TIMEOUT_MS).catch((e) => {
+      timedOut = e && e.message === 'timeout'
+      throw e
+    })
     if (keep && res.ok && !res.redirected && res.type === 'basic') pages.put(request, res.clone()).catch(() => {})
     return res
   } catch {
     const hit = await pages.match(request, { ignoreSearch: true, ignoreVary: true })
-    return hit || new Response(OFFLINE_HTML, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } })
+    if (hit && (await pageIsUsable(hit, await caches.open(STATIC)))) return hit
+    // Slow, not offline, and the saved copy is from another deploy (or there is none): keep waiting for the real page.
+    if (timedOut) {
+      try {
+        return await network
+      } catch {
+        // went offline while waiting
+      }
+    }
+    return new Response(OFFLINE_HTML, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } })
   }
 }
 
