@@ -75,76 +75,131 @@ function Four(): ReactNode {
   )
 }
 
+const SUIT_PATHS = {
+  heart: 'M5 9.2C-.2 5.6 0 1.4 2.8 1.4 4 1.4 4.8 2.1 5 3 5.2 2.1 6 1.4 7.2 1.4 10 1.4 10.200 5.600 5 9.200z',
+  diamond: 'M5 .4 9.200 5 5 9.600.8 5z',
+  spade: 'M5 .6C9.800 4.400 10 6.600 8 7.700 6.700 8.300 5.500 7.600 5.200 6.700 5.400 8.300 5.800 9.100 6.700 9.800H3.300C4.200 9.100 4.600 8.300 4.800 6.700 4.500 7.600 3.300 8.300 2 7.700 0 6.600.2 4.400 5 .6z',
+}
+type Suit = keyof typeof SUIT_PATHS
+const SUIT_COLOUR: Record<Suit, string> = { heart: '#c8352f', diamond: '#c8352f', spade: '#1c1a17' }
+
+/** One face-up playing card, 28 by 40: rank and a small suit in the top left corner, a big suit in the middle, a crown above it on the king. */
+function PlayingCard({ x, rank, suit }: { x: number; rank: string; suit: Suit }): ReactNode {
+  const ink = SUIT_COLOUR[suit]
+  return (
+    <g transform={`translate(${x} 25)`}>
+      <rect x={0} y={2} width={28} height={40} rx={3} fill="#000" opacity={0.18} />
+      <rect width={28} height={40} rx={3} fill="#fff" stroke="#cfc8b8" strokeWidth={0.8} />
+      <text x={3.5} y={10} fontFamily="Georgia, serif" fontSize={9} fontWeight={700} fill={ink}>{rank}</text>
+      <path d={SUIT_PATHS[suit]} fill={ink} transform="translate(2.800 11.500) scale(.52)" />
+      <g transform="translate(28 40) rotate(180)">
+        <text x={3.5} y={10} fontFamily="Georgia, serif" fontSize={9} fontWeight={700} fill={ink}>{rank}</text>
+        <path d={SUIT_PATHS[suit]} fill={ink} transform="translate(2.800 11.500) scale(.52)" />
+      </g>
+      {rank === 'K' ? <path d="M9 17 L10 11.500 L12.500 14.500 L14 10.500 L15.500 14.500 L18 11.500 L19 17z" fill="#e0a526" stroke="#a9760f" strokeWidth={0.5} strokeLinejoin="round" /> : null}
+      <path d={SUIT_PATHS[suit]} fill={ink} transform={rank === 'K' ? 'translate(7.500 18) scale(1.300)' : 'translate(5 13.500) scale(1.800)'} />
+    </g>
+  )
+}
+
 function Holdem(): ReactNode {
   return (
     <>
       <rect width={W} height={H} fill="#e8efe9" />
-      <ellipse cx={80} cy={46} rx={72} ry={36} fill="var(--rail)" />
-      <ellipse cx={80} cy={46} rx={64} ry={30} fill="var(--felt)" />
-      <g fill="#fff" stroke="#d8d2c4">
-        <rect x={52} y={34} width={14} height={20} rx={2} />
-        <rect x={69} y={34} width={14} height={20} rx={2} />
-        <rect x={86} y={34} width={14} height={20} rx={2} />
-      </g>
-      <g fontFamily="Georgia, serif" fontSize={9} fontWeight={700}>
-        <text x={55} y={48} fill="#c8352f">A</text>
-        <text x={72} y={48} fill="#1c1a17">K</text>
-        <text x={89} y={48} fill="#c8352f">7</text>
-      </g>
-      <circle cx={32} cy={50} r={6} fill="#c8352f" />
-      <circle cx={32} cy={47} r={6} fill="#e04a44" />
-      <circle cx={128} cy={50} r={6} fill="#1d3a8a" />
-      <circle cx={128} cy={47} r={6} fill="#2f55c7" />
+      <ellipse cx={80} cy={46} rx={72} ry={38} fill="var(--rail)" />
+      <ellipse cx={80} cy={46} rx={65} ry={32} fill="var(--felt)" />
+      <PlayingCard x={31} rank="A" suit="heart" />
+      <PlayingCard x={66} rank="K" suit="spade" />
+      <PlayingCard x={101} rank="7" suit="diamond" />
+      <circle cx={17} cy={52} r={5} fill="#c8352f" />
+      <circle cx={17} cy={49.500} r={5} fill="#e04a44" />
+      <circle cx={143} cy={52} r={5} fill="#1d3a8a" />
+      <circle cx={143} cy={49.500} r={5} fill="#2f55c7" />
     </>
   )
 }
 
+type Mark = 'x' | 'p' | 'g' | ''
+const MARK_FILL: Record<Mark, string> = { x: '#d9d2ea', p: 'var(--warn)', g: 'var(--good)', '': 'none' }
+
+/** One lane of the duel: a stack of five-letter guesses, each tile coloured as in the real game (green right place, amber elsewhere, grey absent). */
+function WordLane({ x, label, accent, rows }: { x: number; label: string; accent: string; rows: Array<{ word: string; marks: Mark[] }> }): ReactNode {
+  const T = 11.500
+  const G = 2
+  return (
+    <g transform={`translate(${x} 0)`}>
+      <rect x={-4} y={8} width={70} height={74} rx={6} fill="#fff" opacity={0.7} />
+      <rect x={-4} y={8} width={70} height={11} rx={6} fill={accent} />
+      <rect x={-4} y={14} width={70} height={5} fill={accent} />
+      <text x={31} y={16.500} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={6.500} fontWeight={700} fill="#fff" letterSpacing={0.8}>{label}</text>
+      {rows.map((r, ri) => (
+        <g key={ri}>
+          {r.marks.map((m, i) => {
+            const tx = i * (T + G)
+            const ty = 23 + ri * (T + G + 3)
+            return m === '' ? (
+              <rect key={i} x={tx + 0.5} y={ty + 0.5} width={T - 1} height={T - 1} rx={2} fill="none" stroke={accent} strokeWidth={1} strokeDasharray="2.500 1.800" opacity={0.7} />
+            ) : (
+              <g key={i}>
+                <rect x={tx} y={ty} width={T} height={T} rx={2.500} fill={MARK_FILL[m]} />
+                <text x={tx + T / 2} y={ty + 8.500} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={8.500} fontWeight={700} fill={m === 'x' ? '#6b5f8a' : '#fff'}>{r.word[i]}</text>
+              </g>
+            )
+          })}
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** Word Duel: two lanes racing on the same hidden word. You are one guess from done; the opponent has made one guess. */
 function Word(): ReactNode {
-  const tile = (x: number, y: number, fill: string, h: number, key: string) => <rect key={key} x={x} y={y} width={18} height={h} rx={3} fill={fill} />
-  const rows: Array<{ y: number; fills: string[]; text: string }> = [
-    { y: 20, fills: ['var(--surface-2)', 'var(--good)', 'var(--warn)', 'var(--surface-2)', 'var(--surface-2)'], text: 'CRANE' },
-    { y: 46, fills: ['var(--surface-2)', 'var(--good)', 'var(--surface-2)', 'var(--good)', 'var(--warn)'], text: 'SROAT' },
-  ]
   return (
     <>
       <rect width={W} height={H} fill="#efe9f8" />
-      <g fontFamily="Menlo, monospace" fontSize={12} fontWeight={700} textAnchor="middle">
-        {rows.map((r) => (
-          <g key={r.text}>
-            {r.fills.map((f, i) => tile(26 + i * 22, r.y, f, 18, `${r.text}${i}`))}
-            {r.fills.map((f, i) => (
-              <text key={`t${i}`} x={35 + i * 22} y={r.y + 13} fill={f === 'var(--surface-2)' ? 'var(--muted)' : '#fff'}>{r.text[i]}</text>
-            ))}
-          </g>
-        ))}
-        <g stroke="var(--game-word)" strokeWidth={1.5} strokeDasharray="3 2" fill="none">
-          {[0, 1, 2, 3, 4].map((i) => <rect key={i} x={26 + i * 22} y={72} width={18} height={14} rx={3} />)}
-        </g>
-      </g>
+      <WordLane x={14} label="YOU" accent="var(--game-word)" rows={[
+        { word: 'CRANE', marks: ['x', 'x', 'g', 'g', 'x'] },
+        { word: 'PLANT', marks: ['g', 'g', 'g', 'g', 'g'] },
+        { word: '', marks: ['', '', '', '', ''] },
+      ]} />
+      <WordLane x={88} label="AI" accent="var(--neutral)" rows={[
+        { word: 'SLATE', marks: ['x', 'g', 'g', 'p', 'x'] },
+        { word: '', marks: ['', '', '', '', ''] },
+        { word: '', marks: ['', '', '', '', ''] },
+      ]} />
     </>
   )
 }
 
-/** A fighter in side view: legs, jacket, belt, head and two arms. Facing right when dir is 1, left when -1. */
-function FighterFigure({ x, jacket, trousers, belt, dir, hit }: { x: number; jacket: string; trousers: string; belt: string; dir: 1 | -1; hit: boolean }): ReactNode {
+/** A fighter in side view, facing right when dir is 1: wide stance, headband, a guard fist up and a punching or guarding lead arm. */
+function FighterFigure({ x, jacket, trousers, belt, band, dir, hit }: { x: number; jacket: string; trousers: string; belt: string; band: string; dir: 1 | -1; hit: boolean }): ReactNode {
+  const skin = '#e8b48f'
   return (
     <g transform={`translate(${x} 0) scale(${dir} 1)`}>
-      <path d="M-3 52 L-9 71 H-1 L4 56z M2 52 L10 69 H17 L9 52z" fill={trousers} />
+      <path d="M-2 52 L-13 70 H-5 L5 56z M3 52 L13 66 H21 L10 52z" fill={trousers} />
+      <ellipse cx={-8} cy={71} rx={7} ry={2.800} fill="#1b1512" />
+      <ellipse cx={18} cy={67.500} rx={7} ry={2.800} fill="#1b1512" />
       <rect x={-8} y={31} width={18} height={23} rx={5} fill={jacket} />
-      <rect x={-8} y={46} width={18} height={4} fill={belt} />
-      <circle cx={2} cy={24} r={7} fill="#e8b48f" />
+      <rect x={-8} y={47} width={18} height={4} fill={belt} />
+      <circle cx={2} cy={24} r={7} fill={skin} />
       <path d="M-5 23 a7 7 0 0 1 14 -3 v-2 a7 7 0 0 0 -14 3z" fill="#2a1812" />
+      <rect x={-5} y={21} width={14} height={2.600} fill={band} />
+      <path d="M-5 22 l-4 3 M-5 22 l-5 0" stroke={band} strokeWidth={1.600} strokeLinecap="round" />
+      <circle cx={5.500} cy={25} r={0.9} fill="#2a1812" />
+      <path d="M4 29 h3" stroke="#2a1812" strokeWidth={0.8} strokeLinecap="round" />
+      <path d="M-4 40 L-12 38 L-12 31" stroke={jacket} strokeWidth={5.500} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx={-12} cy={29} r={4.800} fill={skin} stroke="#8a5a3a" strokeWidth={0.8} />
       {hit ? (
         <>
-          <rect x={4} y={34} width={22} height={6} rx={3} fill={jacket} transform="rotate(-4 4 37)" />
-          <circle cx={27} cy={36} r={4.4} fill="#e8b48f" />
-          <rect x={-10} y={38} width={10} height={6} rx={3} fill={jacket} transform="rotate(35 -6 40)" />
+          <path d="M3 37 L23 36" stroke={jacket} strokeWidth={6} strokeLinecap="round" />
+          <circle cx={26} cy={36} r={5.200} fill={skin} stroke="#8a5a3a" strokeWidth={0.8} />
+          <path d="M23 34 v4 M26 33 v6" stroke="#8a5a3a" strokeWidth={0.7} />
         </>
       ) : (
         <>
-          <rect x={3} y={33} width={13} height={6} rx={3} fill={jacket} transform="rotate(25 4 36)" />
-          <circle cx={16} cy={43} r={4.2} fill="#e8b48f" />
-          <rect x={-10} y={38} width={10} height={6} rx={3} fill={jacket} transform="rotate(35 -6 40)" />
+          <path d="M3 38 L12 33 L17 40" stroke={jacket} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <circle cx={17.500} cy={41} r={5} fill={skin} stroke="#8a5a3a" strokeWidth={0.8} />
+          <path d="M15 40 v4 M18 39 v5" stroke="#8a5a3a" strokeWidth={0.7} />
         </>
       )}
     </g>
@@ -165,8 +220,8 @@ function Fighter(): ReactNode {
       <g stroke="#9a5f31" strokeWidth={1}><path d="M0 79 H160 M40 71 L28 90 M80 71 V90 M120 71 L132 90" /></g>
       <ellipse cx={51} cy={71} rx={13} ry={2.4} fill="#000" opacity={0.25} />
       <ellipse cx={109} cy={71} rx={13} ry={2.4} fill="#000" opacity={0.25} />
-      <FighterFigure x={50} jacket="#c4471f" trousers="#2b2523" belt="#e8b35a" dir={1} hit />
-      <FighterFigure x={112} jacket="#1f3c6e" trousers="#15171d" belt="#d7d9de" dir={-1} hit={false} />
+      <FighterFigure x={50} jacket="#c4471f" trousers="#2b2523" belt="#e8b35a" band="#f6d365" dir={1} hit />
+      <FighterFigure x={112} jacket="#1f3c6e" trousers="#15171d" belt="#d7d9de" band="#7cc4ff" dir={-1} hit={false} />
       <g transform="translate(80 40)"><g fill="#fff3c4">{spark}</g><circle r={3} fill="#fff" /></g>
       <g transform="skewX(-18)">
         <rect x={20} y={5} width={58} height={8} fill="#000" opacity={0.55} stroke="#fff" strokeWidth={1.2} />
@@ -182,44 +237,59 @@ function Fighter(): ReactNode {
   )
 }
 
-/** The Coldstore frame: first person down a cold warehouse aisle, shelving and crates, an opponent in the aisle, a pistol in the lower right and a round score HUD. */
+/** The Coldstore frame: first person down a lit, cold warehouse aisle with crates and shelving, an armed opponent in the aisle, a pistol and hand lower right, a crosshair and a round score HUD. */
 function Arena(): ReactNode {
+  const ink = '#0f2330'
+  const crate = (x: number, y: number, w: number, h: number, key: string) => (
+    <g key={key}>
+      <rect x={x} y={y} width={w} height={h} fill="#c98f4f" stroke={ink} strokeWidth={1.200} />
+      <rect x={x} y={y} width={w} height={3} fill="#e6b678" />
+      <path d={`M${x} ${y + 3} L${x + w} ${y + h} M${x + w} ${y + 3} L${x} ${y + h}`} stroke="#8a5a2a" strokeWidth={1} />
+    </g>
+  )
   return (
     <>
-      <rect width={W} height={H} fill="#0d1a24" />
-      <polygon points="0,0 160,0 108,34 52,34" fill="#10202c" />
-      <polygon points="0,90 160,90 108,50 52,50" fill="#1b3446" />
-      <polygon points="0,0 52,34 52,50 0,90" fill="#142a39" />
-      <polygon points="160,0 108,34 108,50 160,90" fill="#142a39" />
-      <rect x={52} y={34} width={56} height={16} fill="#2a4a60" />
-      <polygon points="40,0 120,0 112,12 48,12" fill="#bfe6ff" opacity={0.35} />
-      <g stroke="#6fa8c8" strokeWidth={1.4}>
-        <path d="M0 36 L52 41 M0 62 L52 47 M160 36 L108 41 M160 62 L108 47" />
+      <rect width={W} height={H} fill="#8fb3c7" />
+      <polygon points="0,0 160,0 112,30 48,30" fill="#e9f6ff" />
+      <polygon points="0,90 160,90 112,56 48,56" fill="#a9c5d4" />
+      <polygon points="0,0 48,30 48,56 0,90" fill="#6f94aa" />
+      <polygon points="160,0 112,30 112,56 160,90" fill="#6f94aa" />
+      <rect x={48} y={30} width={64} height={26} fill="#c4dcea" />
+      <rect x={60} y={32} width={40} height={24} fill="#dcecf5" />
+      <g stroke={ink} strokeWidth={1.200}><path d="M0 0 L48 30 M160 0 L112 30 M0 90 L48 56 M160 90 L112 56 M48 30 H112 V56 H48z" fill="none" /></g>
+      <polygon points="52,2 108,2 100,12 60,12" fill="#fff" opacity={0.9} />
+      <g stroke="#2f6f9a" strokeWidth={2.200}><path d="M0 34 L46 40 M0 58 L46 49 M160 34 L114 40 M160 58 L114 49" /></g>
+      <g fill="#f3b24a" stroke={ink} strokeWidth={1}>
+        <rect x={5} y={20} width={5} height={52} /><rect x={150} y={20} width={5} height={52} />
       </g>
-      <g stroke="#0d1a24" strokeWidth={1}><path d="M18 10 V80 M34 22 V66 M142 10 V80 M126 22 V66" /></g>
-      <rect x={6} y={42} width={14} height={11} fill="#7a5a3c" /><rect x={126} y={44} width={16} height={12} fill="#7a5a3c" />
-      <rect x={6} y={42} width={14} height={2.5} fill="#9a7650" /><rect x={126} y={44} width={16} height={2.5} fill="#9a7650" />
-      <rect x={112} y={52} width={18} height={14} fill="#8a6644" /><rect x={112} y={52} width={18} height={3} fill="#a98255" />
-      <g>
-        <ellipse cx={80} cy={50} rx={9} ry={1.8} fill="#000" opacity={0.35} />
-        <rect x={74.5} y={32} width={11} height={16} rx={3} fill="#e58b3a" />
-        <circle cx={80} cy={28} r={4.6} fill="#e8b48f" />
-        <path d="M75.4 27 a4.6 4.6 0 0 1 9.2 0z" fill="#ff9a3c" />
-        <rect x={75} y={47} width={4.4} height={5} fill="#1b2430" /><rect x={81} y={47} width={4.4} height={5} fill="#1b2430" />
+      {crate(11, 44, 17, 16, 'a')}
+      {crate(11, 28, 14, 13, 'b')}
+      {crate(130, 46, 18, 16, 'c')}
+      {crate(53, 42, 13, 12, 'd')}
+      <ellipse cx={80} cy={55} rx={11} ry={2.200} fill="#000" opacity={0.3} />
+      <g stroke={ink} strokeWidth={1.200} strokeLinejoin="round">
+        <rect x={74} y={46} width={5} height={9} fill="#2b3a4a" /><rect x={81} y={46} width={5} height={9} fill="#2b3a4a" />
+        <rect x={73} y={30} width={14} height={18} rx={3} fill="#f58a2b" />
+        <path d="M73 33 L66 40 L74 44z" fill="#e8b48f" /><path d="M87 33 L96 37 L87 42z" fill="#e8b48f" />
+        <rect x={86} y={34} width={13} height={4} rx={1} fill="#3a3f48" />
+        <circle cx={80} cy={25} r={5.500} fill="#e8b48f" />
+        <path d="M74.500 24.500 a5.500 5.500 0 0 1 11 0z" fill="#2a2f38" />
       </g>
-      <g stroke="#9cff5a" strokeWidth={1.4} strokeLinecap="round"><path d="M80 52 v4 M80 62 v4 M69 59 h5 M86 59 h5" /></g>
-      <circle cx={80} cy={59} r={0.9} fill="#9cff5a" />
-      <path d="M96 90 L108 66 H126 L142 90z" fill="#e8b48f" />
-      <path d="M118 90 L120 66 H140 L148 90z" fill="#c9926c" opacity={0.6} />
-      <rect x={104} y={58} width={34} height={11} rx={2} fill="#4a5568" />
-      <rect x={104} y={58} width={34} height={3} fill="#718096" />
-      <rect x={98} y={60} width={8} height={4} fill="#2d3748" />
-      <rect x={116} y={67} width={11} height={14} rx={2} fill="#2d3748" />
-      <g transform="translate(80 83)">
-        <rect x={-24} y={-7} width={48} height={11} rx={3} fill="#000" opacity={0.6} />
-        <text x={-12} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={8} fontWeight={700} fill="#f2c94c">3</text>
-        <text x={0} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={6} fill="#fff">:</text>
-        <text x={12} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={8} fontWeight={700} fill="#7cc4ff">2</text>
+      <g stroke="#7dff4f" strokeWidth={1.600} strokeLinecap="round"><path d="M80 63 v4 M80 73 v4 M69 70 h5 M86 70 h5" /></g>
+      <circle cx={80} cy={70} r={0.9} fill="#7dff4f" />
+      <g stroke={ink} strokeWidth={1.400} strokeLinejoin="round">
+        <path d="M90 90 L104 68 H134 L152 90z" fill="#f0c19f" />
+        <path d="M100 82 L108 82 M110 78 L118 78" stroke="#c9926c" strokeWidth={1} />
+        <rect x={96} y={58} width={46} height={13} rx={2.500} fill="#4a5568" />
+        <rect x={96} y={58} width={46} height={4} rx={2} fill="#8793a5" />
+        <rect x={90} y={61} width={8} height={5} fill="#2d3748" />
+        <path d="M118 70 L132 70 L136 86 L121 86z" fill="#2d3748" />
+      </g>
+      <g transform="translate(60 80)">
+        <rect width={28} height={9} rx={4.500} fill="#0b1620" opacity={0.85} />
+        <text x={8} y={7.200} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={7.500} fontWeight={700} fill="#f2c94c">3</text>
+        <text x={14} y={7} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={6} fill="#fff">:</text>
+        <text x={20} y={7.200} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={7.500} fontWeight={700} fill="#7cc4ff">2</text>
       </g>
     </>
   )

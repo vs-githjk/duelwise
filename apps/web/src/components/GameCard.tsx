@@ -66,7 +66,7 @@ export function GameCard({ card, week, playable }: GameCardProps) {
       <div className="grid gap-2 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="grid gap-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <h3 className="font-display text-display-sm">{cfg.displayName}</h3>
               {cfg.devices === 'desktop' && <span className="rounded-full bg-peach-soft px-2.5 py-0.5 font-mono text-xs font-medium uppercase tracking-wider text-peach-deep">Phone and desktop</span>}
               {card.learnsFromHumans && <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-xs font-semibold text-good-ink" data-testid={`learns-chip-${id}`}>Learns from you</span>}
