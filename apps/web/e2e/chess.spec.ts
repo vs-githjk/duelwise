@@ -211,3 +211,45 @@ test.describe('Chess play page', () => {
     expect(await pieceAt(page, 'e4').evaluate((e) => (e as HTMLElement).style.transform)).toBe('')
   })
 })
+
+test.describe('Chess tap to move on a phone (real touch)', () => {
+  test.use({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true })
+
+  const touch = async (page: Page, name: string) => {
+    const box = (await sq(page, name).boundingBox())!
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+  }
+
+  test('tap a piece, see its moves, tap a square; switching, deselecting and a second move all work', async ({ page }) => {
+    await start(page, '?seed=7')
+    await touch(page, 'e2')
+    await expect(sq(page, 'e2')).toHaveAttribute('data-selected', '')
+    await expect(page.locator('[data-testid="hint"]')).toHaveCount(2)
+    // Another own piece switches the selection.
+    await touch(page, 'g1')
+    await expect(sq(page, 'e2')).not.toHaveAttribute('data-selected', '')
+    await expect(sq(page, 'g1')).toHaveAttribute('data-selected', '')
+    await expect(sq(page, 'f3').getByTestId('hint')).toHaveCount(1)
+    // The same piece again clears it.
+    await touch(page, 'g1')
+    await expect(page.locator('[data-selected]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="hint"]')).toHaveCount(0)
+    // An empty square that is not a target clears it too.
+    await touch(page, 'g1')
+    await touch(page, 'e5')
+    await expect(page.locator('[data-selected]')).toHaveCount(0)
+    // First move by tapping, exactly one move is made.
+    await touch(page, 'e2')
+    await touch(page, 'e4')
+    await expect(pieceAt(page, 'e4')).toHaveCount(1)
+    await expect(pieceAt(page, 'e2')).toHaveCount(0)
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    await expect(board(page)).toHaveAttribute('data-plies', '2')
+    // Second move.
+    await touch(page, 'g1')
+    await touch(page, 'f3')
+    await expect(pieceAt(page, 'f3')).toHaveCount(1)
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    await expect(board(page)).toHaveAttribute('data-plies', '4')
+  })
+})
