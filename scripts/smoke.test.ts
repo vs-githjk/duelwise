@@ -10,6 +10,7 @@ function fakeFetch(calls: Call[], overrides: Record<string, Response> = {}): typ
     const url = String(input)
     const method = init?.method ?? 'GET'
     calls.push({ url, method })
+    if ((init?.headers as Record<string, string> | undefined)?.['x-dw-test'] !== '1') throw new Error(`no test marker on ${method} ${url}`)
     const path = new URL(url).pathname
     if (overrides[`${method} ${path}`]) return overrides[`${method} ${path}`]!.clone()
     if (method === 'POST' && path === '/api/finish') {

@@ -46,13 +46,13 @@ export async function existingGuestId(db: Db, cookieHeader: string | null | unde
  * Finds the guest named by the cookie, or creates one. The cookie is only a pointer: an id that is
  * not in the guest table is ignored and replaced, so a forged cookie cannot claim anyone's matches.
  */
-export async function resolveGuest(db: Db, cookieHeader: string | null | undefined, secure = false): Promise<GuestResolution> {
+export async function resolveGuest(db: Db, cookieHeader: string | null | undefined, secure = false, traffic: 'human' | 'test' | null = null): Promise<GuestResolution> {
   const existing = readCookie(cookieHeader, GUEST_COOKIE)
   if (existing && /^[0-9a-f-]{36}$/.test(existing)) {
     const row = (await db.select({ id: schema.guest.id }).from(schema.guest).where(eq(schema.guest.id, existing)).limit(1))[0]
     if (row) return { id: row.id, created: false }
   }
   const id = crypto.randomUUID()
-  await db.insert(schema.guest).values({ id, trainingAllowed: defaultTrainingAllowed() })
+  await db.insert(schema.guest).values({ id, trainingAllowed: defaultTrainingAllowed(), traffic })
   return { id, created: true, setCookie: guestCookieHeader(id, secure) }
 }

@@ -1,5 +1,6 @@
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
-import type { DriftAlert, DriftRow, OwnerView } from '../../server/telemetry-stats'
+import type { ReactNode } from 'react'
+import type { DriftAlert, DriftRow, Kpis, OwnerView, OwnerViewBody } from '../../server/telemetry-stats'
 import { Avatar } from '../../personas/Avatar'
 import { LineChart } from '../charts/LineChart'
 import { LEVEL_NAME, pct, signed } from '../charts/format'
@@ -10,28 +11,36 @@ import { DEVICE_NAME, clock } from './format'
 const LEVEL_COLOR: Record<Level, string> = { easy: 'var(--level-1)', medium: 'var(--level-2)', hard: 'var(--level-3)', champion: 'var(--level-4)' }
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 
-function Tile({ label, value, sub, subTone, series, testId, small }: { label: string; value: string; sub: string; subTone?: 'bad' | 'good'; series: Array<number | null>; testId: string; small?: boolean }) {
+function Tile({ label, value, sub, subTone, series, testId, small, parts }: { label: string; value: string; sub: string; subTone?: 'bad' | 'good'; series: Array<number | null>; testId: string; small?: boolean; parts?: ReactNode }) {
   return (
     <div className="grid min-w-0 content-start gap-1 rounded-card border border-line bg-surface p-4 shadow-card" data-testid={testId}>
       <p className="text-sm text-muted">{label}</p>
-      <p className={cn('font-display tabular', small ? 'text-display-sm' : 'text-display-md')}>{value}</p>
+      <p className={cn('font-display tabular', small ? 'text-display-sm' : 'text-display-md')}>{value}<span className="ml-2 font-sans text-sm font-semibold text-muted">Human</span></p>
       <p className={cn('text-sm', subTone === 'bad' ? 'text-bad-ink' : subTone === 'good' ? 'text-good-ink' : 'text-muted')}>{sub}</p>
+      {parts ? <p className="text-xs text-muted" data-testid={`${testId}-parts`}>{parts}</p> : null}
       <Sparkline values={series} />
     </div>
   )
 }
 
-export function KpiRow({ v }: { v: OwnerView }) {
-  const k = v.kpis
+/** The headline row: every tile is the human number, with the owner, test and total beside it (they are never mixed into the headline). */
+export function KpiRow({ v }: { v: OwnerViewBody }) {
+  const k = v.kpisBy.human
+  const by = v.kpisBy
+  const parts = (f: (k: Kpis) => string): ReactNode => (
+    <>Owner <b className="font-semibold text-ink">{f(by.owner)}</b> · Test <b className="font-semibold text-ink">{f(by.test)}</b> · Total <b className="font-semibold text-ink">{f(by.total)}</b></>
+  )
+  const rate = (r: number | null) => (r === null ? '-' : pct(r, 0))
   const delta = k.matches.previous > 0 ? Math.round(((k.matches.value - k.matches.previous) / k.matches.previous) * 100) : null
   const abandonDelta = k.ending.abandon !== null && k.ending.abandonPrevious !== null ? Math.round((k.ending.abandon - k.ending.abandonPrevious) * 100) : null
   const games = k.medianMs.byGame.slice(0, 2).map((g) => `${PRODUCT.games[g.game].displayName} ${clock(g.medianMs)}`).join(', ')
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="owner-kpis">
-      <Tile testId="kpi-players" label="Players" value={String(k.players.value)} sub={`${k.players.newCount} new, ${k.players.returning} returning`} series={k.players.series} />
+      <Tile testId="kpi-players" label="Players" parts={parts((x) => String(x.players.value))} value={String(k.players.value)} sub={`${k.players.newCount} new, ${k.players.returning} returning`} series={k.players.series} />
       <Tile
         testId="kpi-matches"
         label="Matches"
+        parts={parts((x) => String(x.matches.value))}
         value={String(k.matches.value)}
         sub={delta === null ? 'no earlier period to compare' : `${signed(delta)}% vs the period before`}
         subTone={delta !== null && delta > 0 ? 'good' : undefined}
@@ -40,15 +49,17 @@ export function KpiRow({ v }: { v: OwnerView }) {
       <Tile
         testId="kpi-ai-win"
         label="AI win rate"
+        parts={parts((x) => `${rate(x.aiWin.rate)} of ${x.aiWin.rated}`)}
         value={k.aiWin.rate === null ? '-' : pct(k.aiWin.rate, 0)}
         sub={k.aiWin.humans === null ? 'no rated results' : `humans ${pct(k.aiWin.humans, 0)}, draws ${pct(k.aiWin.draws ?? 0, 0)}`}
         series={k.aiWin.series}
       />
-      <Tile testId="kpi-median" label="Median match" value={clock(k.medianMs.value)} sub={games || 'no finished matches'} series={k.medianMs.series} />
+      <Tile testId="kpi-median" label="Median match" parts={parts((x) => clock(x.medianMs.value))} value={clock(k.medianMs.value)} sub={games || 'no finished matches'} series={k.medianMs.series} />
       <Tile
         testId="kpi-ending"
         small
         label="Abandon / resign"
+        parts={parts((x) => (x.ending.abandon === null ? '-' : `${pct(x.ending.abandon, 0)}/${pct(x.ending.resign ?? 0, 0)}`))}
         value={k.ending.abandon === null ? '-' : `${pct(k.ending.abandon, 1)} / ${pct(k.ending.resign ?? 0, 1)}`}
         sub={abandonDelta === null ? 'no earlier period to compare' : `abandon ${signed(abandonDelta)} pts`}
         subTone={abandonDelta !== null && abandonDelta > 0 ? 'bad' : undefined}
@@ -57,6 +68,7 @@ export function KpiRow({ v }: { v: OwnerView }) {
       <Tile
         testId="kpi-optout"
         label="Training opt-out"
+        parts={parts((x) => (x.optOut.players === 0 ? '-' : pct(x.optOut.optedOut / x.optOut.players, 0)))}
         value={k.optOut.players === 0 ? '-' : pct(k.optOut.optedOut / k.optOut.players, 1)}
         sub={`${k.optOut.optedOut} of ${k.optOut.players} players`}
         series={k.optOut.series}
@@ -217,7 +229,7 @@ export function DevicesPanel({ v }: { v: OwnerView }) {
       <div className="grid gap-2">
         <h3 className="font-semibold">Devices</h3>
         <ul className="grid gap-2" data-testid="owner-device-list">
-          {v.devices.filter((d) => d.device !== 'unknown' || d.count > 0).map((d) => (
+          {v.devices.filter((d) => (d.device !== 'unknown' && d.device !== 'headless') || d.count > 0).map((d) => (
             <BarRow key={d.device} label={DEVICE_NAME[d.device] ?? d.device} share={d.share} count={d.count} tone="var(--action)" />
           ))}
         </ul>

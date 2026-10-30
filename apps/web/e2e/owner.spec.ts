@@ -55,7 +55,8 @@ test.describe('owner dashboard', () => {
     const { context, page } = await signedIn(browser, baseURL!, OWNER_NAME)
     await playAndResign(page)
 
-    const res = await page.goto('/owner')
+    // The e2e runs send the test marker and the owner plays as the owner, so the panels are looked at with every class shown.
+    const res = await page.goto('/owner?who=all')
     expect(res!.status()).toBe(200)
     await expect(page.getByTestId('owner-page')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Observability' })).toBeVisible()
@@ -64,7 +65,10 @@ test.describe('owner dashboard', () => {
       await expect(page.getByTestId(id)).toBeVisible()
     }
     await expect(page.getByTestId('drift-easy')).toBeVisible()
-    expect(Number(await page.getByTestId('kpi-matches').locator('p').nth(1).textContent())).toBeGreaterThanOrEqual(2)
+    const matchParts = (await page.getByTestId('kpi-matches-parts').textContent()) ?? ''
+    expect(Number(/Total (\d+)/.exec(matchParts)![1])).toBeGreaterThanOrEqual(2)
+    expect(Number(/Owner (\d+)/.exec(matchParts)![1])).toBeGreaterThanOrEqual(1)
+    expect(Number(/Test (\d+)/.exec(matchParts)![1])).toBeGreaterThanOrEqual(1)
     await expect(page.getByTestId('owner-empty')).toHaveCount(0)
 
     const rows = page.getByTestId('recent-row')

@@ -27,7 +27,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
-  use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure', storageState: guidesSeen },
+  // Every e2e request carries the test marker, so the owner page counts these runs as test traffic.
+  use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure', storageState: guidesSeen, extraHTTPHeaders: { 'x-dw-test': '1' } },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: `bun run dev`,

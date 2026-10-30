@@ -5,6 +5,10 @@ import { existingGuestId, resolveGuest } from './guest'
 import { cookieSecure } from './origin'
 import { userOrNull } from './safe-user'
 import type { Caller } from './match-handlers'
+import { isOwner } from './telemetry'
+import { isTestRequest, requestTraffic, TEST_HEADER } from './traffic'
+import * as schema from '../db/schema'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 
 let auth: ReturnType<typeof createAuth> | null = null
 
@@ -29,11 +33,25 @@ export async function getSessionUser() {
 export async function callerFromRequest(): Promise<Caller> {
   const user = await getSessionUser()
   const { db } = await getServerDb()
+  const facts = { userAgent: getRequestHeader('user-agent'), cookie: getRequestHeader('cookie'), testHeader: getRequestHeader(TEST_HEADER) }
+  const owner = isOwner(user, { OWNER_EMAILS: process.env.OWNER_EMAILS })
+  const traffic = requestTraffic({ ...facts, owner })
   // A signed-in user keeps the browser's existing guest id, so an opt-out made as a guest still applies.
-  if (user) return { userId: user.id, guestId: await existingGuestId(db, getRequestHeader('cookie')) }
-  const g = await resolveGuest(db, getRequestHeader('cookie'), cookieSecure(process.env))
+  if (user) {
+    const guestId = await existingGuestId(db, getRequestHeader('cookie'))
+    // The guest this owner browsed as before signing in is the owner's too (first seen on the owner's device).
+    if (owner && guestId) {
+      await db
+        .update(schema.guest)
+        .set({ traffic: 'owner' })
+        .where(and(eq(schema.guest.id, guestId), or(isNull(schema.guest.traffic), inArray(schema.guest.traffic, ['human']))))
+        .catch(() => {})
+    }
+    return { userId: user.id, guestId, traffic }
+  }
+  const g = await resolveGuest(db, getRequestHeader('cookie'), cookieSecure(process.env), isTestRequest(facts) ? 'test' : 'human')
   if (g.setCookie) setResponseHeader('set-cookie', g.setCookie)
-  return { guestId: g.id }
+  return { guestId: g.id, traffic }
 }
 
 /** Like callerFromRequest, but never creates a guest or sets a cookie: for read-only pages that only want to know who is looking. */

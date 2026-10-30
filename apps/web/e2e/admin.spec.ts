@@ -51,15 +51,18 @@ test.describe('owner admin: people, drill-down and activity', () => {
 
     // Totals: both dev accounts exist, so at least two players; two 14-day charts with 14 bars each.
     await expect(page.getByTestId('admin-totals')).toBeVisible()
-    expect(Number(await page.getByTestId('admin-total-count').textContent())).toBeGreaterThanOrEqual(2)
+    expect(Number(await page.getByTestId('admin-total-count').getAttribute('data-total'))).toBeGreaterThanOrEqual(2)
     await expect(page.getByTestId('admin-new-bars').locator('[title]')).toHaveCount(14)
     await expect(page.getByTestId('admin-matches-bars').locator('[title]')).toHaveCount(14)
-    await expect(page.getByTestId('admin-game-four')).not.toHaveAttribute('data-count', '0')
+    // The e2e runs send the test marker, so their matches are test traffic: not in the human count, in the total.
+    await expect(page.getByTestId('admin-game-four')).not.toHaveAttribute('data-total', '0')
+    await expect(page.getByTestId('admin-game-four')).not.toHaveAttribute('data-test', '0')
 
     // People table: the player is listed with a match and the type, and the search narrows it.
     const row = page.getByTestId('person-row').filter({ hasText: 'e2e-adm-player' })
     await expect(row).toHaveCount(1)
     await expect(row).toContainText('signed in')
+    await expect(row.getByTestId('traffic-tag')).toHaveAttribute('data-traffic', 'test')
     expect(Number(await row.locator('td').nth(4).textContent())).toBeGreaterThanOrEqual(1)
     await expect(row.getByTestId('admin-ref')).toHaveText(/account pl_[0-9a-f]{8}/)
     await expect(page.getByTestId('admin-people')).not.toContainText('@')
@@ -133,6 +136,60 @@ test.describe('owner admin: people, drill-down and activity', () => {
     expect(overflow).toBeLessThanOrEqual(0)
     await page.getByTestId('person-card').first().click()
     await expect(page.getByTestId('player-sheet')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    await context.close()
+  })
+
+  test('the header shows an Owner link only to the owner, and /owner has a jump bar and active-player cards', async ({ browser, baseURL }) => {
+    const { context, page } = await signedIn(browser, baseURL!, OWNER_NAME)
+    await expect(page.getByTestId('header-owner')).toHaveAttribute('href', '/owner')
+    await page.getByTestId('header-owner').click()
+    await expect(page).toHaveURL(/\/owner$/)
+    await expect(page.getByTestId('owner-jump')).toBeVisible()
+    for (const id of ['active-dau', 'active-wau', 'active-mau', 'active-returning']) await expect(page.getByTestId(id)).toBeVisible()
+    await expect(page.getByTestId('active-spark')).toBeVisible()
+    // Each jump link lands on its section: the People card and the activity feed.
+    await page.getByTestId('jump-people').click()
+    await expect(page).toHaveURL(/#people$/)
+    await expect(page.locator('#people')).toBeInViewport()
+    await page.getByTestId('jump-activity').click()
+    await expect(page.locator('#activity')).toBeInViewport()
+    await page.getByTestId('jump-stats').click()
+    await expect(page.locator('#stats')).toBeInViewport()
+    // The bar stays on screen after scrolling down.
+    await page.locator('#activity').scrollIntoViewIfNeeded()
+    await expect(page.getByTestId('owner-jump')).toBeInViewport()
+    // Every stat shows Human first with owner, test and total beside it, and the parts add up.
+    await page.getByTestId('jump-stats').click()
+    const parts = page.getByTestId('active-mau')
+    const n = async (a: string) => Number(await parts.getAttribute(a))
+    expect((await n('data-human')) + (await n('data-owner')) + (await n('data-test'))).toBe(await n('data-total'))
+    await expect(page.getByTestId('owner-counted')).toContainText('never write to this database')
+    // The lens switches the detailed panels; the URL carries it and the headline numbers stay.
+    await page.getByTestId('lens-all').click()
+    await expect(page).toHaveURL(/who=all/)
+    await expect(page.getByTestId('lens-all')).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByTestId('active-mau')).toBeVisible()
+    await context.close()
+
+    // A signed-in non-owner and a guest never get the link in their page.
+    const plain = await signedIn(browser, baseURL!, 'e2e-adm-nolink')
+    await expect(plain.page.getByTestId('header-owner')).toHaveCount(0)
+    expect(await plain.page.content()).not.toContain('header-owner')
+    await plain.context.close()
+    const anon = await browser.newContext({ baseURL: baseURL! })
+    const a = await anon.newPage()
+    await a.goto('/')
+    await expect(a.getByTestId('header-owner')).toHaveCount(0)
+    expect(await a.content()).not.toContain('header-owner')
+    await anon.close()
+  })
+
+  test('the jump bar and cards fit a phone with no horizontal scroll', async ({ browser, baseURL }) => {
+    const { context, page } = await signedIn(browser, baseURL!, OWNER_NAME, 390)
+    await page.goto('/owner')
+    await expect(page.getByTestId('active-dau')).toBeVisible()
+    await expect(page.getByTestId('owner-jump')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     await context.close()
   })

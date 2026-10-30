@@ -4,7 +4,8 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
-import { buildOwnerView, RANGE_MS, type EventRow, type OwnerView, type Range } from './telemetry-stats'
+import { buildOwnerView, RANGE_MS, type EventRow, type Lens, type OwnerViewBody, type Range } from './telemetry-stats'
+import { classCte } from './traffic-sql'
 
 type Db = PgDatabase<any, typeof schema>
 type Env = { OWNER_EMAILS?: string | undefined }
@@ -15,6 +16,8 @@ export interface OwnerParams {
   game: GameId | undefined
   level: Level | undefined
   page: number
+  /** Which traffic the panels show: humans by default. */
+  who: Lens
 }
 
 const NOT_FOUND: HandlerResponse<{ error: string }> = { status: 404, body: { error: 'not found' } }
@@ -28,7 +31,7 @@ export function parseOwnerParams(q: Record<string, unknown>): OwnerParams {
   const game = typeof q.game === 'string' && Object.prototype.hasOwnProperty.call(PRODUCT.games, q.game) ? (q.game as GameId) : undefined
   const level = q.level === 'easy' || q.level === 'medium' || q.level === 'hard' || q.level === 'champion' ? q.level : undefined
   const p = Number(q.page)
-  return { range, game, level, page: Number.isInteger(p) && p > 0 && p < 10_000 ? p : 0 }
+  return { range, game, level, page: Number.isInteger(p) && p > 0 && p < 10_000 ? p : 0, who: q.who === 'owner' || q.who === 'test' || q.who === 'all' ? q.who : 'human' }
 }
 
 /** The dashboard data for the owner; everyone else gets the same 404 as an address that does not exist. */
@@ -39,7 +42,7 @@ export async function ownerViewHandler(
   q: Record<string, unknown>,
   targetFor: (game: GameId, level: Level) => number | null,
   now: Date = new Date(),
-): Promise<HandlerResponse<OwnerView | { error: string }>> {
+): Promise<HandlerResponse<OwnerViewBody | { error: string }>> {
   if (!isOwner(user, env)) return NOT_FOUND
   const p = parseOwnerParams(q)
   const from = new Date(now.getTime() - 2 * RANGE_MS[p.range])
@@ -58,7 +61,21 @@ export async function ownerViewHandler(
     const ref = await playerRef('user', a.userId)
     if (!providers.has(ref)) providers.set(ref, a.providerId)
   }
-  return { status: 200, body: buildOwnerView({ events, firstSeen, providers, now, range: p.range, game: p.game, level: p.level, page: p.page, targetFor }) }
+  // Every event belongs to one class, the class of its player (a player is in exactly one), so the parts add up to the total.
+  const classRows = (await db.execute(sql`with ${classCte(env)} select ref, cls from pc`)) as unknown as { rows?: Array<{ ref: string; cls: string }> } | Array<{ ref: string; cls: string }>
+  const classOf = new Map((Array.isArray(classRows) ? classRows : (classRows.rows ?? [])).map((r) => [r.ref, r.cls]))
+  const clsOf = (e: EventRow): 'human' | 'owner' | 'test' => {
+    const c = classOf.get(e.playerRef)
+    return c === 'owner' || c === 'test' || c === 'human' ? c : e.device === 'headless' ? 'test' : 'human'
+  }
+  const view = (list: EventRow[]) => buildOwnerView({ events: list, firstSeen, providers, now, range: p.range, game: p.game, level: p.level, page: p.page, targetFor })
+  const by = (c: 'human' | 'owner' | 'test') => view(events.filter((e) => clsOf(e) === c))
+  const total = view(events)
+  const human = by('human')
+  const owner = by('owner')
+  const test = by('test')
+  const lens = p.who === 'human' ? human : p.who === 'owner' ? owner : p.who === 'test' ? test : total
+  return { status: 200, body: { ...lens, lastEventAt: total.lastEventAt, who: p.who, kpisBy: { human: human.kpis, owner: owner.kpis, test: test.kpis, total: total.kpis } } }
 }
 
 /**

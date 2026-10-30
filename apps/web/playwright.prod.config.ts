@@ -11,7 +11,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
-  use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
+  use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure', extraHTTPHeaders: { 'x-dw-test': '1' } },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'bun run build && bun scripts/serve-prod.ts',

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { cn } from '../../lib/cn'
 
-export function Card({ title, note, children, testId, className }: { title: string; note?: string; children: ReactNode; testId?: string; className?: string }) {
+export function Card({ title, note, children, testId, className, id }: { title: string; note?: string; children: ReactNode; testId?: string; className?: string; id?: string }) {
   return (
-    <section className={cn('grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5', className)} data-testid={testId}>
+    <section id={id} className={cn('scroll-mt-20 grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5', className)} data-testid={testId}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-display-sm">{title}</h2>
         {note ? <p className="text-sm text-muted">{note}</p> : null}

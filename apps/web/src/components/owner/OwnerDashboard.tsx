@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
-import type { OwnerView, Range } from '../../server/telemetry-stats'
+import type { Lens, OwnerViewBody, Range } from '../../server/telemetry-stats'
 import { revealOwnerEmails } from '../../server/telemetry-fns'
 import { cn } from '../../lib/cn'
 import { LEVEL_NAME } from '../charts/format'
@@ -10,12 +10,15 @@ import { DevicesPanel, DriftPanel, KpiRow, LengthPanel, PerGamePanel, WinsPanel 
 import { RecentPanel, WhoPlayedPanel } from './Tables'
 import { AdminSection } from './Admin'
 import { Card } from './Card'
+import { ActiveCards } from './ActiveUsers'
 
 export interface OwnerFilters {
   range: Range
   game: GameId | undefined
   level: Level | undefined
   page: number
+  /** Which traffic the detailed panels below the headline numbers draw from. The headline numbers always show every class. */
+  who: Lens
 }
 
 const RANGES: Array<{ id: Range; label: string }> = [
@@ -27,7 +30,7 @@ const STALE_MS = 5 * 60_000
 const REFRESH_MS = 60_000
 const control = 'inline-flex min-h-11 items-center rounded-control border border-line bg-surface px-3 text-base text-ink'
 
-export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerView; filters: OwnerFilters; onFilters: (f: Partial<OwnerFilters>) => void; onRefresh: () => void }) {
+export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerViewBody; filters: OwnerFilters; onFilters: (f: Partial<OwnerFilters>) => void; onRefresh: () => void }) {
   const [emails, setEmails] = useState<Record<string, string> | null>(null)
   const [asking, setAsking] = useState(false)
   const [revealError, setRevealError] = useState(false)
@@ -96,8 +99,22 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
   }
 
   return (
-    <div className="grid gap-4 py-8" data-testid="owner-page">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <div className="grid gap-4 pb-8" data-testid="owner-page">
+      <nav className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-x-4 border-b border-line bg-canvas/95 px-4 backdrop-blur md:-mx-10 md:px-10" aria-label="On this page" data-testid="owner-jump">
+        <ul className="flex items-center">
+          {[
+            ['stats', 'Stats'],
+            ['people', 'People'],
+            ['activity', 'Activity'],
+          ].map(([id, label], i) => (
+            <li key={id} className="flex items-center">
+              {i > 0 ? <span aria-hidden className="text-muted">·</span> : null}
+              <a href={`#${id}`} className="inline-flex min-h-11 items-center px-3 font-semibold hover:underline" data-testid={`jump-${id}`}>{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <header id="stats" className="flex scroll-mt-20 flex-wrap pt-4 items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-display-md">Observability</h1>
           <span className="inline-flex h-7 items-center rounded-full border border-line px-3 text-sm text-muted">owner only</span>
@@ -137,17 +154,31 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
         </div>
       ) : null}
 
+      <p className="text-sm text-muted" data-testid="owner-counted">
+        Every number shows the human count first, then Owner (your own games), Test (our automated runs) and Total; the parts always add up to the total. AI training games run on your own machine and never write to this database.
+      </p>
       <p className="text-sm text-muted" data-testid="owner-last-event">
         {v.lastEventAt ? `Last event ${ago(v.lastEventAt, v.generatedAt)}, at ${utcTime(v.lastEventAt)} UTC.` : 'No event has been recorded yet.'} Times are UTC. Numbers come from server events only; nothing is sent to a third party.
       </p>
 
       {v.empty ? (
-        <Card title="No matches yet" testId="owner-empty">
-          <p className="max-w-prose text-muted">Numbers appear after the first match in this period. Share the link and come back; this page refreshes itself every minute.</p>
+        <Card title={filters.who === 'all' ? 'No matches yet' : `No ${filters.who} matches yet`} testId="owner-empty">
+          <p className="max-w-prose text-muted">Numbers appear after the first match in this period (the headline numbers above show every class). Share the link and come back; this page refreshes itself every minute.</p>
         </Card>
       ) : null}
 
+      <ActiveCards />
       <KpiRow v={v} />
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Traffic shown in the panels below" data-testid="owner-lens">
+        <span className="text-sm text-muted">Panels below show</span>
+        <div className="inline-flex overflow-hidden rounded-control border border-line">
+          {(['human', 'owner', 'test', 'all'] as const).map((w) => (
+            <button key={w} type="button" aria-pressed={filters.who === w} className={cn('inline-flex min-h-11 items-center px-3 text-base capitalize', filters.who === w ? 'bg-ink text-canvas' : 'bg-surface text-ink')} onClick={() => onFilters({ who: w, page: 0 })} data-testid={`lens-${w}`}>
+              {w}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <DriftPanel v={v} />
         <WinsPanel v={v} />

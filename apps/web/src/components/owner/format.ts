@@ -24,7 +24,7 @@ export function utcTime(iso: string): string {
 
 const PROVIDER: Record<string, string> = { google: 'Google', github: 'GitHub', credential: 'Email' }
 export const providerName = (p: string | null): string => (p ? (PROVIDER[p] ?? p) : 'Guest')
-export const DEVICE_NAME: Record<string, string> = { desktop: 'Desktop', phone: 'Phone', tablet: 'Tablet', unknown: 'Unknown' }
+export const DEVICE_NAME: Record<string, string> = { desktop: 'Desktop', phone: 'Phone', tablet: 'Tablet', headless: 'Test (headless)', unknown: 'Unknown' }
 
 const cell = (v: string | number | null) => {
   const s = v === null ? '' : String(v)

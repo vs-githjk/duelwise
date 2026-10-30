@@ -13,6 +13,7 @@ import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { deviceClass, recordEvent } from './telemetry'
 import { takeTicket } from './tickets'
+import type { Traffic } from './traffic'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -26,6 +27,8 @@ const LEVELS: readonly string[] = ['easy', 'medium', 'hard', 'champion']
 export interface Caller {
   userId?: string
   guestId?: string
+  /** Who the request came from (owner, test or human), written onto the match row. Unset where the request is not known (tests, scripts). */
+  traffic?: Traffic
 }
 
 export interface HandlerResponse<T = unknown> {
@@ -155,6 +158,7 @@ export async function issueMatchRow(
     agentVersion,
     level,
     seed,
+    traffic: who.traffic ?? null,
     status: row.status ?? 'started',
     trainingAllowed,
     ...(row.filterFlags ? { filterFlags: row.filterFlags } : {}),

@@ -72,7 +72,7 @@ export interface OwnerViewInput {
 export interface Kpis {
   players: { value: number; newCount: number; returning: number; series: Array<number | null> }
   matches: { value: number; previous: number; series: Array<number | null> }
-  aiWin: { rate: number | null; humans: number | null; draws: number | null; series: Array<number | null> }
+  aiWin: { rated: number; rate: number | null; humans: number | null; draws: number | null; series: Array<number | null> }
   medianMs: { value: number | null; byGame: Array<{ game: GameId; medianMs: number }>; series: Array<number | null> }
   ending: { abandon: number | null; resign: number | null; abandonPrevious: number | null; series: Array<number | null> }
   optOut: { optedOut: number; players: number; series: Array<number | null> }
@@ -153,6 +153,14 @@ export interface OwnerView {
   playersTotal: number
 }
 
+/** Which traffic the panels draw from: one class, or every class together. */
+export type Lens = 'human' | 'owner' | 'test' | 'all'
+/** The owner view for one lens, plus the headline numbers of every class so none is hidden. */
+export interface OwnerViewBody extends OwnerView {
+  who: Lens
+  kpisBy: Record<'human' | 'owner' | 'test' | 'total', Kpis>
+}
+
 const share = (a: number, b: number): number | null => (b > 0 ? a / b : null)
 
 function median(xs: number[]): number | null {
@@ -181,6 +189,7 @@ function kpiSet(rows: EventRow[], newSince: (ref: string) => boolean) {
     players: players.size,
     newCount: [...players].filter(newSince).length,
     matches: rows.filter((e) => e.kind === 'match_started').length,
+    rated: ratedRows.length,
     aiWin: share(ai, ratedRows.length),
     humans: share(humans, ratedRows.length),
     draws: share(draws, ratedRows.length),
@@ -242,7 +251,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
   const kpis: Kpis = {
     players: { value: k.players, newCount: k.newCount, returning: k.players - k.newCount, series: per.map((p) => p.players) },
     matches: { value: k.matches, previous: kp.matches, series: per.map((p) => p.matches) },
-    aiWin: { rate: k.aiWin, humans: k.humans, draws: k.draws, series: per.map((p) => p.aiWin) },
+    aiWin: { rated: k.rated, rate: k.aiWin, humans: k.humans, draws: k.draws, series: per.map((p) => p.aiWin) },
     medianMs: { value: k.medianMs, byGame: byGameMedian, series: per.map((p) => p.medianMs) },
     ending: { abandon: k.abandon, resign: k.resign, abandonPrevious: kp.abandon, series: per.map((p) => p.abandon) },
     optOut: { optedOut: k.optedOut, players: k.players, series: per.map((p) => (p.players > 0 ? p.optedOut / p.players : null)) },
@@ -289,7 +298,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
     return { game, medianMs: median(ds), bins }
   })
 
-  const deviceOrder = ['desktop', 'phone', 'tablet', 'unknown']
+  const deviceOrder = ['desktop', 'phone', 'tablet', 'headless', 'unknown']
   const devices = deviceOrder.map((device) => {
     const c = started.filter((e) => e.device === device).length
     return { device, count: c, share: started.length > 0 ? c / started.length : 0 }

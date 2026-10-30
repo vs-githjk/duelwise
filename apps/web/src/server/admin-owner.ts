@@ -6,6 +6,8 @@ import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
+import { addTo, classCte, emptySplit, MATCH_PID, type Split } from './traffic-sql'
+import type { Traffic } from './traffic'
 
 /**
  * The owner's people-and-activity views: totals, a People table, one player's history and the latest finished matches.
@@ -42,12 +44,17 @@ export interface DayCount {
   day: string
   count: number
 }
+/** One UTC day, broken down by traffic class; human + owner + test = total. */
+export interface DaySplit extends Split {
+  day: string
+}
+export type { Split } from './traffic-sql'
 export interface AdminOverview {
   generatedAt: string
-  players: { total: number; guests: number; accounts: number }
-  newPerDay: DayCount[]
-  matchesPerDay: DayCount[]
-  matchesPerGame: Array<{ game: GameId; count: number }>
+  players: { all: Split; guests: Split; accounts: Split }
+  newPerDay: DaySplit[]
+  matchesPerDay: DaySplit[]
+  matchesPerGame: Array<{ game: GameId } & Split>
   feed: FeedRow[]
 }
 export type MatchView = 'won' | 'lost' | 'draw'
@@ -57,6 +64,7 @@ export interface FeedRow {
   kind: 'guest' | 'user'
   name: string
   hidden: boolean
+  traffic: Traffic
   game: GameId
   level: Level
   result: MatchView
@@ -72,10 +80,13 @@ export interface PersonRow {
   perGame: Partial<Record<GameId, number>>
   winsByLevel: Record<Level, number>
   hidden: boolean
+  traffic: Traffic
 }
 export interface PeoplePage {
   rows: PersonRow[]
   total: number
+  /** The same total broken down by class (it ignores the page, not the search). */
+  totalBy: Split
   page: number
   pageSize: number
 }
@@ -98,6 +109,7 @@ export interface PlayerDetail {
   kind: 'guest' | 'user'
   name: string
   hidden: boolean
+  traffic: Traffic
   joinedAt: string
   lastSeenAt: string
   matches: HistoryRow[]
@@ -129,12 +141,13 @@ export function viewOf(result: { winner: 0 | 1 | null } | null, record: Uint8Arr
 }
 
 const dayKey = (d: Date) => d.toISOString().slice(0, 10)
-/** One entry per UTC day for the last `days` days, oldest first, with zero for quiet days. */
-function fillDays(rows: DayCount[], now: Date, days: number): DayCount[] {
-  const by = new Map(rows.map((r) => [r.day, r.count]))
+/** One entry per UTC day for the last `days` days, oldest first, with zeros for quiet days. */
+function fillSplits(rows: Array<{ day: string; cls: string; count: number }>, now: Date, days: number): DaySplit[] {
+  const by = new Map<string, Split>()
+  for (const r of rows) addTo(by.get(r.day) ?? by.set(r.day, emptySplit()).get(r.day)!, r.cls, Number(r.count))
   return Array.from({ length: days }, (_, i) => {
     const day = dayKey(new Date(now.getTime() - (days - 1 - i) * DAY_MS))
-    return { day, count: by.get(day) ?? 0 }
+    return { day, ...(by.get(day) ?? emptySplit()) }
   })
 }
 
@@ -159,7 +172,7 @@ async function labelsFor(db: Db, userIds: string[], guestIds: string[]): Promise
   return out
 }
 
-/** Totals, trends for the last 14 days and the latest 50 finished matches. */
+/** Totals, trends for the last 14 days and the latest 50 finished matches, every count broken down by traffic class. */
 export async function adminOverviewHandler(
   db: Db,
   user: SessionUser,
@@ -170,16 +183,22 @@ export async function adminOverviewHandler(
   const from = new Date(now.getTime() - (TREND_DAYS - 1) * DAY_MS)
   from.setUTCHours(0, 0, 0, 0)
   const fromIso = from.toISOString()
-  const [totalRow, newRows, dayRows, gameRows, feedRows] = await Promise.all([
-    db.execute(sql`select (select count(*) from guest)::int as guests, (select count(*) from "user")::int as accounts`),
+  const cte = classCte(env)
+  const [playerRows, newRows, dayRows, gameRows, feedRows] = await Promise.all([
+    db.execute(sql`with ${cte} select left(pid, 1) as k, cls, count(*)::int as n from pc group by 1, 2`),
     db.execute(sql`
-      select to_char(d at time zone 'UTC', 'YYYY-MM-DD') as day, count(*)::int as count
-      from (select created_at as d from guest where created_at >= ${fromIso}::timestamptz union all select created_at from "user" where created_at >= ${fromIso}::timestamptz) x
-      group by 1`),
+      with ${cte}
+      select to_char(created at time zone 'UTC', 'YYYY-MM-DD') as day, cls, count(*)::int as count
+      from pc where created >= ${fromIso}::timestamptz group by 1, 2`),
     db.execute(sql`
-      select to_char(finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, count(*)::int as count
-      from match where status = 'finished' and finished_at >= ${fromIso}::timestamptz group by 1`),
-    db.execute(sql`select game, count(*)::int as count from match where status = 'finished' group by game`),
+      with ${cte}
+      select to_char(m.finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, coalesce(pc.cls, 'human') as cls, count(*)::int as count
+      from match m left join pc on pc.pid = ${MATCH_PID}
+      where m.status = 'finished' and m.finished_at >= ${fromIso}::timestamptz group by 1, 2`),
+    db.execute(sql`
+      with ${cte}
+      select m.game, coalesce(pc.cls, 'human') as cls, count(*)::int as count
+      from match m left join pc on pc.pid = ${MATCH_PID} where m.status = 'finished' group by 1, 2`),
     db
       .select({
         id: schema.match.id,
@@ -196,12 +215,16 @@ export async function adminOverviewHandler(
       .orderBy(desc(schema.match.finishedAt))
       .limit(FEED_SIZE),
   ])
-  const t = rowsOf<{ guests: number; accounts: number }>(totalRow)[0] ?? { guests: 0, accounts: 0 }
-  const labels = await labelsFor(
-    db,
-    [...new Set(feedRows.flatMap((r) => (r.userId ? [r.userId] : [])))],
-    [...new Set(feedRows.flatMap((r) => (!r.userId && r.guestId ? [r.guestId] : [])))],
-  )
+  const players = { all: emptySplit(), guests: emptySplit(), accounts: emptySplit() }
+  for (const r of rowsOf<{ k: string; cls: string; n: number }>(playerRows)) {
+    addTo(players.all, r.cls, Number(r.n))
+    addTo(r.k === 'u' ? players.accounts : players.guests, r.cls, Number(r.n))
+  }
+  const gameSplit = new Map<string, Split>()
+  for (const r of rowsOf<{ game: string; cls: string; count: number }>(gameRows)) addTo(gameSplit.get(r.game) ?? gameSplit.set(r.game, emptySplit()).get(r.game)!, r.cls, Number(r.count))
+  const feedUsers = [...new Set(feedRows.flatMap((r) => (r.userId ? [r.userId] : [])))]
+  const feedGuests = [...new Set(feedRows.flatMap((r) => (!r.userId && r.guestId ? [r.guestId] : [])))]
+  const [labels, classes] = await Promise.all([labelsFor(db, feedUsers, feedGuests), classesOf(db, env, [...feedUsers.map((i) => `u:${i}`), ...feedGuests.map((i) => `g:${i}`)])])
   const feed: FeedRow[] = []
   for (const r of feedRows) {
     const result = viewOf(r.result, r.record)
@@ -210,17 +233,82 @@ export async function adminOverviewHandler(
     const id = r.userId ?? r.guestId
     if (!id) continue
     const label = labels.get(`${r.userId ? 'u' : 'g'}:${id}`)
-    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, game: r.game, level: r.level, result, at: r.finishedAt.toISOString() })
+    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human', game: r.game, level: r.level, result, at: r.finishedAt.toISOString() })
   }
   const body: AdminOverview = {
     generatedAt: now.toISOString(),
-    players: { total: Number(t.guests) + Number(t.accounts), guests: Number(t.guests), accounts: Number(t.accounts) },
-    newPerDay: fillDays(rowsOf<DayCount>(newRows).map((r) => ({ day: r.day, count: Number(r.count) })), now, TREND_DAYS),
-    matchesPerDay: fillDays(rowsOf<DayCount>(dayRows).map((r) => ({ day: r.day, count: Number(r.count) })), now, TREND_DAYS),
-    matchesPerGame: GAMES.map((game) => ({ game, count: Number(rowsOf<{ game: string; count: number }>(gameRows).find((g) => g.game === game)?.count ?? 0) })),
+    players,
+    newPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(newRows), now, TREND_DAYS),
+    matchesPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, TREND_DAYS),
+    matchesPerGame: GAMES.map((game) => ({ game, ...(gameSplit.get(game) ?? emptySplit()) })),
     feed,
   }
   return { status: 200, body }
+}
+
+/** The class of each named player ('g:<id>' or 'u:<id>'). */
+async function classesOf(db: Db, env: Env, pids: string[]): Promise<Map<string, Traffic>> {
+  const out = new Map<string, Traffic>()
+  if (pids.length === 0) return out
+  const rows = await db.execute(sql`with ${classCte(env)} select pid, cls from pc where pid in (${sql.join(pids.map((p) => sql`${p}`), sql`, `)})`)
+  for (const r of rowsOf<{ pid: string; cls: Traffic }>(rows)) out.set(r.pid, r.cls)
+  return out
+}
+
+export const ACTIVE_DAYS = 30
+export interface ActiveUsers {
+  generatedAt: string
+  /** Distinct players with a finished match today (UTC), in the last 7 UTC days (today included) and in the last 30, by class. */
+  dau: Split
+  wau: Split
+  mau: Split
+  /** Players who finished matches on 2 or more distinct UTC days inside the 7-day and the 30-day window. */
+  returning7: Split
+  returning30: Split
+  /** Daily active players for each of the last 30 UTC days, oldest first. */
+  perDay: DaySplit[]
+}
+
+/**
+ * Active players from finished matches, guests and accounts together (a guest who later signs in can count twice), by traffic
+ * class. Two set-based statements, whatever the audience: one grouped by day, one grouped by player.
+ */
+export async function adminActiveHandler(
+  db: Db,
+  user: SessionUser,
+  env: Env,
+  now: Date = new Date(),
+): Promise<HandlerResponse<ActiveUsers | { error: string }>> {
+  if (!isOwner(user, env)) return NOT_FOUND
+  const today = dayKey(now)
+  const w7 = dayKey(new Date(now.getTime() - 6 * DAY_MS))
+  const w30 = dayKey(new Date(now.getTime() - (ACTIVE_DAYS - 1) * DAY_MS))
+  const cte = classCte(env)
+  const played = sql`
+    select ${MATCH_PID} as pid, coalesce(pc.cls, 'human') as cls, (m.finished_at at time zone 'UTC')::date as d
+    from match m left join pc on pc.pid = ${MATCH_PID}
+    where m.status = 'finished' and m.finished_at >= ${w30}::date::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
+  const [dayRows, totalRows] = await Promise.all([
+    db.execute(sql`with ${cte}, m2 as (${played}) select to_char(d, 'YYYY-MM-DD') as day, cls, count(distinct pid)::int as count from m2 group by d, cls`),
+    db.execute(sql`
+      with ${cte}, m2 as (${played}),
+      pp as (
+        select pid, cls, count(distinct d) filter (where d >= ${w7}::date)::int as d7, count(distinct d)::int as d30,
+          bool_or(d >= ${today}::date) as t, bool_or(d >= ${w7}::date) as w
+        from m2 group by pid, cls
+      )
+      select cls, (count(*) filter (where t))::int as dau, (count(*) filter (where w))::int as wau, count(*)::int as mau,
+        (count(*) filter (where d7 >= 2))::int as returning7, (count(*) filter (where d30 >= 2))::int as returning30
+      from pp group by cls`),
+  ])
+  const out = { dau: emptySplit(), wau: emptySplit(), mau: emptySplit(), returning7: emptySplit(), returning30: emptySplit() }
+  for (const r of rowsOf<Record<string, number | string>>(totalRows)) {
+    for (const k of ['dau', 'wau', 'mau', 'returning7', 'returning30'] as const) addTo(out[k], r.cls, Number(r[k] ?? 0))
+  }
+  return {
+    status: 200,
+    body: { generatedAt: now.toISOString(), ...out, perDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, ACTIVE_DAYS) },
+  }
 }
 
 const SORT_SQL: Record<PeopleSort, string> = { last: 'last_seen', joined: 'joined', matches: 'matches' }
@@ -251,21 +339,23 @@ export async function adminPeopleHandler(
   const order = sql.raw(`${SORT_SQL[p.sort]} ${p.dir} nulls last, kind, id`)
   const [pageRows, countRows] = await Promise.all([
     db.execute(sql`
-      with ${PEOPLE_CTE},
+      with ${classCte(env)}, ${PEOPLE_CTE},
       s as (
         select case when user_id is not null then 'u' else 'g' end as kind, coalesce(user_id, guest_id) as id,
           (count(*) filter (where status = 'finished'))::int as matches, max(coalesce(finished_at, started_at)) as last_played
         from match where coalesce(user_id, guest_id) is not null group by 1, 2
       )
-      select p.kind, p.id, p.name, p.show, p.joined, coalesce(s.matches, 0) as matches, greatest(p.joined, s.last_played) as last_seen
-      from p left join s on s.kind = p.kind and s.id = p.id
+      select p.kind, p.id, p.name, p.show, p.joined, coalesce(s.matches, 0) as matches, greatest(p.joined, s.last_played) as last_seen, coalesce(pc.cls, 'human') as cls
+      from p left join s on s.kind = p.kind and s.id = p.id left join pc on pc.pid = p.kind || ':' || p.id
       ${where}
       order by ${order}
       limit ${PEOPLE_PAGE_SIZE} offset ${p.page * PEOPLE_PAGE_SIZE}`),
-    db.execute(sql`with ${PEOPLE_CTE} select count(*)::int as n from p ${where}`),
+    db.execute(sql`with ${classCte(env)}, ${PEOPLE_CTE} select coalesce(pc.cls, 'human') as cls, count(*)::int as n from p left join pc on pc.pid = p.kind || ':' || p.id ${where} group by 1`),
   ])
-  const page = rowsOf<{ kind: 'g' | 'u'; id: string; name: string; show: boolean; joined: unknown; matches: number; last_seen: unknown }>(pageRows)
-  const total = Number(rowsOf<{ n: number }>(countRows)[0]?.n ?? 0)
+  const page = rowsOf<{ kind: 'g' | 'u'; id: string; name: string; show: boolean; joined: unknown; matches: number; last_seen: unknown; cls: Traffic }>(pageRows)
+  const totalBy = emptySplit()
+  for (const c of rowsOf<{ cls: string; n: number }>(countRows)) addTo(totalBy, c.cls, Number(c.n))
+  const total = totalBy.total
   const userIds = page.filter((r) => r.kind === 'u').map((r) => r.id)
   const guestIds = page.filter((r) => r.kind === 'g').map((r) => r.id)
   const mine = [...(userIds.length ? [inArray(schema.match.userId, userIds)] : []), ...(guestIds.length ? [and(isNull(schema.match.userId), inArray(schema.match.guestId, guestIds))] : [])]
@@ -299,9 +389,10 @@ export async function adminPeopleHandler(
       perGame,
       winsByLevel,
       hidden: r.show === false,
+      traffic: r.cls,
     })
   }
-  return { status: 200, body: { rows, total, page: p.page, pageSize: PEOPLE_PAGE_SIZE } }
+  return { status: 200, body: { rows, total, totalBy, page: p.page, pageSize: PEOPLE_PAGE_SIZE } }
 }
 
 /** Finds the guest or account behind a ref by hashing the ids of the asked kind (the ref is one-way). */
@@ -383,6 +474,7 @@ export async function adminPlayerHandler(
     kind: who.kind,
     name: label?.name ?? (who.kind === 'guest' ? guestLabel(who.id) : 'Player'),
     hidden: label?.hidden ?? false,
+    traffic: (await classesOf(db, env, [`${who.kind === 'user' ? 'u' : 'g'}:${who.id}`])).get(`${who.kind === 'user' ? 'u' : 'g'}:${who.id}`) ?? 'human',
     joinedAt: joinedAt.toISOString(),
     lastSeenAt: (newest > joinedAt ? newest : joinedAt).toISOString(),
     matches,

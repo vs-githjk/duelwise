@@ -24,6 +24,8 @@ export const guest = pgTable('guest', {
   displayName: text('display_name'),
   /** Guests opt out of the public board from Settings. Default shown. */
   showOnLeaderboard: boolean('show_on_leaderboard').notNull().default(true),
+  /** Who this player is, set when the row is made: 'test' (automated runs), 'owner' (first seen on the owner's device) or 'human'. Null on rows from before the column existed. */
+  traffic: text('traffic').$type<'human' | 'owner' | 'test'>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -108,6 +110,8 @@ export const match = pgTable(
   trainingAllowed: boolean('training_allowed').notNull().default(true),
   /** The level the player said they would reach before the match ("How far do you think you get?"): easy, medium, hard or champion. Null when none was given. */
   call: text('call'),
+  /** Who played it, set when the row is made: 'test' (automated runs), 'owner' (the site owner) or 'human'. Null on rows from before the column existed. */
+  traffic: text('traffic').$type<'human' | 'owner' | 'test'>(),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   },

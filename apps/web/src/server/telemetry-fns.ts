@@ -5,21 +5,21 @@ import { getSessionUser } from './caller'
 import { siteEloFor } from './matches'
 import { getServerDb } from './server-db'
 import { ownerViewHandler, revealEmailsHandler } from './telemetry-owner'
-import { humanTargetFromSiteElo, type OwnerView } from './telemetry-stats'
+import { humanTargetFromSiteElo, type OwnerViewBody } from './telemetry-stats'
 
 const targetFor = (game: GameId, level: Level) => humanTargetFromSiteElo(siteEloFor(game, level))
 
 /** The owner dashboard data, or null for anyone who is not on the OWNER_EMAILS allowlist (the route turns null into a 404). */
 export const getOwnerView = createServerFn({ method: 'GET' })
   .validator((d: unknown) => (typeof d === 'object' && d !== null ? (d as Record<string, unknown>) : {}))
-  .handler(async ({ data }): Promise<OwnerView | null> => {
+  .handler(async ({ data }): Promise<OwnerViewBody | null> => {
     const { db } = await getServerDb()
     const r = await ownerViewHandler(db, await getSessionUser(), { OWNER_EMAILS: process.env.OWNER_EMAILS }, data, targetFor)
     if (r.status !== 200) {
       setResponseStatus(404)
       return null
     }
-    return r.body as OwnerView
+    return r.body as OwnerViewBody
   })
 
 /** Owner only: the emails of the asked players; every call is written to the audit table. */

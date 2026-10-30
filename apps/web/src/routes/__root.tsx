@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       if (typeof window !== 'undefined') lastViewer = viewer
       return viewer
     } catch (error) {
-      if (typeof window !== 'undefined' && looksOffline(error)) return lastViewer ?? { user: null }
+      if (typeof window !== 'undefined' && looksOffline(error)) return lastViewer ?? { user: null, owner: false }
       throw error
     }
   },

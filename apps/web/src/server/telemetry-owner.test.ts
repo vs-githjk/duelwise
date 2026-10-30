@@ -62,8 +62,8 @@ describe('owner view access', () => {
   })
 
   test('query params are validated to known values', () => {
-    expect(parseOwnerParams({ range: '30d', game: 'chess', level: 'hard', page: '2' })).toEqual({ range: '30d', game: 'chess', level: 'hard', page: 2 })
-    expect(parseOwnerParams({ range: 'bogus', game: 'nope', level: 'x', page: '-4' })).toEqual({ range: '7d', game: undefined, level: undefined, page: 0 })
+    expect(parseOwnerParams({ range: '30d', game: 'chess', level: 'hard', page: '2' })).toEqual({ range: '30d', game: 'chess', level: 'hard', page: 2, who: 'human' })
+    expect(parseOwnerParams({ range: 'bogus', game: 'nope', level: 'x', page: '-4' })).toEqual({ range: '7d', game: undefined, level: undefined, page: 0, who: 'human' })
   })
 })
 

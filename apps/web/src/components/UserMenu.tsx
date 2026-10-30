@@ -36,6 +36,11 @@ export function UserMenu() {
   }
   return (
     <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2" data-testid="user-menu" data-signed-in>
+      {viewer?.owner ? (
+        <Link to="/owner" className="inline-flex min-h-11 shrink-0 items-center px-2 text-sm font-semibold text-action underline-offset-2 hover:underline" data-testid="header-owner">
+          Owner
+        </Link>
+      ) : null}
       <Link to="/settings" className="inline-flex min-h-11 min-w-0 items-center truncate px-2 text-sm font-semibold max-sm:sr-only sm:max-w-40" aria-label={`Signed in as ${user.name}`}>
         {user.name}
       </Link>

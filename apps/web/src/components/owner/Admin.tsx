@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
-import type { AdminOverview, DayCount, FeedRow, HistoryRow, PeoplePage, PeopleSort, PersonRow, PlayerDetail } from '../../server/admin-owner'
+import type { AdminOverview, DaySplit, Split, FeedRow, HistoryRow, PeoplePage, PeopleSort, PersonRow, PlayerDetail } from '../../server/admin-owner'
 import { getAdminOverview, getAdminPeople, getAdminPlayer } from '../../server/admin-fns'
 import { Avatar } from '../../personas/Avatar'
 import { personaFor } from '../../personas'
 import { cn } from '../../lib/cn'
 import { shortDate } from '../charts/format'
 import { Card } from './Card'
+import { CLASS_COLOR, Legend, Parts, StackBar, TrafficTag } from './Breakdown'
 import { ago, utcTime } from './format'
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -41,7 +42,7 @@ function Who({ name, kind, ref_, emails }: { name: string; kind: 'guest' | 'user
   )
 }
 
-function useLoad<T>(load: () => Promise<T | null>, deps: unknown[], every?: number) {
+export function useLoad<T>(load: () => Promise<T | null>, deps: unknown[], every?: number) {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState(false)
   const [tick, setTick] = useState(0)
@@ -66,16 +67,16 @@ function useLoad<T>(load: () => Promise<T | null>, deps: unknown[], every?: numb
   return { data, error, retry: () => setTick((n) => n + 1) }
 }
 
-function Bars({ days, label, testId }: { days: DayCount[]; label: string; testId: string }) {
-  const max = Math.max(1, ...days.map((d) => d.count))
-  const total = days.reduce((s, d) => s + d.count, 0)
+function Bars({ days, label, testId }: { days: DaySplit[]; label: string; testId: string }) {
+  const max = Math.max(1, ...days.map((d) => d.total))
+  const sum = days.reduce((a, d) => ({ human: a.human + d.human, owner: a.owner + d.owner, test: a.test + d.test, total: a.total + d.total }), { human: 0, owner: 0, test: 0, total: 0 })
   return (
-    <div className="grid gap-2" data-testid={testId} data-total={total}>
-      <div role="img" aria-label={`${label}: ${total} in the last ${days.length} days. ${days.map((d) => `${shortDate(d.day)} ${d.count}`).join(', ')}`} className="flex h-28 items-end gap-1">
+    <div className="grid gap-2" data-testid={testId} data-total={sum.total} data-human={sum.human} data-owner={sum.owner} data-test={sum.test}>
+      <div role="img" aria-label={`${label}, last ${days.length} days: ${sum.human} human, ${sum.owner} owner, ${sum.test} test, ${sum.total} in all. ${days.map((d) => `${shortDate(d.day)} ${d.human} human of ${d.total}`).join(', ')}`} className="flex h-28 items-end gap-1">
         {days.map((d) => (
-          <div key={d.day} className="flex h-full min-w-0 flex-1 flex-col justify-end gap-1" title={`${shortDate(d.day)}: ${d.count}`}>
-            <span className="text-center text-xs leading-none text-muted tabular">{d.count || ''}</span>
-            <div className="w-full rounded-t-sm" style={{ height: `${d.count ? Math.max(4, Math.round((d.count / max) * 80)) : 2}px`, background: d.count ? 'var(--action)' : 'var(--line)' }} />
+          <div key={d.day} className="flex h-full min-w-0 flex-1 flex-col justify-end gap-1" title={`${shortDate(d.day)}: ${d.human} human, ${d.owner} owner, ${d.test} test`}>
+            <span className="text-center text-xs leading-none text-muted tabular">{d.total || ''}</span>
+            <StackBar d={d} max={max} />
           </div>
         ))}
       </div>
@@ -83,39 +84,50 @@ function Bars({ days, label, testId }: { days: DayCount[]; label: string; testId
         <span>{shortDate(days[0]!.day)}</span>
         <span>{shortDate(days[days.length - 1]!.day)}</span>
       </p>
+      <Legend />
     </div>
   )
 }
 
+const sumDays = (d: DaySplit[]): Split => d.reduce((a, x) => ({ human: a.human + x.human, owner: a.owner + x.owner, test: a.test + x.test, total: a.total + x.total }), { human: 0, owner: 0, test: 0, total: 0 })
+
 function Totals({ o }: { o: AdminOverview }) {
-  const maxGame = Math.max(1, ...o.matchesPerGame.map((g) => g.count))
-  const sum = (d: DayCount[]) => d.reduce((s, x) => s + x.count, 0)
+  const maxGame = Math.max(1, ...o.matchesPerGame.map((g) => g.total))
+  const p = o.players
+  const newS = sumDays(o.newPerDay)
+  const matchS = sumDays(o.matchesPerDay)
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]" data-testid="admin-totals">
-      <Card title="Total players" testId="admin-total-players">
-        <p className="font-display text-display-lg tabular" data-testid="admin-total-count">{o.players.total}</p>
+      <Card title="Players" testId="admin-total-players">
+        <p className="flex items-baseline gap-2" data-testid="admin-total-count" data-total={p.all.total} data-human={p.all.human}>
+          <span className="font-display text-display-lg tabular">{p.all.human}</span><span className="text-sm font-semibold text-muted">Human</span>
+        </p>
+        <Parts s={p.all} />
         <p className="text-sm text-muted">
-          {o.players.accounts} signed in, {o.players.guests} {o.players.guests === 1 ? 'guest' : 'guests'}. A guest who later signs in can be counted twice.
+          Humans: {p.accounts.human} signed in, {p.guests.human} {p.guests.human === 1 ? 'guest' : 'guests'}. A guest who later signs in can be counted twice.
         </p>
       </Card>
-      <Card title="New players per day" note={`${sum(o.newPerDay)} in 14 days`} testId="admin-new-per-day">
+      <Card title="New players per day" note={`Human ${newS.human} in 14 days`} testId="admin-new-per-day">
         <Bars days={o.newPerDay} label="New players per day" testId="admin-new-bars" />
+        <Parts s={newS} />
       </Card>
-      <Card title="Matches per day" note={`${sum(o.matchesPerDay)} in 14 days`} testId="admin-matches-per-day">
+      <Card title="Matches per day" note={`Human ${matchS.human} in 14 days`} testId="admin-matches-per-day">
         <Bars days={o.matchesPerDay} label="Matches per day" testId="admin-matches-bars" />
+        <Parts s={matchS} />
       </Card>
       <Card title="Matches per game" note="all time, finished" testId="admin-matches-per-game">
-        <ul className="grid gap-2">
+        <ul className="grid gap-3">
           {o.matchesPerGame.map((g) => (
-            <li key={g.game} className="grid grid-cols-[8.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-sm" data-testid={`admin-game-${g.game}`} data-count={g.count}>
-              <span className="truncate">{gameName(g.game)}</span>
-              <span aria-hidden className="h-2 rounded-full bg-neutral-soft">
-                <span className="block h-2 rounded-full bg-action" style={{ width: `${Math.round((g.count / maxGame) * 100)}%` }} />
+            <li key={g.game} className="grid gap-1 text-sm" data-testid={`admin-game-${g.game}`} data-count={g.human} data-human={g.human} data-owner={g.owner} data-test={g.test} data-total={g.total}>
+              <span className="flex items-baseline justify-between gap-2"><span className="truncate">{gameName(g.game)}</span><span className="tabular"><b>{g.human}</b> <span className="text-xs text-muted">Human</span></span></span>
+              <span aria-hidden className="flex h-2 overflow-hidden rounded-full bg-neutral-soft" style={{ width: `${Math.round((g.total / maxGame) * 100)}%` }}>
+                {(['human', 'owner', 'test'] as const).map((c) => <span key={c} className="block h-2" style={{ width: `${g.total ? (g[c] / g.total) * 100 : 0}%`, background: CLASS_COLOR[c] }} />)}
               </span>
-              <span className="text-right tabular">{g.count}</span>
+              <Parts s={g} />
             </li>
           ))}
         </ul>
+        <Legend />
       </Card>
     </div>
   )
@@ -177,7 +189,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
   )
 
   return (
-    <Card title="People" note={data ? `${data.total} ${data.total === 1 ? 'player' : 'players'}${s.q ? ' match the search' : ''}` : 'loading'} testId="admin-people">
+    <Card title="People" note={data ? `${data.totalBy.human} human, ${data.totalBy.owner} owner, ${data.totalBy.test} test: ${data.total} in all${s.q ? ' match the search' : ''}` : 'loading'} testId="admin-people" id="people">
       <div className="flex flex-wrap items-center gap-2">
         <label className="grid flex-1 gap-1 text-sm text-muted sm:max-w-xs">
           <span className="sr-only">Search by name</span>
@@ -235,7 +247,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
                     <Who name={p.name} kind={p.kind} ref_={p.ref} emails={emails} />
                   </button>
                 </td>
-                <td className="px-2 py-2">{p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}</td>
+                <td className="px-2 py-2"><span className="flex flex-wrap gap-1"><TrafficTag t={p.traffic} />{p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}</span></td>
                 <td className="whitespace-nowrap px-2 py-2">{shortDate(p.joinedAt)}</td>
                 <td className="whitespace-nowrap px-2 py-2">{at ? ago(p.lastSeenAt, at) : ''}</td>
                 <td className="px-2 py-2 text-right tabular">{p.matches}</td>
@@ -261,7 +273,8 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
             <button type="button" className="grid w-full gap-2 rounded-control border border-line bg-surface p-3 text-left" onClick={() => onOpen(p)} data-testid="person-card" aria-label={`Open ${p.name}`}>
               <span className="flex items-start justify-between gap-2">
                 <Who name={p.name} kind={p.kind} ref_={p.ref} emails={emails} />
-                <span className="flex shrink-0 gap-1">
+                <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                  <TrafficTag t={p.traffic} />
                   {p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}
                   {p.hidden ? <Chip tone="bg-warn-soft text-warn-ink">hidden</Chip> : null}
                 </span>
@@ -296,16 +309,16 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
 
 function Feed({ o, emails, onOpen }: { o: AdminOverview; emails: Record<string, string> | null; onOpen: (f: FeedRow) => void }) {
   return (
-    <Card title="Recent activity" note={`last ${o.feed.length} finished matches, everyone`} testId="admin-feed">
+    <Card title="Recent activity" note={`last ${o.feed.length} finished matches, everyone`} testId="admin-feed" id="activity">
       {o.feed.length === 0 ? <p className="text-muted">No finished matches yet.</p> : null}
       <ul className="max-h-[34rem] divide-y divide-line overflow-y-auto" data-testid="admin-feed-list">
         {o.feed.map((f: FeedRow) => (
-          <li key={f.matchId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_5rem_6rem]" data-testid="feed-row" data-result={f.result}>
+          <li key={f.matchId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_5rem_9rem]" data-testid="feed-row" data-result={f.result}>
             <button type="button" className="min-w-0 rounded-control text-left" onClick={() => onOpen(f)} aria-label={`Open ${f.name}`} data-testid="feed-open"><Who name={f.name} kind={f.kind} ref_={f.ref} emails={emails} /></button>
             <span className="justify-self-end sm:order-last sm:justify-self-end text-sm text-muted">{ago(f.at, o.generatedAt)}</span>
             <span className="text-sm">{gameName(f.game)}</span>
             <span className="inline-flex items-center gap-2 text-sm"><Avatar level={f.level} size={22} decorative />{personaFor(f.level).name}</span>
-            <span className="justify-self-start"><Chip tone={RESULT_TONE[f.result]!}>{f.result}</Chip></span>
+            <span className="flex flex-wrap items-center gap-1 justify-self-start"><Chip tone={RESULT_TONE[f.result]!}>{f.result}</Chip><TrafficTag t={f.traffic} /></span>
           </li>
         ))}
       </ul>
@@ -352,6 +365,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
               <p className="font-mono text-sm text-muted">{email ?? `${(detail?.kind ?? p?.kind) === 'guest' ? 'guest' : 'account'} ${ref}`}</p>
               {detail ? (
                 <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                  <TrafficTag t={detail.traffic} />
                   {detail.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}
                   {detail.hidden ? <Chip tone="bg-warn-soft text-warn-ink">hidden from the board</Chip> : <Outline>shown on the board</Outline>}
                   <span>Joined {shortDate(detail.joinedAt)}, last seen {shortDate(detail.lastSeenAt)} {utcTime(detail.lastSeenAt)} UTC</span>

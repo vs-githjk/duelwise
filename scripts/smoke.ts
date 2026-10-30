@@ -76,7 +76,9 @@ export async function runUrlSmoke(baseUrl: string, opts: UrlSmokeOptions): Promi
   const base = new URL(baseUrl)
   if (base.protocol !== 'https:' && !isLocalHost(base.hostname)) throw new Error(`refusing ${baseUrl}: a deployed site must be https`)
   const origin = base.origin
-  const doFetch = opts.fetchFn ?? fetch
+  // Every request says it is a test run (the dw_test marker), so the owner page counts it as test traffic, never as a player.
+  const rawFetch = opts.fetchFn ?? fetch
+  const doFetch = ((input: RequestInfo | URL, init?: RequestInit) => rawFetch(input, { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), 'x-dw-test': '1' } })) as typeof fetch
   const checks: Check[] = []
 
   for (const path of smokeRoutes()) {

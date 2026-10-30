@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql, type AnyColumn, type SQL } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
@@ -6,7 +6,8 @@ import { personaFor } from '../personas'
 
 type Db = PgDatabase<any, typeof schema>
 
-export type DeviceClass = 'phone' | 'tablet' | 'desktop' | 'unknown'
+/** 'headless' is automated test traffic (a headless browser such as Playwright's); the owner pages leave those players out by default. */
+export type DeviceClass = 'phone' | 'tablet' | 'desktop' | 'headless' | 'unknown'
 
 /**
  * Reduces a browser string to a class. Only the class is ever stored; the string itself is read once,
@@ -14,6 +15,7 @@ export type DeviceClass = 'phone' | 'tablet' | 'desktop' | 'unknown'
  */
 export function deviceClass(userAgent: string | null | undefined): DeviceClass {
   const ua = userAgent ?? ''
+  if (/HeadlessChrome|PhantomJS/i.test(ua)) return 'headless'
   if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua))) return 'tablet'
   if (/iPhone|iPod|Mobile|Android/i.test(ua)) return 'phone'
   if (/Windows NT|Macintosh|X11|CrOS|Linux/i.test(ua)) return 'desktop'
@@ -28,6 +30,9 @@ export async function playerRef(kind: 'user' | 'guest', id: string): Promise<str
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${kind}:${id}`)))
   return `pl_${Array.from(digest.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('')}`
 }
+
+/** SQL: a player code that has never played from a headless browser (not test traffic). */
+export const notTestRef = (col: AnyColumn | SQL): SQL => sql`${col} not in (select player_ref from telemetry_event where device = 'headless')`
 
 export interface EventInput {
   kind: schema.TelemetryKind

@@ -43,6 +43,13 @@
       "when": 1793334903239,
       "tag": "0005_sunroom_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793402173346,
+      "tag": "0006_traffic",
+      "breakpoints": true
     }
   ]
 }

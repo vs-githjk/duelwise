@@ -2,16 +2,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { authConfig } from '../lib/auth'
 import { callerFromRequest, getSessionUser } from './caller'
 import { getServerDb } from './server-db'
+import { viewerOf, type Viewer } from './viewer'
 import { getSettings, markNoticeSeen, setTrainingAllowed, type Settings } from './profile'
-
-export interface Viewer {
-  user: { id: string; name: string; email: string } | null
-}
 
 /** Who is signed in, for the header menu. */
 export const getViewer = createServerFn({ method: 'GET' }).handler(async (): Promise<Viewer> => {
-  const u = await getSessionUser()
-  return { user: u ? { id: u.id, name: u.name, email: u.email } : null }
+  return viewerOf(await getSessionUser(), { OWNER_EMAILS: process.env.OWNER_EMAILS })
 })
 
 /** Which sign-in options this server offers. */

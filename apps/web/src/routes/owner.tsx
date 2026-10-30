@@ -9,6 +9,7 @@ interface Search {
   game?: GameId
   level?: Level
   page?: number
+  who?: 'owner' | 'test' | 'all'
 }
 
 export const Route = createFileRoute('/owner')({
@@ -17,11 +18,12 @@ export const Route = createFileRoute('/owner')({
     if (s.range === '24h' || s.range === '30d') out.range = s.range
     if (typeof s.game === 'string' && Object.prototype.hasOwnProperty.call(PRODUCT.games, s.game)) out.game = s.game as GameId
     if (s.level === 'easy' || s.level === 'medium' || s.level === 'hard' || s.level === 'champion') out.level = s.level
+    if (s.who === 'owner' || s.who === 'test' || s.who === 'all') out.who = s.who
     const p = Number(s.page)
     if (Number.isInteger(p) && p > 0 && p < 10_000) out.page = p
     return out
   },
-  loaderDeps: ({ search }) => ({ range: search.range, game: search.game, level: search.level, page: search.page }),
+  loaderDeps: ({ search }) => ({ range: search.range, game: search.game, level: search.level, page: search.page, who: search.who }),
   loader: async ({ deps }) => {
     const view = await getOwnerView({ data: deps })
     // Anyone who is not the owner sees the same page as an address that does not exist.
@@ -51,7 +53,7 @@ function Page() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: '/owner' })
   const router = useRouter()
-  const filters: OwnerFilters = { range: search.range ?? '7d', game: search.game, level: search.level, page: search.page ?? 0 }
+  const filters: OwnerFilters = { range: search.range ?? '7d', game: search.game, level: search.level, page: search.page ?? 0, who: search.who ?? 'human' }
   const refresh = useCallback(() => {
     router.invalidate().catch(() => {})
   }, [router])
@@ -62,7 +64,7 @@ function Page() {
       onRefresh={refresh}
       onFilters={(f) => {
         const next = { ...filters, ...f }
-        void navigate({ search: { range: next.range === '7d' ? undefined : next.range, game: next.game, level: next.level, page: next.page > 0 ? next.page : undefined } })
+        void navigate({ search: { range: next.range === '7d' ? undefined : next.range, game: next.game, level: next.level, page: next.page > 0 ? next.page : undefined, who: next.who === 'human' ? undefined : next.who } })
       }}
     />
   )
