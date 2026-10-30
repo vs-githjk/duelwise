@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { getVolume, isMuted, resetAudioForTests, setMuted, setVolume, subscribeAudio } from './audio'
+import { getVolume, isMuted, primeAudio, registerSounds, resetAudioForTests, setMuted, setVolume, subscribeAudio } from './audio'
 
 const g = globalThis as unknown as { localStorage?: unknown }
 const original = g.localStorage
@@ -55,5 +55,53 @@ describe('audio preferences', () => {
     resetAudioForTests()
     g.localStorage = fakeStorage({ 'duelwise.audio': '{not json' })
     expect(getVolume()).toBe(0.7)
+  })
+})
+
+describe('primeAudio (the Start tap unlocks sound for the auto-start after a rotation)', () => {
+  test('resumes one AudioContext and plays each registered sound once, muted, then restores it', async () => {
+    const calls = { resume: 0, started: 0, played: [] as string[] }
+    const w = globalThis as unknown as Record<string, unknown>
+    const saved = { window: w.window, Audio: w.Audio }
+    class FakeCtx {
+      destination = {}
+      resume() { calls.resume++; return Promise.resolve() }
+      createBuffer() { return {} }
+      createBufferSource() { return { buffer: null, connect() {}, start() { calls.started++ } } }
+    }
+    class FakeAudio {
+      muted = false; currentTime = 1; preload = ''
+      constructor(public src: string) {}
+      play() { calls.played.push(`${this.src}:${this.muted ? 'muted' : 'loud'}`); return Promise.resolve() }
+      pause() {}
+      cloneNode() { return this }
+    }
+    w.window = { AudioContext: FakeCtx }
+    w.Audio = FakeAudio
+    try {
+      registerSounds({ a: '/a.ogg', b: '/b.ogg' })
+      primeAudio()
+      primeAudio()
+      await Promise.resolve()
+      expect(calls.resume).toBe(2)
+      expect(calls.started).toBe(2)
+      expect(calls.played).toEqual(['/a.ogg:muted', '/b.ogg:muted', '/a.ogg:muted', '/b.ogg:muted'])
+    } finally {
+      w.window = saved.window
+      w.Audio = saved.Audio
+    }
+  })
+
+  test('never throws without Web Audio or Audio', () => {
+    const w = globalThis as unknown as Record<string, unknown>
+    const saved = { window: w.window, Audio: w.Audio }
+    w.window = {}
+    w.Audio = undefined
+    try {
+      expect(() => primeAudio()).not.toThrow()
+    } finally {
+      w.window = saved.window
+      w.Audio = saved.Audio
+    }
   })
 })

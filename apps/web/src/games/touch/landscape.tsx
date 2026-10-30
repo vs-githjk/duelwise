@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { primeAudio } from '../../lib/audio'
+import { primeSpeech } from '../../lib/speech'
 
 // Tinderbox and Coldstore are played sideways on a phone. This file holds the three pieces both games share:
 // the orientation reading, the "turn your phone sideways" overlay, and the gate that holds a match back until
@@ -59,6 +61,9 @@ export function useLandscapeGate(touch: boolean) {
   const [waiting, setWaiting] = useState(false)
   const requestStart = useCallback((run: () => void) => {
     if (!touch) { run(); return }
+    // Inside the tap, before the overlay: the match may start later, on a rotation, which is not a gesture.
+    primeAudio()
+    primeSpeech()
     enterLandscapePlay()
     if (typeof matchMedia === 'function' && matchMedia(PORTRAIT_QUERY).matches) { held.current = run; setWaiting(true) } else run()
   }, [touch])

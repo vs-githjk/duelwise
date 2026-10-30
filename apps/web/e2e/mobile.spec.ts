@@ -31,8 +31,8 @@ const phase = (page: Page, game: string) => page.getByTestId(`${game}-stage`).ge
 
 type Box = { n: string; l: number; t: number; r: number; b: number; w: number; h: number }
 const HUD = {
-  fighter: '[data-testid="fighter-hud"] .fh-hp, [data-testid="fighter-hud"] .fh-rt, [data-testid="fighter-hud"] [data-testid^="surge-"], [data-testid="fighter-hud"] [data-testid^="super-"]',
-  arena: '[data-testid="score-box"], [data-testid="minimap"], [data-testid="hp"], [data-testid="armor"], [data-testid="money"], [data-testid="ammo"], .ah-xh',
+  fighter: '[data-testid="fighter-hud"] .fh-hp, [data-testid="fighter-hud"] .fh-rt, [data-testid="fighter-hud"] [data-testid^="surge-"], [data-testid="fighter-hud"] [data-testid^="super-"], [data-testid="renderer-label"]',
+  arena: '[data-testid="score-box"], [data-testid="minimap"], [data-testid="hp"], [data-testid="armor"], [data-testid="money"], [data-testid="ammo"], .ah-xh, [data-testid="renderer-label"]',
 }
 const boxes = (page: Page, sel: string) => page.evaluate((s) => [...document.querySelectorAll(s)].map((e) => { const r = e.getBoundingClientRect(); return { n: (e.getAttribute('data-testid') ?? e.className) as string, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height } }).filter((b) => b.w > 0 && b.h > 0), sel) as Promise<Box[]>
 const overlaps = (a: Box, b: Box) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
@@ -47,6 +47,10 @@ for (const p of PHONES) {
         await page.addInitScript(() => {
           const w = window as unknown as { __fs: number; __lock: string[] }
           w.__fs = 0; w.__lock = []
+          const ww = window as unknown as { __prime: { resume: number; speak: number } }
+          ww.__prime = { resume: 0, speak: 0 }
+          AudioContext.prototype.resume = function () { ww.__prime.resume++; return Promise.resolve() }
+          speechSynthesis.speak = () => { ww.__prime.speak++ }
           Element.prototype.requestFullscreen = () => { w.__fs++; return Promise.resolve() }
           Object.defineProperty(screen.orientation, 'lock', { value: (o: string) => { w.__lock.push(o); return Promise.resolve() }, configurable: true })
         })
@@ -58,6 +62,7 @@ for (const p of PHONES) {
         await expect(overlay).toBeVisible()
         await expect(overlay.getByRole('heading', { name: 'Turn your phone sideways' })).toBeVisible()
         expect(await page.evaluate(() => { const w = window as unknown as { __fs: number; __lock: string[] }; return [w.__fs, w.__lock] }), 'asks for fullscreen and a landscape lock on the Start tap').toEqual([1, ['landscape']])
+        expect(await page.evaluate(() => (window as unknown as { __prime: { resume: number; speak: number } }).__prime), 'audio and speech are unlocked inside the Start tap, before the match auto-starts').toEqual({ resume: 1, speak: 1 })
         await shot(page, `${game}-${p.name}-portrait-overlay`)
         await page.waitForTimeout(1200)
         expect(await phase(page, game), 'the match must not start in portrait').toBe('setup')

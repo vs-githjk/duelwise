@@ -96,3 +96,43 @@ export function play(name: string, opts: PlayOpts = {}): void {
     // never let a sound break a game
   }
 }
+
+let primeCtx: AudioContext | null = null
+
+/**
+ * Unlocks sound for later. iOS only lets a page make sound after a tap, and Tinderbox and Coldstore start on a phone turning
+ * (not a tap), so the Start tap calls this: it resumes one shared AudioContext with a silent blip and plays every registered
+ * sound once, muted, so the first real cue after the auto-start is allowed. Never throws and never makes an audible sound.
+ */
+export function primeAudio(): void {
+  try {
+    const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+    const Ctx = w.AudioContext ?? w.webkitAudioContext
+    if (Ctx) {
+      primeCtx ??= new Ctx()
+      void primeCtx.resume?.()
+      const src = primeCtx.createBufferSource()
+      src.buffer = primeCtx.createBuffer(1, 1, 22050)
+      src.connect(primeCtx.destination)
+      src.start(0)
+    }
+  } catch {
+    // no Web Audio here
+  }
+  if (typeof Audio === 'undefined') return
+  for (const [name, url] of sounds) {
+    try {
+      let base = buffers.get(name)
+      if (!base) {
+        base = new Audio(url)
+        base.preload = 'auto'
+        buffers.set(name, base)
+      }
+      const el = base
+      el.muted = true
+      void el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = false }, () => { el.muted = false })
+    } catch {
+      // a blocked element is simply not unlocked
+    }
+  }
+}
