@@ -9,10 +9,10 @@ export function categoryWords(hole: readonly number[], board: readonly number[])
   return WITH[handCategory(rank7([...hole, ...board]))]!
 }
 
-/** "Your hand" line: preflop it describes the two hole cards, after the flop it names the best hand you hold. */
-export function handStrength(hole: readonly number[], board: readonly number[]): string {
+/** "Your hand" line: preflop it describes the two hole cards, after the flop it names the best hand you hold and says which of its ranks are on the table. */
+export function handStrength(hole: readonly number[], board: readonly number[], opponent = 'your opponent'): string {
   if (hole.length < 2) return ''
-  if (board.length >= 3) return `Your hand: ${categoryWords(hole, board)}`
+  if (board.length >= 3) return `Your hand: ${teachingName(hole, board, opponent)}`
   const [a, b] = hole as [number, number]
   if (cardRank(a) === cardRank(b)) return 'Your hand: pocket pair'
   return cardSuit(a) === cardSuit(b) ? 'Your hand: two suited cards' : 'Your hand: two unpaired cards'
@@ -49,4 +49,41 @@ export function fullHandName(hole: readonly number[], board: readonly number[]):
     default:
       return nib(0) === 12 ? 'a royal flush' : `a straight flush, ${RANK_ONE[nib(0)]} high`
   }
+}
+
+/** The ranks that make up the pairs, trips or quads of a hand, each with how many cards of that rank the hand needs. */
+function groups(category: number, nib: (i: number) => number): { rank: number; need: number }[] {
+  switch (category) {
+    case 1:
+      return [{ rank: nib(0), need: 2 }]
+    case 2:
+      return [{ rank: nib(0), need: 2 }, { rank: nib(1), need: 2 }]
+    case 3:
+      return [{ rank: nib(0), need: 3 }]
+    case 6:
+      return [{ rank: nib(0), need: 3 }, { rank: nib(1), need: 2 }]
+    case 7:
+      return [{ rank: nib(0), need: 4 }]
+    default:
+      return []
+  }
+}
+
+/** The best hand in words, plus which of it is shared with the opponent because it sits on the board. */
+function teachingName(hole: readonly number[], board: readonly number[], opponent: string): string {
+  const score = rank7([...hole, ...board])
+  const category = handCategory(score)
+  const nib = (i: number) => (score >> (16 - 4 * i)) & 15
+  const name = fullHandName(hole, board).replace(/, \w+ kicker$/, '')
+  const parts = groups(category, nib)
+  let onTable: number[]
+  if (parts.length > 0) {
+    onTable = parts.filter((g) => board.filter((c) => cardRank(c) === g.rank).length >= g.need).map((g) => g.rank)
+    if (onTable.length === parts.length) return `${name}, on the table, so ${opponent} has it too`
+    if (onTable.length === 0) return name
+    return `${name} (the ${RANK_MANY[onTable[0]!]} are on the table, ${opponent} shares them)`
+  }
+  // Straights, flushes and a high card: the whole hand is shared only when the board alone makes the same five cards.
+  if (category > 0 && board.length === 5 && rank7(board) === score) return `${name}, on the table, so ${opponent} has it too`
+  return name
 }
