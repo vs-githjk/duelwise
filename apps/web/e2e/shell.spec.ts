@@ -148,3 +148,21 @@ test.describe('shell', () => {
     })
   })
 })
+
+test.describe('header logo', () => {
+  for (const width of [1440, 390]) {
+    test(`the X1 mark sits beside the wordmark, decorative, 28 to 32px, and links home at ${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 })
+      await page.goto('/play')
+      const logo = page.getByTestId('header-logo')
+      await expect(logo).toHaveAttribute('alt', '')
+      await expect.poll(() => logo.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true)
+      const box = (await logo.boundingBox())!
+      expect(box.width).toBeGreaterThanOrEqual(28)
+      expect(box.width).toBeLessThanOrEqual(32)
+      await expect(page.getByTestId('home-link')).toHaveAttribute('aria-label', /Duelwise home/)
+      await page.getByTestId('home-link').click()
+      await expect(page).toHaveURL(/\/$/)
+    })
+  }
+})
