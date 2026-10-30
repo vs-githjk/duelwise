@@ -125,34 +125,102 @@ function Word(): ReactNode {
   )
 }
 
+/** A fighter in side view: legs, jacket, belt, head and two arms. Facing right when dir is 1, left when -1. */
+function FighterFigure({ x, jacket, trousers, belt, dir, hit }: { x: number; jacket: string; trousers: string; belt: string; dir: 1 | -1; hit: boolean }): ReactNode {
+  return (
+    <g transform={`translate(${x} 0) scale(${dir} 1)`}>
+      <path d="M-3 52 L-9 71 H-1 L4 56z M2 52 L10 69 H17 L9 52z" fill={trousers} />
+      <rect x={-8} y={31} width={18} height={23} rx={5} fill={jacket} />
+      <rect x={-8} y={46} width={18} height={4} fill={belt} />
+      <circle cx={2} cy={24} r={7} fill="#e8b48f" />
+      <path d="M-5 23 a7 7 0 0 1 14 -3 v-2 a7 7 0 0 0 -14 3z" fill="#2a1812" />
+      {hit ? (
+        <>
+          <rect x={4} y={34} width={22} height={6} rx={3} fill={jacket} transform="rotate(-4 4 37)" />
+          <circle cx={27} cy={36} r={4.4} fill="#e8b48f" />
+          <rect x={-10} y={38} width={10} height={6} rx={3} fill={jacket} transform="rotate(35 -6 40)" />
+        </>
+      ) : (
+        <>
+          <rect x={3} y={33} width={13} height={6} rx={3} fill={jacket} transform="rotate(25 4 36)" />
+          <circle cx={16} cy={43} r={4.2} fill="#e8b48f" />
+          <rect x={-10} y={38} width={10} height={6} rx={3} fill={jacket} transform="rotate(35 -6 40)" />
+        </>
+      )}
+    </g>
+  )
+}
+
+/** The Tinderbox frame: a dusk dojo stage, two fighters trading blows, skewed health bars with round pips and a hit spark. */
 function Fighter(): ReactNode {
+  const spark = [0, 45, 90, 135].map((a) => <path key={a} d="M0 -9 L1.6 -2 L0 0 L-1.6 -2z" transform={`rotate(${a})`} />)
   return (
     <>
-      <defs>
-        <linearGradient id="tile-fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3a1a10" /><stop offset="1" stopColor="#1b1410" /></linearGradient>
-      </defs>
-      <rect width={W} height={H} fill="url(#tile-fg)" />
-      <ellipse cx={80} cy={84} rx={90} ry={22} fill="#6b3a1e" />
-      <ellipse cx={80} cy={40} rx={48} ry={26} fill="#ff8a4a" opacity={0.25} />
-      <g fill="#c84a2a"><rect x={46} y={36} width={12} height={34} rx={6} /><circle cx={52} cy={30} r={7} /><rect x={56} y={44} width={16} height={6} rx={3} transform="rotate(-10 56 44)" /></g>
-      <g fill="#2f4fa0"><rect x={102} y={36} width={12} height={34} rx={6} /><circle cx={108} cy={30} r={7} /><rect x={88} y={44} width={16} height={6} rx={3} transform="rotate(10 104 44)" /></g>
-      <g stroke="#f0c24a" strokeWidth={2} strokeLinecap="round"><path d="M80 44 l0 -8" /><path d="M80 44 l7 -5" /><path d="M80 44 l-7 -5" /><path d="M80 44 l0 8" /><path d="M80 44 l7 5" /><path d="M80 44 l-7 5" /></g>
-      <rect x={14} y={8} width={54} height={5} fill="#f0c24a" transform="skewX(-18)" />
-      <rect x={108} y={8} width={54} height={5} fill="#f0c24a" transform="skewX(18)" />
+      <rect width={W} height={H} fill="#3c3552" />
+      <rect y={36} width={W} height={26} fill="#4d4366" />
+      <g fill="#34304a"><rect x={10} y={22} width={22} height={40} /><rect x={128} y={22} width={22} height={40} /><rect x={50} y={30} width={60} height={32} /></g>
+      <g fill="#ffb067" opacity={0.9}><circle cx={21} cy={32} r={4} /><circle cx={139} cy={32} r={4} /></g>
+      <rect y={68} width={W} height={22} fill="#b9743f" />
+      <rect y={68} width={W} height={3} fill="#e0a063" />
+      <g stroke="#9a5f31" strokeWidth={1}><path d="M0 79 H160 M40 71 L28 90 M80 71 V90 M120 71 L132 90" /></g>
+      <ellipse cx={51} cy={71} rx={13} ry={2.4} fill="#000" opacity={0.25} />
+      <ellipse cx={109} cy={71} rx={13} ry={2.4} fill="#000" opacity={0.25} />
+      <FighterFigure x={50} jacket="#c4471f" trousers="#2b2523" belt="#e8b35a" dir={1} hit />
+      <FighterFigure x={112} jacket="#1f3c6e" trousers="#15171d" belt="#d7d9de" dir={-1} hit={false} />
+      <g transform="translate(80 40)"><g fill="#fff3c4">{spark}</g><circle r={3} fill="#fff" /></g>
+      <g transform="skewX(-18)">
+        <rect x={20} y={5} width={58} height={8} fill="#000" opacity={0.55} stroke="#fff" strokeWidth={1.2} />
+        <rect x={22} y={7} width={36} height={4} fill="#f6d365" /><rect x={58} y={7} width={18} height={4} fill="#ff6a4d" />
+        <rect x={104} y={5} width={58} height={8} fill="#000" opacity={0.55} stroke="#fff" strokeWidth={1.2} />
+        <rect x={140} y={7} width={20} height={4} fill="#7cc4ff" /><rect x={106} y={7} width={34} height={4} fill="#ff6a4d" />
+      </g>
+      <g fill="#f6d365"><circle cx={25} cy={18} r={2.2} /></g>
+      <g fill="none" stroke="#fff" strokeWidth={1}><circle cx={32} cy={18} r={2.2} /><circle cx={128} cy={18} r={2.2} /><circle cx={135} cy={18} r={2.2} /></g>
+      <rect x={72} y={4} width={16} height={9} rx={2} fill="#000" opacity={0.6} />
+      <text x={80} y={11.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={7} fontWeight={700} fill="#fff">42</text>
     </>
   )
 }
 
+/** The Coldstore frame: first person down a cold warehouse aisle, shelving and crates, an opponent in the aisle, a pistol in the lower right and a round score HUD. */
 function Arena(): ReactNode {
   return (
     <>
-      <rect width={W} height={H} fill="#0f1b21" />
-      <polygon points="0,90 60,30 100,30 160,90" fill="#15262e" />
-      <rect x={60} y={30} width={40} height={18} fill="#1e3038" />
-      <rect x={66} y={48} width={28} height={22} fill="#e58b3a" />
-      <rect x={70} y={52} width={20} height={14} fill="#f3a85c" />
-      <g stroke="#9cff5a" strokeWidth={2}><path d="M80 60 v-6 M80 72 v-6 M74 66 h-6 M92 66 h-6" /></g>
-      <g fill="#8fb0c0" opacity={0.7}><rect x={20} y={70} width={30} height={4} /><rect x={110} y={64} width={30} height={4} /></g>
+      <rect width={W} height={H} fill="#0d1a24" />
+      <polygon points="0,0 160,0 108,34 52,34" fill="#10202c" />
+      <polygon points="0,90 160,90 108,50 52,50" fill="#1b3446" />
+      <polygon points="0,0 52,34 52,50 0,90" fill="#142a39" />
+      <polygon points="160,0 108,34 108,50 160,90" fill="#142a39" />
+      <rect x={52} y={34} width={56} height={16} fill="#2a4a60" />
+      <polygon points="40,0 120,0 112,12 48,12" fill="#bfe6ff" opacity={0.35} />
+      <g stroke="#6fa8c8" strokeWidth={1.4}>
+        <path d="M0 36 L52 41 M0 62 L52 47 M160 36 L108 41 M160 62 L108 47" />
+      </g>
+      <g stroke="#0d1a24" strokeWidth={1}><path d="M18 10 V80 M34 22 V66 M142 10 V80 M126 22 V66" /></g>
+      <rect x={6} y={42} width={14} height={11} fill="#7a5a3c" /><rect x={126} y={44} width={16} height={12} fill="#7a5a3c" />
+      <rect x={6} y={42} width={14} height={2.5} fill="#9a7650" /><rect x={126} y={44} width={16} height={2.5} fill="#9a7650" />
+      <rect x={112} y={52} width={18} height={14} fill="#8a6644" /><rect x={112} y={52} width={18} height={3} fill="#a98255" />
+      <g>
+        <ellipse cx={80} cy={50} rx={9} ry={1.8} fill="#000" opacity={0.35} />
+        <rect x={74.5} y={32} width={11} height={16} rx={3} fill="#e58b3a" />
+        <circle cx={80} cy={28} r={4.6} fill="#e8b48f" />
+        <path d="M75.4 27 a4.6 4.6 0 0 1 9.2 0z" fill="#ff9a3c" />
+        <rect x={75} y={47} width={4.4} height={5} fill="#1b2430" /><rect x={81} y={47} width={4.4} height={5} fill="#1b2430" />
+      </g>
+      <g stroke="#9cff5a" strokeWidth={1.4} strokeLinecap="round"><path d="M80 52 v4 M80 62 v4 M69 59 h5 M86 59 h5" /></g>
+      <circle cx={80} cy={59} r={0.9} fill="#9cff5a" />
+      <path d="M96 90 L108 66 H126 L142 90z" fill="#e8b48f" />
+      <path d="M118 90 L120 66 H140 L148 90z" fill="#c9926c" opacity={0.6} />
+      <rect x={104} y={58} width={34} height={11} rx={2} fill="#4a5568" />
+      <rect x={104} y={58} width={34} height={3} fill="#718096" />
+      <rect x={98} y={60} width={8} height={4} fill="#2d3748" />
+      <rect x={116} y={67} width={11} height={14} rx={2} fill="#2d3748" />
+      <g transform="translate(80 83)">
+        <rect x={-24} y={-7} width={48} height={11} rx={3} fill="#000" opacity={0.6} />
+        <text x={-12} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={8} fontWeight={700} fill="#f2c94c">3</text>
+        <text x={0} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={6} fill="#fff">:</text>
+        <text x={12} y={1.5} textAnchor="middle" fontFamily="Menlo, monospace" fontSize={8} fontWeight={700} fill="#7cc4ff">2</text>
+      </g>
     </>
   )
 }
