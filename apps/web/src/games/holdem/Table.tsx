@@ -145,7 +145,7 @@ export function Table({ state, reveal, level, turn }: TableProps) {
   const winner = pushed || reveal?.stage === 'show' ? reveal.summary.winner : null
   const hand = state.hand + 1
   const handKey = showing ? reveal.summary.hand : state.hand
-  const strength = handStrength(mine, board, name)
+  const strength = handStrength(mine, board)
   return (
     <div
       className="hd-table"
