@@ -133,10 +133,10 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
     reject(`${from}${to} is not a legal move.`)
   }
 
-  const squareClick = (sq: string) => {
+  const squareClick = (sq: string, detail: number) => {
     const p = pressed.current
     pressed.current = null
-    if (p && Date.now() - p.at < CLICK_AFTER_PRESS_MS && (p.sq === '*' || p.sq === sq)) return
+    if (detail > 0 && p && Date.now() - p.at < CLICK_AFTER_PRESS_MS && (p.sq === '*' || p.sq === sq)) return
     if (!canMove) return
     if (selected && targets.has(sq)) return attempt(selected, sq)
     if (mine(sq)) return setSelected(selected === sq ? null : sq)
@@ -152,10 +152,11 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
   }
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // A new press ends any older one: its click (if the browser sent one) is long past.
+    pressed.current = null
     if (!canMove || promo || e.button !== 0) return
     const sq = (e.target as HTMLElement).closest<HTMLElement>('[data-square]')?.getAttribute('data-square')
     if (!sq || !mine(sq)) return
-    pressed.current = null
     setCursor(sq)
     setSelected(sq)
     setDrag({ from: sq, x: e.clientX, y: e.clientY, moved: false, wasSelected: selected === sq })
@@ -233,7 +234,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
           tabIndex={sq === cursor ? 0 : -1}
           onFocus={() => setCursor(sq)}
           onKeyDown={(e) => onKey(e, sq)}
-          onClick={() => squareClick(sq)}
+          onClick={(e) => squareClick(sq, e.detail)}
           className={cn(
             'relative aspect-square min-w-0 select-none p-0 outline-none focus-visible:z-10 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-action',
             dark ? 'bg-board-dark' : 'bg-board-light',
@@ -280,6 +281,10 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
       data-plies={plies}
       role="group"
       aria-label="Chess board, White at the bottom"
+      // The click after a pointer press can land on the board itself (the board holds the pointer); it still ends the press.
+      onClick={() => {
+        pressed.current = null
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

@@ -252,4 +252,29 @@ test.describe('Chess tap to move on a phone (real touch)', () => {
     await expect(board(page)).toHaveAttribute('data-turn', 'you')
     await expect(board(page)).toHaveAttribute('data-plies', '4')
   })
+
+  test('a stale press never swallows the next tap or a keyboard activation', async ({ page }) => {
+    await start(page, '?seed=7')
+    // An illegal drag, then a quick tap pair: e2 then e4 still moves.
+    await sq(page, 'g1').dragTo(sq(page, 'g4'))
+    await expect(board(page)).toHaveAttribute('data-plies', '0')
+    await touch(page, 'e2')
+    await touch(page, 'e4')
+    await expect(pieceAt(page, 'e4')).toHaveCount(1)
+    await expect(board(page)).toHaveAttribute('data-plies', '2')
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    // A drag released on its own square, then a quick tap pair.
+    await sq(page, 'g1').dragTo(sq(page, 'g1'))
+    await touch(page, 'g1')
+    await touch(page, 'f3')
+    await expect(pieceAt(page, 'f3')).toHaveCount(1)
+    await expect(board(page)).toHaveAttribute('data-plies', '4')
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    // A tap selects, then Enter on the same square puts it down.
+    await touch(page, 'd2')
+    await expect(sq(page, 'd2')).toHaveAttribute('data-selected', '')
+    await sq(page, 'd2').focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-selected]')).toHaveCount(0)
+  })
 })
