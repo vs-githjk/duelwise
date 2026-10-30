@@ -1,0 +1,10332 @@
+{
+ "hard": {
+  "openers": [
+   {
+    "first": "slate",
+    "second": {
+     "0": [
+      "round"
+     ],
+     "1": [
+      "diner"
+     ],
+     "2": [
+      "dirge"
+     ],
+     "3": [
+      "count"
+     ],
+     "4": [
+      "deter"
+     ],
+     "5": [
+      "tripe"
+     ],
+     "6": [
+      "froth"
+     ],
+     "7": [
+      "depth",
+      "petty"
+     ],
+     "8": [
+      "route"
+     ],
+     "9": [
+      "manor"
+     ],
+     "10": [
+      "cream"
+     ],
+     "11": [
+      "carve"
+     ],
+     "12": [
+      "habit"
+     ],
+     "13": [
+      "tread"
+     ],
+     "14": [
+      "atone",
+      "bathe"
+     ],
+     "15": [
+      "party"
+     ],
+     "16": [
+      "earth",
+      "theta"
+     ],
+     "17": [
+      "acute",
+      "matte"
+     ],
+     "18": [
+      "drank"
+     ],
+     "19": [
+      "heard",
+      "beard"
+     ],
+     "20": [
+      "crave"
+     ],
+     "21": [
+      "craft"
+     ],
+     "22": [
+      "enact"
+     ],
+     "23": [
+      "trace",
+      "trade"
+     ],
+     "24": [
+      "wrath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "irate",
+      "crate",
+      "grate"
+     ],
+     "27": [
+      "doily"
+     ],
+     "28": [
+      "revel"
+     ],
+     "29": [
+      "guile"
+     ],
+     "30": [
+      "guilt"
+     ],
+     "31": [
+      "hotel",
+      "liter",
+      "motel"
+     ],
+     "32": [
+      "title",
+      "lithe",
+      "tilde"
+     ],
+     "33": [
+      "filth",
+      "lofty",
+      "multi"
+     ],
+     "36": [
+      "rally"
+     ],
+     "37": [
+      "regal"
+     ],
+     "38": [
+      "angle"
+     ],
+     "39": [
+      "total"
+     ],
+     "40": [
+      "metal",
+      "petal"
+     ],
+     "41": [
+      "table",
+      "lathe"
+     ],
+     "42": [
+      "waltz"
+     ],
+     "43": [
+      "delta"
+     ],
+     "45": [
+      "crawl"
+     ],
+     "46": [
+      "leafy",
+      "leaky"
+     ],
+     "47": [
+      "leave",
+      "whale"
+     ],
+     "48": [
+      "trail",
+      "trawl"
+     ],
+     "49": [
+      "dealt",
+      "exalt",
+      "leapt"
+     ],
+     "51": [
+      "loath"
+     ],
+     "54": [
+      "flunk"
+     ],
+     "55": [
+      "elder"
+     ],
+     "56": [
+      "glove",
+      "clove"
+     ],
+     "57": [
+      "flint",
+      "flirt"
+     ],
+     "58": [
+      "elect",
+      "fleet",
+      "cleft"
+     ],
+     "60": [
+      "cloth",
+      "blitz"
+     ],
+     "62": [
+      "elite",
+      "flute"
+     ],
+     "63": [
+      "allow",
+      "alloy"
+     ],
+     "64": [
+      "clean",
+      "glean"
+     ],
+     "65": [
+      "alive",
+      "alike"
+     ],
+     "66": [
+      "float",
+      "aloft",
+      "gloat"
+     ],
+     "67": [
+      "bleat",
+      "cleat",
+      "pleat"
+     ],
+     "72": [
+      "clank"
+     ],
+     "74": [
+      "blare"
+     ],
+     "75": [
+      "plant"
+     ],
+     "80": [
+      "plate"
+     ],
+     "81": [
+      "cross"
+     ],
+     "82": [
+      "risen"
+     ],
+     "83": [
+      "rouse"
+     ],
+     "84": [
+      "frost",
+      "torso"
+     ],
+     "85": [
+      "guest",
+      "quest"
+     ],
+     "86": [
+      "tense",
+      "terse"
+     ],
+     "87": [
+      "dusty",
+      "rusty",
+      "gusty",
+      "misty",
+      "musty"
+     ],
+     "90": [
+      "basin",
+      "mason"
+     ],
+     "91": [
+      "ashen",
+      "aspen"
+     ],
+     "92": [
+      "arise",
+      "pause",
+      "raise",
+      "parse"
+     ],
+     "93": [
+      "angst",
+      "waist"
+     ],
+     "94": [
+      "asset"
+     ],
+     "96": [
+      "nasty",
+      "hasty",
+      "pasta",
+      "pasty",
+      "tasty"
+     ],
+     "98": [
+      "taste",
+      "waste",
+      "paste",
+      "baste",
+      "caste",
+      "haste"
+     ],
+     "99": [
+      "crass",
+      "grass"
+     ],
+     "101": [
+      "cease",
+      "chase"
+     ],
+     "102": [
+      "trash"
+     ],
+     "103": [
+      "beast",
+      "feast",
+      "yeast"
+     ],
+     "104": [
+      "tease"
+     ],
+     "108": [
+      "lousy"
+     ],
+     "109": [
+      "loser"
+     ],
+     "110": [
+      "loose",
+      "pulse",
+      "louse"
+     ],
+     "111": [
+      "lotus"
+     ],
+     "114": [
+      "lusty"
+     ],
+     "117": [
+      "usual",
+      "basil",
+      "nasal"
+     ],
+     "118": [
+      "laser",
+      "easel"
+     ],
+     "119": [
+      "false",
+      "lapse"
+     ],
+     "120": [
+      "atlas"
+     ],
+     "126": [
+      "psalm"
+     ],
+     "127": [
+      "leash"
+     ],
+     "128": [
+      "lease"
+     ],
+     "130": [
+      "least"
+     ],
+     "135": [
+      "floss"
+     ],
+     "136": [
+      "bless",
+      "flesh"
+     ],
+     "137": [
+      "close"
+     ],
+     "144": [
+      "alias"
+     ],
+     "153": [
+      "class",
+      "clash"
+     ],
+     "156": [
+      "blast"
+     ],
+     "162": [
+      "scorn"
+     ],
+     "163": [
+      "sheen"
+     ],
+     "164": [
+      "spine"
+     ],
+     "165": [
+      "snout"
+     ],
+     "166": [
+      "spent",
+      "strew"
+     ],
+     "167": [
+      "stone",
+      "store",
+      "stoke",
+      "stove"
+     ],
+     "168": [
+      "sixth",
+      "sixty",
+      "smith"
+     ],
+     "170": [
+      "spite",
+      "suite",
+      "smite",
+      "smote"
+     ],
+     "171": [
+      "saucy"
+     ],
+     "172": [
+      "shear",
+      "spear"
+     ],
+     "173": [
+      "sauce"
+     ],
+     "174": [
+      "straw",
+      "stray",
+      "strap"
+     ],
+     "175": [
+      "steam",
+      "steak"
+     ],
+     "177": [
+      "sorta"
+     ],
+     "180": [
+      "spark"
+     ],
+     "182": [
+      "spare"
+     ],
+     "183": [
+      "stark",
+      "stank"
+     ],
+     "185": [
+      "stage",
+      "stake",
+      "stare",
+      "stave"
+     ],
+     "188": [
+      "state",
+      "skate",
+      "spate"
+     ],
+     "189": [
+      "skill"
+     ],
+     "190": [
+      "shelf",
+      "shell",
+      "spell",
+      "smell",
+      "swell"
+     ],
+     "191": [
+      "smile",
+      "sidle"
+     ],
+     "192": [
+      "split",
+      "still",
+      "stool"
+     ],
+     "193": [
+      "steel",
+      "smelt"
+     ],
+     "194": [
+      "style",
+      "stole"
+     ],
+     "198": [
+      "solar"
+     ],
+     "200": [
+      "salve"
+     ],
+     "201": [
+      "splat"
+     ],
+     "202": [
+      "steal"
+     ],
+     "204": [
+      "salty"
+     ],
+     "207": [
+      "shall"
+     ],
+     "209": [
+      "scale"
+     ],
+     "210": [
+      "stall",
+      "stalk"
+     ],
+     "212": [
+      "stale"
+     ],
+     "216": [
+      "slunk"
+     ],
+     "217": [
+      "sleep",
+      "sleek"
+     ],
+     "218": [
+      "slice",
+      "slide",
+      "slime"
+     ],
+     "220": [
+      "slept",
+      "sleet"
+     ],
+     "222": [
+      "sloth"
+     ],
+     "234": [
+      "slang",
+      "slain"
+     ],
+     "236": [
+      "slave",
+      "slake"
+     ],
+     "237": [
+      "slant"
+     ],
+     "242": [
+      "slate"
+     ]
+    }
+   },
+   {
+    "first": "trace",
+    "second": {
+     "0": [
+      "solid"
+     ],
+     "1": [
+      "olden"
+     ],
+     "2": [
+      "slide"
+     ],
+     "3": [
+      "could",
+      "clink"
+     ],
+     "4": [
+      "feces"
+     ],
+     "5": [
+      "close",
+      "clone"
+     ],
+     "6": [
+      "punch"
+     ],
+     "7": [
+      "leech"
+     ],
+     "8": [
+      "piece"
+     ],
+     "9": [
+      "salon"
+     ],
+     "10": [
+      "laden"
+     ],
+     "11": [
+      "gable"
+     ],
+     "12": [
+      "canon"
+     ],
+     "13": [
+      "clean",
+      "ocean"
+     ],
+     "14": [
+      "cable",
+      "calve"
+     ],
+     "15": [
+      "fancy",
+      "saucy"
+     ],
+     "17": [
+      "dance",
+      "lance"
+     ],
+     "18": [
+      "slain"
+     ],
+     "19": [
+      "leash"
+     ],
+     "20": [
+      "slave"
+     ],
+     "21": [
+      "clasp"
+     ],
+     "23": [
+      "cease",
+      "chase",
+      "chafe"
+     ],
+     "24": [
+      "slack"
+     ],
+     "25": [
+      "leach",
+      "beach",
+      "peach"
+     ],
+     "26": [
+      "peace",
+      "place"
+     ],
+     "27": [
+      "sorry"
+     ],
+     "28": [
+      "risen"
+     ],
+     "29": [
+      "reuse"
+     ],
+     "30": [
+      "choir"
+     ],
+     "31": [
+      "cover",
+      "cower"
+     ],
+     "32": [
+      "score",
+      "curse",
+      "curve"
+     ],
+     "33": [
+      "birch",
+      "lurch",
+      "porch"
+     ],
+     "34": [
+      "mercy",
+      "perch"
+     ],
+     "35": [
+      "force"
+     ],
+     "36": [
+      "mayor"
+     ],
+     "37": [
+      "pager"
+     ],
+     "38": [
+      "large",
+      "barge"
+     ],
+     "39": [
+      "coral"
+     ],
+     "40": [
+      "clear",
+      "cedar",
+      "recap"
+     ],
+     "41": [
+      "carve"
+     ],
+     "42": [
+      "march",
+      "parch"
+     ],
+     "44": [
+      "farce"
+     ],
+     "45": [
+      "hoard"
+     ],
+     "46": [
+      "ready"
+     ],
+     "47": [
+      "share",
+      "spare",
+      "blare",
+      "flare",
+      "glare",
+      "snare"
+     ],
+     "48": [
+      "scarf",
+      "scary"
+     ],
+     "50": [
+      "scare"
+     ],
+     "51": [
+      "roach"
+     ],
+     "52": [
+      "reach"
+     ],
+     "54": [
+      "grind"
+     ],
+     "55": [
+      "greed"
+     ],
+     "56": [
+      "pride"
+     ],
+     "57": [
+      "crown",
+      "croon"
+     ],
+     "58": [
+      "creed",
+      "creep",
+      "creek"
+     ],
+     "59": [
+      "crime",
+      "crude",
+      "crepe"
+     ],
+     "60": [
+      "crock",
+      "frock"
+     ],
+     "61": [
+      "wreck"
+     ],
+     "62": [
+      "price"
+     ],
+     "63": [
+      "arbor",
+      "ardor"
+     ],
+     "64": [
+      "bread"
+     ],
+     "65": [
+      "arise",
+      "arose"
+     ],
+     "66": [
+      "croak"
+     ],
+     "67": [
+      "cream",
+      "creak"
+     ],
+     "72": [
+      "brand"
+     ],
+     "74": [
+      "grave",
+      "grade",
+      "grape"
+     ],
+     "75": [
+      "crash",
+      "crass"
+     ],
+     "77": [
+      "crane",
+      "crave",
+      "craze"
+     ],
+     "78": [
+      "crack"
+     ],
+     "80": [
+      "grace",
+      "brace"
+     ],
+     "81": [
+      "hoist"
+     ],
+     "82": [
+      "sleet"
+     ],
+     "83": [
+      "suite"
+     ],
+     "84": [
+      "count",
+      "clout",
+      "scoot",
+      "scout"
+     ],
+     "85": [
+      "chest",
+      "cleft",
+      "comet",
+      "covet",
+      "scent"
+     ],
+     "86": [
+      "chute"
+     ],
+     "87": [
+      "hitch"
+     ],
+     "88": [
+      "elect",
+      "edict",
+      "eject",
+      "evict"
+     ],
+     "90": [
+      "fault"
+     ],
+     "91": [
+      "pleat"
+     ],
+     "92": [
+      "bathe"
+     ],
+     "93": [
+      "antic",
+      "attic"
+     ],
+     "94": [
+      "cheat",
+      "cleat"
+     ],
+     "95": [
+      "acute",
+      "caste"
+     ],
+     "96": [
+      "catch",
+      "match",
+      "patch",
+      "watch",
+      "batch",
+      "hatch",
+      "latch"
+     ],
+     "99": [
+      "slant"
+     ],
+     "100": [
+      "least"
+     ],
+     "101": [
+      "plate",
+      "slate"
+     ],
+     "102": [
+      "coast",
+      "chant",
+      "scant"
+     ],
+     "105": [
+      "stack"
+     ],
+     "106": [
+      "exact",
+      "enact"
+     ],
+     "108": [
+      "short"
+     ],
+     "109": [
+      "meter"
+     ],
+     "110": [
+      "route",
+      "forte"
+     ],
+     "111": [
+      "court"
+     ],
+     "115": [
+      "retch"
+     ],
+     "117": [
+      "aorta"
+     ],
+     "118": [
+      "alter"
+     ],
+     "120": [
+      "actor",
+      "carat"
+     ],
+     "121": [
+      "cater"
+     ],
+     "126": [
+      "start",
+      "smart",
+      "stark"
+     ],
+     "127": [
+      "heart"
+     ],
+     "128": [
+      "stare"
+     ],
+     "129": [
+      "chart"
+     ],
+     "133": [
+      "react"
+     ],
+     "135": [
+      "front",
+      "frost"
+     ],
+     "136": [
+      "greet",
+      "wrest"
+     ],
+     "137": [
+      "write",
+      "wrote"
+     ],
+     "138": [
+      "crust",
+      "crypt"
+     ],
+     "139": [
+      "crept",
+      "crest"
+     ],
+     "142": [
+      "erect"
+     ],
+     "145": [
+      "great"
+     ],
+     "153": [
+      "grant",
+      "draft",
+      "graft"
+     ],
+     "155": [
+      "irate",
+      "grate"
+     ],
+     "156": [
+      "craft"
+     ],
+     "158": [
+      "crate"
+     ],
+     "162": [
+      "thing"
+     ],
+     "163": [
+      "tenet",
+      "tweet"
+     ],
+     "164": [
+      "tense"
+     ],
+     "165": [
+      "topic",
+      "tonic",
+      "toxic",
+      "tunic"
+     ],
+     "168": [
+      "touch",
+      "thick"
+     ],
+     "170": [
+      "twice"
+     ],
+     "171": [
+      "total",
+      "taint"
+     ],
+     "172": [
+      "taken",
+      "theta",
+      "tweak"
+     ],
+     "173": [
+      "table",
+      "taste"
+     ],
+     "174": [
+      "tacit",
+      "tacky"
+     ],
+     "180": [
+      "thank",
+      "twang"
+     ],
+     "182": [
+      "tease"
+     ],
+     "187": [
+      "teach"
+     ],
+     "189": [
+      "throw",
+      "throb"
+     ],
+     "190": [
+      "tiger",
+      "timer"
+     ],
+     "191": [
+      "there",
+      "three",
+      "terse"
+     ],
+     "195": [
+      "torch"
+     ],
+     "198": [
+      "tardy",
+      "tarry"
+     ],
+     "199": [
+      "taker",
+      "taper"
+     ],
+     "207": [
+      "tiara"
+     ],
+     "216": [
+      "trout"
+     ],
+     "217": [
+      "trend"
+     ],
+     "218": [
+      "tribe",
+      "tripe",
+      "trite"
+     ],
+     "222": [
+      "trick",
+      "truck"
+     ],
+     "224": [
+      "truce"
+     ],
+     "225": [
+      "trial"
+     ],
+     "226": [
+      "treat",
+      "tread"
+     ],
+     "234": [
+      "trail"
+     ],
+     "236": [
+      "trade"
+     ],
+     "240": [
+      "track",
+      "tract"
+     ],
+     "242": [
+      "trace"
+     ]
+    }
+   },
+   {
+    "first": "stare",
+    "second": {
+     "0": [
+      "could"
+     ],
+     "1": [
+      "olden"
+     ],
+     "2": [
+      "guile"
+     ],
+     "3": [
+      "round"
+     ],
+     "4": [
+      "diner"
+     ],
+     "5": [
+      "grope"
+     ],
+     "6": [
+      "lorry",
+      "glory"
+     ],
+     "7": [
+      "ferry"
+     ],
+     "8": [
+      "where",
+      "genre",
+      "chore"
+     ],
+     "9": [
+      "canal"
+     ],
+     "10": [
+      "glean"
+     ],
+     "11": [
+      "angle"
+     ],
+     "12": [
+      "carol"
+     ],
+     "13": [
+      "pager"
+     ],
+     "14": [
+      "large",
+      "farce",
+      "barge",
+      "carve"
+     ],
+     "15": [
+      "carry"
+     ],
+     "16": [
+      "opera",
+      "zebra"
+     ],
+     "17": [
+      "adore",
+      "azure"
+     ],
+     "18": [
+      "clank"
+     ],
+     "19": [
+      "leach"
+     ],
+     "20": [
+      "glade"
+     ],
+     "21": [
+      "drain"
+     ],
+     "22": [
+      "reach",
+      "ready",
+      "realm"
+     ],
+     "23": [
+      "grace"
+     ],
+     "24": [
+      "hoard"
+     ],
+     "25": [
+      "learn",
+      "yearn"
+     ],
+     "26": [
+      "blare",
+      "flare",
+      "glare"
+     ],
+     "27": [
+      "count"
+     ],
+     "28": [
+      "tenet"
+     ],
+     "29": [
+      "title",
+      "twine"
+     ],
+     "30": [
+      "throb"
+     ],
+     "31": [
+      "meter"
+     ],
+     "32": [
+      "write",
+      "tribe"
+     ],
+     "33": [
+      "flirt",
+      "twirl"
+     ],
+     "34": [
+      "entry"
+     ],
+     "35": [
+      "there"
+     ],
+     "36": [
+      "taunt"
+     ],
+     "37": [
+      "cleat",
+      "pleat"
+     ],
+     "38": [
+      "table",
+      "bathe",
+      "lathe"
+     ],
+     "39": [
+      "aorta"
+     ],
+     "40": [
+      "taker",
+      "taper"
+     ],
+     "42": [
+      "abort",
+      "tarry",
+      "ultra"
+     ],
+     "43": [
+      "alert",
+      "avert"
+     ],
+     "45": [
+      "giant"
+     ],
+     "46": [
+      "dealt",
+      "enact"
+     ],
+     "47": [
+      "plate",
+      "abate"
+     ],
+     "48": [
+      "tract"
+     ],
+     "49": [
+      "react"
+     ],
+     "50": [
+      "trace",
+      "crate"
+     ],
+     "51": [
+      "apart",
+      "chart",
+      "quart",
+      "tiara"
+     ],
+     "52": [
+      "heart"
+     ],
+     "54": [
+      "itchy"
+     ],
+     "55": [
+      "ethic"
+     ],
+     "58": [
+      "other",
+      "otter"
+     ],
+     "63": [
+      "attic"
+     ],
+     "65": [
+      "atone"
+     ],
+     "81": [
+      "bushy"
+     ],
+     "82": [
+      "guess",
+      "chess"
+     ],
+     "83": [
+      "loose"
+     ],
+     "84": [
+      "corps"
+     ],
+     "85": [
+      "risen",
+      "miser",
+      "riser"
+     ],
+     "86": [
+      "rouse"
+     ],
+     "87": [
+      "usurp"
+     ],
+     "90": [
+      "basil",
+      "oasis"
+     ],
+     "91": [
+      "ashen",
+      "aspen"
+     ],
+     "92": [
+      "lapse"
+     ],
+     "93": [
+      "harsh",
+      "marsh"
+     ],
+     "94": [
+      "laser"
+     ],
+     "95": [
+      "arise",
+      "raise"
+     ],
+     "99": [
+      "class",
+      "clash"
+     ],
+     "100": [
+      "leash"
+     ],
+     "101": [
+      "cease",
+      "chase"
+     ],
+     "102": [
+      "brass",
+      "crass",
+      "grass"
+     ],
+     "104": [
+      "erase"
+     ],
+     "108": [
+      "moist"
+     ],
+     "109": [
+      "guest",
+      "quest",
+      "unset"
+     ],
+     "110": [
+      "these",
+      "those",
+      "tense"
+     ],
+     "111": [
+      "worst",
+      "torso"
+     ],
+     "112": [
+      "crest",
+      "wrest"
+     ],
+     "113": [
+      "terse"
+     ],
+     "117": [
+      "nasty",
+      "hasty",
+      "pasta",
+      "pasty",
+      "tasty"
+     ],
+     "118": [
+      "asset"
+     ],
+     "119": [
+      "taste",
+      "waste",
+      "paste",
+      "baste",
+      "caste",
+      "haste"
+     ],
+     "126": [
+      "blast",
+      "coast",
+      "toast",
+      "boast"
+     ],
+     "127": [
+      "least",
+      "beast",
+      "feast",
+      "yeast"
+     ],
+     "128": [
+      "tease"
+     ],
+     "129": [
+      "trash",
+      "roast"
+     ],
+     "136": [
+      "ethos"
+     ],
+     "144": [
+      "atlas"
+     ],
+     "162": [
+      "slink"
+     ],
+     "163": [
+      "sleep"
+     ],
+     "164": [
+      "spine"
+     ],
+     "165": [
+      "shrub"
+     ],
+     "166": [
+      "sheer",
+      "sewer"
+     ],
+     "167": [
+      "serve",
+      "spree"
+     ],
+     "168": [
+      "sworn"
+     ],
+     "169": [
+      "sperm"
+     ],
+     "170": [
+      "shire",
+      "shore",
+      "spire",
+      "spore"
+     ],
+     "171": [
+      "sadly"
+     ],
+     "172": [
+      "speak",
+      "sneak"
+     ],
+     "173": [
+      "sauce",
+      "salve"
+     ],
+     "174": [
+      "scrap",
+      "spray",
+      "scram"
+     ],
+     "175": [
+      "swear",
+      "shear",
+      "smear",
+      "spear"
+     ],
+     "180": [
+      "scalp"
+     ],
+     "182": [
+      "shape",
+      "shake",
+      "shave"
+     ],
+     "186": [
+      "sharp",
+      "shark",
+      "spark"
+     ],
+     "188": [
+      "share",
+      "spare",
+      "scare",
+      "snare"
+     ],
+     "189": [
+      "shout"
+     ],
+     "190": [
+      "slept"
+     ],
+     "191": [
+      "spite",
+      "suite",
+      "smite",
+      "smote"
+     ],
+     "195": [
+      "short",
+      "sport"
+     ],
+     "198": [
+      "splat"
+     ],
+     "199": [
+      "sweat"
+     ],
+     "201": [
+      "sorta"
+     ],
+     "207": [
+      "scant",
+      "slant"
+     ],
+     "209": [
+      "skate",
+      "slate",
+      "spate"
+     ],
+     "213": [
+      "smart"
+     ],
+     "216": [
+      "stunk"
+     ],
+     "217": [
+      "steel",
+      "steep"
+     ],
+     "218": [
+      "stone",
+      "style",
+      "stole",
+      "stoke",
+      "stove"
+     ],
+     "219": [
+      "strum",
+      "strut"
+     ],
+     "220": [
+      "steer",
+      "strew"
+     ],
+     "222": [
+      "story",
+      "storm",
+      "stork"
+     ],
+     "223": [
+      "stern"
+     ],
+     "224": [
+      "store"
+     ],
+     "226": [
+      "steal",
+      "steam",
+      "steak"
+     ],
+     "228": [
+      "straw",
+      "stray",
+      "strap"
+     ],
+     "234": [
+      "stank"
+     ],
+     "236": [
+      "stage",
+      "state",
+      "stake",
+      "stale",
+      "stave"
+     ],
+     "237": [
+      "stair"
+     ],
+     "240": [
+      "start",
+      "stark"
+     ],
+     "242": [
+      "stare"
+     ]
+    }
+   },
+   {
+    "first": "crate",
+    "second": {
+     "0": [
+      "solid"
+     ],
+     "1": [
+      "olden"
+     ],
+     "2": [
+      "slide"
+     ],
+     "3": [
+      "hoist"
+     ],
+     "4": [
+      "sleet"
+     ],
+     "5": [
+      "tense"
+     ],
+     "6": [
+      "smith"
+     ],
+     "7": [
+      "depth"
+     ],
+     "8": [
+      "suite"
+     ],
+     "9": [
+      "salon"
+     ],
+     "10": [
+      "laden"
+     ],
+     "11": [
+      "gable"
+     ],
+     "12": [
+      "talon"
+     ],
+     "13": [
+      "pleat"
+     ],
+     "14": [
+      "table",
+      "bathe",
+      "lathe"
+     ],
+     "15": [
+      "nasty"
+     ],
+     "16": [
+      "delta",
+      "theta"
+     ],
+     "17": [
+      "taste",
+      "waste",
+      "paste",
+      "baste",
+      "haste",
+      "matte"
+     ],
+     "18": [
+      "slain"
+     ],
+     "19": [
+      "leash"
+     ],
+     "20": [
+      "slave"
+     ],
+     "21": [
+      "slant"
+     ],
+     "22": [
+      "least"
+     ],
+     "23": [
+      "stage",
+      "stake",
+      "stale",
+      "stave"
+     ],
+     "24": [
+      "loath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "plate",
+      "slate",
+      "spate"
+     ],
+     "27": [
+      "sorry"
+     ],
+     "28": [
+      "risen"
+     ],
+     "29": [
+      "reuse"
+     ],
+     "30": [
+      "short"
+     ],
+     "31": [
+      "meter"
+     ],
+     "32": [
+      "store",
+      "there",
+      "three",
+      "terse"
+     ],
+     "33": [
+      "forth",
+      "north",
+      "worth",
+      "birth",
+      "forty",
+      "girth",
+      "mirth"
+     ],
+     "34": [
+      "berth"
+     ],
+     "35": [
+      "route",
+      "forte"
+     ],
+     "36": [
+      "mayor"
+     ],
+     "37": [
+      "pager"
+     ],
+     "38": [
+      "large",
+      "barge"
+     ],
+     "39": [
+      "tarry"
+     ],
+     "40": [
+      "alter"
+     ],
+     "42": [
+      "aorta",
+      "sorta"
+     ],
+     "43": [
+      "earth"
+     ],
+     "45": [
+      "hoard"
+     ],
+     "46": [
+      "ready"
+     ],
+     "47": [
+      "share",
+      "spare",
+      "blare",
+      "flare",
+      "glare",
+      "snare"
+     ],
+     "48": [
+      "start",
+      "smart"
+     ],
+     "49": [
+      "heart"
+     ],
+     "50": [
+      "stare"
+     ],
+     "54": [
+      "grind"
+     ],
+     "55": [
+      "greed"
+     ],
+     "56": [
+      "pride"
+     ],
+     "57": [
+      "front"
+     ],
+     "58": [
+      "greet",
+      "wrest"
+     ],
+     "59": [
+      "tribe",
+      "tripe"
+     ],
+     "60": [
+      "broth",
+      "froth"
+     ],
+     "62": [
+      "write"
+     ],
+     "63": [
+      "arbor",
+      "ardor"
+     ],
+     "64": [
+      "bread"
+     ],
+     "65": [
+      "arise",
+      "arose"
+     ],
+     "66": [
+      "trial"
+     ],
+     "67": [
+      "great",
+      "treat",
+      "tread"
+     ],
+     "72": [
+      "brand"
+     ],
+     "74": [
+      "grave",
+      "grade",
+      "grape"
+     ],
+     "75": [
+      "train",
+      "trail"
+     ],
+     "77": [
+      "trade"
+     ],
+     "78": [
+      "wrath"
+     ],
+     "80": [
+      "irate",
+      "grate"
+     ],
+     "81": [
+      "lunch"
+     ],
+     "82": [
+      "leech"
+     ],
+     "83": [
+      "since"
+     ],
+     "84": [
+      "touch"
+     ],
+     "85": [
+      "elect",
+      "edict",
+      "eject",
+      "evict"
+     ],
+     "86": [
+      "twice"
+     ],
+     "90": [
+      "manic"
+     ],
+     "91": [
+      "decay",
+      "ocean",
+      "pecan"
+     ],
+     "92": [
+      "dance",
+      "lance"
+     ],
+     "93": [
+      "tacit"
+     ],
+     "94": [
+      "facet"
+     ],
+     "98": [
+      "acute"
+     ],
+     "99": [
+      "scalp"
+     ],
+     "100": [
+      "leach",
+      "beach",
+      "peach"
+     ],
+     "101": [
+      "peace",
+      "place",
+      "scale"
+     ],
+     "102": [
+      "stack",
+      "scant"
+     ],
+     "103": [
+      "exact",
+      "enact"
+     ],
+     "108": [
+      "occur",
+      "incur",
+      "scrub"
+     ],
+     "109": [
+      "mercy",
+      "decry",
+      "recur",
+      "ulcer"
+     ],
+     "110": [
+      "force",
+      "score"
+     ],
+     "111": [
+      "torch"
+     ],
+     "112": [
+      "retch"
+     ],
+     "117": [
+      "scrap",
+      "scram"
+     ],
+     "118": [
+      "racer",
+      "recap"
+     ],
+     "119": [
+      "farce"
+     ],
+     "120": [
+      "actor"
+     ],
+     "126": [
+      "scarf",
+      "scary"
+     ],
+     "127": [
+      "reach"
+     ],
+     "128": [
+      "scare"
+     ],
+     "130": [
+      "react"
+     ],
+     "135": [
+      "brick",
+      "frock"
+     ],
+     "136": [
+      "wreck"
+     ],
+     "137": [
+      "price"
+     ],
+     "138": [
+      "trick",
+      "truck"
+     ],
+     "139": [
+      "erect"
+     ],
+     "140": [
+      "truce"
+     ],
+     "153": [
+      "franc"
+     ],
+     "155": [
+      "grace",
+      "brace"
+     ],
+     "156": [
+      "track",
+      "tract"
+     ],
+     "158": [
+      "trace"
+     ],
+     "162": [
+      "clink"
+     ],
+     "163": [
+      "cheek"
+     ],
+     "164": [
+      "close"
+     ],
+     "165": [
+      "count",
+      "clout"
+     ],
+     "166": [
+      "chest",
+      "cleft",
+      "comet",
+      "covet"
+     ],
+     "168": [
+      "cloth"
+     ],
+     "170": [
+      "chute"
+     ],
+     "171": [
+      "canon"
+     ],
+     "172": [
+      "camel"
+     ],
+     "173": [
+      "cable",
+      "calve"
+     ],
+     "174": [
+      "catch"
+     ],
+     "175": [
+      "cheat",
+      "cleat"
+     ],
+     "179": [
+      "caste"
+     ],
+     "180": [
+      "chasm"
+     ],
+     "182": [
+      "cease",
+      "chase",
+      "chafe"
+     ],
+     "183": [
+      "coast",
+      "chant"
+     ],
+     "189": [
+      "choir",
+      "curry",
+      "corny",
+      "corps"
+     ],
+     "190": [
+      "cover",
+      "cower"
+     ],
+     "191": [
+      "curse",
+      "curve"
+     ],
+     "192": [
+      "court"
+     ],
+     "198": [
+      "cargo",
+      "carol"
+     ],
+     "199": [
+      "clear",
+      "cedar"
+     ],
+     "200": [
+      "carve"
+     ],
+     "201": [
+      "carat"
+     ],
+     "202": [
+      "cater"
+     ],
+     "207": [
+      "chair",
+      "charm"
+     ],
+     "210": [
+      "chart"
+     ],
+     "216": [
+      "crown",
+      "croon"
+     ],
+     "217": [
+      "creed",
+      "creep",
+      "creek"
+     ],
+     "218": [
+      "crime",
+      "crude",
+      "crepe"
+     ],
+     "219": [
+      "crust",
+      "crypt"
+     ],
+     "220": [
+      "crept",
+      "crest"
+     ],
+     "225": [
+      "croak"
+     ],
+     "226": [
+      "cream",
+      "creak"
+     ],
+     "234": [
+      "crash",
+      "crack",
+      "crass",
+      "crank"
+     ],
+     "236": [
+      "crane",
+      "crave",
+      "craze"
+     ],
+     "237": [
+      "craft"
+     ],
+     "242": [
+      "crate"
+     ]
+    }
+   },
+   {
+    "first": "raise",
+    "second": {
+     "0": [
+      "blunt"
+     ],
+     "1": [
+      "hotel"
+     ],
+     "2": [
+      "lunge"
+     ],
+     "3": [
+      "stunk"
+     ],
+     "4": [
+      "steep"
+     ],
+     "5": [
+      "stone"
+     ],
+     "6": [
+      "floss"
+     ],
+     "7": [
+      "guess",
+      "chess"
+     ],
+     "8": [
+      "loose"
+     ],
+     "9": [
+      "filth"
+     ],
+     "10": [
+      "fiend"
+     ],
+     "11": [
+      "mince"
+     ],
+     "12": [
+      "split",
+      "misty"
+     ],
+     "13": [
+      "sinew",
+      "skein"
+     ],
+     "14": [
+      "siege",
+      "singe"
+     ],
+     "15": [
+      "tipsy"
+     ],
+     "18": [
+      "cling"
+     ],
+     "19": [
+      "feign",
+      "feint"
+     ],
+     "20": [
+      "guile"
+     ],
+     "21": [
+      "stink"
+     ],
+     "23": [
+      "snipe",
+      "spine"
+     ],
+     "24": [
+      "hoist"
+     ],
+     "25": [
+      "exist"
+     ],
+     "26": [
+      "noise",
+      "poise"
+     ],
+     "27": [
+      "plant"
+     ],
+     "28": [
+      "cleat"
+     ],
+     "29": [
+      "blade"
+     ],
+     "30": [
+      "stalk"
+     ],
+     "31": [
+      "steak"
+     ],
+     "32": [
+      "slate"
+     ],
+     "33": [
+      "slash"
+     ],
+     "34": [
+      "least",
+      "beast",
+      "feast",
+      "leash",
+      "yeast"
+     ],
+     "35": [
+      "cease",
+      "chase"
+     ],
+     "36": [
+      "tidal"
+     ],
+     "37": [
+      "ideal",
+      "media",
+      "email"
+     ],
+     "38": [
+      "image",
+      "inane"
+     ],
+     "39": [
+      "snail",
+      "slain",
+      "stain"
+     ],
+     "41": [
+      "aisle"
+     ],
+     "45": [
+      "align",
+      "alibi"
+     ],
+     "46": [
+      "alien"
+     ],
+     "47": [
+      "alive",
+      "alike"
+     ],
+     "48": [
+      "alias"
+     ],
+     "50": [
+      "aside"
+     ],
+     "51": [
+      "amiss"
+     ],
+     "54": [
+      "candy"
+     ],
+     "55": [
+      "navel"
+     ],
+     "56": [
+      "cable"
+     ],
+     "57": [
+      "nasal"
+     ],
+     "58": [
+      "easel"
+     ],
+     "59": [
+      "sauce",
+      "caste"
+     ],
+     "60": [
+      "pansy",
+      "sassy"
+     ],
+     "62": [
+      "pause",
+      "lapse"
+     ],
+     "63": [
+      "panic",
+      "manic"
+     ],
+     "66": [
+      "basic",
+      "basis",
+      "basil",
+      "basin",
+      "oasis"
+     ],
+     "72": [
+      "faith",
+      "faint",
+      "paint",
+      "taint"
+     ],
+     "74": [
+      "naive",
+      "waive"
+     ],
+     "75": [
+      "saint"
+     ],
+     "78": [
+      "daisy",
+      "waist"
+     ],
+     "81": [
+      "court"
+     ],
+     "82": [
+      "deter"
+     ],
+     "83": [
+      "grope"
+     ],
+     "84": [
+      "short",
+      "story"
+     ],
+     "85": [
+      "sheer"
+     ],
+     "86": [
+      "spree"
+     ],
+     "87": [
+      "crust"
+     ],
+     "88": [
+      "press",
+      "dress",
+      "crest",
+      "wrest"
+     ],
+     "89": [
+      "curse",
+      "nurse",
+      "prose",
+      "purse"
+     ],
+     "90": [
+      "groin"
+     ],
+     "91": [
+      "miner"
+     ],
+     "92": [
+      "dirge",
+      "eerie"
+     ],
+     "93": [
+      "strip",
+      "sprig"
+     ],
+     "94": [
+      "miser",
+      "siren",
+      "sizer"
+     ],
+     "96": [
+      "first"
+     ],
+     "99": [
+      "print"
+     ],
+     "100": [
+      "brief",
+      "grief"
+     ],
+     "101": [
+      "tripe"
+     ],
+     "102": [
+      "shirk"
+     ],
+     "104": [
+      "shire",
+      "spire"
+     ],
+     "105": [
+      "crisp",
+      "brisk",
+      "frisk",
+      "prism"
+     ],
+     "108": [
+      "adorn"
+     ],
+     "109": [
+      "alert"
+     ],
+     "110": [
+      "grace"
+     ],
+     "111": [
+      "strap"
+     ],
+     "112": [
+      "swear",
+      "shear",
+      "smear",
+      "spear"
+     ],
+     "113": [
+      "share",
+      "spare",
+      "scare",
+      "stare",
+      "snare"
+     ],
+     "114": [
+      "crash",
+      "brass",
+      "crass",
+      "grass",
+      "brash"
+     ],
+     "116": [
+      "arose",
+      "erase"
+     ],
+     "117": [
+      "trail"
+     ],
+     "119": [
+      "irate"
+     ],
+     "120": [
+      "stair"
+     ],
+     "126": [
+      "trial",
+      "friar"
+     ],
+     "134": [
+      "arise"
+     ],
+     "135": [
+      "party"
+     ],
+     "136": [
+      "taper"
+     ],
+     "137": [
+      "large",
+      "farce",
+      "barge",
+      "carve"
+     ],
+     "138": [
+      "savor"
+     ],
+     "139": [
+      "saber",
+      "saver"
+     ],
+     "141": [
+      "harsh",
+      "marsh"
+     ],
+     "143": [
+      "parse"
+     ],
+     "144": [
+      "maria"
+     ],
+     "153": [
+      "fairy",
+      "hairy",
+      "dairy"
+     ],
+     "162": [
+      "rumor",
+      "ruddy"
+     ],
+     "163": [
+      "ruler"
+     ],
+     "164": [
+      "route",
+      "rogue",
+      "rouge"
+     ],
+     "165": [
+      "rusty"
+     ],
+     "166": [
+      "reset"
+     ],
+     "168": [
+      "roost"
+     ],
+     "170": [
+      "reuse",
+      "rouse"
+     ],
+     "171": [
+      "robin"
+     ],
+     "172": [
+      "rider",
+      "rivet"
+     ],
+     "173": [
+      "ridge",
+      "rifle"
+     ],
+     "174": [
+      "risky"
+     ],
+     "175": [
+      "risen",
+      "resin",
+      "riser"
+     ],
+     "179": [
+      "rinse"
+     ],
+     "180": [
+      "rhino"
+     ],
+     "181": [
+      "reign"
+     ],
+     "189": [
+      "roman",
+      "royal",
+      "rural"
+     ],
+     "190": [
+      "relay"
+     ],
+     "195": [
+      "roast"
+     ],
+     "198": [
+      "rival"
+     ],
+     "216": [
+      "rayon"
+     ],
+     "217": [
+      "ravel",
+      "raven"
+     ],
+     "218": [
+      "range"
+     ],
+     "225": [
+      "rapid",
+      "rabid"
+     ],
+     "234": [
+      "rainy"
+     ],
+     "242": [
+      "raise"
+     ]
+    }
+   },
+   {
+    "first": "irate",
+    "second": {
+     "0": [
+      "slunk"
+     ],
+     "1": [
+      "wheel"
+     ],
+     "2": [
+      "louse"
+     ],
+     "3": [
+      "count"
+     ],
+     "4": [
+      "sleet"
+     ],
+     "5": [
+      "tense"
+     ],
+     "6": [
+      "sloth"
+     ],
+     "7": [
+      "depth",
+      "petty",
+      "jetty"
+     ],
+     "8": [
+      "quote",
+      "flute",
+      "butte",
+      "chute"
+     ],
+     "9": [
+      "canal"
+     ],
+     "10": [
+      "angel"
+     ],
+     "11": [
+      "cable"
+     ],
+     "12": [
+      "talon"
+     ],
+     "13": [
+      "cleat"
+     ],
+     "14": [
+      "table",
+      "bathe",
+      "lathe"
+     ],
+     "15": [
+      "nasty"
+     ],
+     "16": [
+      "delta",
+      "theta"
+     ],
+     "17": [
+      "taste",
+      "waste",
+      "paste",
+      "baste",
+      "caste",
+      "haste",
+      "matte"
+     ],
+     "18": [
+      "clasp"
+     ],
+     "19": [
+      "leach",
+      "leash"
+     ],
+     "20": [
+      "slave"
+     ],
+     "21": [
+      "slant"
+     ],
+     "22": [
+      "least"
+     ],
+     "23": [
+      "stage",
+      "stake",
+      "stale",
+      "stave"
+     ],
+     "24": [
+      "loath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "plate",
+      "slate",
+      "spate"
+     ],
+     "27": [
+      "curry"
+     ],
+     "28": [
+      "leper"
+     ],
+     "29": [
+      "reuse"
+     ],
+     "30": [
+      "short"
+     ],
+     "31": [
+      "otter"
+     ],
+     "32": [
+      "store",
+      "there",
+      "three",
+      "terse"
+     ],
+     "33": [
+      "forth",
+      "north",
+      "worth",
+      "forty"
+     ],
+     "34": [
+      "berth"
+     ],
+     "35": [
+      "route",
+      "forte"
+     ],
+     "36": [
+      "carol"
+     ],
+     "37": [
+      "pager"
+     ],
+     "38": [
+      "large",
+      "farce",
+      "barge",
+      "carve"
+     ],
+     "39": [
+      "carat"
+     ],
+     "40": [
+      "alter"
+     ],
+     "42": [
+      "aorta",
+      "sorta"
+     ],
+     "43": [
+      "earth"
+     ],
+     "45": [
+      "shark"
+     ],
+     "46": [
+      "ready"
+     ],
+     "47": [
+      "share",
+      "spare",
+      "scare",
+      "snare"
+     ],
+     "48": [
+      "start",
+      "smart",
+      "stark"
+     ],
+     "49": [
+      "heart",
+      "react"
+     ],
+     "50": [
+      "stare"
+     ],
+     "54": [
+      "crowd"
+     ],
+     "55": [
+      "creed"
+     ],
+     "56": [
+      "prone"
+     ],
+     "57": [
+      "crust"
+     ],
+     "58": [
+      "crest"
+     ],
+     "59": [
+      "truce"
+     ],
+     "60": [
+      "broth",
+      "froth"
+     ],
+     "62": [
+      "wrote",
+      "brute"
+     ],
+     "63": [
+      "broad",
+      "arbor",
+      "ardor"
+     ],
+     "64": [
+      "dream",
+      "bread"
+     ],
+     "65": [
+      "argue",
+      "arose"
+     ],
+     "67": [
+      "great",
+      "treat",
+      "tread"
+     ],
+     "72": [
+      "brand"
+     ],
+     "74": [
+      "grace"
+     ],
+     "75": [
+      "craft"
+     ],
+     "77": [
+      "trace",
+      "trade"
+     ],
+     "78": [
+      "wrath"
+     ],
+     "80": [
+      "crate",
+      "grate"
+     ],
+     "81": [
+      "slick"
+     ],
+     "82": [
+      "widen"
+     ],
+     "83": [
+      "slice"
+     ],
+     "84": [
+      "hoist"
+     ],
+     "85": [
+      "edict"
+     ],
+     "86": [
+      "title",
+      "lithe",
+      "tilde",
+      "tinge",
+      "twine"
+     ],
+     "87": [
+      "filth"
+     ],
+     "88": [
+      "deity",
+      "piety"
+     ],
+     "89": [
+      "suite"
+     ],
+     "90": [
+      "mania"
+     ],
+     "91": [
+      "media",
+      "alien"
+     ],
+     "92": [
+      "alive"
+     ],
+     "93": [
+      "taint"
+     ],
+     "96": [
+      "faith",
+      "vista"
+     ],
+     "99": [
+      "plain"
+     ],
+     "100": [
+      "email"
+     ],
+     "102": [
+      "giant",
+      "staid",
+      "stain"
+     ],
+     "108": [
+      "curio"
+     ],
+     "109": [
+      "risen"
+     ],
+     "110": [
+      "dirge",
+      "rinse"
+     ],
+     "111": [
+      "shirt"
+     ],
+     "112": [
+      "timer"
+     ],
+     "114": [
+      "birth",
+      "girth",
+      "mirth"
+     ],
+     "117": [
+      "rabid"
+     ],
+     "119": [
+      "raise"
+     ],
+     "120": [
+      "ratio"
+     ],
+     "126": [
+      "chair",
+      "flair"
+     ],
+     "129": [
+      "stair",
+      "tiara"
+     ],
+     "135": [
+      "bring"
+     ],
+     "136": [
+      "brief",
+      "grief"
+     ],
+     "137": [
+      "pride"
+     ],
+     "138": [
+      "drift",
+      "fruit"
+     ],
+     "140": [
+      "tribe",
+      "tripe"
+     ],
+     "143": [
+      "write",
+      "trite"
+     ],
+     "144": [
+      "friar"
+     ],
+     "146": [
+      "arise"
+     ],
+     "147": [
+      "trial"
+     ],
+     "153": [
+      "brain",
+      "drain",
+      "braid"
+     ],
+     "156": [
+      "train",
+      "trail",
+      "trait"
+     ],
+     "162": [
+      "idiom",
+      "icing",
+      "igloo"
+     ],
+     "163": [
+      "index",
+      "impel"
+     ],
+     "164": [
+      "issue"
+     ],
+     "165": [
+      "input",
+      "idiot"
+     ],
+     "166": [
+      "inept",
+      "inlet"
+     ],
+     "171": [
+      "inlay"
+     ],
+     "172": [
+      "ideal"
+     ],
+     "182": [
+      "image",
+      "inane"
+     ],
+     "189": [
+      "incur",
+      "ivory"
+     ],
+     "190": [
+      "inner",
+      "infer"
+     ],
+     "193": [
+      "inter",
+      "inert"
+     ],
+     "216": [
+      "irony"
+     ],
+     "242": [
+      "irate"
+     ]
+    }
+   },
+   {
+    "first": "snare",
+    "second": {
+     "0": [
+      "could"
+     ],
+     "1": [
+      "fleet"
+     ],
+     "2": [
+      "guile"
+     ],
+     "3": [
+      "tumor"
+     ],
+     "4": [
+      "deter"
+     ],
+     "5": [
+      "gripe"
+     ],
+     "6": [
+      "court"
+     ],
+     "7": [
+      "ferry"
+     ],
+     "8": [
+      "there",
+      "where"
+     ],
+     "9": [
+      "allot"
+     ],
+     "10": [
+      "petal"
+     ],
+     "11": [
+      "gable"
+     ],
+     "12": [
+      "carol"
+     ],
+     "13": [
+      "taper"
+     ],
+     "14": [
+      "large",
+      "farce",
+      "barge",
+      "carve"
+     ],
+     "15": [
+      "tarry"
+     ],
+     "16": [
+      "alert",
+      "avert"
+     ],
+     "17": [
+      "adore",
+      "azure"
+     ],
+     "18": [
+      "claim"
+     ],
+     "19": [
+      "death"
+     ],
+     "20": [
+      "blade"
+     ],
+     "21": [
+      "craft"
+     ],
+     "22": [
+      "reach",
+      "react"
+     ],
+     "23": [
+      "trace",
+      "crate"
+     ],
+     "24": [
+      "award"
+     ],
+     "25": [
+      "heard"
+     ],
+     "26": [
+      "blare",
+      "flare",
+      "glare"
+     ],
+     "27": [
+      "count"
+     ],
+     "28": [
+      "felon"
+     ],
+     "29": [
+      "ounce"
+     ],
+     "30": [
+      "grind"
+     ],
+     "31": [
+      "diner"
+     ],
+     "32": [
+      "prone",
+      "prune",
+      "urine"
+     ],
+     "33": [
+      "churn",
+      "mourn",
+      "thorn"
+     ],
+     "35": [
+      "genre"
+     ],
+     "36": [
+      "canny"
+     ],
+     "37": [
+      "glean"
+     ],
+     "38": [
+      "lance"
+     ],
+     "39": [
+      "rayon"
+     ],
+     "40": [
+      "arena",
+      "raven"
+     ],
+     "41": [
+      "range"
+     ],
+     "42": [
+      "acorn",
+      "adorn"
+     ],
+     "45": [
+      "clang"
+     ],
+     "46": [
+      "meant"
+     ],
+     "47": [
+      "plane"
+     ],
+     "48": [
+      "grand"
+     ],
+     "50": [
+      "crane"
+     ],
+     "52": [
+      "learn",
+      "yearn"
+     ],
+     "54": [
+      "until"
+     ],
+     "55": [
+      "kneel"
+     ],
+     "56": [
+      "unite",
+      "untie"
+     ],
+     "57": [
+      "incur"
+     ],
+     "58": [
+      "inter"
+     ],
+     "61": [
+      "entry",
+      "inert"
+     ],
+     "63": [
+      "annul",
+      "anvil",
+      "inlay"
+     ],
+     "64": [
+      "angel",
+      "annex",
+      "enema",
+      "knead"
+     ],
+     "65": [
+      "angle",
+      "ankle"
+     ],
+     "67": [
+      "anger"
+     ],
+     "69": [
+      "angry"
+     ],
+     "72": [
+      "knack"
+     ],
+     "73": [
+      "enact"
+     ],
+     "74": [
+      "inane"
+     ],
+     "78": [
+      "gnarl"
+     ],
+     "81": [
+      "moist"
+     ],
+     "82": [
+      "chest"
+     ],
+     "83": [
+      "loose"
+     ],
+     "84": [
+      "crust"
+     ],
+     "85": [
+      "reset"
+     ],
+     "86": [
+      "rouse"
+     ],
+     "87": [
+      "usurp"
+     ],
+     "90": [
+      "alias"
+     ],
+     "91": [
+      "asset",
+      "essay",
+      "askew",
+      "easel"
+     ],
+     "92": [
+      "lapse"
+     ],
+     "93": [
+      "harsh",
+      "marsh"
+     ],
+     "94": [
+      "laser"
+     ],
+     "95": [
+      "arise",
+      "raise"
+     ],
+     "99": [
+      "chaos"
+     ],
+     "100": [
+      "least",
+      "beast",
+      "feast",
+      "leash",
+      "yeast"
+     ],
+     "101": [
+      "cease",
+      "chase"
+     ],
+     "102": [
+      "crash",
+      "brass",
+      "crass",
+      "grass",
+      "brash"
+     ],
+     "104": [
+      "erase"
+     ],
+     "108": [
+      "noisy",
+      "bonus",
+      "minus",
+      "bison"
+     ],
+     "109": [
+      "genus",
+      "newsy"
+     ],
+     "110": [
+      "noise",
+      "dense",
+      "tense",
+      "noose"
+     ],
+     "112": [
+      "risen",
+      "resin"
+     ],
+     "113": [
+      "nurse",
+      "rinse"
+     ],
+     "117": [
+      "nasty",
+      "basin",
+      "mason",
+      "nasal"
+     ],
+     "118": [
+      "ashen",
+      "aspen"
+     ],
+     "120": [
+      "arson"
+     ],
+     "136": [
+      "unset",
+      "onset"
+     ],
+     "137": [
+      "ensue"
+     ],
+     "144": [
+      "angst",
+      "unsay"
+     ],
+     "153": [
+      "gnash"
+     ],
+     "162": [
+      "split"
+     ],
+     "163": [
+      "slept"
+     ],
+     "164": [
+      "spite"
+     ],
+     "165": [
+      "shrub"
+     ],
+     "166": [
+      "sheer"
+     ],
+     "167": [
+      "serve",
+      "spree"
+     ],
+     "168": [
+      "stork"
+     ],
+     "169": [
+      "sperm"
+     ],
+     "170": [
+      "shire",
+      "shore",
+      "spire",
+      "spore"
+     ],
+     "171": [
+      "salad",
+      "salty"
+     ],
+     "172": [
+      "steak"
+     ],
+     "173": [
+      "sauce",
+      "salve"
+     ],
+     "174": [
+      "scrap",
+      "strap"
+     ],
+     "175": [
+      "swear",
+      "shear",
+      "smear",
+      "spear"
+     ],
+     "180": [
+      "stalk"
+     ],
+     "182": [
+      "slate"
+     ],
+     "183": [
+      "stair"
+     ],
+     "186": [
+      "stark"
+     ],
+     "188": [
+      "share",
+      "spare",
+      "scare",
+      "stare"
+     ],
+     "189": [
+      "stung"
+     ],
+     "190": [
+      "spend",
+      "spent",
+      "scent"
+     ],
+     "191": [
+      "shine"
+     ],
+     "193": [
+      "siren"
+     ],
+     "195": [
+      "sworn",
+      "scorn"
+     ],
+     "196": [
+      "stern"
+     ],
+     "198": [
+      "saint",
+      "satin"
+     ],
+     "199": [
+      "sedan"
+     ],
+     "207": [
+      "slant"
+     ],
+     "216": [
+      "snout",
+      "snuff"
+     ],
+     "218": [
+      "snide",
+      "snipe"
+     ],
+     "220": [
+      "sneer"
+     ],
+     "222": [
+      "snort"
+     ],
+     "224": [
+      "snore"
+     ],
+     "226": [
+      "sneak"
+     ],
+     "234": [
+      "snack",
+      "snail"
+     ],
+     "236": [
+      "snake"
+     ],
+     "240": [
+      "snarl"
+     ],
+     "242": [
+      "snare"
+     ]
+    }
+   },
+   {
+    "first": "arise",
+    "second": {
+     "0": [
+      "blunt"
+     ],
+     "1": [
+      "hotel"
+     ],
+     "2": [
+      "lunge"
+     ],
+     "3": [
+      "stunk"
+     ],
+     "4": [
+      "steep"
+     ],
+     "5": [
+      "stone"
+     ],
+     "6": [
+      "floss"
+     ],
+     "7": [
+      "guess",
+      "chess"
+     ],
+     "8": [
+      "loose"
+     ],
+     "9": [
+      "filth"
+     ],
+     "10": [
+      "fiend"
+     ],
+     "11": [
+      "mince"
+     ],
+     "12": [
+      "split",
+      "misty"
+     ],
+     "13": [
+      "sinew",
+      "skein"
+     ],
+     "14": [
+      "siege",
+      "singe"
+     ],
+     "15": [
+      "tipsy"
+     ],
+     "18": [
+      "cling"
+     ],
+     "19": [
+      "feign",
+      "feint"
+     ],
+     "20": [
+      "guile"
+     ],
+     "21": [
+      "stink"
+     ],
+     "23": [
+      "snipe",
+      "spine"
+     ],
+     "24": [
+      "hoist"
+     ],
+     "25": [
+      "exist"
+     ],
+     "26": [
+      "noise",
+      "poise"
+     ],
+     "27": [
+      "curry"
+     ],
+     "28": [
+      "peter"
+     ],
+     "29": [
+      "verge"
+     ],
+     "30": [
+      "short",
+      "story"
+     ],
+     "31": [
+      "sheer"
+     ],
+     "32": [
+      "spree"
+     ],
+     "33": [
+      "worst",
+      "burst",
+      "roost",
+      "torso"
+     ],
+     "35": [
+      "reuse",
+      "rouse"
+     ],
+     "36": [
+      "birch"
+     ],
+     "37": [
+      "rivet"
+     ],
+     "38": [
+      "dirge",
+      "ridge",
+      "rifle"
+     ],
+     "39": [
+      "risky",
+      "strip",
+      "virus",
+      "sprig",
+      "visor"
+     ],
+     "40": [
+      "risen",
+      "miser",
+      "resin",
+      "riser"
+     ],
+     "42": [
+      "first"
+     ],
+     "44": [
+      "rinse"
+     ],
+     "45": [
+      "third",
+      "flirt",
+      "twirl",
+      "whirl"
+     ],
+     "46": [
+      "weird",
+      "reign"
+     ],
+     "48": [
+      "shirk"
+     ],
+     "50": [
+      "shire",
+      "spire"
+     ],
+     "54": [
+      "grunt"
+     ],
+     "55": [
+      "creed"
+     ],
+     "56": [
+      "prude"
+     ],
+     "60": [
+      "crust"
+     ],
+     "61": [
+      "press",
+      "dress",
+      "crest",
+      "wrest"
+     ],
+     "62": [
+      "prose"
+     ],
+     "63": [
+      "irony",
+      "orbit",
+      "broil",
+      "groin"
+     ],
+     "72": [
+      "bring"
+     ],
+     "73": [
+      "brief",
+      "grief"
+     ],
+     "74": [
+      "tripe"
+     ],
+     "78": [
+      "crisp",
+      "brisk",
+      "frisk",
+      "prism"
+     ],
+     "81": [
+      "canal"
+     ],
+     "82": [
+      "petal"
+     ],
+     "83": [
+      "cable"
+     ],
+     "84": [
+      "slant"
+     ],
+     "85": [
+      "steak"
+     ],
+     "86": [
+      "slate"
+     ],
+     "87": [
+      "slash"
+     ],
+     "88": [
+      "least",
+      "beast",
+      "feast",
+      "leash",
+      "yeast"
+     ],
+     "89": [
+      "lapse"
+     ],
+     "90": [
+      "panic"
+     ],
+     "91": [
+      "ideal",
+      "media",
+      "email"
+     ],
+     "92": [
+      "image",
+      "inane"
+     ],
+     "93": [
+      "snail",
+      "slain"
+     ],
+     "99": [
+      "faith",
+      "faint",
+      "paint",
+      "taint"
+     ],
+     "101": [
+      "naive",
+      "waive"
+     ],
+     "102": [
+      "saint"
+     ],
+     "105": [
+      "daisy",
+      "waist"
+     ],
+     "108": [
+      "coral"
+     ],
+     "109": [
+      "repay"
+     ],
+     "110": [
+      "barge"
+     ],
+     "111": [
+      "strap"
+     ],
+     "112": [
+      "swear",
+      "shear",
+      "smear",
+      "spear"
+     ],
+     "113": [
+      "share",
+      "spare",
+      "scare",
+      "stare",
+      "snare"
+     ],
+     "114": [
+      "harsh",
+      "marsh"
+     ],
+     "116": [
+      "parse"
+     ],
+     "117": [
+      "rapid",
+      "rabid"
+     ],
+     "120": [
+      "stair"
+     ],
+     "126": [
+      "fairy",
+      "hairy",
+      "dairy"
+     ],
+     "134": [
+      "raise"
+     ],
+     "135": [
+      "grand"
+     ],
+     "136": [
+      "tread"
+     ],
+     "137": [
+      "trace",
+      "crate"
+     ],
+     "141": [
+      "crash",
+      "brass",
+      "crass",
+      "grass",
+      "brash"
+     ],
+     "143": [
+      "erase"
+     ],
+     "144": [
+      "train"
+     ],
+     "146": [
+      "irate"
+     ],
+     "153": [
+      "trial",
+      "friar"
+     ],
+     "162": [
+      "aloft"
+     ],
+     "163": [
+      "agent",
+      "angel"
+     ],
+     "164": [
+      "abate"
+     ],
+     "165": [
+      "atlas"
+     ],
+     "166": [
+      "ashen",
+      "aspen"
+     ],
+     "168": [
+      "abyss",
+      "amass"
+     ],
+     "170": [
+      "abuse",
+      "amuse"
+     ],
+     "171": [
+      "audit"
+     ],
+     "176": [
+      "aisle"
+     ],
+     "180": [
+      "align",
+      "alibi"
+     ],
+     "181": [
+      "alien"
+     ],
+     "182": [
+      "alive",
+      "alike"
+     ],
+     "183": [
+      "alias"
+     ],
+     "185": [
+      "aside"
+     ],
+     "186": [
+      "amiss"
+     ],
+     "189": [
+      "apart",
+      "abort",
+      "acorn",
+      "adorn",
+      "apron"
+     ],
+     "190": [
+      "alter",
+      "alert"
+     ],
+     "191": [
+      "aware",
+      "adore",
+      "azure"
+     ],
+     "198": [
+      "acrid"
+     ],
+     "216": [
+      "arbor",
+      "ardor",
+      "armor"
+     ],
+     "217": [
+      "arena"
+     ],
+     "218": [
+      "argue"
+     ],
+     "219": [
+      "arson"
+     ],
+     "224": [
+      "arose"
+     ],
+     "242": [
+      "arise"
+     ]
+    }
+   }
+  ]
+ },
+ "champion": {
+  "openers": [
+   {
+    "first": "raise",
+    "second": {
+     "0": [
+      "blond"
+     ],
+     "1": [
+      "elect"
+     ],
+     "2": [
+      "could",
+      "cloud"
+     ],
+     "3": [
+      "mulct",
+      "plonk"
+     ],
+     "4": [
+      "slept"
+     ],
+     "5": [
+      "knots",
+      "plonk"
+     ],
+     "6": [
+      "floss"
+     ],
+     "7": [
+      "thegn"
+     ],
+     "8": [
+      "cloth",
+      "sloth"
+     ],
+     "9": [
+      "filth"
+     ],
+     "10": [
+      "tined",
+      "fined"
+     ],
+     "11": [
+      "munch"
+     ],
+     "12": [
+      "shout"
+     ],
+     "13": [
+      "sinew",
+      "skein"
+     ],
+     "14": [
+      "clung",
+      "dinge",
+      "dingo",
+      "dings",
+      "dingy",
+      "dungs",
+      "flung",
+      "given",
+      "glean",
+      "glens",
+      "gluon",
+      "ingle",
+      "liege",
+      "ligan",
+      "lingo",
+      "lings",
+      "lunge",
+      "lungi",
+      "lungs",
+      "nudge"
+     ],
+     "15": [
+      "tipsy"
+     ],
+     "18": [
+      "blunt",
+      "clung",
+      "clunk"
+     ],
+     "19": [
+      "feted"
+     ],
+     "20": [
+      "cloth"
+     ],
+     "21": [
+      "knelt"
+     ],
+     "23": [
+      "plant",
+      "plunk",
+      "unapt",
+      "uncap"
+     ],
+     "24": [
+      "forth",
+      "froth",
+      "month",
+      "mouth",
+      "thumb",
+      "thyme"
+     ],
+     "25": [
+      "exist"
+     ],
+     "26": [
+      "noise",
+      "poise"
+     ],
+     "27": [
+      "clout"
+     ],
+     "28": [
+      "plant"
+     ],
+     "29": [
+      "black"
+     ],
+     "30": [
+      "plant"
+     ],
+     "31": [
+      "steak"
+     ],
+     "32": [
+      "klutz"
+     ],
+     "33": [
+      "gulch"
+     ],
+     "34": [
+      "butyl",
+      "fatly",
+      "fitly",
+      "fluty",
+      "flyte",
+      "lefty",
+      "lofty"
+     ],
+     "35": [
+      "belch",
+      "butch",
+      "mulch"
+     ],
+     "36": [
+      "until"
+     ],
+     "37": [
+      "email",
+      "ideal",
+      "media"
+     ],
+     "38": [
+      "image",
+      "inane"
+     ],
+     "39": [
+      "slain",
+      "snail",
+      "stain"
+     ],
+     "41": [
+      "aisle"
+     ],
+     "45": [
+      "alibi",
+      "align"
+     ],
+     "46": [
+      "alien"
+     ],
+     "47": [
+      "alike",
+      "alive"
+     ],
+     "48": [
+      "alias"
+     ],
+     "50": [
+      "aside"
+     ],
+     "51": [
+      "amiss"
+     ],
+     "54": [
+      "cyton"
+     ],
+     "55": [
+      "light",
+      "latch",
+      "notch"
+     ],
+     "56": [
+      "gulch"
+     ],
+     "57": [
+      "tolan",
+      "tonal"
+     ],
+     "58": [
+      "easel"
+     ],
+     "59": [
+      "batch",
+      "belch",
+      "botch",
+      "butch",
+      "crwth",
+      "patch",
+      "pilch",
+      "pitch",
+      "schwa",
+      "tache",
+      "teach",
+      "techs",
+      "techy",
+      "tench",
+      "theca",
+      "thick",
+      "thumb",
+      "thump",
+      "titch",
+      "topic"
+     ],
+     "60": [
+      "pansy",
+      "sassy"
+     ],
+     "62": [
+      "lapse",
+      "pause"
+     ],
+     "63": [
+      "munch"
+     ],
+     "66": [
+      "blocs",
+      "clots",
+      "clubs",
+      "colts"
+     ],
+     "72": [
+      "pungy",
+      "tango",
+      "tangs",
+      "tangy",
+      "tends",
+      "tenge",
+      "tigon",
+      "tined",
+      "tinge",
+      "tings",
+      "toned",
+      "tonga",
+      "tongs",
+      "trend",
+      "tuned",
+      "twang",
+      "tying",
+      "unfed",
+      "adapt",
+      "adept"
+     ],
+     "74": [
+      "naive",
+      "waive"
+     ],
+     "75": [
+      "saint"
+     ],
+     "78": [
+      "daisy",
+      "waist"
+     ],
+     "81": [
+      "count"
+     ],
+     "82": [
+      "peter"
+     ],
+     "83": [
+      "prong"
+     ],
+     "84": [
+      "stony",
+      "count"
+     ],
+     "85": [
+      "wheen"
+     ],
+     "86": [
+      "perch",
+      "pouch",
+      "notch"
+     ],
+     "87": [
+      "crust"
+     ],
+     "88": [
+      "chaps",
+      "chips",
+      "chops",
+      "dhows",
+      "ditch",
+      "ducts",
+      "dutch",
+      "pacts",
+      "patch",
+      "pitch",
+      "whaps",
+      "whips",
+      "whipt",
+      "whops",
+      "whups",
+      "width"
+     ],
+     "89": [
+      "count",
+      "couth",
+      "notch",
+      "pouch",
+      "touch",
+      "vouch"
+     ],
+     "90": [
+      "groin"
+     ],
+     "91": [
+      "tined",
+      "timed"
+     ],
+     "92": [
+      "dirge",
+      "eerie"
+     ],
+     "93": [
+      "sprig",
+      "strip"
+     ],
+     "94": [
+      "miser",
+      "siren",
+      "sizer"
+     ],
+     "96": [
+      "first"
+     ],
+     "99": [
+      "crypt",
+      "knelt"
+     ],
+     "100": [
+      "brief",
+      "grief"
+     ],
+     "101": [
+      "dumps",
+      "dumpy"
+     ],
+     "102": [
+      "shirk"
+     ],
+     "104": [
+      "shire",
+      "spire"
+     ],
+     "105": [
+      "aback",
+      "abaft",
+      "ambit",
+      "atrip",
+      "backs",
+      "batch",
+      "batik",
+      "bebop",
+      "becks",
+      "befit",
+      "bicep",
+      "black",
+      "bleep",
+      "blimp",
+      "block",
+      "bloop",
+      "botch",
+      "bract",
+      "brick",
+      "brock"
+     ],
+     "108": [
+      "blond"
+     ],
+     "109": [
+      "betel",
+      "bleat",
+      "dwelt",
+      "delft"
+     ],
+     "110": [
+      "bract"
+     ],
+     "111": [
+      "stamp"
+     ],
+     "112": [
+      "bumph",
+      "champ",
+      "chimp",
+      "chomp",
+      "chump",
+      "humph",
+      "humps",
+      "humpy",
+      "lymph",
+      "nymph",
+      "oomph",
+      "pashm",
+      "pshaw",
+      "shawm",
+      "swamp",
+      "thump",
+      "whams",
+      "whaps",
+      "whelm",
+      "whelp"
+     ],
+     "113": [
+      "chant",
+      "natch",
+      "notch",
+      "patch",
+      "pinch",
+      "pitch",
+      "punch",
+      "tench"
+     ],
+     "114": [
+      "chubs"
+     ],
+     "116": [
+      "arose",
+      "erase"
+     ],
+     "117": [
+      "trail"
+     ],
+     "119": [
+      "irate"
+     ],
+     "120": [
+      "stair"
+     ],
+     "126": [
+      "trial",
+      "friar"
+     ],
+     "134": [
+      "arise"
+     ],
+     "135": [
+      "poncy",
+      "cyton"
+     ],
+     "136": [
+      "empty"
+     ],
+     "137": [
+      "abaca",
+      "aback",
+      "alack",
+      "baccy",
+      "batch",
+      "beach",
+      "beech",
+      "befog",
+      "belch",
+      "bench",
+      "bevel",
+      "birch",
+      "black",
+      "block",
+      "blocs",
+      "bluff",
+      "bonce",
+      "botch",
+      "brace",
+      "brach"
+     ],
+     "138": [
+      "savor"
+     ],
+     "139": [
+      "saber",
+      "saver"
+     ],
+     "141": [
+      "harsh",
+      "marsh"
+     ],
+     "143": [
+      "parse"
+     ],
+     "144": [
+      "maria"
+     ],
+     "153": [
+      "ached",
+      "ahead",
+      "aphid",
+      "ashed",
+      "bifid",
+      "chafe",
+      "chaff",
+      "chard",
+      "chefs",
+      "chide",
+      "chief",
+      "child",
+      "chord",
+      "chufa",
+      "chuff",
+      "dacha",
+      "daffy",
+      "dahls",
+      "death",
+      "decaf"
+     ],
+     "162": [
+      "dumbo"
+     ],
+     "163": [
+      "abler",
+      "baler",
+      "betel",
+      "blued",
+      "bluer",
+      "botel",
+      "liber",
+      "lubed",
+      "poult",
+      "puler",
+      "peter",
+      "celeb",
+      "bluey",
+      "elver",
+      "leper",
+      "lever",
+      "loper",
+      "lover",
+      "veter"
+     ],
+     "164": [
+      "rogue",
+      "rouge",
+      "route"
+     ],
+     "165": [
+      "rusty"
+     ],
+     "166": [
+      "reset"
+     ],
+     "168": [
+      "roost"
+     ],
+     "170": [
+      "reuse",
+      "rouse"
+     ],
+     "171": [
+      "robin"
+     ],
+     "172": [
+      "anted",
+      "dater",
+      "davit",
+      "dents",
+      "depot",
+      "depth",
+      "deter",
+      "dints",
+      "divot",
+      "doter",
+      "duvet",
+      "nitid",
+      "noted",
+      "opted",
+      "taped",
+      "tends",
+      "tepid",
+      "tined",
+      "toned",
+      "toped"
+     ],
+     "173": [
+      "ridge",
+      "rifle"
+     ],
+     "174": [
+      "risky"
+     ],
+     "175": [
+      "resin",
+      "risen",
+      "riser"
+     ],
+     "179": [
+      "rinse"
+     ],
+     "180": [
+      "rhino"
+     ],
+     "181": [
+      "reign"
+     ],
+     "189": [
+      "roman",
+      "royal",
+      "rural"
+     ],
+     "190": [
+      "relay"
+     ],
+     "195": [
+      "roast"
+     ],
+     "198": [
+      "rival"
+     ],
+     "216": [
+      "actor",
+      "atony",
+      "blond",
+      "bothy",
+      "cloys",
+      "coaly",
+      "coley",
+      "colly",
+      "color",
+      "coyly",
+      "cyton",
+      "doily",
+      "dolly",
+      "dorty",
+      "dotty",
+      "godly",
+      "holey",
+      "holly",
+      "hotly",
+      "inlay"
+     ],
+     "217": [
+      "ravel",
+      "raven"
+     ],
+     "218": [
+      "range"
+     ],
+     "225": [
+      "rabid",
+      "rapid"
+     ],
+     "234": [
+      "rainy"
+     ],
+     "242": [
+      "raise"
+     ]
+    }
+   },
+   {
+    "first": "slate",
+    "second": {
+     "0": [
+      "gourd"
+     ],
+     "1": [
+      "diner"
+     ],
+     "2": [
+      "ruing"
+     ],
+     "3": [
+      "count"
+     ],
+     "4": [
+      "deter",
+      "meter"
+     ],
+     "5": [
+      "chirp"
+     ],
+     "6": [
+      "briny"
+     ],
+     "7": [
+      "depth",
+      "petty"
+     ],
+     "8": [
+      "bruin",
+      "burin",
+      "curio",
+      "turbo"
+     ],
+     "9": [
+      "corny"
+     ],
+     "10": [
+      "cymar"
+     ],
+     "11": [
+      "grind"
+     ],
+     "12": [
+      "cubit"
+     ],
+     "13": [
+      "treed"
+     ],
+     "14": [
+      "atone",
+      "bathe"
+     ],
+     "15": [
+      "ferny"
+     ],
+     "16": [
+      "earth",
+      "theta"
+     ],
+     "17": [
+      "acute",
+      "matte"
+     ],
+     "18": [
+      "grind"
+     ],
+     "19": [
+      "derby"
+     ],
+     "20": [
+      "crave"
+     ],
+     "21": [
+      "chirp",
+      "cairn",
+      "crine",
+      "trick",
+      "crept",
+      "crypt"
+     ],
+     "22": [
+      "enact"
+     ],
+     "23": [
+      "trace",
+      "trade"
+     ],
+     "24": [
+      "wrath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "acari",
+      "acids",
+      "acing",
+      "acini",
+      "acrid",
+      "actin",
+      "aecia",
+      "aegis",
+      "again",
+      "aggie",
+      "agile",
+      "aging",
+      "agios",
+      "agist",
+      "agita",
+      "aitch",
+      "algid",
+      "algin",
+      "align",
+      "amice"
+     ],
+     "27": [
+      "dolly"
+     ],
+     "28": [
+      "never"
+     ],
+     "29": [
+      "bingo",
+      "neigh"
+     ],
+     "30": [
+      "guilt"
+     ],
+     "31": [
+      "noted"
+     ],
+     "32": [
+      "lithe",
+      "tilde",
+      "title"
+     ],
+     "33": [
+      "filth",
+      "lofty",
+      "multi"
+     ],
+     "36": [
+      "molar",
+      "moral"
+     ],
+     "37": [
+      "rangy"
+     ],
+     "38": [
+      "angle",
+      "gable"
+     ],
+     "39": [
+      "tacit",
+      "taint",
+      "tarot",
+      "octad"
+     ],
+     "40": [
+      "metal",
+      "petal"
+     ],
+     "41": [
+      "table",
+      "lathe"
+     ],
+     "42": [
+      "waltz"
+     ],
+     "43": [
+      "delta"
+     ],
+     "45": [
+      "acari",
+      "brick",
+      "incur",
+      "runic"
+     ],
+     "46": [
+      "leafy",
+      "leaky"
+     ],
+     "47": [
+      "leave",
+      "whale"
+     ],
+     "48": [
+      "trail",
+      "trawl"
+     ],
+     "49": [
+      "dealt",
+      "exalt",
+      "leapt"
+     ],
+     "51": [
+      "loath"
+     ],
+     "54": [
+      "bunco"
+     ],
+     "55": [
+      "ceded",
+      "ceder",
+      "cedes",
+      "cered",
+      "cheer",
+      "coded",
+      "coder",
+      "codes",
+      "codex",
+      "coked",
+      "coned",
+      "cooed",
+      "coped",
+      "cored",
+      "cowed",
+      "coxed",
+      "creed",
+      "creek",
+      "creel",
+      "creep"
+     ],
+     "56": [
+      "cupid",
+      "gipon",
+      "oping",
+      "bipod"
+     ],
+     "57": [
+      "brief",
+      "clung",
+      "coign",
+      "corgi",
+      "fango",
+      "farci",
+      "fauna",
+      "fauns",
+      "femur",
+      "feuar",
+      "fiber",
+      "finch",
+      "finer",
+      "flong",
+      "flour",
+      "flung",
+      "flunk",
+      "fluor",
+      "forby",
+      "forge"
+     ],
+     "58": [
+      "cleft",
+      "elect",
+      "fleet"
+     ],
+     "60": [
+      "cloth",
+      "blitz"
+     ],
+     "62": [
+      "elite",
+      "flute"
+     ],
+     "63": [
+      "aglow",
+      "goody",
+      "guyot",
+      "group",
+      "agora",
+      "anoas",
+      "crony",
+      "futon",
+      "goofy",
+      "irony",
+      "nooky",
+      "adman",
+      "anima"
+     ],
+     "64": [
+      "acing",
+      "acned",
+      "anger",
+      "angry",
+      "aping",
+      "argon",
+      "began",
+      "bring",
+      "caned",
+      "coned",
+      "dingy",
+      "dying",
+      "gonad",
+      "goner",
+      "green",
+      "grind",
+      "groan",
+      "organ",
+      "pagan",
+      "pecan"
+     ],
+     "65": [
+      "alike",
+      "alive"
+     ],
+     "66": [
+      "aloft",
+      "float",
+      "gloat"
+     ],
+     "67": [
+      "bleat",
+      "cleat"
+     ],
+     "72": [
+      "brick"
+     ],
+     "74": [
+      "frump"
+     ],
+     "75": [
+      "plant"
+     ],
+     "80": [
+      "plate"
+     ],
+     "81": [
+      "croup"
+     ],
+     "82": [
+      "ruses",
+      "runes"
+     ],
+     "83": [
+      "mourn"
+     ],
+     "84": [
+      "frost"
+     ],
+     "85": [
+      "erect",
+      "rungs",
+      "cruet",
+      "crust",
+      "cuber",
+      "cures",
+      "curet",
+      "ruins",
+      "runes",
+      "runic"
+     ],
+     "86": [
+      "tense",
+      "terse"
+     ],
+     "87": [
+      "demur",
+      "dimer",
+      "dirge",
+      "drugs",
+      "drums",
+      "durum",
+      "girds",
+      "gourd",
+      "gride",
+      "grids",
+      "grime",
+      "grimy",
+      "grind",
+      "grume",
+      "grump",
+      "guard",
+      "midge",
+      "mired",
+      "mudra",
+      "ridge"
+     ],
+     "90": [
+      "basin",
+      "mason"
+     ],
+     "91": [
+      "ashen",
+      "aspen"
+     ],
+     "92": [
+      "baric",
+      "crimp"
+     ],
+     "93": [
+      "angst",
+      "waist"
+     ],
+     "94": [
+      "asset"
+     ],
+     "96": [
+      "nymph",
+      "phony"
+     ],
+     "98": [
+      "batch",
+      "beach",
+      "beech",
+      "belch",
+      "bench",
+      "bicep",
+      "birch",
+      "botch",
+      "brach",
+      "broch",
+      "bumph",
+      "bunch",
+      "butch",
+      "champ",
+      "chape",
+      "chaps",
+      "chaws",
+      "cheap",
+      "cheep",
+      "chews"
+     ],
+     "99": [
+      "crags",
+      "curbs"
+     ],
+     "101": [
+      "cease",
+      "chase"
+     ],
+     "102": [
+      "birch",
+      "boric",
+      "brace",
+      "brach",
+      "bract",
+      "brick",
+      "broch",
+      "brock",
+      "bronc",
+      "carob",
+      "cobra",
+      "crabs",
+      "cribs",
+      "crumb",
+      "rebec",
+      "tabor",
+      "terce",
+      "throb",
+      "torch",
+      "trace"
+     ],
+     "103": [
+      "abaft",
+      "abbey",
+      "abysm",
+      "abyss",
+      "ambry",
+      "baccy",
+      "badly",
+      "baggy",
+      "baldy",
+      "balky",
+      "bally",
+      "balmy",
+      "bandy",
+      "barfs",
+      "barmy",
+      "barye",
+      "batty",
+      "bawdy",
+      "bayed",
+      "bayou"
+     ],
+     "104": [
+      "tease"
+     ],
+     "108": [
+      "lousy"
+     ],
+     "109": [
+      "loser"
+     ],
+     "110": [
+      "loose",
+      "louse",
+      "pulse"
+     ],
+     "111": [
+      "lotus"
+     ],
+     "114": [
+      "lusty"
+     ],
+     "117": [
+      "basil",
+      "nasal",
+      "usual"
+     ],
+     "118": [
+      "laser",
+      "easel"
+     ],
+     "119": [
+      "false",
+      "lapse"
+     ],
+     "120": [
+      "atlas"
+     ],
+     "126": [
+      "psalm"
+     ],
+     "127": [
+      "leash"
+     ],
+     "128": [
+      "lease"
+     ],
+     "130": [
+      "least"
+     ],
+     "135": [
+      "barfs",
+      "beefs",
+      "biffs",
+      "bluff",
+      "buffo",
+      "buffs",
+      "flips",
+      "flops",
+      "flubs",
+      "fubsy",
+      "poofs",
+      "poufs",
+      "profs"
+     ],
+     "136": [
+      "bless",
+      "flesh"
+     ],
+     "137": [
+      "close"
+     ],
+     "144": [
+      "alias"
+     ],
+     "153": [
+      "aches",
+      "chaos",
+      "chaps",
+      "chars",
+      "chats",
+      "chaws",
+      "chefs",
+      "chess",
+      "chews",
+      "chins",
+      "chips",
+      "chits",
+      "chocs",
+      "chops",
+      "chows",
+      "chubs",
+      "chugs",
+      "chums",
+      "cohos",
+      "hacks"
+     ],
+     "156": [
+      "blast"
+     ],
+     "162": [
+      "poncy"
+     ],
+     "163": [
+      "wheen"
+     ],
+     "164": [
+      "oping",
+      "chirp",
+      "pinch"
+     ],
+     "165": [
+      "knout"
+     ],
+     "166": [
+      "spent",
+      "strew"
+     ],
+     "167": [
+      "brink",
+      "crank",
+      "cronk",
+      "drank",
+      "drink",
+      "drunk",
+      "frank",
+      "kerne",
+      "knave",
+      "knurl",
+      "krone",
+      "kroon",
+      "naker",
+      "narky",
+      "navar",
+      "nerve",
+      "nervy",
+      "never",
+      "prank",
+      "prink"
+     ],
+     "168": [
+      "sixth",
+      "sixty",
+      "smith"
+     ],
+     "170": [
+      "amour",
+      "blimp",
+      "buxom",
+      "campo",
+      "chimp",
+      "chomp",
+      "clomp",
+      "compo",
+      "comps",
+      "coupe",
+      "coups",
+      "coypu",
+      "crimp",
+      "croup",
+      "cumin",
+      "cupid",
+      "douma",
+      "dumbo",
+      "duomo",
+      "equip"
+     ],
+     "171": [
+      "pudgy",
+      "pungy",
+      "cupid",
+      "curdy",
+      "dumpy",
+      "gaudy",
+      "incur",
+      "pursy"
+     ],
+     "172": [
+      "harps",
+      "harpy",
+      "hyper",
+      "parch",
+      "remap",
+      "rheum",
+      "sperm",
+      "twerp",
+      "hewer",
+      "where"
+     ],
+     "173": [
+      "sauce"
+     ],
+     "174": [
+      "pewit",
+      "prawn",
+      "privy",
+      "spiry",
+      "whipt"
+     ],
+     "175": [
+      "steak",
+      "steam"
+     ],
+     "177": [
+      "sorta"
+     ],
+     "180": [
+      "chirk",
+      "chunk",
+      "nymph",
+      "cramp",
+      "crimp",
+      "crump",
+      "charm",
+      "chirm"
+     ],
+     "182": [
+      "crump"
+     ],
+     "183": [
+      "drift",
+      "drink",
+      "prink",
+      "print"
+     ],
+     "185": [
+      "giver",
+      "grave",
+      "gravy",
+      "grove",
+      "verge",
+      "vigor",
+      "virga"
+     ],
+     "188": [
+      "apeak",
+      "atrip",
+      "gopak",
+      "kalpa",
+      "kaphs",
+      "kapok",
+      "kappa",
+      "kaput",
+      "keeps",
+      "kepis",
+      "kitty",
+      "knaps",
+      "kopje",
+      "okapi",
+      "packs",
+      "parka",
+      "parks",
+      "parky",
+      "patty",
+      "peaks"
+     ],
+     "189": [
+      "skill",
+      "spill",
+      "swill"
+     ],
+     "190": [
+      "bumph",
+      "champ",
+      "chimp",
+      "chomp",
+      "chump",
+      "flump",
+      "frump",
+      "hamal",
+      "hemal",
+      "humph",
+      "humps",
+      "humpy",
+      "impel",
+      "lymph",
+      "nymph",
+      "oomph",
+      "pashm",
+      "phial",
+      "prowl",
+      "pshaw"
+     ],
+     "191": [
+      "sidle",
+      "smile"
+     ],
+     "192": [
+      "split",
+      "still",
+      "stool"
+     ],
+     "193": [
+      "steel",
+      "smelt"
+     ],
+     "194": [
+      "style",
+      "stole"
+     ],
+     "198": [
+      "solar"
+     ],
+     "200": [
+      "salve"
+     ],
+     "201": [
+      "splat"
+     ],
+     "202": [
+      "steal"
+     ],
+     "204": [
+      "salty"
+     ],
+     "207": [
+      "child",
+      "hilly"
+     ],
+     "209": [
+      "scale"
+     ],
+     "210": [
+      "stall",
+      "stalk"
+     ],
+     "212": [
+      "stale"
+     ],
+     "216": [
+      "hying",
+      "chunk",
+      "hunks",
+      "hunky",
+      "mingy",
+      "pinko"
+     ],
+     "217": [
+      "sleep",
+      "sleek"
+     ],
+     "218": [
+      "acids",
+      "acrid",
+      "admit",
+      "admix",
+      "aimed",
+      "amice",
+      "amide",
+      "asdic",
+      "bedim",
+      "caird",
+      "cameo",
+      "campo",
+      "camps",
+      "campy",
+      "caped",
+      "carom",
+      "cedis",
+      "celom",
+      "champ",
+      "chemo"
+     ],
+     "220": [
+      "slept",
+      "sleet"
+     ],
+     "222": [
+      "sloth"
+     ],
+     "234": [
+      "acing",
+      "acini",
+      "acorn",
+      "actin",
+      "agist",
+      "aitch",
+      "akene",
+      "ancon",
+      "angst",
+      "anise",
+      "antic",
+      "ashen",
+      "bacon",
+      "bhang",
+      "bight",
+      "birch",
+      "blank",
+      "blink",
+      "brink",
+      "brisk"
+     ],
+     "236": [
+      "slave",
+      "slake"
+     ],
+     "237": [
+      "slant"
+     ],
+     "242": [
+      "slate"
+     ]
+    }
+   },
+   {
+    "first": "trace",
+    "second": {
+     "0": [
+      "sling"
+     ],
+     "1": [
+      "widen"
+     ],
+     "2": [
+      "sling"
+     ],
+     "3": [
+      "clunk",
+      "ilium",
+      "lions",
+      "loins"
+     ],
+     "4": [
+      "deeps",
+      "geeky",
+      "keels",
+      "leeks",
+      "peels",
+      "reeky",
+      "sleek",
+      "sleep",
+      "speed",
+      "weepy"
+     ],
+     "5": [
+      "shiny",
+      "sling",
+      "slink"
+     ],
+     "6": [
+      "clips",
+      "chump"
+     ],
+     "7": [
+      "leech"
+     ],
+     "8": [
+      "nidus",
+      "dipso",
+      "opium",
+      "pious",
+      "winos",
+      "minus"
+     ],
+     "9": [
+      "sonly"
+     ],
+     "10": [
+      "laden",
+      "glean",
+      "angel"
+     ],
+     "11": [
+      "gilds"
+     ],
+     "12": [
+      "canon"
+     ],
+     "13": [
+      "campo",
+      "clomp",
+      "clops",
+      "cloys",
+      "coley",
+      "copal",
+      "copay",
+      "galop",
+      "glean",
+      "halon",
+      "haply",
+      "holed",
+      "holey",
+      "layup",
+      "leman",
+      "loden",
+      "nodal",
+      "olden",
+      "paleo",
+      "pally"
+     ],
+     "14": [
+      "anils",
+      "aulos",
+      "blahs",
+      "blobs",
+      "blocs",
+      "blogs",
+      "blots",
+      "blows",
+      "blunt",
+      "blush",
+      "boils",
+      "bolas",
+      "boles",
+      "bolls",
+      "bolos",
+      "bolts",
+      "bolus",
+      "bough",
+      "boule",
+      "bowls"
+     ],
+     "15": [
+      "fancy",
+      "saucy"
+     ],
+     "17": [
+      "dance",
+      "lance"
+     ],
+     "18": [
+      "slink",
+      "slunk"
+     ],
+     "19": [
+      "leash"
+     ],
+     "20": [
+      "slunk"
+     ],
+     "21": [
+      "blips",
+      "clips",
+      "flips",
+      "pails",
+      "pills",
+      "plans",
+      "plies",
+      "slips"
+     ],
+     "23": [
+      "cease",
+      "chafe",
+      "chase"
+     ],
+     "24": [
+      "blush"
+     ],
+     "25": [
+      "abele",
+      "abler",
+      "album",
+      "aleph",
+      "alibi",
+      "alpha",
+      "amble",
+      "ample",
+      "amply",
+      "appel",
+      "apple",
+      "apply",
+      "aptly",
+      "babel",
+      "babul",
+      "badly",
+      "bagel",
+      "bails",
+      "balas",
+      "balds"
+     ],
+     "26": [
+      "peace",
+      "place"
+     ],
+     "27": [
+      "round",
+      "mourn"
+     ],
+     "28": [
+      "levin"
+     ],
+     "29": [
+      "sough"
+     ],
+     "30": [
+      "choir"
+     ],
+     "31": [
+      "clods",
+      "cloud",
+      "coder",
+      "colds",
+      "could",
+      "doles",
+      "holed",
+      "lowed",
+      "oiler",
+      "older",
+      "soled",
+      "ceder",
+      "chirr",
+      "dowel",
+      "duels",
+      "elder",
+      "elver",
+      "lever",
+      "liver",
+      "cowed"
+     ],
+     "32": [
+      "curse",
+      "curve",
+      "score"
+     ],
+     "33": [
+      "aalii",
+      "abbot",
+      "abele",
+      "abhor",
+      "abler",
+      "abmho",
+      "abode",
+      "abohm",
+      "abort",
+      "about",
+      "above",
+      "abuse",
+      "abuts",
+      "abuzz",
+      "adieu",
+      "adobe",
+      "afoul",
+      "agile",
+      "agios",
+      "aglow"
+     ],
+     "34": [
+      "mercy",
+      "perch"
+     ],
+     "35": [
+      "force"
+     ],
+     "36": [
+      "lorry",
+      "pylon",
+      "moldy"
+     ],
+     "37": [
+      "lamps",
+      "gawps"
+     ],
+     "38": [
+      "barge",
+      "large"
+     ],
+     "39": [
+      "coral"
+     ],
+     "40": [
+      "cedar",
+      "clear",
+      "recap"
+     ],
+     "41": [
+      "carve"
+     ],
+     "42": [
+      "march",
+      "parch"
+     ],
+     "44": [
+      "farce"
+     ],
+     "45": [
+      "downs",
+      "kohls",
+      "honks",
+      "dhows"
+     ],
+     "46": [
+      "badly",
+      "bandy",
+      "bendy",
+      "bland",
+      "blend",
+      "blind",
+      "blond",
+      "dumpy",
+      "handy",
+      "haply",
+      "henry",
+      "leery",
+      "lorry",
+      "lowly",
+      "newly",
+      "nobly",
+      "nymph",
+      "randy",
+      "reply",
+      "wanly"
+     ],
+     "47": [
+      "abash",
+      "algin",
+      "align",
+      "along",
+      "angel",
+      "angle",
+      "angst",
+      "banal",
+      "bangs",
+      "blahs",
+      "blips",
+      "blown",
+      "blush",
+      "bongs",
+      "buhls",
+      "bungs",
+      "fangs",
+      "fawns",
+      "flans",
+      "flaps"
+     ],
+     "48": [
+      "scarf",
+      "scary"
+     ],
+     "50": [
+      "scare"
+     ],
+     "51": [
+      "roach"
+     ],
+     "52": [
+      "reach"
+     ],
+     "54": [
+      "gipon"
+     ],
+     "55": [
+      "dings",
+      "dongs"
+     ],
+     "56": [
+      "ponds",
+      "bonds",
+      "binds"
+     ],
+     "57": [
+      "bison",
+      "hyson",
+      "poons",
+      "scion",
+      "shown",
+      "spoon",
+      "winos"
+     ],
+     "58": [
+      "adept",
+      "alkyd",
+      "apeak",
+      "cupid",
+      "deeps",
+      "drunk",
+      "drupe",
+      "ducks",
+      "ducky",
+      "dukes",
+      "dumps",
+      "dumpy",
+      "dunks",
+      "duped",
+      "duper",
+      "dupes",
+      "duple",
+      "duppy",
+      "dusky",
+      "epode"
+     ],
+     "59": [
+      "abeam",
+      "abide",
+      "acids",
+      "acrid",
+      "adapt",
+      "adept",
+      "adieu",
+      "adits",
+      "adman",
+      "admen",
+      "admit",
+      "admix",
+      "adopt",
+      "aedes",
+      "aerie",
+      "ahead",
+      "aided",
+      "aider",
+      "aides",
+      "ailed"
+     ],
+     "60": [
+      "crock",
+      "frock"
+     ],
+     "61": [
+      "wreck"
+     ],
+     "62": [
+      "price"
+     ],
+     "63": [
+      "arbor",
+      "ardor"
+     ],
+     "64": [
+      "bread"
+     ],
+     "65": [
+      "arise",
+      "arose"
+     ],
+     "66": [
+      "croak"
+     ],
+     "67": [
+      "cream",
+      "creak"
+     ],
+     "72": [
+      "blind"
+     ],
+     "74": [
+      "damps",
+      "dumps"
+     ],
+     "75": [
+      "calks",
+      "calms",
+      "clams",
+      "clans",
+      "claps",
+      "clays",
+      "clips",
+      "clops",
+      "cloys",
+      "culms",
+      "cymas",
+      "cymes",
+      "fawns",
+      "films",
+      "flans",
+      "flaps",
+      "flays",
+      "flips",
+      "flops",
+      "folks"
+     ],
+     "77": [
+      "anvil",
+      "avens",
+      "avian",
+      "avion",
+      "azine",
+      "bonze",
+      "coven",
+      "covin",
+      "cozen",
+      "divan",
+      "dizen",
+      "dozen",
+      "envoi",
+      "envoy",
+      "evens",
+      "event",
+      "given",
+      "gonzo",
+      "haven",
+      "hazan"
+     ],
+     "78": [
+      "crack"
+     ],
+     "80": [
+      "grace",
+      "brace"
+     ],
+     "81": [
+      "sling"
+     ],
+     "82": [
+      "sleet"
+     ],
+     "83": [
+      "moils",
+      "louts",
+      "louis",
+      "loins",
+      "limns",
+      "until"
+     ],
+     "84": [
+      "clout",
+      "count",
+      "scoot",
+      "scout"
+     ],
+     "85": [
+      "calms",
+      "caves",
+      "chemo",
+      "chevy",
+      "chomp",
+      "clams",
+      "comas",
+      "combs",
+      "comes",
+      "comps",
+      "corms",
+      "coves",
+      "culms",
+      "cymes",
+      "evens",
+      "halms",
+      "hames",
+      "haves",
+      "helms",
+      "hives"
+     ],
+     "86": [
+      "chute"
+     ],
+     "87": [
+      "hound"
+     ],
+     "88": [
+      "bedel",
+      "bevel",
+      "bield",
+      "child",
+      "delis",
+      "delve",
+      "devil",
+      "dwelt",
+      "elder",
+      "elide",
+      "elude",
+      "elver",
+      "elves",
+      "evils",
+      "felid",
+      "field",
+      "filed",
+      "fjeld",
+      "flied",
+      "fluid"
+     ],
+     "90": [
+      "nails",
+      "split"
+     ],
+     "91": [
+      "splat"
+     ],
+     "92": [
+      "bathe"
+     ],
+     "93": [
+      "antic",
+      "attic"
+     ],
+     "94": [
+      "cheat",
+      "cleat"
+     ],
+     "95": [
+      "acute",
+      "caste"
+     ],
+     "96": [
+      "blimp",
+      "clamp",
+      "climb",
+      "clomb",
+      "clomp",
+      "clump",
+      "plumb"
+     ],
+     "99": [
+      "slink"
+     ],
+     "100": [
+      "lefts",
+      "sadly"
+     ],
+     "101": [
+      "kilts"
+     ],
+     "102": [
+      "chant",
+      "coast",
+      "scant"
+     ],
+     "105": [
+      "stack"
+     ],
+     "106": [
+      "exact",
+      "enact"
+     ],
+     "108": [
+      "shout"
+     ],
+     "109": [
+      "metes"
+     ],
+     "110": [
+      "forte",
+      "route"
+     ],
+     "111": [
+      "court"
+     ],
+     "115": [
+      "retch"
+     ],
+     "117": [
+      "satay",
+      "sorry",
+      "paisa",
+      "pasta"
+     ],
+     "118": [
+      "alter"
+     ],
+     "120": [
+      "actor",
+      "carat"
+     ],
+     "121": [
+      "cater"
+     ],
+     "126": [
+      "smart",
+      "stark",
+      "start"
+     ],
+     "127": [
+      "heart"
+     ],
+     "128": [
+      "stare"
+     ],
+     "129": [
+      "chart"
+     ],
+     "133": [
+      "react"
+     ],
+     "135": [
+      "bonus"
+     ],
+     "136": [
+      "greet",
+      "wrest"
+     ],
+     "137": [
+      "write",
+      "wrote"
+     ],
+     "138": [
+      "crust",
+      "crypt"
+     ],
+     "139": [
+      "crept",
+      "crest"
+     ],
+     "142": [
+      "erect"
+     ],
+     "145": [
+      "great"
+     ],
+     "153": [
+      "draft",
+      "graft",
+      "grant"
+     ],
+     "155": [
+      "irate",
+      "grate"
+     ],
+     "156": [
+      "craft"
+     ],
+     "158": [
+      "crate"
+     ],
+     "162": [
+      "gipon",
+      "suing"
+     ],
+     "163": [
+      "tenet",
+      "tweet"
+     ],
+     "164": [
+      "sonly",
+      "miens",
+      "seine"
+     ],
+     "165": [
+      "apron",
+      "auxin",
+      "axons",
+      "capon",
+      "epoxy",
+      "exons",
+      "expos",
+      "gipon",
+      "inbox",
+      "input",
+      "jupon",
+      "nexus",
+      "opens",
+      "opine",
+      "oping",
+      "paeon",
+      "panto",
+      "peons",
+      "peony",
+      "pheon"
+     ],
+     "168": [
+      "touch",
+      "thick"
+     ],
+     "170": [
+      "twice"
+     ],
+     "171": [
+      "nobly",
+      "sonly"
+     ],
+     "172": [
+      "taken",
+      "theta",
+      "tweak"
+     ],
+     "173": [
+      "table",
+      "taste"
+     ],
+     "174": [
+      "tacit",
+      "tacky"
+     ],
+     "180": [
+      "thank",
+      "twang"
+     ],
+     "182": [
+      "tease"
+     ],
+     "187": [
+      "teach"
+     ],
+     "189": [
+      "throb",
+      "throw"
+     ],
+     "190": [
+      "amnio",
+      "bingo",
+      "dingo",
+      "gipon",
+      "giros",
+      "goner",
+      "gonif",
+      "groin",
+      "hemin",
+      "humor",
+      "jingo",
+      "lingo",
+      "login",
+      "miner",
+      "minor",
+      "mohur",
+      "neigh",
+      "ngwee",
+      "pirog",
+      "rigor"
+     ],
+     "191": [
+      "terse",
+      "there",
+      "three"
+     ],
+     "195": [
+      "torch"
+     ],
+     "198": [
+      "tardy",
+      "tarry"
+     ],
+     "199": [
+      "taker",
+      "taper"
+     ],
+     "207": [
+      "tiara"
+     ],
+     "216": [
+      "hilum",
+      "input",
+      "kilos",
+      "limos",
+      "louts",
+      "milos",
+      "pilot",
+      "plots",
+      "ploys",
+      "plush",
+      "point",
+      "polis",
+      "polls",
+      "polys",
+      "potty",
+      "poult",
+      "pouts",
+      "pouty",
+      "putto",
+      "pylon"
+     ],
+     "217": [
+      "trend"
+     ],
+     "218": [
+      "abate",
+      "abets",
+      "abuts",
+      "bahts",
+      "baits",
+      "baste",
+      "batty",
+      "beats",
+      "bebop",
+      "beeps",
+      "beets",
+      "belts",
+      "bents",
+      "berth",
+      "bests",
+      "betta",
+      "bicep",
+      "biota",
+      "biped",
+      "bipod"
+     ],
+     "222": [
+      "trick",
+      "truck"
+     ],
+     "224": [
+      "truce"
+     ],
+     "225": [
+      "trial"
+     ],
+     "226": [
+      "treat",
+      "tread"
+     ],
+     "234": [
+      "anils",
+      "islet",
+      "kilns",
+      "lapin",
+      "lenis",
+      "liens",
+      "light",
+      "limen",
+      "limit",
+      "limns",
+      "lines",
+      "lings",
+      "links",
+      "lions",
+      "loins",
+      "lysin",
+      "nails",
+      "nihil",
+      "pilot",
+      "plain"
+     ],
+     "236": [
+      "trade"
+     ],
+     "240": [
+      "track",
+      "tract"
+     ],
+     "242": [
+      "trace"
+     ]
+    }
+   },
+   {
+    "first": "crate",
+    "second": {
+     "0": [
+      "sling"
+     ],
+     "1": [
+      "widen"
+     ],
+     "2": [
+      "sling"
+     ],
+     "3": [
+      "sling"
+     ],
+     "4": [
+      "sleet"
+     ],
+     "5": [
+      "sonly"
+     ],
+     "6": [
+      "slimy"
+     ],
+     "7": [
+      "depth"
+     ],
+     "8": [
+      "pubis",
+      "quips"
+     ],
+     "9": [
+      "sonly"
+     ],
+     "10": [
+      "laden",
+      "glean",
+      "angel"
+     ],
+     "11": [
+      "gilds"
+     ],
+     "12": [
+      "solid"
+     ],
+     "13": [
+      "splat"
+     ],
+     "14": [
+      "bathe",
+      "lathe",
+      "table"
+     ],
+     "15": [
+      "spiny"
+     ],
+     "16": [
+      "delta",
+      "theta"
+     ],
+     "17": [
+      "bumph",
+      "pshaw",
+      "thaws",
+      "thews",
+      "thumb",
+      "thump",
+      "whaps",
+      "whips",
+      "whomp",
+      "whops",
+      "whups"
+     ],
+     "18": [
+      "slink",
+      "slunk"
+     ],
+     "19": [
+      "leash"
+     ],
+     "20": [
+      "slunk"
+     ],
+     "21": [
+      "slink"
+     ],
+     "22": [
+      "bells",
+      "feels",
+      "fells",
+      "leafs",
+      "lefts",
+      "sadly",
+      "yells",
+      "yelps"
+     ],
+     "23": [
+      "kevel"
+     ],
+     "24": [
+      "loath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "kalpa",
+      "skelp",
+      "stalk"
+     ],
+     "27": [
+      "round",
+      "mourn"
+     ],
+     "28": [
+      "levin"
+     ],
+     "29": [
+      "sough"
+     ],
+     "30": [
+      "shout"
+     ],
+     "31": [
+      "meter",
+      "enter"
+     ],
+     "32": [
+      "store",
+      "terse",
+      "there",
+      "three"
+     ],
+     "33": [
+      "fight",
+      "filmy",
+      "forby",
+      "gyron",
+      "miffy",
+      "mingy",
+      "nimby",
+      "whims",
+      "wormy",
+      "young"
+     ],
+     "34": [
+      "berth"
+     ],
+     "35": [
+      "route",
+      "forte"
+     ],
+     "36": [
+      "lorry",
+      "pylon",
+      "moldy"
+     ],
+     "37": [
+      "lamps",
+      "gawps"
+     ],
+     "38": [
+      "barge",
+      "large"
+     ],
+     "39": [
+      "tarry"
+     ],
+     "40": [
+      "alter"
+     ],
+     "42": [
+      "aorta",
+      "sorta"
+     ],
+     "43": [
+      "earth"
+     ],
+     "45": [
+      "downs",
+      "kohls",
+      "honks",
+      "dhows"
+     ],
+     "46": [
+      "badly",
+      "bandy",
+      "bendy",
+      "bland",
+      "blend",
+      "blind",
+      "blond",
+      "dumpy",
+      "handy",
+      "haply",
+      "henry",
+      "leery",
+      "lorry",
+      "lowly",
+      "newly",
+      "nobly",
+      "nymph",
+      "randy",
+      "reply",
+      "wanly"
+     ],
+     "47": [
+      "abash",
+      "algin",
+      "align",
+      "along",
+      "angel",
+      "angle",
+      "angst",
+      "banal",
+      "bangs",
+      "blahs",
+      "blips",
+      "blown",
+      "blush",
+      "bongs",
+      "buhls",
+      "bungs",
+      "fangs",
+      "fawns",
+      "flans",
+      "flaps"
+     ],
+     "48": [
+      "smart",
+      "start"
+     ],
+     "49": [
+      "heart"
+     ],
+     "50": [
+      "stare"
+     ],
+     "54": [
+      "gipon"
+     ],
+     "55": [
+      "dings",
+      "dongs"
+     ],
+     "56": [
+      "ponds",
+      "bonds",
+      "binds"
+     ],
+     "57": [
+      "fount",
+      "point",
+      "posit",
+      "snout",
+      "suint",
+      "tonus",
+      "unlit",
+      "input",
+      "loins",
+      "polis",
+      "spoil",
+      "spout"
+     ],
+     "58": [
+      "greet",
+      "wrest"
+     ],
+     "59": [
+      "tribe",
+      "tripe"
+     ],
+     "60": [
+      "broth",
+      "froth"
+     ],
+     "62": [
+      "write"
+     ],
+     "63": [
+      "arbor",
+      "ardor"
+     ],
+     "64": [
+      "bread"
+     ],
+     "65": [
+      "arise",
+      "arose"
+     ],
+     "66": [
+      "trial"
+     ],
+     "67": [
+      "great",
+      "tread",
+      "treat"
+     ],
+     "72": [
+      "blind"
+     ],
+     "74": [
+      "damps",
+      "dumps"
+     ],
+     "75": [
+      "fling",
+      "glint",
+      "light",
+      "limns",
+      "lings",
+      "sling",
+      "night"
+     ],
+     "77": [
+      "trade"
+     ],
+     "78": [
+      "wrath"
+     ],
+     "80": [
+      "irate",
+      "grate"
+     ],
+     "81": [
+      "hulks"
+     ],
+     "82": [
+      "leech"
+     ],
+     "83": [
+      "hinds"
+     ],
+     "84": [
+      "pouch"
+     ],
+     "85": [
+      "edict",
+      "evict"
+     ],
+     "86": [
+      "twice"
+     ],
+     "90": [
+      "manic"
+     ],
+     "91": [
+      "decay",
+      "ocean",
+      "pecan"
+     ],
+     "92": [
+      "dance",
+      "lance"
+     ],
+     "93": [
+      "haply"
+     ],
+     "94": [
+      "facet"
+     ],
+     "98": [
+      "acute"
+     ],
+     "99": [
+      "plush"
+     ],
+     "100": [
+      "abele",
+      "abler",
+      "album",
+      "aleph",
+      "alibi",
+      "alpha",
+      "amble",
+      "ample",
+      "amply",
+      "appel",
+      "apple",
+      "apply",
+      "aptly",
+      "babel",
+      "babul",
+      "badly",
+      "bagel",
+      "bails",
+      "balas",
+      "balds"
+     ],
+     "101": [
+      "peace",
+      "place",
+      "scale"
+     ],
+     "102": [
+      "stack",
+      "scant"
+     ],
+     "103": [
+      "enact",
+      "exact"
+     ],
+     "108": [
+      "buoys",
+      "choir",
+      "hocus",
+      "hours",
+      "house",
+      "locum",
+      "locus",
+      "lousy",
+      "noisy",
+      "oinks",
+      "ounce",
+      "pious",
+      "pubis",
+      "rosin",
+      "shout",
+      "sonly",
+      "sough",
+      "south",
+      "thous",
+      "virus"
+     ],
+     "109": [
+      "berry",
+      "beryl",
+      "derry",
+      "dicey",
+      "dimer",
+      "ferry",
+      "gyrus",
+      "hider",
+      "hired",
+      "hirer",
+      "hurls",
+      "hurry",
+      "jerry",
+      "lumps",
+      "lumpy",
+      "lurch",
+      "lyres",
+      "merry",
+      "mired",
+      "muley"
+     ],
+     "110": [
+      "force",
+      "score"
+     ],
+     "111": [
+      "torch"
+     ],
+     "112": [
+      "retch"
+     ],
+     "117": [
+      "scram",
+      "scrap"
+     ],
+     "118": [
+      "racer",
+      "recap"
+     ],
+     "119": [
+      "farce"
+     ],
+     "120": [
+      "actor"
+     ],
+     "126": [
+      "scarf",
+      "scary"
+     ],
+     "127": [
+      "reach"
+     ],
+     "128": [
+      "scare"
+     ],
+     "130": [
+      "react"
+     ],
+     "135": [
+      "brick",
+      "frock"
+     ],
+     "136": [
+      "wreck"
+     ],
+     "137": [
+      "price"
+     ],
+     "138": [
+      "trick",
+      "truck"
+     ],
+     "139": [
+      "erect"
+     ],
+     "140": [
+      "truce"
+     ],
+     "153": [
+      "franc"
+     ],
+     "155": [
+      "grace",
+      "brace"
+     ],
+     "156": [
+      "track",
+      "tract"
+     ],
+     "158": [
+      "trace"
+     ],
+     "162": [
+      "plunk",
+      "flunk",
+      "blink"
+     ],
+     "163": [
+      "akees",
+      "geeks",
+      "geeky",
+      "hikes",
+      "keels",
+      "keens",
+      "keeps",
+      "keyed",
+      "knees",
+      "leeks",
+      "likes",
+      "peeks",
+      "pekes",
+      "pokes",
+      "pokey",
+      "reeks",
+      "reeky",
+      "seeks",
+      "skeet",
+      "sleek"
+     ],
+     "164": [
+      "clods",
+      "gloms",
+      "loams",
+      "looms",
+      "plods",
+      "anils",
+      "dials",
+      "dills",
+      "dishy",
+      "dolls",
+      "evils",
+      "hinds",
+      "homes",
+      "hymns",
+      "hyson",
+      "idols",
+      "lidos",
+      "limns",
+      "limos",
+      "lions"
+     ],
+     "165": [
+      "count",
+      "clout"
+     ],
+     "166": [
+      "abmho",
+      "abohm",
+      "acmes",
+      "alums",
+      "ambos",
+      "atoms",
+      "avens",
+      "avers",
+      "avows",
+      "balms",
+      "besom",
+      "bevel",
+      "bloom",
+      "bombs",
+      "booms",
+      "bosom",
+      "calms",
+      "camel",
+      "caves",
+      "celom"
+     ],
+     "168": [
+      "cloth"
+     ],
+     "170": [
+      "chute"
+     ],
+     "171": [
+      "loony",
+      "manna"
+     ],
+     "172": [
+      "camel"
+     ],
+     "173": [
+      "anils",
+      "aulos",
+      "blahs",
+      "blobs",
+      "blocs",
+      "blogs",
+      "blots",
+      "blows",
+      "blunt",
+      "blush",
+      "boils",
+      "bolas",
+      "boles",
+      "bolls",
+      "bolos",
+      "bolts",
+      "bolus",
+      "bough",
+      "boule",
+      "bowls"
+     ],
+     "174": [
+      "catch"
+     ],
+     "175": [
+      "cheat",
+      "cleat"
+     ],
+     "179": [
+      "caste"
+     ],
+     "180": [
+      "khans",
+      "knish",
+      "flips"
+     ],
+     "182": [
+      "cease",
+      "chafe",
+      "chase"
+     ],
+     "183": [
+      "coast",
+      "chant"
+     ],
+     "189": [
+      "aloin",
+      "lions",
+      "loris",
+      "louis",
+      "lours",
+      "porer",
+      "yours"
+     ],
+     "190": [
+      "bedew",
+      "bowed",
+      "cowed",
+      "delve",
+      "dhows",
+      "doves",
+      "dowel",
+      "dower",
+      "dowry",
+      "dweeb",
+      "dwell",
+      "dwelt",
+      "evoke",
+      "hawed",
+      "hewed",
+      "hived",
+      "hives",
+      "hovel",
+      "hover",
+      "howdy"
+     ],
+     "191": [
+      "curse",
+      "curve"
+     ],
+     "192": [
+      "court"
+     ],
+     "198": [
+      "cargo",
+      "carol"
+     ],
+     "199": [
+      "cedar",
+      "clear"
+     ],
+     "200": [
+      "carve"
+     ],
+     "201": [
+      "carat"
+     ],
+     "202": [
+      "cater"
+     ],
+     "207": [
+      "chair",
+      "charm"
+     ],
+     "210": [
+      "chart"
+     ],
+     "216": [
+      "winos"
+     ],
+     "217": [
+      "adept",
+      "alkyd",
+      "apeak",
+      "cupid",
+      "deeps",
+      "drunk",
+      "drupe",
+      "ducks",
+      "ducky",
+      "dukes",
+      "dumps",
+      "dumpy",
+      "dunks",
+      "duped",
+      "duper",
+      "dupes",
+      "duple",
+      "duppy",
+      "dusky",
+      "epode"
+     ],
+     "218": [
+      "abeam",
+      "abide",
+      "acids",
+      "acrid",
+      "adapt",
+      "adept",
+      "adieu",
+      "adits",
+      "adman",
+      "admen",
+      "admit",
+      "admix",
+      "adopt",
+      "aedes",
+      "aerie",
+      "ahead",
+      "aided",
+      "aider",
+      "aides",
+      "ailed"
+     ],
+     "219": [
+      "crust",
+      "crypt"
+     ],
+     "220": [
+      "crept",
+      "crest"
+     ],
+     "225": [
+      "croak"
+     ],
+     "226": [
+      "cream",
+      "creak"
+     ],
+     "234": [
+      "psych",
+      "hymns",
+      "kilns",
+      "knaps",
+      "knows",
+      "limns",
+      "links",
+      "lynch",
+      "minks",
+      "monks",
+      "mynas",
+      "pawns",
+      "pinks",
+      "plans",
+      "plays",
+      "ploys",
+      "polys",
+      "punks",
+      "sylph",
+      "syncs"
+     ],
+     "236": [
+      "anvil",
+      "avens",
+      "avian",
+      "avion",
+      "azine",
+      "bonze",
+      "coven",
+      "covin",
+      "cozen",
+      "divan",
+      "dizen",
+      "dozen",
+      "envoi",
+      "envoy",
+      "evens",
+      "event",
+      "given",
+      "gonzo",
+      "haven",
+      "hazan"
+     ],
+     "237": [
+      "craft"
+     ],
+     "242": [
+      "crate"
+     ]
+    }
+   },
+   {
+    "first": "snare",
+    "second": {
+     "0": [
+      "filth"
+     ],
+     "1": [
+      "elect"
+     ],
+     "2": [
+      "guilt"
+     ],
+     "3": [
+      "dicot"
+     ],
+     "4": [
+      "picot"
+     ],
+     "5": [
+      "doubt"
+     ],
+     "6": [
+      "hotly",
+      "touch",
+      "worth",
+      "clout",
+      "cloud",
+      "lotic"
+     ],
+     "7": [
+      "feted",
+      "meted"
+     ],
+     "8": [
+      "there",
+      "where"
+     ],
+     "9": [
+      "pilot",
+      "tolly"
+     ],
+     "10": [
+      "petal",
+      "pleat"
+     ],
+     "11": [
+      "vault"
+     ],
+     "12": [
+      "carom"
+     ],
+     "13": [
+      "tacky"
+     ],
+     "14": [
+      "caber",
+      "camel",
+      "carbs",
+      "carob",
+      "carol",
+      "caulk",
+      "cauls",
+      "celeb",
+      "clubs",
+      "clued",
+      "clues",
+      "creel",
+      "cruel",
+      "cubeb",
+      "cubed",
+      "cuber",
+      "cubes",
+      "culet",
+      "culex",
+      "cupel"
+     ],
+     "15": [
+      "torch",
+      "forth"
+     ],
+     "16": [
+      "alert",
+      "avert"
+     ],
+     "17": [
+      "adore",
+      "azure"
+     ],
+     "18": [
+      "chill",
+      "clump",
+      "pluck"
+     ],
+     "19": [
+      "lefty",
+      "depth"
+     ],
+     "20": [
+      "plumb",
+      "climb",
+      "flump",
+      "delft"
+     ],
+     "21": [
+      "mulct",
+      "ditch"
+     ],
+     "22": [
+      "ached",
+      "acted",
+      "admit",
+      "adult",
+      "amity",
+      "aptly",
+      "atomy",
+      "belch",
+      "bothy",
+      "butyl",
+      "cadet",
+      "canty",
+      "catty",
+      "chalk",
+      "champ",
+      "chard",
+      "charm",
+      "chary",
+      "chasm",
+      "chela"
+     ],
+     "23": [
+      "ditch"
+     ],
+     "24": [
+      "humid",
+      "dutch",
+      "dhoti",
+      "doubt",
+      "mouth",
+      "audit",
+      "ought",
+      "thumb",
+      "touch",
+      "tough"
+     ],
+     "25": [
+      "aphid",
+      "badly",
+      "baldy",
+      "bothy",
+      "butyl",
+      "child",
+      "dahls",
+      "depth",
+      "dhole",
+      "dhows",
+      "dishy",
+      "duchy",
+      "ephod",
+      "ethyl",
+      "haled",
+      "handy",
+      "hardy",
+      "hawed",
+      "hayed",
+      "heady"
+     ],
+     "26": [
+      "abaft",
+      "bagel",
+      "befog",
+      "belga",
+      "bilge",
+      "blags",
+      "bling",
+      "blogs",
+      "bluff",
+      "bogle",
+      "bugle",
+      "bulge",
+      "bulgy",
+      "fable",
+      "flags",
+      "fling",
+      "flogs",
+      "flong",
+      "flubs",
+      "flung"
+     ],
+     "27": [
+      "lofty",
+      "filth"
+     ],
+     "28": [
+      "levin"
+     ],
+     "29": [
+      "ghoul"
+     ],
+     "30": [
+      "doing"
+     ],
+     "31": [
+      "diner"
+     ],
+     "32": [
+      "bebop",
+      "bipod",
+      "bound",
+      "bovid",
+      "burps",
+      "croup",
+      "doubt",
+      "drubs",
+      "found",
+      "group",
+      "hound",
+      "mound",
+      "perdu",
+      "pious",
+      "poilu",
+      "pound",
+      "probe",
+      "proud",
+      "round",
+      "sound"
+     ],
+     "33": [
+      "churn",
+      "mourn",
+      "thorn"
+     ],
+     "35": [
+      "genre"
+     ],
+     "36": [
+      "tonic"
+     ],
+     "37": [
+      "glean"
+     ],
+     "38": [
+      "lance"
+     ],
+     "39": [
+      "rayon"
+     ],
+     "40": [
+      "arena",
+      "raven"
+     ],
+     "41": [
+      "range"
+     ],
+     "42": [
+      "acorn",
+      "adorn"
+     ],
+     "45": [
+      "pitch"
+     ],
+     "46": [
+      "meant"
+     ],
+     "47": [
+      "plane"
+     ],
+     "48": [
+      "grind",
+      "deign",
+      "doing",
+      "dying",
+      "debit",
+      "gibed"
+     ],
+     "50": [
+      "crane"
+     ],
+     "52": [
+      "learn",
+      "yearn"
+     ],
+     "54": [
+      "until"
+     ],
+     "55": [
+      "jolty"
+     ],
+     "56": [
+      "adieu",
+      "admit",
+      "audio",
+      "audit",
+      "aulic",
+      "auric",
+      "build",
+      "built",
+      "cited",
+      "coati",
+      "coifs",
+      "couth",
+      "cubic",
+      "cubit",
+      "cuing",
+      "cumin",
+      "cupid",
+      "curia",
+      "curie",
+      "curio"
+     ],
+     "57": [
+      "incur"
+     ],
+     "58": [
+      "afrit",
+      "befit",
+      "dints",
+      "drift",
+      "faint",
+      "faith",
+      "fecit",
+      "feint",
+      "feted",
+      "fetid",
+      "fiats",
+      "fifth",
+      "fifty",
+      "fight",
+      "filet",
+      "filth",
+      "finds",
+      "fined",
+      "first",
+      "firth"
+     ],
+     "61": [
+      "entry",
+      "inert"
+     ],
+     "63": [
+      "annul",
+      "anvil",
+      "inlay"
+     ],
+     "64": [
+      "abele",
+      "acned",
+      "adage",
+      "addax",
+      "addle",
+      "admix",
+      "adult",
+      "agama",
+      "agita",
+      "agora",
+      "agree",
+      "ailed",
+      "alack",
+      "alarm",
+      "album",
+      "alder",
+      "aldol",
+      "algae",
+      "algal",
+      "algid"
+     ],
+     "65": [
+      "angle",
+      "ankle"
+     ],
+     "67": [
+      "anger"
+     ],
+     "69": [
+      "angry"
+     ],
+     "72": [
+      "knack"
+     ],
+     "73": [
+      "enact"
+     ],
+     "74": [
+      "inane"
+     ],
+     "78": [
+      "gnarl"
+     ],
+     "81": [
+      "moist"
+     ],
+     "82": [
+      "chest"
+     ],
+     "83": [
+      "locum"
+     ],
+     "84": [
+      "picot",
+      "croft"
+     ],
+     "85": [
+      "whist",
+      "wroth"
+     ],
+     "86": [
+      "couth",
+      "touch",
+      "vouch"
+     ],
+     "87": [
+      "usurp"
+     ],
+     "90": [
+      "toils"
+     ],
+     "91": [
+      "askew",
+      "asset",
+      "easel",
+      "essay"
+     ],
+     "92": [
+      "pubic",
+      "pitch"
+     ],
+     "93": [
+      "harsh",
+      "marsh"
+     ],
+     "94": [
+      "laser"
+     ],
+     "95": [
+      "arise",
+      "raise"
+     ],
+     "99": [
+      "blocs"
+     ],
+     "100": [
+      "butyl",
+      "fatly",
+      "fitly",
+      "fluty",
+      "flyte",
+      "lefty",
+      "lofty"
+     ],
+     "101": [
+      "belch",
+      "butch",
+      "chest",
+      "churl",
+      "chute",
+      "clash",
+      "clepe",
+      "cloth",
+      "couth",
+      "culch",
+      "cutch",
+      "dutch",
+      "fetch",
+      "gulch",
+      "hutch",
+      "ketch",
+      "latch",
+      "leach",
+      "leech",
+      "letup"
+     ],
+     "102": [
+      "bahts",
+      "batch",
+      "baths",
+      "beths",
+      "bight",
+      "blocs",
+      "blogs",
+      "bogus",
+      "bongs",
+      "botch",
+      "brach",
+      "brags",
+      "brigs",
+      "broch",
+      "butch",
+      "chats",
+      "chits",
+      "chubs",
+      "chugs",
+      "clogs"
+     ],
+     "104": [
+      "erase"
+     ],
+     "108": [
+      "bison",
+      "bonus",
+      "minus",
+      "noisy"
+     ],
+     "109": [
+      "genus",
+      "newsy"
+     ],
+     "110": [
+      "abode",
+      "abort",
+      "about",
+      "adits",
+      "admit",
+      "adobe",
+      "adopt",
+      "adore",
+      "adorn",
+      "adown",
+      "afoot",
+      "aloft",
+      "aloud",
+      "anode",
+      "aport",
+      "aroid",
+      "atoll",
+      "atoms",
+      "atomy",
+      "atone"
+     ],
+     "112": [
+      "risen",
+      "resin"
+     ],
+     "113": [
+      "nurse",
+      "rinse"
+     ],
+     "117": [
+      "abysm",
+      "amity",
+      "amply",
+      "apian",
+      "atman",
+      "besot",
+      "blast",
+      "blimp",
+      "bloat",
+      "bloop",
+      "blots",
+      "boast",
+      "bolts",
+      "bonny",
+      "boost",
+      "booty",
+      "bosky",
+      "bossy",
+      "botel",
+      "bothy"
+     ],
+     "118": [
+      "ashen",
+      "aspen"
+     ],
+     "120": [
+      "arson"
+     ],
+     "136": [
+      "unset",
+      "onset"
+     ],
+     "137": [
+      "ensue"
+     ],
+     "144": [
+      "angst",
+      "unsay"
+     ],
+     "153": [
+      "gnash"
+     ],
+     "162": [
+      "picot"
+     ],
+     "163": [
+      "whelp"
+     ],
+     "164": [
+      "clomp"
+     ],
+     "165": [
+      "butch",
+      "cubit",
+      "guyot",
+      "ought"
+     ],
+     "166": [
+      "berth",
+      "throw",
+      "worth",
+      "hertz"
+     ],
+     "167": [
+      "serve",
+      "spree"
+     ],
+     "168": [
+      "mothy",
+      "whomp",
+      "hokum",
+      "khoum",
+      "mouth"
+     ],
+     "169": [
+      "sperm"
+     ],
+     "170": [
+      "pitch",
+      "whipt",
+      "witch"
+     ],
+     "171": [
+      "vault",
+      "dully"
+     ],
+     "172": [
+      "steak"
+     ],
+     "173": [
+      "sauce",
+      "salve"
+     ],
+     "174": [
+      "pouty"
+     ],
+     "175": [
+      "pashm",
+      "bimah",
+      "bumph",
+      "pshaw",
+      "vamps",
+      "vampy",
+      "whelm",
+      "whelp",
+      "whomp"
+     ],
+     "180": [
+      "child"
+     ],
+     "182": [
+      "klutz"
+     ],
+     "183": [
+      "stair"
+     ],
+     "186": [
+      "ketch",
+      "thick",
+      "thump",
+      "whipt"
+     ],
+     "188": [
+      "aitch",
+      "batch",
+      "botch",
+      "butch",
+      "caput",
+      "catch",
+      "champ",
+      "chant",
+      "chape",
+      "chaps",
+      "chart",
+      "chats",
+      "cheap",
+      "cheat",
+      "cheep",
+      "chert",
+      "chest",
+      "chimp",
+      "chips",
+      "chirp"
+     ],
+     "189": [
+      "guilt"
+     ],
+     "190": [
+      "civet",
+      "ditch",
+      "inept",
+      "peter",
+      "petit",
+      "pewit",
+      "piety",
+      "pitch",
+      "piths",
+      "pithy",
+      "pivot",
+      "steep",
+      "tepee",
+      "tepid",
+      "viced",
+      "whipt"
+     ],
+     "191": [
+      "pinch",
+      "pitch",
+      "winch",
+      "witch"
+     ],
+     "193": [
+      "siren"
+     ],
+     "195": [
+      "scorn",
+      "sworn"
+     ],
+     "196": [
+      "stern"
+     ],
+     "198": [
+      "aalii",
+      "about",
+      "adapt",
+      "adieu",
+      "adopt",
+      "adult",
+      "adust",
+      "again",
+      "algid",
+      "alias",
+      "altar",
+      "amain",
+      "amino",
+      "amnio",
+      "apian",
+      "aptly",
+      "aroid",
+      "atman",
+      "atone",
+      "atony"
+     ],
+     "199": [
+      "sedan"
+     ],
+     "207": [
+      "slant"
+     ],
+     "216": [
+      "aulos",
+      "autos",
+      "awful",
+      "bayou",
+      "bigot",
+      "bijou",
+      "buoys",
+      "buxom",
+      "coupe",
+      "coups",
+      "coypu",
+      "croup",
+      "dicot",
+      "divot",
+      "duomo",
+      "equip",
+      "euros",
+      "fifty",
+      "fitly",
+      "fluky"
+     ],
+     "218": [
+      "snide",
+      "snipe"
+     ],
+     "220": [
+      "sneer"
+     ],
+     "222": [
+      "snort"
+     ],
+     "224": [
+      "snore"
+     ],
+     "226": [
+      "sneak"
+     ],
+     "234": [
+      "snack",
+      "snail"
+     ],
+     "236": [
+      "snake"
+     ],
+     "240": [
+      "snarl"
+     ],
+     "242": [
+      "snare"
+     ]
+    }
+   },
+   {
+    "first": "stare",
+    "second": {
+     "0": [
+      "guild"
+     ],
+     "1": [
+      "lined"
+     ],
+     "2": [
+      "lungi"
+     ],
+     "3": [
+      "doing"
+     ],
+     "4": [
+      "devil"
+     ],
+     "5": [
+      "doing"
+     ],
+     "6": [
+      "could",
+      "lucid",
+      "ludic"
+     ],
+     "7": [
+      "beefy"
+     ],
+     "8": [
+      "chore",
+      "genre",
+      "where"
+     ],
+     "9": [
+      "login"
+     ],
+     "10": [
+      "glean"
+     ],
+     "11": [
+      "clung"
+     ],
+     "12": [
+      "manor"
+     ],
+     "13": [
+      "camel"
+     ],
+     "14": [
+      "carbs",
+      "carob",
+      "carol",
+      "larch"
+     ],
+     "15": [
+      "chino"
+     ],
+     "16": [
+      "opera",
+      "zebra"
+     ],
+     "17": [
+      "adore",
+      "azure"
+     ],
+     "18": [
+      "clink",
+      "clunk"
+     ],
+     "19": [
+      "leach"
+     ],
+     "20": [
+      "climb",
+      "clung",
+      "flump"
+     ],
+     "21": [
+      "blind"
+     ],
+     "22": [
+      "abmho",
+      "abohm",
+      "abysm",
+      "ached",
+      "acids",
+      "acmes",
+      "acned",
+      "acred",
+      "acrid",
+      "acted",
+      "addle",
+      "adman",
+      "admen",
+      "admit",
+      "admix",
+      "adult",
+      "agley",
+      "ahead",
+      "ailed",
+      "aimed"
+     ],
+     "23": [
+      "cadge",
+      "caged",
+      "caved"
+     ],
+     "24": [
+      "dhows",
+      "cloud",
+      "dough",
+      "dowel",
+      "duchy",
+      "found",
+      "hound",
+      "humid",
+      "would",
+      "wound"
+     ],
+     "25": [
+      "bandy",
+      "bendy",
+      "bland",
+      "blend",
+      "blind",
+      "blond",
+      "blown",
+      "handy",
+      "haply",
+      "lathy",
+      "lobby",
+      "looby",
+      "lushy",
+      "lynch",
+      "nobly",
+      "nymph",
+      "phony"
+     ],
+     "26": [
+      "abaft",
+      "bagel",
+      "befog",
+      "belga",
+      "bilge",
+      "blags",
+      "bling",
+      "blogs",
+      "bluff",
+      "bogle",
+      "bugle",
+      "bulge",
+      "bulgy",
+      "fable",
+      "flags",
+      "fling",
+      "flogs",
+      "flong",
+      "flubs",
+      "flung"
+     ],
+     "27": [
+      "point"
+     ],
+     "28": [
+      "feint"
+     ],
+     "29": [
+      "thiol",
+      "tilth"
+     ],
+     "30": [
+      "throb"
+     ],
+     "31": [
+      "timer",
+      "meter"
+     ],
+     "32": [
+      "tribe",
+      "write"
+     ],
+     "33": [
+      "flirt",
+      "twirl"
+     ],
+     "34": [
+      "entry"
+     ],
+     "35": [
+      "there"
+     ],
+     "36": [
+      "taunt"
+     ],
+     "37": [
+      "cleat",
+      "pleat"
+     ],
+     "38": [
+      "bathe",
+      "lathe",
+      "table"
+     ],
+     "39": [
+      "aorta"
+     ],
+     "40": [
+      "tacet",
+      "tweed",
+      "tweet"
+     ],
+     "42": [
+      "aalii",
+      "abaca",
+      "abbey",
+      "abele",
+      "abler",
+      "about",
+      "abuse",
+      "abuts",
+      "abuzz",
+      "abysm",
+      "abyss",
+      "acred",
+      "acres",
+      "acrid",
+      "acted",
+      "actin",
+      "actor",
+      "acute",
+      "addle",
+      "adieu"
+     ],
+     "43": [
+      "alert",
+      "avert"
+     ],
+     "45": [
+      "giant"
+     ],
+     "46": [
+      "dealt",
+      "enact"
+     ],
+     "47": [
+      "plate",
+      "abate"
+     ],
+     "48": [
+      "finch",
+      "licit",
+      "tacit",
+      "titch",
+      "cling",
+      "clink",
+      "filch",
+      "child",
+      "ching",
+      "edict",
+      "fecit",
+      "milch",
+      "pilch",
+      "pinch",
+      "wince",
+      "winch",
+      "light"
+     ],
+     "49": [
+      "react"
+     ],
+     "50": [
+      "cacti",
+      "cadge",
+      "caged",
+      "caird",
+      "cedis",
+      "chide",
+      "child",
+      "ching",
+      "chits",
+      "cider",
+      "cigar",
+      "cited",
+      "cling",
+      "clits",
+      "coati",
+      "coign",
+      "corgi",
+      "cried",
+      "cuing",
+      "cupid"
+     ],
+     "51": [
+      "abaca",
+      "aback",
+      "abash",
+      "about",
+      "acari",
+      "acids",
+      "acing",
+      "acini",
+      "acrid",
+      "actin",
+      "acute",
+      "adieu",
+      "adult",
+      "adust",
+      "aecia",
+      "ahead",
+      "aitch",
+      "alack",
+      "aloha",
+      "alpha"
+     ],
+     "52": [
+      "heart"
+     ],
+     "54": [
+      "itchy"
+     ],
+     "55": [
+      "ethic"
+     ],
+     "58": [
+      "other",
+      "otter"
+     ],
+     "63": [
+      "attic"
+     ],
+     "65": [
+      "atone"
+     ],
+     "81": [
+      "bushy"
+     ],
+     "82": [
+      "chess",
+      "guess"
+     ],
+     "83": [
+      "lunch",
+      "lungi",
+      "mogul",
+      "lough",
+      "hilum",
+      "locum"
+     ],
+     "84": [
+      "brock",
+      "coifs",
+      "croup",
+      "cusks",
+      "hocks",
+      "hoick",
+      "picks",
+      "pocks",
+      "pucks",
+      "sicks"
+     ],
+     "85": [
+      "hider",
+      "hirer",
+      "honed"
+     ],
+     "86": [
+      "cornu",
+      "count",
+      "hound",
+      "jupon",
+      "pouch",
+      "pound",
+      "vouch",
+      "wound"
+     ],
+     "87": [
+      "usurp"
+     ],
+     "90": [
+      "loins",
+      "louis"
+     ],
+     "91": [
+      "ashen",
+      "aspen"
+     ],
+     "92": [
+      "lapse"
+     ],
+     "93": [
+      "harsh",
+      "marsh"
+     ],
+     "94": [
+      "laser"
+     ],
+     "95": [
+      "arise",
+      "raise"
+     ],
+     "99": [
+      "chugs",
+      "chums"
+     ],
+     "100": [
+      "leash"
+     ],
+     "101": [
+      "cease",
+      "chase"
+     ],
+     "102": [
+      "backs",
+      "bangs",
+      "becks",
+      "bergs",
+      "blags",
+      "blocs",
+      "blogs",
+      "bogus",
+      "bongs",
+      "brags",
+      "brigs",
+      "bucks",
+      "bungs",
+      "burgs",
+      "cages",
+      "carbs",
+      "chubs",
+      "chugs",
+      "clogs",
+      "clubs"
+     ],
+     "104": [
+      "erase"
+     ],
+     "108": [
+      "moist"
+     ],
+     "109": [
+      "queen"
+     ],
+     "110": [
+      "tense",
+      "these",
+      "those"
+     ],
+     "111": [
+      "trout"
+     ],
+     "112": [
+      "crest",
+      "wrest"
+     ],
+     "113": [
+      "terse"
+     ],
+     "117": [
+      "apian",
+      "hinny",
+      "hippy",
+      "hying",
+      "nappy",
+      "natty",
+      "nippy",
+      "nitty",
+      "nymph",
+      "pansy",
+      "pasha",
+      "patty",
+      "phony",
+      "piney",
+      "pinny",
+      "pinta",
+      "pithy",
+      "pitta",
+      "shiny",
+      "spiny"
+     ],
+     "118": [
+      "asset"
+     ],
+     "119": [
+      "batch",
+      "beach",
+      "beech",
+      "belch",
+      "bench",
+      "bicep",
+      "birch",
+      "botch",
+      "brach",
+      "broch",
+      "bumph",
+      "bunch",
+      "butch",
+      "champ",
+      "chape",
+      "chaps",
+      "chaws",
+      "cheap",
+      "cheep",
+      "chews"
+     ],
+     "126": [
+      "bacon",
+      "belch",
+      "black",
+      "block",
+      "blocs",
+      "bonce",
+      "boric",
+      "botch",
+      "broch",
+      "brock",
+      "bronc",
+      "bucko",
+      "bunco",
+      "cabal",
+      "cable",
+      "cabob",
+      "carob",
+      "celeb",
+      "climb",
+      "clomb"
+     ],
+     "127": [
+      "badly",
+      "baldy",
+      "balky",
+      "bally",
+      "balmy",
+      "beefy",
+      "belay",
+      "belly",
+      "beryl",
+      "bialy",
+      "billy",
+      "blowy",
+      "bluey",
+      "bluff",
+      "boyla",
+      "bulgy",
+      "bulky",
+      "bully",
+      "burly",
+      "butyl"
+     ],
+     "128": [
+      "tease"
+     ],
+     "129": [
+      "trash",
+      "roast"
+     ],
+     "136": [
+      "ethos"
+     ],
+     "144": [
+      "atlas"
+     ],
+     "162": [
+      "plonk",
+      "plunk"
+     ],
+     "163": [
+      "whelp"
+     ],
+     "164": [
+      "clink"
+     ],
+     "165": [
+      "shrub"
+     ],
+     "166": [
+      "hewer",
+      "wheen",
+      "heron"
+     ],
+     "167": [
+      "serve",
+      "spree"
+     ],
+     "168": [
+      "sworn"
+     ],
+     "169": [
+      "sperm"
+     ],
+     "170": [
+      "pinch",
+      "winch"
+     ],
+     "171": [
+      "yulan",
+      "dully",
+      "unlay"
+     ],
+     "172": [
+      "sneak",
+      "speak"
+     ],
+     "173": [
+      "sauce",
+      "salve"
+     ],
+     "174": [
+      "apron",
+      "campo",
+      "capon",
+      "capos",
+      "caput",
+      "carom",
+      "clomp",
+      "clops",
+      "clump",
+      "comer",
+      "comfy",
+      "compo",
+      "comps",
+      "coops",
+      "copal",
+      "copay",
+      "coped",
+      "coper",
+      "copes",
+      "copra"
+     ],
+     "175": [
+      "pashm",
+      "bimah",
+      "bumph",
+      "pshaw",
+      "vamps",
+      "vampy",
+      "whelm",
+      "whelp",
+      "whomp"
+     ],
+     "180": [
+      "lynch",
+      "child"
+     ],
+     "182": [
+      "chump",
+      "pluck",
+      "clunk",
+      "plunk"
+     ],
+     "186": [
+      "lymph",
+      "nymph"
+     ],
+     "188": [
+      "bench",
+      "bunch",
+      "capon",
+      "chain",
+      "champ",
+      "chant",
+      "chape",
+      "chaps",
+      "cheap",
+      "cheep",
+      "chimp",
+      "china",
+      "chine",
+      "ching",
+      "chino",
+      "chins",
+      "chips",
+      "chirp",
+      "chomp",
+      "chops"
+     ],
+     "189": [
+      "photo",
+      "pinch",
+      "pouch"
+     ],
+     "190": [
+      "whelp"
+     ],
+     "191": [
+      "amour",
+      "blimp",
+      "buxom",
+      "campo",
+      "chimp",
+      "chomp",
+      "clomp",
+      "compo",
+      "comps",
+      "coupe",
+      "coups",
+      "coypu",
+      "crimp",
+      "croup",
+      "cumin",
+      "cupid",
+      "douma",
+      "dumbo",
+      "duomo",
+      "equip"
+     ],
+     "195": [
+      "chino",
+      "chomp",
+      "chops",
+      "ephod",
+      "ephor",
+      "epoch",
+      "hippo",
+      "honks",
+      "hoops",
+      "hoped",
+      "hopes",
+      "hound",
+      "hypos",
+      "oomph",
+      "opahs",
+      "ouphe",
+      "pheon",
+      "phlox",
+      "phone",
+      "phons"
+     ],
+     "198": [
+      "splat"
+     ],
+     "199": [
+      "sweat"
+     ],
+     "201": [
+      "sorta"
+     ],
+     "207": [
+      "scant",
+      "slant"
+     ],
+     "209": [
+      "alack",
+      "aleph",
+      "alike",
+      "alkyd",
+      "alkyl",
+      "alpha",
+      "ample",
+      "amply",
+      "ankle",
+      "apeak",
+      "appel",
+      "apple",
+      "apply",
+      "aptly",
+      "balks",
+      "balky",
+      "bilks",
+      "black",
+      "blank",
+      "bleak"
+     ],
+     "213": [
+      "smart"
+     ],
+     "216": [
+      "pinko"
+     ],
+     "217": [
+      "steel",
+      "steep"
+     ],
+     "218": [
+      "clonk",
+      "klong",
+      "knoll",
+      "lanky",
+      "novel",
+      "plonk",
+      "vinyl"
+     ],
+     "219": [
+      "strum",
+      "strut"
+     ],
+     "220": [
+      "steer",
+      "strew"
+     ],
+     "222": [
+      "abysm",
+      "alkyd",
+      "alkyl",
+      "ambry",
+      "amity",
+      "amply",
+      "atomy",
+      "balky",
+      "balmy",
+      "barmy",
+      "beamy",
+      "bosky",
+      "bulky",
+      "bumpy",
+      "campy",
+      "chyme",
+      "cocky",
+      "comfy",
+      "corky",
+      "cymar"
+     ],
+     "223": [
+      "stern"
+     ],
+     "224": [
+      "store"
+     ],
+     "226": [
+      "alack",
+      "alarm",
+      "album",
+      "alike",
+      "alkyd",
+      "alkyl",
+      "alums",
+      "amble",
+      "ample",
+      "amply",
+      "ankle",
+      "balks",
+      "balky",
+      "balms",
+      "balmy",
+      "bilks",
+      "black",
+      "blame",
+      "blank",
+      "bleak"
+     ],
+     "228": [
+      "amply",
+      "apery",
+      "apply",
+      "aptly",
+      "bawdy",
+      "blowy",
+      "bumpy",
+      "bylaw",
+      "byway",
+      "campy",
+      "chewy",
+      "copay",
+      "coypu",
+      "crapy",
+      "crypt",
+      "dippy",
+      "dopey",
+      "dowdy",
+      "downy",
+      "dowry"
+     ],
+     "234": [
+      "blink",
+      "clink",
+      "flank",
+      "flunk",
+      "inkle",
+      "kilns",
+      "liken",
+      "links",
+      "plank",
+      "plonk",
+      "plunk",
+      "slink"
+     ],
+     "236": [
+      "gavel",
+      "gilts",
+      "glitz",
+      "glove",
+      "gluts",
+      "kevel",
+      "kilts",
+      "klong",
+      "klutz",
+      "vagal",
+      "vigil",
+      "volts"
+     ],
+     "237": [
+      "stair"
+     ],
+     "240": [
+      "start",
+      "stark"
+     ],
+     "242": [
+      "stare"
+     ]
+    }
+   },
+   {
+    "first": "alert",
+    "second": {
+     "0": [
+      "spiny"
+     ],
+     "1": [
+      "coins"
+     ],
+     "2": [
+      "knish",
+      "chins"
+     ],
+     "3": [
+      "doing"
+     ],
+     "4": [
+      "mouth"
+     ],
+     "5": [
+      "ornis",
+      "irons",
+      "poufs",
+      "suing",
+      "ruins"
+     ],
+     "6": [
+      "shown",
+      "horns",
+      "coins",
+      "corns",
+      "sonic"
+     ],
+     "7": [
+      "atomy",
+      "bosky",
+      "dinky",
+      "dusky",
+      "hakim",
+      "hokey",
+      "hokum",
+      "homey",
+      "hooky",
+      "hunky",
+      "hymen",
+      "hymns",
+      "kayos",
+      "khoum",
+      "kinky",
+      "makos",
+      "manky",
+      "meiny",
+      "micks",
+      "mikes"
+     ],
+     "8": [
+      "chino",
+      "chomp",
+      "chops",
+      "epoch",
+      "honks",
+      "hoops",
+      "hoped",
+      "hopes",
+      "hound",
+      "hypos",
+      "oomph",
+      "opahs",
+      "ouphe",
+      "pheon",
+      "phone",
+      "phons",
+      "phony",
+      "photo",
+      "phots",
+      "plonk"
+     ],
+     "9": [
+      "shine"
+     ],
+     "10": [
+      "thins"
+     ],
+     "11": [
+      "unbid",
+      "bison",
+      "deism",
+      "nidus"
+     ],
+     "12": [
+      "dipso"
+     ],
+     "13": [
+      "tutor",
+      "totem",
+      "torte",
+      "toter",
+      "touts"
+     ],
+     "14": [
+      "beret",
+      "rivet"
+     ],
+     "15": [
+      "chins"
+     ],
+     "16": [
+      "entry",
+      "metro",
+      "retry"
+     ],
+     "18": [
+      "dense",
+      "seine"
+     ],
+     "19": [
+      "steep",
+      "theme",
+      "these"
+     ],
+     "20": [
+      "cense",
+      "scene",
+      "sheen"
+     ],
+     "21": [
+      "chaps",
+      "chips",
+      "chops"
+     ],
+     "22": [
+      "steer",
+      "their",
+      "trend"
+     ],
+     "23": [
+      "crest"
+     ],
+     "24": [
+      "beefy",
+      "chivy",
+      "elemi",
+      "ensue",
+      "equip",
+      "fauve",
+      "favus",
+      "femme",
+      "flume",
+      "flush",
+      "fubsy",
+      "fusee",
+      "fussy",
+      "fusty",
+      "guise",
+      "hilum",
+      "hives",
+      "huffs",
+      "huffy",
+      "humic"
+     ],
+     "25": [
+      "there",
+      "stern"
+     ],
+     "26": [
+      "acorn",
+      "admix",
+      "adorn",
+      "adown",
+      "aerie",
+      "affix",
+      "agios",
+      "agone",
+      "agony",
+      "akene",
+      "alive",
+      "aloin",
+      "alone",
+      "along",
+      "amigo",
+      "amino",
+      "amnio",
+      "among",
+      "ancon",
+      "anele"
+     ],
+     "27": [
+      "dully",
+      "solid"
+     ],
+     "28": [
+      "until"
+     ],
+     "29": [
+      "bilge",
+      "bogus",
+      "gumbo"
+     ],
+     "30": [
+      "disco",
+      "idols"
+     ],
+     "31": [
+      "trill",
+      "troll"
+     ],
+     "33": [
+      "swirl",
+      "whirl"
+     ],
+     "34": [
+      "twirl"
+     ],
+     "36": [
+      "donee"
+     ],
+     "37": [
+      "hotly"
+     ],
+     "38": [
+      "filet",
+      "inlet"
+     ],
+     "39": [
+      "viper",
+      "river"
+     ],
+     "40": [
+      "liter"
+     ],
+     "45": [
+      "swell",
+      "wheel"
+     ],
+     "46": [
+      "steel"
+     ],
+     "47": [
+      "acids",
+      "acned",
+      "adits",
+      "adman",
+      "admen",
+      "admit",
+      "admix",
+      "adorn",
+      "adown",
+      "adust",
+      "adzes",
+      "aedes",
+      "aides",
+      "aimed",
+      "akees",
+      "alkyd",
+      "amain",
+      "amend",
+      "ament",
+      "amide"
+     ],
+     "51": [
+      "leery"
+     ],
+     "54": [
+      "finks"
+     ],
+     "55": [
+      "cloth",
+      "sloth"
+     ],
+     "56": [
+      "flint",
+      "flout"
+     ],
+     "57": [
+      "floor",
+      "flour"
+     ],
+     "60": [
+      "blurb",
+      "glory"
+     ],
+     "62": [
+      "blurt",
+      "flirt"
+     ],
+     "63": [
+      "osmic",
+      "dipso",
+      "disco"
+     ],
+     "64": [
+      "elite",
+      "flute"
+     ],
+     "66": [
+      "abide",
+      "acari",
+      "ached",
+      "acids",
+      "acing",
+      "acini",
+      "acned",
+      "acred",
+      "acrid",
+      "acted",
+      "actin",
+      "adieu",
+      "adits",
+      "admit",
+      "admix",
+      "adult",
+      "adust",
+      "aecia",
+      "aerie",
+      "afoul"
+     ],
+     "72": [
+      "sleek"
+     ],
+     "74": [
+      "fleet",
+      "sleet"
+     ],
+     "78": [
+      "clerk"
+     ],
+     "81": [
+      "canso"
+     ],
+     "82": [
+      "spiny",
+      "pints"
+     ],
+     "83": [
+      "thins"
+     ],
+     "84": [
+      "crops"
+     ],
+     "85": [
+      "tipsy"
+     ],
+     "86": [
+      "craft"
+     ],
+     "87": [
+      "hocks"
+     ],
+     "88": [
+      "stark",
+      "tarry",
+      "tiara"
+     ],
+     "89": [
+      "acmes",
+      "alums",
+      "amahs",
+      "amuse",
+      "arums",
+      "bumph",
+      "bumps",
+      "butts",
+      "calms",
+      "camps",
+      "cecum",
+      "chasm",
+      "chump",
+      "chums",
+      "clams",
+      "clump",
+      "comas",
+      "combs",
+      "comes",
+      "comps"
+     ],
+     "90": [
+      "shuck"
+     ],
+     "91": [
+      "hacks"
+     ],
+     "92": [
+      "fancy"
+     ],
+     "93": [
+      "camps",
+      "capes"
+     ],
+     "94": [
+      "terce",
+      "twice",
+      "trick"
+     ],
+     "95": [
+      "react"
+     ],
+     "96": [
+      "bench"
+     ],
+     "97": [
+      "extra",
+      "stare"
+     ],
+     "98": [
+      "heart"
+     ],
+     "99": [
+      "sneak"
+     ],
+     "100": [
+      "steak",
+      "steam",
+      "tweak"
+     ],
+     "101": [
+      "cheat",
+      "sweat",
+      "wheat"
+     ],
+     "102": [
+      "wombs"
+     ],
+     "103": [
+      "tread"
+     ],
+     "104": [
+      "great",
+      "treat"
+     ],
+     "105": [
+      "opera"
+     ],
+     "108": [
+      "sally"
+     ],
+     "109": [
+      "total"
+     ],
+     "110": [
+      "fault",
+      "vault"
+     ],
+     "111": [
+      "moral"
+     ],
+     "112": [
+      "trail",
+      "trawl",
+      "trial"
+     ],
+     "114": [
+      "gnarl",
+      "snarl"
+     ],
+     "117": [
+      "lapse"
+     ],
+     "118": [
+      "lathe"
+     ],
+     "119": [
+      "leapt",
+      "least"
+     ],
+     "120": [
+      "gayer",
+      "germy",
+      "gyral",
+      "gyres",
+      "leggy",
+      "mangy",
+      "rangy",
+      "saggy",
+      "sedgy"
+     ],
+     "123": [
+      "learn",
+      "pearl"
+     ],
+     "126": [
+      "ideal"
+     ],
+     "127": [
+      "steal"
+     ],
+     "135": [
+      "picks"
+     ],
+     "137": [
+      "angst",
+      "bangs",
+      "blags",
+      "blogs",
+      "bogus",
+      "bongs",
+      "brags",
+      "bungs",
+      "dangs",
+      "dings",
+      "dongs",
+      "dungs",
+      "fangs",
+      "fatso",
+      "fauns",
+      "fawns",
+      "feast",
+      "fends",
+      "ferns",
+      "finds"
+     ],
+     "138": [
+      "flair"
+     ],
+     "141": [
+      "flora"
+     ],
+     "142": [
+      "ultra"
+     ],
+     "144": [
+      "bumps",
+      "skimp"
+     ],
+     "145": [
+      "plate",
+      "slate"
+     ],
+     "150": [
+      "abaft",
+      "badge",
+      "bagel",
+      "baggy",
+      "bangs",
+      "barfs",
+      "barge",
+      "beefs",
+      "beefy",
+      "befit",
+      "befog",
+      "began",
+      "begat",
+      "beget",
+      "begin",
+      "begot",
+      "begum",
+      "begun",
+      "beige",
+      "being"
+     ],
+     "153": [
+      "aping",
+      "bangs",
+      "began",
+      "begin",
+      "begun",
+      "being",
+      "bhang",
+      "binge",
+      "bingo",
+      "bling",
+      "bongo",
+      "bongs",
+      "boong",
+      "bring",
+      "bungs",
+      "dangs",
+      "deign",
+      "dinge",
+      "dingo",
+      "dings"
+     ],
+     "155": [
+      "abaca",
+      "aback",
+      "acerb",
+      "apace",
+      "aspic",
+      "baccy",
+      "backs",
+      "bacon",
+      "baric",
+      "basic",
+      "batch",
+      "beach",
+      "bebop",
+      "becks",
+      "beech",
+      "beeps",
+      "belch",
+      "bench",
+      "bicep",
+      "biped"
+     ],
+     "156": [
+      "clear"
+     ],
+     "162": [
+      "imago"
+     ],
+     "163": [
+      "antic",
+      "attic"
+     ],
+     "164": [
+      "dhobi",
+      "dodos",
+      "audio",
+      "bipod",
+      "bound",
+      "codon",
+      "dooms",
+      "dumbo",
+      "duomo",
+      "eidos",
+      "found",
+      "group",
+      "idiom",
+      "idiot",
+      "idols",
+      "lidos",
+      "moods",
+      "mound",
+      "odeon",
+      "odium"
+     ],
+     "165": [
+      "arbor",
+      "ardor",
+      "armor"
+     ],
+     "166": [
+      "actor",
+      "aorta"
+     ],
+     "168": [
+      "acorn",
+      "adorn"
+     ],
+     "170": [
+      "apart",
+      "abort"
+     ],
+     "171": [
+      "bonds"
+     ],
+     "172": [
+      "abate",
+      "acute"
+     ],
+     "173": [
+      "asset"
+     ],
+     "174": [
+      "aggie",
+      "agile",
+      "agone",
+      "algor",
+      "argil",
+      "argol",
+      "argon",
+      "argot",
+      "begin",
+      "beige",
+      "bines",
+      "bogey",
+      "bogie",
+      "bogle",
+      "bogus",
+      "bones",
+      "bonus",
+      "bores",
+      "bouse",
+      "bring"
+     ],
+     "175": [
+      "after"
+     ],
+     "177": [
+      "about",
+      "adage",
+      "adapt",
+      "addax",
+      "adieu",
+      "adman",
+      "adown",
+      "adult",
+      "adust",
+      "adzes",
+      "afoul",
+      "aglow",
+      "agora",
+      "ahead",
+      "allow",
+      "aloha",
+      "aloud",
+      "alula",
+      "amaze",
+      "amour"
+     ],
+     "180": [
+      "ahead",
+      "amend"
+     ],
+     "182": [
+      "agent",
+      "adept"
+     ],
+     "183": [
+      "arena"
+     ],
+     "188": [
+      "avert"
+     ],
+     "189": [
+      "aping",
+      "mingy",
+      "opine",
+      "oping",
+      "pinup"
+     ],
+     "190": [
+      "atlas",
+      "aptly"
+     ],
+     "191": [
+      "adult"
+     ],
+     "192": [
+      "aural"
+     ],
+     "198": [
+      "aping",
+      "binge",
+      "gimps",
+      "gimpy",
+      "minke",
+      "opine",
+      "oping",
+      "prime",
+      "skimp",
+      "spang",
+      "spike",
+      "spine"
+     ],
+     "216": [
+      "buoys",
+      "hyson",
+      "goosy",
+      "moony",
+      "pylon"
+     ],
+     "218": [
+      "allot",
+      "aloft"
+     ],
+     "220": [
+      "altar"
+     ],
+     "222": [
+      "alarm"
+     ],
+     "225": [
+      "alike",
+      "alive"
+     ],
+     "229": [
+      "alter"
+     ],
+     "242": [
+      "alert"
+     ]
+    }
+   },
+   {
+    "first": "irate",
+    "second": {
+     "0": [
+      "flocs"
+     ],
+     "1": [
+      "newel"
+     ],
+     "2": [
+      "slung"
+     ],
+     "3": [
+      "count"
+     ],
+     "4": [
+      "sleet"
+     ],
+     "5": [
+      "honks",
+      "kohls",
+      "sonly",
+      "seven"
+     ],
+     "6": [
+      "lumps",
+      "slump",
+      "plums"
+     ],
+     "7": [
+      "depth",
+      "jetty",
+      "petty"
+     ],
+     "8": [
+      "abmho",
+      "abohm",
+      "altos",
+      "aulos",
+      "blahs",
+      "blobs",
+      "blocs",
+      "blogs",
+      "bloom",
+      "blots",
+      "blows",
+      "blued",
+      "bluer",
+      "blues",
+      "bluet",
+      "bluey",
+      "bluff",
+      "blunt",
+      "blurb",
+      "blurs"
+     ],
+     "9": [
+      "sonly"
+     ],
+     "10": [
+      "lagan"
+     ],
+     "11": [
+      "calms"
+     ],
+     "12": [
+      "talon"
+     ],
+     "13": [
+      "cleat"
+     ],
+     "14": [
+      "bathe",
+      "lathe",
+      "table"
+     ],
+     "15": [
+      "pansy",
+      "tansy",
+      "spiny"
+     ],
+     "16": [
+      "delta",
+      "theta"
+     ],
+     "17": [
+      "batch",
+      "bumph",
+      "butch",
+      "champ",
+      "chaps",
+      "chaws",
+      "chews",
+      "chimb",
+      "chimp",
+      "chips",
+      "chomp",
+      "chops",
+      "chows",
+      "chubs",
+      "chump",
+      "patch",
+      "psych",
+      "schwa",
+      "techs",
+      "thumb"
+     ],
+     "18": [
+      "clops"
+     ],
+     "19": [
+      "badly",
+      "chalk",
+      "child"
+     ],
+     "20": [
+      "slump"
+     ],
+     "21": [
+      "scalp",
+      "slack",
+      "slick"
+     ],
+     "22": [
+      "least"
+     ],
+     "23": [
+      "kevel"
+     ],
+     "24": [
+      "loath"
+     ],
+     "25": [
+      "death",
+      "heath"
+     ],
+     "26": [
+      "kalpa",
+      "skelp",
+      "stalk"
+     ],
+     "27": [
+      "curly"
+     ],
+     "28": [
+      "sleep"
+     ],
+     "29": [
+      "pongs",
+      "hocus"
+     ],
+     "30": [
+      "short"
+     ],
+     "31": [
+      "otter"
+     ],
+     "32": [
+      "store",
+      "terse",
+      "there",
+      "three"
+     ],
+     "33": [
+      "downy",
+      "fancy",
+      "fanny",
+      "fenny",
+      "ferny",
+      "finch",
+      "finny",
+      "flawy",
+      "foehn",
+      "funky",
+      "funny",
+      "newsy",
+      "niffy",
+      "nifty",
+      "nohow",
+      "noway",
+      "shewn",
+      "shown",
+      "snowy",
+      "unify"
+     ],
+     "34": [
+      "berth"
+     ],
+     "35": [
+      "route",
+      "forte"
+     ],
+     "36": [
+      "mayor"
+     ],
+     "37": [
+      "gamps",
+      "gawps",
+      "palms",
+      "lamps"
+     ],
+     "38": [
+      "burgs",
+      "carbs",
+      "cards",
+      "cargo",
+      "carob",
+      "carol",
+      "clogs",
+      "corgi"
+     ],
+     "39": [
+      "carry",
+      "sorry"
+     ],
+     "40": [
+      "cleek"
+     ],
+     "42": [
+      "aorta",
+      "sorta"
+     ],
+     "43": [
+      "earth"
+     ],
+     "45": [
+      "hocks",
+      "honks",
+      "howls"
+     ],
+     "46": [
+      "badly",
+      "handy",
+      "haply",
+      "henry",
+      "leery",
+      "lorry",
+      "nymph",
+      "reply",
+      "whirl",
+      "whorl"
+     ],
+     "47": [
+      "belch"
+     ],
+     "48": [
+      "stuck"
+     ],
+     "49": [
+      "heart",
+      "react"
+     ],
+     "50": [
+      "stare"
+     ],
+     "54": [
+      "codon"
+     ],
+     "55": [
+      "cedes",
+      "coeds",
+      "coped"
+     ],
+     "56": [
+      "ponds",
+      "bonds"
+     ],
+     "57": [
+      "typos",
+      "blunt",
+      "clung",
+      "clunk",
+      "count",
+      "input",
+      "plunk",
+      "slunk",
+      "uncut",
+      "clops",
+      "clubs",
+      "pluck",
+      "tolus"
+     ],
+     "58": [
+      "crest"
+     ],
+     "59": [
+      "truce"
+     ],
+     "60": [
+      "broth",
+      "froth"
+     ],
+     "62": [
+      "wrote",
+      "brute"
+     ],
+     "63": [
+      "adown"
+     ],
+     "64": [
+      "aback"
+     ],
+     "65": [
+      "argue",
+      "arose"
+     ],
+     "67": [
+      "great",
+      "tread",
+      "treat"
+     ],
+     "72": [
+      "clops"
+     ],
+     "74": [
+      "zebec"
+     ],
+     "75": [
+      "canst",
+      "chant",
+      "cleft",
+      "mulct"
+     ],
+     "77": [
+      "trace",
+      "trade"
+     ],
+     "78": [
+      "wrath"
+     ],
+     "80": [
+      "crate",
+      "grate"
+     ],
+     "81": [
+      "flocs",
+      "clops",
+      "clods"
+     ],
+     "82": [
+      "widen"
+     ],
+     "83": [
+      "sling"
+     ],
+     "84": [
+      "foist"
+     ],
+     "85": [
+      "edict"
+     ],
+     "86": [
+      "lithe",
+      "tilde",
+      "title",
+      "twine"
+     ],
+     "87": [
+      "dusky",
+      "snowy",
+      "whins",
+      "hinds",
+      "fishy",
+      "ditsy"
+     ],
+     "88": [
+      "deity",
+      "piety"
+     ],
+     "89": [
+      "culms",
+      "gulps",
+      "humps",
+      "humus",
+      "lumps",
+      "lupus",
+      "mules",
+      "mulls",
+      "mushy",
+      "musth",
+      "pulas",
+      "pules",
+      "pulls",
+      "pulps",
+      "pulse",
+      "purls",
+      "pushy"
+     ],
+     "90": [
+      "salon",
+      "lands",
+      "nails"
+     ],
+     "91": [
+      "media",
+      "alien"
+     ],
+     "92": [
+      "alive"
+     ],
+     "93": [
+      "taint"
+     ],
+     "96": [
+      "faith",
+      "vista"
+     ],
+     "99": [
+      "clung",
+      "clunk",
+      "flung",
+      "canal",
+      "clans",
+      "plunk"
+     ],
+     "100": [
+      "email"
+     ],
+     "102": [
+      "giant",
+      "staid",
+      "stain"
+     ],
+     "108": [
+      "sough",
+      "coils",
+      "hocks",
+      "shock"
+     ],
+     "109": [
+      "rinds",
+      "rends"
+     ],
+     "110": [
+      "dipso",
+      "dishy",
+      "hides",
+      "shred",
+      "shrug",
+      "sprag",
+      "sprig",
+      "sprog"
+     ],
+     "111": [
+      "shirt"
+     ],
+     "112": [
+      "timer"
+     ],
+     "114": [
+      "abmho",
+      "abohm",
+      "abysm",
+      "ambry",
+      "badge",
+      "baggy",
+      "balmy",
+      "barmy",
+      "beamy",
+      "bedim",
+      "begum",
+      "bhang",
+      "bight",
+      "bimah",
+      "bodge",
+      "bogey",
+      "boggy",
+      "bough",
+      "budge",
+      "buggy"
+     ],
+     "117": [
+      "rabid"
+     ],
+     "119": [
+      "raise"
+     ],
+     "120": [
+      "ratio"
+     ],
+     "126": [
+      "chair",
+      "flair"
+     ],
+     "129": [
+      "stair",
+      "tiara"
+     ],
+     "135": [
+      "flong",
+      "globs",
+      "klong",
+      "gloms"
+     ],
+     "136": [
+      "brief",
+      "grief"
+     ],
+     "137": [
+      "dumps",
+      "dumpy"
+     ],
+     "138": [
+      "flint",
+      "flips",
+      "flocs",
+      "flops",
+      "flown",
+      "folks"
+     ],
+     "140": [
+      "tribe",
+      "tripe"
+     ],
+     "143": [
+      "write",
+      "trite"
+     ],
+     "144": [
+      "friar"
+     ],
+     "146": [
+      "arise"
+     ],
+     "147": [
+      "trial"
+     ],
+     "153": [
+      "algid",
+      "badge",
+      "badly",
+      "balds",
+      "baldy",
+      "baled",
+      "bands",
+      "bandy",
+      "bangs",
+      "bedel",
+      "began",
+      "begin",
+      "begun",
+      "being",
+      "bends",
+      "bendy",
+      "bhang",
+      "bield",
+      "bifid",
+      "binds"
+     ],
+     "156": [
+      "adult",
+      "agent",
+      "aglet",
+      "alert",
+      "algin",
+      "alien",
+      "align",
+      "allot",
+      "aloft",
+      "aloin",
+      "alone",
+      "along",
+      "ament",
+      "anele",
+      "anent",
+      "angel",
+      "angle",
+      "angst",
+      "anile",
+      "anils"
+     ],
+     "162": [
+      "icing",
+      "idiom",
+      "igloo"
+     ],
+     "163": [
+      "index",
+      "impel"
+     ],
+     "164": [
+      "issue"
+     ],
+     "165": [
+      "idiot",
+      "input"
+     ],
+     "166": [
+      "inept",
+      "inlet"
+     ],
+     "171": [
+      "inlay"
+     ],
+     "172": [
+      "ideal"
+     ],
+     "182": [
+      "image",
+      "inane"
+     ],
+     "189": [
+      "incur",
+      "ivory"
+     ],
+     "190": [
+      "infer",
+      "inner"
+     ],
+     "193": [
+      "inter",
+      "inert"
+     ],
+     "216": [
+      "irony"
+     ],
+     "242": [
+      "irate"
+     ]
+    }
+   }
+  ]
+ }
+}

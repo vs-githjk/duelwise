@@ -1,0 +1,1 @@
+ALTER TABLE "profile" ADD COLUMN "show_on_leaderboard" boolean DEFAULT true NOT NULL;

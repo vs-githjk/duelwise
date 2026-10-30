@@ -1,0 +1,20 @@
+[project]
+name = "duelwise-training"
+version = "0.0.0"
+description = "Duelwise training environment (package `trainer`). The venv never installs this project itself."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.10.0",
+  "numpy",
+  "scipy",
+  "onnx",
+  "onnxruntime",
+  "pytest",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+markers = ["slow: long-running tests, excluded from the whole-suite run"]
+addopts = "-m 'not slow'"

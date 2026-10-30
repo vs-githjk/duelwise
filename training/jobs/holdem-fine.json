@@ -1,0 +1,11 @@
+{
+  "name": "holdem-fine",
+  "cmd": ["bun", "packages/core/src/games/holdem/cfr-main.ts", "--abstraction", "fine", "--iterations", "5000000", "--snapshots", "1500000,5000000", "--seed", "15", "--max-minutes", "340"],
+  "cpuSlots": 1,
+  "mps": false,
+  "maxHours": 6,
+  "after": ["holdem-coarse"],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/holdem-fine/ckpt",
+  "milestones": {"snapshotIterations": [1500000, 5000000], "levels": {"champion": 5000000}, "tablesDir": "runs/holdem-fine/tables"}
+}

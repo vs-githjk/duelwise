@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Pip, the Easy opponent">
+  <!-- Duelwise persona: Pip (Easy). Clubhouse portrait: tinted plate, ink bust, paper face. Colours are CSS variables with fallbacks so the mark follows the theme when inlined. -->
+  <defs><clipPath id="pip-clip"><circle cx="80" cy="80" r="78"/></clipPath></defs>
+  <circle cx="80" cy="80" r="78" fill="var(--p-tint,#e8c877)"/>
+  <g clip-path="url(#pip-clip)">
+    <path d="M12 166 C14 130 40 114 80 114 C120 114 146 130 148 166 Z" fill="var(--av-ink,#15181e)"/>
+    <rect x="69" y="96" width="22" height="22" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M64 112 L80 130 L96 112 L90 109 L80 121 L70 109 Z" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="51" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="109" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <ellipse cx="80" cy="78" rx="30" ry="34" fill="var(--av-paper,#f3ead8)"/>
+    <g fill="#d9a66b">
+      <circle cx="62" cy="91" r="1.6"/><circle cx="67" cy="94" r="1.6"/><circle cx="72" cy="91" r="1.6"/>
+      <circle cx="88" cy="91" r="1.6"/><circle cx="93" cy="94" r="1.6"/><circle cx="98" cy="91" r="1.6"/>
+    </g>
+    <rect x="107" y="54" width="5" height="30" rx="2.5" fill="#c98b2a" transform="rotate(-18 109 69)"/>
+    <path d="M47 58 C52 28 108 28 113 58 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M45 56 L131 60 L130 66 L45 62 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M58 70 Q66 65 74 70" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M86 70 Q94 65 102 70" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="68" cy="82" r="10.5" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="3"/>
+    <circle cx="92" cy="82" r="10.5" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="3"/>
+    <path d="M78.5 81 L81.5 81" stroke="var(--av-ink,#15181e)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="69" cy="83" r="2.6" fill="var(--av-ink,#15181e)"/>
+    <circle cx="93" cy="83" r="2.6" fill="var(--av-ink,#15181e)"/>
+    <path d="M70 100 Q80 111 90 100 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M73 100.5 Q80 104 87 100.5 Z" fill="var(--av-paper,#f3ead8)"/>
+  </g>
+</svg>

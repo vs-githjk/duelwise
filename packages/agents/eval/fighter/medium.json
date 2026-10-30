@@ -1,0 +1,95 @@
+[
+  {
+    "bot": "rushdown",
+    "games": 800,
+    "wins": 796,
+    "draws": 1,
+    "losses": 3,
+    "winRate": 0.995,
+    "score": 0.995625,
+    "ci95": [
+      0.9881,
+      0.9984
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 399,
+        "draws": 0,
+        "losses": 1,
+        "score": 0.9975,
+        "lower": 0.985977
+      },
+      "1": {
+        "games": 400,
+        "wins": 397,
+        "draws": 1,
+        "losses": 2,
+        "score": 0.99375,
+        "lower": 0.980046
+      }
+    }
+  },
+  {
+    "bot": "turtle",
+    "games": 800,
+    "wins": 722,
+    "draws": 0,
+    "losses": 78,
+    "winRate": 0.9025,
+    "score": 0.9025,
+    "ci95": [
+      0.88,
+      0.9212
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 352,
+        "draws": 0,
+        "losses": 48,
+        "score": 0.88,
+        "lower": 0.844486
+      },
+      "1": {
+        "games": 400,
+        "wins": 370,
+        "draws": 0,
+        "losses": 30,
+        "score": 0.925,
+        "lower": 0.894952
+      }
+    }
+  },
+  {
+    "bot": "random",
+    "games": 800,
+    "wins": 800,
+    "draws": 0,
+    "losses": 0,
+    "winRate": 1,
+    "score": 1,
+    "ci95": [
+      0.9952,
+      1
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 400,
+        "draws": 0,
+        "losses": 0,
+        "score": 1,
+        "lower": 0.990488
+      },
+      "1": {
+        "games": 400,
+        "wins": 400,
+        "draws": 0,
+        "losses": 0,
+        "score": 1,
+        "lower": 0.990488
+      }
+    }
+  }
+]

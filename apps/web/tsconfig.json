@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "types": ["bun", "vite/client"] },
+  "include": ["src", "*.ts", "e2e", "scripts"],
+  "exclude": ["node_modules", ".output"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "arena-league-b2",
+  "cmd": ["scripts/py", "-m", "trainer.ppo.train_realtime", "--game", "arena", "--b2", "--procs", "2", "--envs", "128", "--close-steps", "3000000", "--warm-start", "400000", "--a-steps", "8000000", "--a-seconds", "1500", "--b-steps", "14000000,10000000,8000000", "--b-seconds", "4200,3600,2700", "--gate-every", "3000000", "--gate-games", "48"],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 4,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/arena-league-b2/ckpt",
+  "milestones": {"b2Levels": "runs/arena-league-b2/levels/b2.json", "gatedLevels": "runs/arena-league-b2/levels/gated.json"}
+}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Sable, the Champion opponent">
+  <!-- Duelwise persona: Sable (Champion). Clubhouse portrait on a dark plate with a gold ring; the visor marks the non-human reaction limit. -->
+  <defs><clipPath id="sable-clip"><circle cx="80" cy="80" r="78"/></clipPath></defs>
+  <circle cx="80" cy="80" r="78" fill="var(--p-plate,#2a2724)"/>
+  <circle cx="80" cy="80" r="74" fill="none" stroke="var(--p-tint,#c9a34d)" stroke-width="2"/>
+  <g clip-path="url(#sable-clip)">
+    <path d="M10 166 C12 130 38 112 80 112 C122 112 148 130 150 166 Z" fill="#45392b"/>
+    <path d="M60 118 C66 110 94 110 100 118 L96 124 C90 117 70 117 64 124 Z" fill="var(--p-tint,#c9a34d)"/>
+    <rect x="69" y="96" width="22" height="20" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M80 126 L86 132 L80 138 L74 132 Z" fill="var(--p-tint,#c9a34d)"/>
+    <circle cx="51" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="109" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <ellipse cx="80" cy="78" rx="29" ry="34" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M50 78 C50 36 110 36 110 78 C106 64 96 60 80 60 C64 60 54 64 50 78 Z" fill="#7d6a50"/>
+    <path d="M60 54 C68 47 92 47 100 54" fill="none" stroke="#a08b66" stroke-width="2" stroke-linecap="round"/>
+    <path d="M49 73 L111 73 L109 87 Q80 94 51 87 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M49 73 L111 73" stroke="var(--p-tint,#c9a34d)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M60 82 L72 81" stroke="var(--p-tint,#c9a34d)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M88 81 L100 82" stroke="var(--p-tint,#c9a34d)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M74 101 L86 101" stroke="var(--av-ink,#15181e)" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+</svg>

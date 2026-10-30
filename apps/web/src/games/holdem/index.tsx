@@ -1,0 +1,239 @@
+import { visibleRegistry } from '../../lib/strength-gates'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { holdemCore } from '@duelwise/core/src/games/holdem/core'
+import { MATCH_HANDS } from '@duelwise/core/src/games/holdem/match'
+import { PRODUCT, type Level } from '@duelwise/core/src/product'
+import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
+import { GameShell } from '../../components/GameShell'
+import { LevelPicker } from '../../components/LevelPicker'
+import { StrengthLine } from '../../components/SiteElo'
+import { ResultPanel } from '../../components/ResultPanel'
+import { PlayHud } from '../../components/PlayHud'
+import { LeavingNotice } from '../../components/LeavingNotice'
+import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
+import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
+import { personaFor } from '../../personas'
+import { BetControls } from './BetControls'
+import { HandHistory } from './HandHistory'
+import { progressNumbers } from './progress'
+import { HoldemStyles, Table, type TableTurn } from './Table'
+import { HUMAN, useHoldemMatch } from './useHoldemMatch'
+
+export const meta = { title: "Heads-Up Hold'em" }
+
+// The registry file appears when this game's measurement lands (T28). Until then every level is a preview and
+// no strength is shown. Eager glob: a missing file is an empty object, not a build error.
+const found = import.meta.glob('../../../../../packages/agents/registry/holdem.json', { eager: true, import: 'default' })
+const raw = Object.values(found)[0]
+const sourceRegistry: Registry | null = raw ? parseRegistry(raw) : null
+const registry: Registry | null = sourceRegistry ? visibleRegistry(sourceRegistry) : null
+const levelInfo = levelInfoFromRegistry(registry)
+
+const CHIPS_ONLY = 'Play chips only, no prizes. The chips are never sold, never redeemable and carry no value.'
+
+function firstSelectable(): Level {
+  return (['easy', 'medium', 'hard', 'champion'] as const).find((l) => !levelInfo[l].inTraining) ?? 'easy'
+}
+
+/** `?seed=<number>` fixes the first match's deals, for tests and bug reports; later matches are random. */
+function seedFromUrl(): number | undefined {
+  const q = new URLSearchParams(window.location.search).get('seed')
+  return q !== null && /^\d{1,10}$/.test(q) && Number(q) < 2 ** 32 ? Number(q) : undefined
+}
+
+const nameOf = (level: Level) => personaFor(level).name
+
+function MuteToggle() {
+  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
+  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
+  return (
+    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
+      {muted ? 'Sound off' : 'Sound on'}
+    </button>
+  )
+}
+
+export default function HoldemPage() {
+  const match = useHoldemMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', nameOf, sourceRegistry?.learnsFromHumans === true)
+  const [picked, setPicked] = useState<Level>(firstSelectable)
+  const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
+  const [confirming, setConfirming] = useState(false)
+  const controlsRef = useRef<HTMLDivElement>(null)
+
+  const begin = (level: Level) => {
+    const s = fixedSeed
+    setFixedSeed(undefined)
+    setConfirming(false)
+    return match.start(level, s)
+  }
+
+  const measured = registry?.measured[match.level]
+  const state = match.state
+  const over = match.phase === 'over'
+  const opponent = nameOf(match.level)
+  const turn: TableTurn = over || state?.over ? 'over' : match.reveal ? 'reveal' : match.canAct ? 'you' : 'ai'
+  const status = over
+    ? 'Match over'
+    : match.failure
+      ? 'Stopped'
+      : match.reveal
+        ? match.reveal.headline
+        : match.canAct
+          ? 'Your action'
+          : `${opponent} is thinking`
+  // When it becomes your turn, bring the action bar fully into view: on a phone it starts below the fold.
+  useEffect(() => {
+    const el = controlsRef.current
+    if (!match.canAct || !el) return
+    const hidden = el.getBoundingClientRect().bottom - window.innerHeight + 12
+    if (hidden > 0) window.scrollBy({ top: hidden, behavior: 'auto' })
+  }, [match.canAct, state])
+  const shown = state ? progressNumbers(state, match.reveal) : null
+  const netText = shown ? (shown.net > 0 ? `+${shown.net}` : String(shown.net)) : ''
+
+  return (
+    <GameShell
+      game="holdem"
+      level={match.phase === 'setup' ? undefined : match.level}
+      preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
+      previewLabel="Practice"
+      thinking={match.thinking}
+      actions={<MuteToggle />}
+      result={over && match.result ? (
+            <>
+              <ResultPanel
+                result={match.result}
+                humanSeat={HUMAN}
+                recordOk={match.finished ? match.finished.ok : true}
+                upload={match.upload}
+                unratedReason={match.unratedReason}
+                onRematch={() => void match.start(match.level)}
+                onPlayLevel={(l) => void match.start(l)}
+                levels={levelInfo}
+                moves={match.finished ? match.finished.record.actions.filter((a) => a[1] === match.finished!.record.humanSeat).length : 0}
+                onChangeLevel={match.backToSetup}
+              />
+              {match.finished ? (
+                <span hidden data-testid="holdem-record" data-record-ok={String(match.finished.ok)} data-final-hash={match.finished.record.finalHash} data-seed={String(match.seed)} />
+              ) : null}
+            </>
+          ) : null}
+      aside={
+        match.phase === 'setup' || match.phase === 'starting' ? undefined : (
+          <div className="grid gap-4">
+            <section className="grid gap-1 rounded-card border border-line bg-surface p-4" data-testid="agent-card">
+              <b className="font-display text-display-sm">
+                {opponent}, {LEVEL_LABEL[match.level]}
+              </b>
+              {match.counted ? <LeavingNotice /> : null}
+              <StrengthLine siteElo={measured?.siteElo} />
+              <p className="mt-1 text-sm text-muted" data-testid="chips-only-note">
+                {CHIPS_ONLY}
+              </p>
+            </section>
+            <HandHistory hands={match.history} opponent={opponent} />
+            {match.phase === 'playing' ? (
+              confirming ? (
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm concede">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirming(false)
+                      void match.concede()
+                    }}
+                    className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white"
+                  >
+                    Yes, concede
+                  </button>
+                  <button type="button" onClick={() => setConfirming(false)} className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold">
+                    Keep playing
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirming(true)} disabled={!match.canAct} className="min-h-11 justify-self-start rounded-control border border-line bg-surface px-4 text-sm font-semibold disabled:opacity-50">
+                  Concede
+                </button>
+              )
+            ) : null}
+          </div>
+        )
+      }
+    >
+      {match.phase === 'setup' || match.phase === 'starting' ? (
+        <section className="grid gap-4" data-testid="holdem-setup">
+          <p className="text-muted">
+            Heads-up no-limit Texas Hold&apos;em. Blinds 1 and 2, and both stacks reset to 100 chips every hand. A match is {MATCH_HANDS} hands; whoever has more chips at the end wins.
+          </p>
+          <p className="rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="chips-only-note">
+            {CHIPS_ONLY}
+          </p>
+          <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.holdem.slug} disabled={match.phase === 'starting'}
+            action={
+              <>
+          {match.failure ? (
+            <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink">
+              {match.failure}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            disabled={match.phase === 'starting'}
+            onClick={() => void begin(picked)}
+            className="start-match min-h-12 justify-self-start rounded-control bg-action px-6 font-semibold text-action-ink disabled:opacity-60"
+          >
+            Start match vs {personaFor(picked).name}
+          </button>
+              </>
+            }
+          />
+        </section>
+      ) : state ? (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+          <HoldemStyles />
+          <PlayHud turn={over ? 'over' : match.canAct || match.reveal ? 'you' : 'ai'} swatch="bg-felt" matchKey={match.seed} />
+          <p className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm text-muted" data-testid="holdem-progress">
+            <span>
+              Hand <b className="font-mono tabular text-ink">{shown!.hand}</b> of {MATCH_HANDS}
+            </span>
+            <span>
+              Chips <b className="font-mono tabular text-ink" data-testid="net-chips">{netText}</b>
+            </span>
+          </p>
+          {/* Tapping the table cuts a reading pause short, one stage per tap; the button is the keyboard and screen reader way. */}
+          <div onClick={match.reveal && !state.over ? match.skipReveal : undefined}>
+            <Table state={state} reveal={match.reveal} level={match.level} turn={turn} />
+          </div>
+          <p className="text-center text-sm font-semibold text-muted" role="status" aria-live="polite" data-testid="holdem-status">
+            {status}
+          </p>
+          {match.reveal && !state.over ? (
+            <button type="button" onClick={match.skipReveal} className="min-h-11 justify-self-center rounded-control border border-line bg-surface px-4 text-sm font-semibold" data-testid="holdem-skip">
+              Skip
+            </button>
+          ) : null}
+          <p className="sr-only" role="log" aria-live="polite" data-testid="holdem-log-sr">
+            {match.log}
+          </p>
+          <p className="text-center text-sm" data-testid="holdem-log">
+            {match.log}
+          </p>
+          {over ? null : match.failure ? (
+            <div className="grid justify-items-center gap-2">
+              <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink">
+                {match.failure}
+              </p>
+              <button type="button" onClick={match.backToSetup} className="min-h-11 rounded-control border border-line bg-surface px-5 font-semibold">
+                Back to setup
+              </button>
+            </div>
+          ) : match.canAct ? (
+            <div ref={controlsRef}>
+              <BetControls obs={holdemCore.observe(state, HUMAN)} disabled={false} onAction={(a) => void match.act(a)} />
+            </div>
+          ) : null}
+
+        </div>
+      ) : null}
+    </GameShell>
+  )
+}

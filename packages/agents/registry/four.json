@@ -1,0 +1,367 @@
+{
+  "game": "four",
+  "champion": "v2",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-10-22T08:33:42.248Z",
+      "promotedAt": "2026-10-22T08:33:42.248Z",
+      "status": "measured",
+      "artifacts": {
+        "easy": "apps/web/public/agents/four/v1/easy.onnx",
+        "medium": "apps/web/public/agents/four/v1/medium.onnx",
+        "hard": "apps/web/public/agents/four/v1/hard.onnx",
+        "champion": "apps/web/public/agents/four/v1/champion.onnx"
+      },
+      "sha256": {
+        "easy": "d5b8dab6726fcd647d3404720fbeecc6f3a9b28ece8a1de3109213aaafbbd5c0",
+        "medium": "1cc77d6dfd6d06436474bdb76f9234847d494d87457814d97668b03e57ee1f7f",
+        "hard": "118a4ae756d503ae4b427963c920deb96b556df5da9d6c47c88bf33bb19372e7",
+        "champion": "118a4ae756d503ae4b427963c920deb96b556df5da9d6c47c88bf33bb19372e7"
+      },
+      "trainedSteps": 2842,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "adjacent levels: the stronger level scores above 50% against the weaker with a 95% Wilson lower bound; interim looks at 100 and 200 games stop early only on a 99% lower bound above 50%; cap 400 games",
+        "eloLabel": "site Elo; Easy anchored at 1000, each higher level is the chained gap from its head-to-head score",
+        "openings": "2 random plies from the empty board, shared by the two colour-swapped games of a pair",
+        "simulations": "every level plays a fixed number of simulations (Champion 800), never a time cap; the shipped Champion also has a time cap that cuts search short where it binds, so the measured strength is an upper bound for the shipped Champion there (timing.shippedCapHitShare is the share of sampled moves that hit the cap)",
+        "checkpointRule": "Easy: earliest snapshot whose raw policy sampled at temperature 0.15 scores at least 0.90 against random; Medium: midpoint snapshot; Hard and Champion: latest",
+        "championVersion": "v2",
+        "solverPositions": {
+          "count": 1000,
+          "hash": "73ca211d3898c9494e33b460fd91a63940ee4c90e925795a656f9c959a237ebb",
+          "source": "packages/agents/eval/four-positions.json, solved by packages/core/src/games/four/solver.ts",
+          "perLevel": [
+            {
+              "level": "easy",
+              "n": 1000,
+              "optimal": 0.419,
+              "optimalCi95": [
+                0.388787,
+                0.449833
+              ],
+              "hold": 0.729,
+              "holdCi95": [
+                0.700614,
+                0.755633
+              ],
+              "sims": 0
+            },
+            {
+              "level": "medium",
+              "n": 1000,
+              "optimal": 0.848,
+              "optimalCi95": [
+                0.824419,
+                0.868917
+              ],
+              "hold": 0.944,
+              "holdCi95": [
+                0.927977,
+                0.956625
+              ],
+              "sims": 24
+            },
+            {
+              "level": "hard",
+              "n": 1000,
+              "optimal": 0.859,
+              "optimalCi95": [
+                0.836054,
+                0.879199
+              ],
+              "hold": 0.96,
+              "holdCi95": [
+                0.94599,
+                0.970489
+              ],
+              "sims": 120
+            },
+            {
+              "level": "champion",
+              "n": 1000,
+              "optimal": 0.9,
+              "optimalCi95": [
+                0.879848,
+                0.917091
+              ],
+              "hold": 0.999,
+              "holdCi95": [
+                0.994357,
+                0.999823
+              ],
+              "sims": 800
+            }
+          ]
+        },
+        "timing": {
+          "sims": 800,
+          "uncapped": {
+            "positions": 40,
+            "medianMs": 201,
+            "p95Ms": 1268,
+            "maxMs": 1516
+          },
+          "shippedTimeCapMs": 1400,
+          "shipped": {
+            "positions": 40,
+            "medianMs": 181,
+            "p95Ms": 1079,
+            "maxMs": 1193
+          },
+          "shippedCapHitShare": 0,
+          "loadAverage1m": 4.606934,
+          "at": "2026-10-23T14:20:04.284Z"
+        },
+        "siteSeat": {
+          "rule": "Champion as seat 1 against Hard as seat 0 from the empty board, the only way the site plays; 95% Wilson lower bound above 50%",
+          "games": 60,
+          "points": 54.5,
+          "score": 0.908333,
+          "ci95": [
+            0.808838,
+            0.958689
+          ],
+          "passed": true
+        },
+        "replay": {
+          "rule": "a blind replay of the judge's winning Champion line over 60 seeds (3 independent sets); the human wins fewer than 4",
+          "line": "3332544216000052245",
+          "games": 60,
+          "humanWins": 2,
+          "limit": 4,
+          "passed": true
+        },
+        "greedy": {
+          "rule": "Champion against a 1-ply bot that takes a win, blocks, else plays the centre-most column: 20 games in each seat, it must win all 40",
+          "games": 40,
+          "notWins": 0,
+          "passed": true
+        },
+        "pairs": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 100,
+            "points": 91,
+            "score": 0.91,
+            "ci95": [
+              0.837738,
+              0.951927
+            ],
+            "stoppedEarly": true,
+            "passed": true
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 100,
+            "points": 75,
+            "score": 0.75,
+            "ci95": [
+              0.656955,
+              0.824548
+            ],
+            "stoppedEarly": true,
+            "passed": true
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 100,
+            "points": 87.5,
+            "score": 0.875,
+            "ci95": [
+              0.796023,
+              0.926232
+            ],
+            "stoppedEarly": true,
+            "passed": true
+          }
+        ],
+        "baseline": {
+          "label": "random legal moves",
+          "n": 100,
+          "points": 93.5,
+          "score": 0.935,
+          "ci95": [
+            0.868836,
+            0.96898
+          ]
+        }
+      }
+    },
+    {
+      "version": "v2",
+      "parent": "v1",
+      "createdAt": "2026-10-22T15:36:41.922Z",
+      "promotedAt": "2026-10-22T15:36:41.922Z",
+      "status": "measured",
+      "artifacts": {
+        "champion": "apps/web/public/agents/four/v2/champion.onnx"
+      },
+      "sha256": {
+        "champion": "186f3fee670dd4bb6bb5873a647a4d2452f1374e7a3b3254fcc803b06649dfb3"
+      },
+      "trainedSteps": 5695,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "challenger vs champion: at least 400 games, score at least 0.55, 95% Wilson lower bound above 0.5",
+        "n": 400,
+        "points": 244.5,
+        "score": 0.61125,
+        "ci95": [
+          0.562637,
+          0.657747
+        ],
+        "passed": true,
+        "reasons": [],
+        "sims": 200,
+        "harness": "bun",
+        "opponent": "apps/web/public/agents/four/v1/champion.onnx"
+      }
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "model": "easy.onnx",
+        "sims": 0,
+        "temperature": 0.15,
+        "snapshot": "snap-00001024",
+        "selfPlayGames": 1024
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "model": "medium.onnx",
+        "sims": 24,
+        "temperature": 0.3,
+        "tactics": true,
+        "snapshot": "snap-00003072",
+        "selfPlayGames": 3072
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "model": "hard.onnx",
+        "sims": 120,
+        "temperature": 0.1,
+        "variety": {
+          "plies": 24,
+          "keepShare": 0.05,
+          "valueMargin": 0.15,
+          "temperature": 1,
+          "dirichlet": {
+            "alpha": 1,
+            "eps": 0.4
+          }
+        },
+        "snapshot": "snap-00006144",
+        "selfPlayGames": 6144
+      }
+    },
+    "champion": {
+      "version": "v2",
+      "config": {
+        "model": "champion.onnx",
+        "base": "/agents/four/v2",
+        "sims": 800,
+        "temperature": 0,
+        "timeCapMs": 1400,
+        "variety": {
+          "plies": 24,
+          "keepShare": 0.05,
+          "valueMargin": 0.15,
+          "temperature": 1,
+          "dirichlet": {
+            "alpha": 1,
+            "eps": 0.4
+          },
+          "opening": {
+            "from": 3,
+            "plies": 12,
+            "keepShare": 0.05,
+            "valueMargin": 0.1,
+            "temperature": 1.5
+          },
+          "solverFrom": 12,
+          "lostPick": {
+            "keepShare": 0.002,
+            "valueMargin": 0.3,
+            "temperature": 3
+          }
+        },
+        "snapshot": "retrain-v2",
+        "selfPlayGames": 2816,
+        "retrainOf": "v1"
+      }
+    }
+  },
+  "measured": {
+    "easy": {
+      "metric": "score vs random legal moves",
+      "value": 0.935,
+      "ci95": [
+        0.868836,
+        0.96898
+      ],
+      "n": 100,
+      "opponents": "random legal moves",
+      "siteElo": 1000,
+      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "harness": "bun",
+      "commit": "fc839f9"
+    },
+    "medium": {
+      "metric": "score vs easy",
+      "value": 0.91,
+      "ci95": [
+        0.837738,
+        0.951927
+      ],
+      "n": 100,
+      "opponents": "easy",
+      "siteElo": 1401.919553,
+      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "harness": "bun",
+      "commit": "fc839f9"
+    },
+    "hard": {
+      "metric": "score vs medium",
+      "value": 0.75,
+      "ci95": [
+        0.656955,
+        0.824548
+      ],
+      "n": 100,
+      "opponents": "medium",
+      "siteElo": 1592.768055,
+      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "harness": "bun",
+      "commit": "fc839f9"
+    },
+    "champion": {
+      "metric": "score vs hard",
+      "value": 0.875,
+      "ci95": [
+        0.796023,
+        0.926232
+      ],
+      "n": 100,
+      "opponents": "hard",
+      "siteElo": 1930.807271,
+      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "harness": "bun",
+      "commit": "fc839f9"
+    }
+  },
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": true
+}

@@ -1,0 +1,11 @@
+{
+  "name": "chess-value",
+  "cmd": ["scripts/py", "-m", "trainer.chess.train_value", "--max-minutes", "20"],
+  "cpuSlots": 1,
+  "mps": false,
+  "maxHours": 1,
+  "after": ["chess-data"],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/chess-value/ckpt",
+  "milestones": {"checkpointEverySeconds": 900, "exports": "runs/chess-value/export/{value.onnx,value.bin}"}
+}

@@ -1,0 +1,6 @@
+export { fourCore, fourCore as core } from './core'
+export type { FourAction, FourObservation } from './core'
+export { fourEncoder } from './encode'
+export { solve } from './solver'
+export type { SolveOptions, SolveResult } from './solver'
+export { fourFromMoves, emptyState, type FourState } from './rules'

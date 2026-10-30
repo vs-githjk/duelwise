@@ -1,0 +1,72 @@
+{
+  "order": [
+    "easy",
+    "medium",
+    "hard",
+    "champion"
+  ],
+  "personas": {
+    "easy": {
+      "name": "Pip",
+      "level": "Easy",
+      "avatar": "pip.svg",
+      "bio": "The club's newest member. Misses things, forgets to look again, and is delighted when you punish it.",
+      "style": {
+        "chess": "Picks moves like Lichess players in the lowest rating band, never from the unlikely long tail, so its slips are ordinary ones.",
+        "four": "Plays its learned policy with a little randomness and no look-ahead.",
+        "holdem": "Calls often and raises cautiously.",
+        "word": "Guesses any word that fits what it knows, and sometimes overlooks a clue.",
+        "fighter": "Short strings, blocks late, never punishes.",
+        "arena": "Walks open lanes and aims after you do."
+      }
+    },
+    "medium": {
+      "name": "Marlow",
+      "level": "Medium",
+      "avatar": "marlow.svg",
+      "bio": "A regular who punishes the obvious and lets the subtle go. Steady, polite, never in a hurry.",
+      "style": {
+        "chess": "Picks moves like Lichess players in the middle rating band, drawing from the full spread of what they play, but skipping moves that hang material.",
+        "four": "Looks ahead with a short search before each move.",
+        "holdem": "Calls often and avoids going all in with weaker starting hands.",
+        "word": "Guesses the most common word that fits every clue.",
+        "fighter": "Anti-airs on reaction, drops long combos.",
+        "arena": "Holds angles, trades evenly in open fights."
+      }
+    },
+    "hard": {
+      "name": "Vesper",
+      "level": "Hard",
+      "avatar": "vesper.svg",
+      "bio": "The evening sharp. Patient, exact, and quick to turn a slip into the whole game.",
+      "style": {
+        "chess": "Picks from the moves a top-band Lichess player would most likely play, always takes a mate when it sees it, skips moves that hang material, and avoids repeating a won position.",
+        "four": "Looks further ahead than Marlow before each move.",
+        "holdem": "Mixes bets and protects strong starting hands.",
+        "word": "Picks the guess from the remaining candidates that splits them best.",
+        "fighter": "Whiff punishes and full combos on counter hit.",
+        "arena": "Pre-aims common peeks and wins first contact."
+      }
+    },
+    "champion": {
+      "name": "Sable",
+      "level": "Champion",
+      "avatar": "sable.svg",
+      "bio": "The house champion. Human-like play with a carefully recorded reaction limit.",
+      "style": {
+        "chess": "Searches ahead with a learned position evaluator and a fixed search budget.",
+        "four": "Runs the deepest search the site has, within about a second and a half.",
+        "holdem": "Mixes choices and protects strong starting hands.",
+        "word": "Looks a further guess ahead, choosing from every allowed word.",
+        "fighter": "Reacts at the minimum delay; still blocks like a person.",
+        "arena": "Quick counter-aim at any range."
+      }
+    }
+  },
+  "result_reaction_templates": {
+    "loss_to_human": "{turn} was the move I did not see. I rated {miss} as holding and it did not. Good game.",
+    "win_over_human": "{turn} is where it turned. Try {alt} there next time; I had no answer to it.",
+    "draw": "Neither of us found a way through after {turn}. Even game.",
+    "human_resigned": "You resigned at move {n}. The position was lost, but it was closer than it looked after {turn}."
+  }
+}

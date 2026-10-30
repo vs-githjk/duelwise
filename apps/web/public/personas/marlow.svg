@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Marlow, the Medium opponent">
+  <!-- Duelwise persona: Marlow (Medium). Clubhouse portrait: tinted plate, ink bust, paper face. -->
+  <defs><clipPath id="marlow-clip"><circle cx="80" cy="80" r="78"/></clipPath></defs>
+  <circle cx="80" cy="80" r="78" fill="var(--p-tint,#8fb0d0)"/>
+  <g clip-path="url(#marlow-clip)">
+    <path d="M10 166 C12 130 38 112 80 112 C122 112 148 130 150 166 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M62 112 L80 134 L98 112 L92 110 L80 124 L68 110 Z" fill="var(--av-paper,#f3ead8)"/>
+    <rect x="69" y="96" width="22" height="20" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M70 122 L80 126 L90 122 L90 132 L80 128 L70 132 Z" fill="var(--p-tint,#8fb0d0)"/>
+    <circle cx="80" cy="127" r="2.6" fill="var(--av-ink,#15181e)"/>
+    <path d="M48 128 L58 124 L60 134 Z" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="51" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="109" cy="82" r="6" fill="var(--av-paper,#f3ead8)"/>
+    <ellipse cx="80" cy="78" rx="29" ry="34" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M51 76 C49 44 74 36 92 40 C106 43 112 54 110 72 C104 60 94 56 84 58 C76 50 60 58 51 76 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M58 70 L74 68" stroke="var(--av-ink,#15181e)" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M86 68 L102 70" stroke="var(--av-ink,#15181e)" stroke-width="3.5" stroke-linecap="round"/>
+    <ellipse cx="67" cy="80" rx="3.4" ry="3" fill="var(--av-ink,#15181e)"/>
+    <ellipse cx="93" cy="80" rx="3.4" ry="3" fill="var(--av-ink,#15181e)"/>
+    <path d="M62 77 Q67 74 72 77" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="2"/>
+    <path d="M88 77 Q93 74 98 77" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="2"/>
+    <path d="M65 96 C71 89 78 91 80 94 C82 91 89 89 95 96 C89 100 71 100 65 96 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M73 103 L87 103" stroke="var(--av-ink,#15181e)" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

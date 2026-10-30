@@ -1,0 +1,23 @@
+{
+  "terms": [
+    "Street Fighter",
+    "SF6",
+    "Counter-Strike",
+    "Counter Strike",
+    "CS2",
+    "CS:GO",
+    "Wordle",
+    "Tekken",
+    "Call of Duty",
+    "CoD",
+    "Connect Four",
+    "Connect 4",
+    "NYT",
+    "Drive Gauge",
+    "Drive Rush",
+    "Drive Parry",
+    "Drive Impact"
+  ],
+  "caseSensitive": ["CoD"],
+  "rejectedNames": ["Beat Me"]
+}

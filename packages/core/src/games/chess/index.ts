@@ -1,0 +1,5 @@
+export { chessCore, chessCore as core } from './core'
+export type { ChessAction, ChessObservation, ChessState } from './core'
+export { chessPlaneEncoder, PLANES } from './encode'
+export { chessSparseEncoder, sparseIndices, SPARSE_FEATURES } from './sparse'
+export { policyIndex, POLICY_SIZE, REL_POLICY_SIZE } from './policy-index'

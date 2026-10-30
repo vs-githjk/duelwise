@@ -1,0 +1,2 @@
+CC0 1.0 Universal. Poly Haven asset "rubberized_track" by Poly Haven contributors, https://polyhaven.com/a/rubberized_track
+Derived from the Poly Haven diffuse map by converting it to greyscale (and stretching contrast) so the in-game tint sets the colour.

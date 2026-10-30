@@ -1,0 +1,252 @@
+{
+  "game": "word",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-10-23T15:44:32.133Z",
+      "promotedAt": "2026-10-23T15:44:32.133Z",
+      "status": "measured",
+      "artifacts": {
+        "answers": "packages/core/src/games/word/lists/answers.txt",
+        "allowed": "packages/core/src/games/word/lists/allowed.txt",
+        "firstGuesses": "packages/agents/src/word/first-guesses.json"
+      },
+      "sha256": {
+        "answers": "f38852f396ae92dd72fb2c108ffef45e11aea4ab8583dfea18de7f6815b2486e",
+        "allowed": "37a8bd2e58b71f24fd0a0961dca88237c43239e64d32234b382fbd7103183328",
+        "firstGuesses": "3dc1e31a53740696649940fbe72cb98ed0809fce6a2cf0074edd51b674eb174b"
+      },
+      "trainedSteps": 0,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "each level averages fewer guesses than the level below with non-overlapping 95% confidence intervals",
+        "answerWords": 1975,
+        "easySeeds": 5,
+        "levels": {
+          "easy": {
+            "failRate": 0.042734,
+            "histogram": {
+              "1": 4,
+              "2": 241,
+              "3": 1541,
+              "4": 3551,
+              "5": 2878,
+              "6": 1238,
+              "7": 422
+            }
+          },
+          "medium": {
+            "failRate": 0.011983,
+            "histogram": {
+              "1": 3,
+              "2": 264,
+              "3": 1624,
+              "4": 2448,
+              "5": 1180,
+              "6": 335,
+              "7": 71
+            }
+          },
+          "hard": {
+            "failRate": 0.004726,
+            "histogram": {
+              "1": 6,
+              "2": 383,
+              "3": 2777,
+              "4": 2270,
+              "5": 392,
+              "6": 69,
+              "7": 28
+            }
+          },
+          "champion": {
+            "failRate": 0,
+            "histogram": {
+              "1": 1,
+              "2": 225,
+              "3": 3228,
+              "4": 2340,
+              "5": 130,
+              "6": 1
+            }
+          }
+        },
+        "duels": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 400,
+            "points": 252.5,
+            "score": 0.63125,
+            "ci95": [
+              0.58293,
+              0.677073
+            ]
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 400,
+            "points": 255,
+            "score": 0.6375,
+            "ci95": [
+              0.589289,
+              0.683096
+            ]
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 400,
+            "points": 211.5,
+            "score": 0.52875,
+            "ci95": [
+              0.479791,
+              0.577162
+            ]
+          }
+        ],
+        "openerGain": {
+          "rule": "measured, not a publish gate: how much score a strong program gains by filtering the answers with the level's whole opener set (paired games); the exact-opener gain is an upper bound a player cannot reach; target 0.05",
+          "target": 0.05,
+          "levels": {
+            "medium": {
+              "n": 600,
+              "plain": 0.7175,
+              "informed": 0.799167,
+              "gain": 0.081667,
+              "targetMet": false,
+              "ci95": [
+                0.061915,
+                0.101418
+              ],
+              "oracleGain": 0.115833
+            },
+            "hard": {
+              "n": 600,
+              "plain": 0.550833,
+              "informed": 0.6225,
+              "gain": 0.071667,
+              "targetMet": false,
+              "ci95": [
+                0.052626,
+                0.090707
+              ],
+              "oracleGain": 0.100833
+            },
+            "champion": {
+              "n": 600,
+              "plain": 0.5,
+              "informed": 0.5925,
+              "gain": 0.0925,
+              "targetMet": false,
+              "ci95": [
+                0.072316,
+                0.112684
+              ],
+              "oracleGain": 0.12
+            }
+          }
+        }
+      }
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "algorithm": "random-consistent",
+        "ignoreOneConstraintChance": 0.45
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "algorithm": "most-common-consistent",
+        "opener": "seeded-among-6-most-common"
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "algorithm": "entropy-over-candidates",
+        "guessPool": "candidates",
+        "opener": "seeded-near-equal-entropy",
+        "tieBreak": "seed"
+      }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "algorithm": "entropy-with-two-step-lookahead",
+        "guessPool": "all-allowed",
+        "lookaheadTop": 20,
+        "opener": "seeded-near-equal-lookahead",
+        "tieBreak": "seed"
+      }
+    }
+  },
+  "measured": {
+    "easy": {
+      "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
+      "value": 4.464304,
+      "ci95": [
+        4.440654,
+        4.487953
+      ],
+      "n": 1975,
+      "opponents": "every answer word",
+      "siteElo": 1000,
+      "measuredAt": "2026-10-23T15:44:32.133Z",
+      "harness": "bun",
+      "commit": "71ac2e2"
+    },
+    "medium": {
+      "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
+      "value": 3.98346,
+      "ci95": [
+        3.947625,
+        4.019295
+      ],
+      "n": 1975,
+      "opponents": "every answer word",
+      "siteElo": 1093.387745,
+      "measuredAt": "2026-10-23T15:44:32.133Z",
+      "harness": "bun",
+      "commit": "71ac2e2"
+    },
+    "hard": {
+      "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
+      "value": 3.502616,
+      "ci95": [
+        3.476209,
+        3.529024
+      ],
+      "n": 1975,
+      "opponents": "every answer word",
+      "siteElo": 1191.456616,
+      "measuredAt": "2026-10-23T15:44:32.133Z",
+      "harness": "bun",
+      "commit": "71ac2e2"
+    },
+    "champion": {
+      "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
+      "value": 3.401013,
+      "ci95": [
+        3.381635,
+        3.42039
+      ],
+      "n": 1975,
+      "opponents": "every answer word",
+      "siteElo": 1211.456223,
+      "measuredAt": "2026-10-23T15:44:32.133Z",
+      "harness": "bun",
+      "commit": "71ac2e2"
+    }
+  },
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": false
+}

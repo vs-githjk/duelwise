@@ -1,0 +1,11 @@
+{
+  "name": "canary",
+  "cmd": ["scripts/py", "-m", "trainer.jobs", "canary"],
+  "cpuSlots": 1,
+  "mps": false,
+  "maxHours": 0.1,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/canary/ckpt",
+  "milestones": {"seconds": 180, "checkpointEverySeconds": 30}
+}

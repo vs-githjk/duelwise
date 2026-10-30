@@ -1,0 +1,27 @@
+{
+ "name": "four-az",
+ "cmd": [
+  "scripts/py",
+  "-m",
+  "trainer.four.train",
+  "--max-minutes",
+  "175",
+  "--workers",
+  "2",
+  "--parallel",
+  "256",
+  "--games-per-iter",
+  "512",
+  "--resume"
+ ],
+ "cpuSlots": 2,
+ "mps": false,
+ "maxHours": 3,
+ "after": [],
+ "resumeArg": "--resume",
+ "checkpointDir": "runs/four-az/ckpt",
+ "milestones": {
+  "checkpointEverySeconds": 900,
+  "snapshotEveryGames": 1000
+ }
+}

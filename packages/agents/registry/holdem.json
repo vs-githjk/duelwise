@@ -1,0 +1,1007 @@
+{
+  "game": "holdem",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-10-29T11:50:38.871Z",
+      "promotedAt": "2026-10-29T11:50:38.871Z",
+      "status": "measured",
+      "artifacts": {
+        "easy": "apps/web/public/agents/holdem/v1/easy.bin.gz",
+        "medium": "apps/web/public/agents/holdem/v1/medium.bin.gz",
+        "hard": "apps/web/public/agents/holdem/v1/hard.bin.gz",
+        "champion": "apps/web/public/agents/holdem/v1/champion.bin.gz"
+      },
+      "sha256": {
+        "easy": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+        "medium": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+        "hard": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+        "champion": "9934c7a779aa2e74a5aea27c4fb555aef385c660467d384e794a4075af7be7b3"
+      },
+      "trainedSteps": 5000000,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "adjacent levels: the stronger level wins the duplicate-dealt game above 50% with a 95% Wilson lower bound; a game is one deal played twice with the seats swapped and is won when the level's combined chips over the two 30-hand matches are positive; 400 deals (800 matches); each seat must also clear a 95% Wilson lower bound above 50%",
+        "eloLabel": "site Elo; Easy anchored at 1000, each higher level is the chained gap from its duplicate-pair score",
+        "deals": "deal d is seed 7000000 + 100000 * (index of the upper level) + d, played from both seats",
+        "checkpointRule": "a pilot on other deals (seeds below 7,000,000) showed the snapshots barely differ head-to-head (the fine 5M table played mixed beats the earliest coarse snapshot by only about 55 Elo and the coarse 1.5M one by about 20, and the coarse 1.5M and 5M tables do not separate); Easy, Medium and Hard therefore share the earliest snapshot (250,000 iterations) and differ by how they play it: Hard plays it as it is but never shoves the weakest quarter of starting hands, Medium also plays half of its folds and raises as calls, Easy plays the loose-passive beginner mix with the same call dial (calls most folds, rarely shoves, never folds a premium hand before the flop); Champion is the final fine table (5,000,000 iterations) played as its mixed strategy, because the purified play was far more exploitable",
+        "settings": {
+          "easy": {
+            "purify": false,
+            "explore": 0,
+            "beginner": true,
+            "shoveFloor": 0,
+            "callBias": 0.5,
+            "premiumProtection": false,
+            "probabilityFloor": 0.05
+          },
+          "medium": {
+            "purify": false,
+            "explore": 0,
+            "beginner": false,
+            "shoveFloor": 0.25,
+            "callBias": 0.5,
+            "premiumProtection": false,
+            "probabilityFloor": 0.05
+          },
+          "hard": {
+            "purify": false,
+            "explore": 0,
+            "beginner": false,
+            "shoveFloor": 0.25,
+            "callBias": 0,
+            "premiumProtection": true,
+            "probabilityFloor": 0.05
+          },
+          "champion": {
+            "purify": false,
+            "explore": 0,
+            "beginner": false,
+            "shoveFloor": 0,
+            "callBias": 0,
+            "premiumProtection": true,
+            "probabilityFloor": 0.05
+          }
+        },
+        "easyBaseline": "always-call; the gate for Easy is that it beats a calling station",
+        "tables": [
+          {
+            "level": "easy",
+            "source": "runs/holdem-coarse/tables/iter-250000.dwht",
+            "iterations": 250000,
+            "infosets": 31607,
+            "rawBytes": 506928,
+            "gzipBytes": 400782,
+            "sha256": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+            "maxQuantisationError255": null
+          },
+          {
+            "level": "medium",
+            "source": "runs/holdem-coarse/tables/iter-250000.dwht",
+            "iterations": 250000,
+            "infosets": 31607,
+            "rawBytes": 506928,
+            "gzipBytes": 400782,
+            "sha256": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+            "maxQuantisationError255": null
+          },
+          {
+            "level": "hard",
+            "source": "runs/holdem-coarse/tables/iter-250000.dwht",
+            "iterations": 250000,
+            "infosets": 31607,
+            "rawBytes": 506928,
+            "gzipBytes": 400782,
+            "sha256": "8c431e927854f5032d0e11032761c115fed6e50d254e2287b3c03949e06b0c50",
+            "maxQuantisationError255": null
+          },
+          {
+            "level": "champion",
+            "source": "runs/holdem-fine/tables/final.dwht",
+            "iterations": 5000000,
+            "infosets": 60768,
+            "rawBytes": 974836,
+            "gzipBytes": 749137,
+            "sha256": "9934c7a779aa2e74a5aea27c4fb555aef385c660467d384e794a4075af7be7b3",
+            "maxQuantisationError255": 0.759664
+          }
+        ],
+        "pairs": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 400,
+            "points": 273.5,
+            "score": 0.68375,
+            "ci95": [
+              0.636615,
+              0.727389
+            ],
+            "stoppedEarly": false,
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 255,
+                "ci95": [
+                  0.5892885147438963,
+                  0.6830956042732972
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 232,
+                "ci95": [
+                  0.5310957507438777,
+                  0.6273822821388529
+                ]
+              }
+            ],
+            "mbbPerHand": 898.3125,
+            "mbbCi95": [
+              716.809214,
+              1079.815786
+            ],
+            "deals": 400
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 400,
+            "points": 262,
+            "score": 0.655,
+            "ci95": [
+              0.607139,
+              0.699912
+            ],
+            "stoppedEarly": false,
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 233,
+                "ci95": [
+                  0.5336117387282527,
+                  0.6298187326820635
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 222,
+                "ci95": [
+                  0.5060044332779559,
+                  0.6029492143289217
+                ]
+              }
+            ],
+            "mbbPerHand": 909.770833,
+            "mbbCi95": [
+              705.467595,
+              1114.074072
+            ],
+            "deals": 400
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 400,
+            "points": 247.5,
+            "score": 0.61875,
+            "ci95": [
+              0.570237,
+              0.665004
+            ],
+            "stoppedEarly": false,
+            "passed": false,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 225.5,
+                "ci95": [
+                  0.5147722898896968,
+                  0.6115148925637293
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 219.5,
+                "ci95": [
+                  0.49975090608057116,
+                  0.5968216452073428
+                ]
+              }
+            ],
+            "mbbPerHand": 469.8125,
+            "mbbCi95": [
+              330.559561,
+              609.065439
+            ],
+            "deals": 400
+          }
+        ],
+        "baseline": {
+          "label": "always-call",
+          "n": 400,
+          "points": 354.5,
+          "score": 0.88625,
+          "ci95": [
+            0.851392,
+            0.91376
+          ],
+          "bySeat": [
+            {
+              "seat": 0,
+              "n": 400,
+              "points": 301,
+              "ci95": [
+                0.7079392284373528,
+                0.7922570628487662
+              ]
+            },
+            {
+              "seat": 1,
+              "n": 400,
+              "points": 298,
+              "ci95": [
+                0.7000956762855488,
+                0.7852432994178142
+              ]
+            }
+          ],
+          "mbbPerHand": 1289.416667,
+          "mbbCi95": [
+            1167.296599,
+            1411.536734
+          ],
+          "deals": 400
+        },
+        "bots": [
+          {
+            "level": "easy",
+            "bot": "always-call",
+            "deals": 400,
+            "points": 345,
+            "score": 0.8625,
+            "ci95": [
+              0.825288,
+              0.892816
+            ],
+            "mbbPerHand": 1272.5625,
+            "mbbCi95": [
+              1138.70028,
+              1406.42472
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 293,
+                "ci95": [
+                  0.687059166879682,
+                  0.7735176161857544
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 296.5,
+                "ci95": [
+                  0.696180055048654,
+                  0.781730262863331
+                ]
+              }
+            ]
+          },
+          {
+            "level": "easy",
+            "bot": "pot-raiser",
+            "deals": 400,
+            "points": 286.5,
+            "score": 0.71625,
+            "ci95": [
+              0.670176,
+              0.75821
+            ],
+            "mbbPerHand": 1592.645833,
+            "mbbCi95": [
+              1308.123235,
+              1877.168431
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 230.5,
+                "ci95": [
+                  0.5273241209074369,
+                  0.623725254183916
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 238,
+                "ci95": [
+                  0.5462106162120411,
+                  0.6419820478362016
+                ]
+              }
+            ]
+          },
+          {
+            "level": "easy",
+            "bot": "equity-threshold",
+            "deals": 400,
+            "points": 11,
+            "score": 0.0275,
+            "ci95": [
+              0.015424,
+              0.048565
+            ],
+            "mbbPerHand": -2509.875,
+            "mbbCi95": [
+              -2648.052855,
+              -2371.697145
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 74.5,
+                "ci95": [
+                  0.15114774710770873,
+                  0.22732121768033148
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 89,
+                "ci95": [
+                  0.18448827419413777,
+                  0.26579104924388985
+                ]
+              }
+            ]
+          },
+          {
+            "level": "medium",
+            "bot": "always-call",
+            "deals": 400,
+            "points": 357,
+            "score": 0.8925,
+            "ci95": [
+              0.858327,
+              0.919206
+            ],
+            "mbbPerHand": 2242.0625,
+            "mbbCi95": [
+              2057.99729,
+              2426.12771
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 307.5,
+                "ci95": [
+                  0.7249920099806924,
+                  0.8073951317347315
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 294.5,
+                "ci95": [
+                  0.6909654797243698,
+                  0.7770399611324444
+                ]
+              }
+            ]
+          },
+          {
+            "level": "medium",
+            "bot": "pot-raiser",
+            "deals": 400,
+            "points": 321,
+            "score": 0.8025,
+            "ci95": [
+              0.760688,
+              0.838557
+            ],
+            "mbbPerHand": 2705.4375,
+            "mbbCi95": [
+              2397.120829,
+              3013.754171
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 281,
+                "ci95": [
+                  0.6559450645066353,
+                  0.7452024562277771
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 273.5,
+                "ci95": [
+                  0.6366153885980727,
+                  0.7273888431794495
+                ]
+              }
+            ]
+          },
+          {
+            "level": "medium",
+            "bot": "equity-threshold",
+            "deals": 400,
+            "points": 111.5,
+            "score": 0.27875,
+            "ci95": [
+              0.237073,
+              0.324637
+            ],
+            "mbbPerHand": -828.6875,
+            "mbbCi95": [
+              -977.592029,
+              -679.782971
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 171.5,
+                "ci95": [
+                  0.38115515824373497,
+                  0.4777003437200831
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 156,
+                "ci95": [
+                  0.34346411084419753,
+                  0.4386285939420478
+                ]
+              }
+            ]
+          },
+          {
+            "level": "hard",
+            "bot": "always-call",
+            "deals": 400,
+            "points": 371,
+            "score": 0.9275,
+            "ci95": [
+              0.897818,
+              0.949049
+            ],
+            "mbbPerHand": 3524.916667,
+            "mbbCi95": [
+              3288.017646,
+              3761.815688
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 311,
+                "ci95": [
+                  0.7342089507561101,
+                  0.8155117258058623
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 322,
+                "ci95": [
+                  0.7633481414525103,
+                  0.840849358912901
+                ]
+              }
+            ]
+          },
+          {
+            "level": "hard",
+            "bot": "pot-raiser",
+            "deals": 400,
+            "points": 314,
+            "score": 0.785,
+            "ci95": [
+              0.742129,
+              0.822449
+            ],
+            "mbbPerHand": 2599.458333,
+            "mbbCi95": [
+              2292.811976,
+              2906.104691
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 259,
+                "ci95": [
+                  0.5994805193816743,
+                  0.6927133537458605
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 280.5,
+                "ci95": [
+                  0.6546537129492036,
+                  0.7440175885214161
+                ]
+              }
+            ]
+          },
+          {
+            "level": "hard",
+            "bot": "equity-threshold",
+            "deals": 400,
+            "points": 235.5,
+            "score": 0.58875,
+            "ci95": [
+              0.539907,
+              0.635904
+            ],
+            "mbbPerHand": 346.354167,
+            "mbbCi95": [
+              167.733824,
+              524.97451
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 206.5,
+                "ci95": [
+                  0.4673554449742428,
+                  0.5648354054550618
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 210,
+                "ci95": [
+                  0.47605711088024183,
+                  0.5734672743956116
+                ]
+              }
+            ]
+          },
+          {
+            "level": "champion",
+            "bot": "always-call",
+            "deals": 400,
+            "points": 339.5,
+            "score": 0.84875,
+            "ci95": [
+              0.810331,
+              0.880534
+            ],
+            "mbbPerHand": 2201.041667,
+            "mbbCi95": [
+              1999.293479,
+              2402.789854
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 300.5,
+                "ci95": [
+                  0.7066308151279189,
+                  0.7910892568944075
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 288,
+                "ci95": [
+                  0.6740660135139507,
+                  0.761748576913559
+                ]
+              }
+            ]
+          },
+          {
+            "level": "champion",
+            "bot": "pot-raiser",
+            "deals": 400,
+            "points": 328,
+            "score": 0.82,
+            "ci95": [
+              0.779362,
+              0.85455
+            ],
+            "mbbPerHand": 2405.854167,
+            "mbbCi95": [
+              2141.763394,
+              2669.94494
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 287.5,
+                "ci95": [
+                  0.6727690118304092,
+                  0.7605693593333078
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 285.5,
+                "ci95": [
+                  0.667585126631663,
+                  0.7558483674768833
+                ]
+              }
+            ]
+          },
+          {
+            "level": "champion",
+            "bot": "equity-threshold",
+            "deals": 400,
+            "points": 271.5,
+            "score": 0.67875,
+            "ci95": [
+              0.631475,
+              0.722624
+            ],
+            "mbbPerHand": 780.479167,
+            "mbbCi95": [
+              619.10481,
+              941.853523
+            ],
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 244.5,
+                "ci95": [
+                  0.5626369047914324,
+                  0.6577466096861151
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 236.5,
+                "ci95": [
+                  0.542427625593408,
+                  0.6383363806634569
+                ]
+              }
+            ]
+          }
+        ],
+        "exploitability": {
+          "note": "Two numbers, both lower-bound style and both labelled. LBR is local best response on the real game: a best responder that knows the level's strategy but never its cards, 250 sampled opponent hands, check-down after a call, raises of 0.33 to 2 pot and all in; the chips it really won over the hands played are a lower bound on how much the level can lose per hand. In-abstraction is the best response inside the abstraction the strategy was trained on, without the live premium-hand guard, on a chance model estimated from sampled deals, fitted on one set of deals and scored on another.",
+          "lbrControl": {
+            "victim": "always-call",
+            "hands": 3000,
+            "mbbPerHand": 8229.833333333334,
+            "ci95": [
+              6717.744661658014,
+              9741.922005008653
+            ],
+            "sdBb": 42.25613707316032
+          },
+          "lbr": [
+            {
+              "level": "easy",
+              "hands": 120000,
+              "mbbPerHand": 6195.841667,
+              "ci95": [
+                5983.542288,
+                6408.141045
+              ],
+              "sdBb": 37.522455,
+              "exploitabilityLowerBoundMbb": 5983.542288,
+              "particles": 250,
+              "beliefResets": 0,
+              "beliefUpdates": 290243,
+              "fallbackShare": 0.00584
+            },
+            {
+              "level": "medium",
+              "hands": 120000,
+              "mbbPerHand": 3209.316667,
+              "ci95": [
+                3042.648598,
+                3375.984735
+              ],
+              "sdBb": 29.457435,
+              "exploitabilityLowerBoundMbb": 3042.648598,
+              "particles": 250,
+              "beliefResets": 1,
+              "beliefUpdates": 270569,
+              "fallbackShare": 0.021843
+            },
+            {
+              "level": "hard",
+              "hands": 120000,
+              "mbbPerHand": 653.325,
+              "ci95": [
+                544.638241,
+                762.011759
+              ],
+              "sdBb": 19.209637,
+              "exploitabilityLowerBoundMbb": 544.638241,
+              "particles": 250,
+              "beliefResets": 0,
+              "beliefUpdates": 199532,
+              "fallbackShare": 0.042785
+            },
+            {
+              "level": "champion",
+              "hands": 120000,
+              "mbbPerHand": 584.879167,
+              "ci95": [
+                497.750361,
+                672.007973
+              ],
+              "sdBb": 15.399417,
+              "exploitabilityLowerBoundMbb": 497.750361,
+              "particles": 250,
+              "beliefResets": 2,
+              "beliefUpdates": 226121,
+              "fallbackShare": 0.039558
+            }
+          ],
+          "inAbstraction": [
+            {
+              "level": "easy",
+              "shipped": true,
+              "abstraction": "coarse",
+              "strategy": "mixed, loose-passive beginner mix",
+              "heldOutMbb": 9707.599597,
+              "heldOutCi95": [
+                9663.22871,
+                9751.970484
+              ],
+              "fittedMbb": 9747.831507,
+              "seatMbb": [
+                10341.217939,
+                9073.981255
+              ],
+              "fitDeals": 150000,
+              "scoreDeals": 150000,
+              "unknownShare": 0
+            },
+            {
+              "level": "medium",
+              "shipped": true,
+              "abstraction": "coarse",
+              "strategy": "mixed",
+              "heldOutMbb": 5387.19085,
+              "heldOutCi95": [
+                5357.486629,
+                5416.895071
+              ],
+              "fittedMbb": 5429.156281,
+              "seatMbb": [
+                6333.300154,
+                4441.081546
+              ],
+              "fitDeals": 150000,
+              "scoreDeals": 150000,
+              "unknownShare": 0
+            },
+            {
+              "level": "hard",
+              "shipped": true,
+              "abstraction": "coarse",
+              "strategy": "mixed, approximation without premium protection",
+              "heldOutMbb": 1115.997282,
+              "heldOutCi95": [
+                1095.09514,
+                1136.899423
+              ],
+              "fittedMbb": 1200.167456,
+              "seatMbb": [
+                1372.324902,
+                859.669661
+              ],
+              "fitDeals": 150000,
+              "scoreDeals": 150000,
+              "unknownShare": 0
+            },
+            {
+              "level": "champion",
+              "shipped": true,
+              "abstraction": "fine",
+              "strategy": "mixed, approximation without premium protection",
+              "heldOutMbb": 1069.702112,
+              "heldOutCi95": [
+                1045.52073,
+                1093.883493
+              ],
+              "fittedMbb": 1235.44766,
+              "seatMbb": [
+                610.852783,
+                1528.55144
+              ],
+              "fitDeals": 150000,
+              "scoreDeals": 150000,
+              "unknownShare": 0
+            }
+          ],
+          "lbrByLevel": {
+            "easy": {
+              "mbbPerHand": 6195.841667,
+              "ci95": [
+                5983.542288,
+                6408.141045
+              ],
+              "hands": 120000,
+              "lowerBound": 5983.542288
+            },
+            "medium": {
+              "mbbPerHand": 3209.316667,
+              "ci95": [
+                3042.648598,
+                3375.984735
+              ],
+              "hands": 120000,
+              "lowerBound": 3042.648598
+            },
+            "hard": {
+              "mbbPerHand": 653.325,
+              "ci95": [
+                544.638241,
+                762.011759
+              ],
+              "hands": 120000,
+              "lowerBound": 544.638241
+            },
+            "champion": {
+              "mbbPerHand": 584.879167,
+              "ci95": [
+                497.750361,
+                672.007973
+              ],
+              "hands": 120000,
+              "lowerBound": 497.750361
+            }
+          }
+        }
+      }
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "table": "easy.bin.gz",
+        "snapshot": "holdem-coarse iter-250000.dwht",
+        "abstraction": "coarse",
+        "iterations": 250000,
+        "purify": false,
+        "explore": 0,
+        "beginner": true,
+        "shoveFloor": 0,
+        "callBias": 0.5,
+        "premiumProtection": false,
+        "probabilityFloor": 0.05
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "table": "medium.bin.gz",
+        "snapshot": "holdem-coarse iter-250000.dwht",
+        "abstraction": "coarse",
+        "iterations": 250000,
+        "purify": false,
+        "explore": 0,
+        "beginner": false,
+        "shoveFloor": 0.25,
+        "callBias": 0.5,
+        "premiumProtection": false,
+        "probabilityFloor": 0.05
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "table": "hard.bin.gz",
+        "snapshot": "holdem-coarse iter-250000.dwht",
+        "abstraction": "coarse",
+        "iterations": 250000,
+        "purify": false,
+        "explore": 0,
+        "beginner": false,
+        "shoveFloor": 0.25,
+        "callBias": 0,
+        "premiumProtection": true,
+        "probabilityFloor": 0.05
+      }
+    }
+  },
+  "measured": {
+    "easy": {
+      "metric": "score vs always-call",
+      "value": 0.88625,
+      "ci95": [
+        0.851392,
+        0.91376
+      ],
+      "n": 400,
+      "opponents": "always-call",
+      "siteElo": 1000,
+      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "harness": "bun",
+      "commit": "d2b212c"
+    },
+    "medium": {
+      "metric": "score vs easy",
+      "value": 0.68375,
+      "ci95": [
+        0.636615,
+        0.727389
+      ],
+      "n": 400,
+      "opponents": "easy",
+      "siteElo": 1133.946722,
+      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "harness": "bun",
+      "commit": "d2b212c"
+    },
+    "hard": {
+      "metric": "score vs medium",
+      "value": 0.655,
+      "ci95": [
+        0.607139,
+        0.699912
+      ],
+      "n": 400,
+      "opponents": "medium",
+      "siteElo": 1245.315604,
+      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "harness": "bun",
+      "commit": "d2b212c"
+    }
+  },
+  "unpublished": {
+    "champion": "in training: champion does not beat hard: score 0.6188 over 400 games, 95% interval [0.5702, 0.6650]"
+  },
+  "unpublishedConfig": {
+    "champion": {
+      "table": "champion.bin.gz",
+      "snapshot": "holdem-fine final.dwht",
+      "abstraction": "fine",
+      "iterations": 5000000,
+      "purify": false,
+      "explore": 0,
+      "beginner": false,
+      "shoveFloor": 0,
+      "callBias": 0,
+      "premiumProtection": true,
+      "probabilityFloor": 0.05
+    }
+  },
+  "learnsFromHumans": false
+}

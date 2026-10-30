@@ -1,0 +1,5 @@
+{
+  "note": "Clips that ship in the public repository: names found in the free Standard tier of Quaternius Universal Animation Library 1 and 2 (CC0). Any other clip in a tracked .glb is treated as paid and fails scripts/paid-assets.test.ts. ual2 was verified file by file against UAL2_Standard.glb. ual1 is the 15 clip names in fighter/quaternius/universal-animation-library/ual1-combat.glb, each confirmed in the UAL1 Standard list at plan/research-assets.md:48 (which writes names without the _Loop suffix); UAL1_Standard.glb itself was not read. The Pistol_* and Jog_Fwd clips are in that Standard list too but stay off this guard list on purpose (conservative).",
+  "ual1": ["Crouch_Fwd_Loop", "Crouch_Idle_Loop", "Death01", "Hit_Chest", "Hit_Head", "Idle_Loop", "Jump_Land", "Jump_Loop", "Jump_Start", "Punch_Cross", "Punch_Jab", "Roll", "Spell_Simple_Shoot", "Sprint_Loop", "Walk_Loop"],
+  "ual2": ["Hit_Knockback", "Idle_Shield_Break", "Idle_Shield_Loop", "LayToIdle", "Melee_Hook", "NinjaJump_Start", "OverhandThrow", "Shield_Dash", "Shield_OneShot", "Slide_Start", "Sword_Block", "Sword_Dash", "Sword_Heavy_Combo"]
+}

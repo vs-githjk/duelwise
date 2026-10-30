@@ -1,0 +1,159 @@
+/*
+  Play surfaces (design v2, T42c): the stage behind a board, the chess frame and piece light, the Four in a
+  Row slab, Word Duel paper and tiles, the shared HUD and the result stripe. Stage tokens are defined here so
+  tokens.css stays the single source for site colours; every stage colour has a light and a dark value.
+*/
+:root {
+  --stage-a: #f4efe3;
+  --stage-b: #ddd5c2;
+  --stage-lamp: rgba(255, 246, 220, 0.95);
+  --stage-edge: rgba(60, 44, 24, 0.16);
+  --frame-a: #94724c;
+  --frame-b: #5e442b;
+  --frame-edge: #3b2a1a;
+  --sheen: rgba(255, 255, 255, 0.22);
+  --shade: rgba(20, 14, 6, 0.22);
+  --last-move: rgba(244, 196, 48, 0.5);
+  --cast: rgba(26, 18, 8, 0.34);
+  --paper: #fbf7ec;
+  --paper-rule: rgba(60, 80, 120, 0.14);
+  --paper-edge: #d9d0b8;
+  --tile-top: #ffffff;
+  --tile-side: #cfc6ae;
+  --glow: rgba(255, 214, 90, 0.9);
+  --piece-white-shade: #cfc4a6;
+  --piece-black-light: #4a453d;
+}
+
+/* The surface a board sits on: a lamp from above, a vignette to the edges. */
+.stage {
+  position: relative;
+  padding: clamp(10px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(ellipse 75% 65% at 50% 0%, var(--stage-lamp), transparent 72%),
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, var(--stage-edge) 100%),
+    linear-gradient(180deg, var(--stage-a), var(--stage-b));
+  box-shadow: var(--shadow-card);
+}
+
+/* Phones: the board takes the whole content width (358 px at 390), so the stage drops its padding and frame. */
+@media (max-width: 640px) {
+  .stage { padding: 0; border: 0; background: none; box-shadow: none; }
+  .stage .board-frame { padding: 4px; margin-inline: -4px; max-width: none; }
+}
+
+/* Start match stays on screen on a phone while the level list scrolls under it. The selector out-ranks app.css `:is(button, a).bg-action { position: relative }`, which otherwise cancels the sticky. */
+@media (max-width: 767px) {
+  button.start-match.bg-action { position: sticky; bottom: 0; z-index: 20; justify-self: stretch; width: 100%; box-shadow: 0 -12px 0 0 var(--canvas), 0 12px 0 0 var(--canvas), 0 -14px 18px -4px var(--canvas); }
+}
+
+/* Chess: a wooden frame round lit squares. */
+.board-frame {
+  position: relative;
+  max-width: 560px;
+  margin-inline: auto;
+  padding: clamp(5px, 1.6vw, 11px);
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--frame-a), var(--frame-b));
+  box-shadow: 0 1px 0 var(--sheen) inset, 0 0 0 1px var(--frame-edge), 0 18px 28px -10px var(--cast), 0 4px 6px var(--cast);
+}
+.board-frame > [data-testid="chess-board"] {
+  border: 0;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--frame-edge), inset 0 0 14px var(--shade);
+}
+/* Light falls from the top left across the squares; a soft shade pools at the bottom right. */
+.board-sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: linear-gradient(135deg, var(--sheen) 0%, transparent 42%, transparent 62%, var(--shade) 100%);
+}
+.sq-last {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--last-move);
+  box-shadow: inset 0 0 0 2px var(--last-move);
+}
+.piece-shadow {
+  position: absolute;
+  left: 14%;
+  right: 6%;
+  bottom: 4%;
+  height: 11%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--cast), transparent 72%);
+  transform: translateX(8%);
+}
+.piece-art { filter: drop-shadow(0 1.5px 1px var(--cast)); position: relative; }
+
+/* Four in a Row: the slab throws a shadow on the desk. */
+.four-stage-board { filter: drop-shadow(0 14px 14px var(--cast)); }
+.win-line {
+  stroke: var(--good);
+  stroke-width: 14;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 10px var(--good));
+  animation: win-pulse 1.6s ease-in-out 0.9s infinite alternate;
+}
+@keyframes win-pulse { from { opacity: 0.35; } to { opacity: 0.8; } }
+.win-ring { filter: drop-shadow(0 0 8px var(--good)); }
+
+/* Word Duel: a ruled sheet on a desk, and tiles that stand off it. */
+.lane-paper {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 33px, var(--paper-rule) 33px 34px),
+    var(--paper);
+  border-color: var(--paper-edge);
+  box-shadow: 0 1px 0 var(--sheen) inset, 0 10px 16px -8px var(--cast), 0 2px 3px var(--cast);
+  color: var(--ink);
+}
+.tile {
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  max-width: 2.6rem;
+  aspect-ratio: 1 / 1.08;
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--tile-top), var(--paper));
+  box-shadow: 0 2px 0 var(--tile-side), 0 4px 6px -2px var(--cast), 0 1px 0 var(--sheen) inset;
+  transform-origin: 50% 100%;
+}
+.race-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 1px 2px var(--shade); }
+.race-fill { height: 100%; border-radius: 999px; transition: width 360ms ease-out; }
+
+/* The shared HUD: two seats, a turn mark and the match clock. */
+.play-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.play-hud-seat { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 12px 4px 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.play-hud-seat[data-active] { border-color: var(--action); box-shadow: 0 0 0 3px var(--action-soft); }
+.play-hud-clock { font-variant-numeric: tabular-nums; }
+
+/* The result panel's coloured stripe: outcome at a glance, never colour alone (the headline says it too). */
+.result-stripe { height: 6px; border-radius: 999px; margin: -2px 0 2px; background: var(--neutral); }
+[data-outcome="win"] .result-stripe { background: var(--good); }
+[data-outcome="loss"] .result-stripe { background: var(--bad); }
+
+.result-rise { animation: result-rise 320ms ease-out; }
+@keyframes result-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .result-rise { animation: none; }
+  .win-line { animation: none; opacity: 0.7; }
+  .race-fill { transition: none; }
+}
+
+/* Results follow the board on phones and lead the aside on wide screens. */
+.game-shell-content { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+  .game-shell-content-with-aside { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto 1fr; }
+  .game-shell-main { grid-column: 1; grid-row: 1 / 3; }
+  .game-shell-result { grid-column: 2; grid-row: 1; }
+  .game-shell-aside { grid-column: 2; grid-row: 2; }
+  .game-shell-main + .game-shell-aside { grid-row: 1 / 3; }
+}

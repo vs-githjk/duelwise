@@ -1,0 +1,35 @@
+{
+  "easy": {
+    "win": "Clean win over Pip. Well done. Marlow is up next, and Marlow notices things.",
+    "loss": "Pip beat you. Pip. We are not telling anyone. Rematch?",
+    "closeLoss": "One {unit} short against Pip. That one stings. Run it back.",
+    "draw": "A draw with Pip. Nobody is proud of this. Again?",
+    "callWrong": "You called {call} and Pip got you. Bold. Rematch before anyone sees the board?",
+    "callRight": "You called Pip and beat Pip. Good start. Marlow is unlocked."
+  },
+  "medium": {
+    "win": "Marlow punishes the obvious and you were not obvious. Nicely played. Vesper is up.",
+    "loss": "Marlow saw it coming. Marlow sees most things coming. Again?",
+    "closeLoss": "Marlow by a hair. It will not admit it was close. Rematch?",
+    "draw": "Marlow is fine with a draw. You should not be.",
+    "callWrong": "You called {call}. Marlow would like a word first.",
+    "callRight": "Called Marlow, beat Marlow. That is a good read. Vesper is the one that bites."
+  },
+  "hard": {
+    "win": "You beat Vesper. Properly good. Sable has been told you are coming.",
+    "loss": "Vesper turns one slip into the whole game. Find the slip, come back.",
+    "closeLoss": "That close against Vesper is a result. Rematch while it is fresh.",
+    "draw": "A draw with Vesper. Vesper counts that as yours. Again?",
+    "callWrong": "You called {call}. Vesper is the bouncer. Rematch?",
+    "callRight": "You called Vesper and took it. Sharp read. Sable has been told."
+  },
+  "champion": {
+    "win": "You beat Sable. That is a real accomplishment. Frame it.",
+    "loss": "Sable took it. Sable usually does. Again?",
+    "lossRecord": "Sable is {wins} and {losses} against people. Be one of the {losses}. Again?",
+    "closeLoss": "You had Sable. Sable knows it. It will not play that line again, by the way.",
+    "draw": "A draw with Sable. That goes on the card. Again?",
+    "callWrong": "You called Sable. Sable sends its regards. Vesper first?",
+    "callRight": "Called Sable, beat Sable. Say less. Rematch, for the record."
+  }
+}

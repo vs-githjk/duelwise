@@ -1,0 +1,7 @@
+{
+  "hard": {
+    "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+    "step": 30015488,
+    "obsFeatures": 162
+  }
+}

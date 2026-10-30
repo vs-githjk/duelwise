@@ -1,0 +1,11 @@
+{
+  "name": "holdem-coarse",
+  "cmd": ["bun", "packages/core/src/games/holdem/cfr-main.ts", "--abstraction", "coarse", "--iterations", "5000000", "--snapshots", "250000,1500000,5000000", "--seed", "14", "--max-minutes", "340"],
+  "cpuSlots": 1,
+  "mps": false,
+  "maxHours": 6,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/holdem-coarse/ckpt",
+  "milestones": {"snapshotIterations": [250000, 1500000, 5000000], "levels": {"easy": 250000, "medium": 1500000, "hard": 5000000}, "tablesDir": "runs/holdem-coarse/tables"}
+}

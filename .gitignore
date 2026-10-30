@@ -1,0 +1,21 @@
+node_modules/
+runs/
+data/raw/
+data/cache/
+.data/
+training/.venv/
+.env
+.env.*
+!.env.example
+apps/web/.output/
+apps/web/dist/
+__pycache__/
+*.pyc
+.DS_Store
+test-results/
+playwright-report/
+.vercel/
+
+# Paid Quaternius clips (kept out of the public repo; see scripts/paid-assets.ts)
+apps/web/public/paid/
+.claude/worktrees/

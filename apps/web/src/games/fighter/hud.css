@@ -1,0 +1,116 @@
+/*
+  Fighter HUD (design pass 2, plan/design/v2). The HUD is authored on a 1440 x 810 canvas and scaled
+  to the stage with --s (stage width / 1440), so every number below is a design pixel.
+  Tokens: the stage is a night scene, so these do not change with the site theme.
+*/
+.fighter-stage-root {
+  --hud-ink: #ffffff;
+  --hud-dim: rgba(255, 255, 255, 0.72);
+  --hud-glass: rgba(8, 10, 14, 0.66);
+  --hud-panel: rgba(8, 10, 14, 0.9);
+  --hud-line: rgba(255, 255, 255, 0.22);
+  --hud-you: #f2c94c;
+  --hud-ai: #7cc4ff;
+  --hud-hp: #f6d365;
+  --hud-hp-lost: #ff6a4d;
+  --hud-hp-rec: #ffffff;
+  --hud-surge: #4de3b0;
+  --hud-hot: #ff5e3a;
+  --hud-super: #ff9f6b;
+  --hud-counter: #7cd4ff;
+  --hud-punish: #ff4d6d;
+  --hud-spark: #fff3c4;
+  --hud-ink-on-light: #06131f;
+  --hud-urgent: #ffb4a8;
+  --hud-shadow: rgba(0, 0, 0, 0.6);
+}
+
+.fh-scale { position: absolute; left: 0; top: 0; width: 1440px; height: 810px; transform-origin: 0 0; transform: scale(var(--s, 1)); pointer-events: none; color: var(--hud-ink); font-family: var(--font-sans); z-index: 3 }
+.fh-scale > * { pointer-events: none }
+.fh-top { position: absolute; left: 48px; right: 48px; top: 24px; display: grid; grid-template-columns: 1fr 180px 1fr; align-items: start; gap: 20px }
+
+.fh-hp { display: grid; gap: 6px }
+.fh-hp .nm { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 16px; letter-spacing: 0.02em; text-shadow: 0 1px 2px var(--hud-shadow) }
+.fh-hp .nm span { font-weight: 500; opacity: 0.85; font-family: var(--font-mono); font-size: 16px }
+.fh-hp .nm .chr { font-weight: 500; font-size: 16px; opacity: 0.8; margin-left: 8px; letter-spacing: 0; font-family: var(--font-sans) }
+.fh-hp.r .nm { flex-direction: row-reverse }
+.fh-hp .bar { height: 24px; background: rgba(0, 0, 0, 0.5); border: 2px solid rgba(255, 255, 255, 0.8); overflow: hidden; position: relative; transform: skewX(-18deg); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45) }
+.fh-hp .bar i { position: absolute; top: 0; bottom: 0 }
+.fh-hp .bar i.cur { background: linear-gradient(180deg, #fff8dc, var(--hud-hp) 55%, #d9a21b); width: var(--p) }
+.fh-hp .bar i.cur.low { background: linear-gradient(180deg, #ffd0c4, #ff6a4d 55%, #b3261e) }
+/* The just-lost slice trails the current value: it sits behind and eases down after a short pause. */
+.fh-hp .bar i.lost { background: var(--hud-hp-lost); width: var(--pl); transition: width 1.2s ease-out 0.4s }
+.fh-hp.l .bar i { left: 0 }
+.fh-hp.r .bar i { right: 0 }
+.fh-hp .rp { display: flex; gap: 6px; padding: 0 2px }
+.fh-hp.r .rp { justify-content: flex-end }
+.fh-hp .rp i { width: 12px; height: 12px; border-radius: 999px; border: 2px solid #fff; background: transparent; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) }
+.fh-hp .rp i.on { background: var(--hud-hp); border-color: var(--hud-hp) }
+
+.fh-rt { text-align: center; display: grid; justify-items: center; gap: 2px; padding-top: 8px }
+.fh-rt .n { font-weight: 800; font-size: 76px; line-height: 1; letter-spacing: -0.04em; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 6px 20px var(--hud-shadow); font-variant-numeric: tabular-nums }
+.fh-rt .n.urgent { color: var(--hud-urgent) }
+.fh-rt .rn { font-size: 16px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.8 }
+
+.fh-gauge { position: absolute; bottom: 32px; width: 400px; display: grid; gap: 6px }
+.fh-gauge.l { left: 48px }
+.fh-gauge.r { right: 48px; justify-items: end }
+.fh-gauge .lbl { background: rgba(8, 10, 14, 0.9); border-radius: 4px; padding: 2px 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9; display: flex; gap: 10px; text-shadow: 0 1px 2px var(--hud-shadow) }
+.fh-gauge .lbl span { opacity: 0.75; font-family: var(--font-mono); letter-spacing: 0; text-transform: none; font-weight: 500 }
+.fh-gauge .lbl span.hot { color: var(--hud-hot); opacity: 1; font-weight: 700 }
+.fh-gauge .seg6 { display: flex; gap: 4px; transform: skewX(-18deg) }
+.fh-gauge.r .seg6 { flex-direction: row-reverse }
+.fh-gauge .seg6 i { width: 60px; height: 14px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.45); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) }
+.fh-gauge .seg6 i.on { background: linear-gradient(180deg, #c9fff0, var(--hud-surge) 60%, #1f9a74) }
+.fh-gauge .seg6 i.hot { background: linear-gradient(180deg, #ffd0b8, var(--hud-hot) 60%, #b8371c); animation: fh-hot 1s ease-in-out infinite }
+.fh-gauge .seg6 i.part { background: linear-gradient(90deg, var(--hud-surge) var(--f), rgba(255, 255, 255, 0.14) var(--f)) }
+@keyframes fh-hot { 50% { filter: brightness(1.35) } }
+.fh-gauge .sup { display: flex; gap: 4px; align-items: center; transform: skewX(-18deg) }
+.fh-gauge.r .sup { flex-direction: row-reverse }
+.fh-gauge .sup i { width: 76px; height: 7px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.4); overflow: hidden; position: relative }
+.fh-gauge .sup i::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f, 0%); background: linear-gradient(90deg, #ffcf9e, var(--hud-super)) }
+.fh-gauge.r .sup i::after { left: auto; right: 0 }
+.fh-gauge .sup i.full::after { width: 100%; background: linear-gradient(90deg, #fff0c4, #ffb347) }
+.fh-gauge .sup small { font-family: var(--font-mono); font-size: 16px; opacity: 0.8; transform: skewX(18deg) }
+
+.fh-combo { position: absolute; left: 110px; top: 236px; display: grid; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 6px 18px var(--hud-shadow); animation: fh-in 0.18s cubic-bezier(0.2, 0.9, 0.2, 1.2) both }
+.fh-combo.r { left: auto; right: 110px; text-align: right; justify-items: end }
+@keyframes fh-in { from { transform: scale(0.7); opacity: 0 } to { transform: none; opacity: 1 } }
+.fh-combo .n { font-size: 96px; font-weight: 800; line-height: 0.9; color: var(--hud-hp); letter-spacing: -0.04em; font-variant-numeric: tabular-nums }
+.fh-combo .l { font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; font-size: 18px; margin-top: 4px }
+.fh-combo .d { font-family: var(--font-mono); font-size: 16px; opacity: 0.85 }
+.fh-callout { position: absolute; left: 110px; top: 400px; font-weight: 800; font-size: 26px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 14px; transform: skewX(-12deg); text-shadow: 0 2px 8px var(--hud-shadow); animation: fh-in 0.18s cubic-bezier(0.2, 0.9, 0.2, 1.2) both }
+.fh-callout.counter { color: var(--hud-ink-on-light); background: var(--hud-counter); text-shadow: none }
+.fh-callout.punish { color: #fff; background: var(--hud-punish) }
+.fh-callout.deflect { color: var(--hud-ink-on-light); background: var(--hud-surge); text-shadow: none }
+.fh-callout.r { left: auto; right: 110px }
+
+.fh-pill { position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 12px; width: 480px; border-radius: 24px; padding: 6px 16px 8px; font-size: 16px; white-space: nowrap; background: var(--hud-glass); border: 1px solid var(--hud-line); backdrop-filter: blur(8px) }
+.fh-pill b { font-weight: 600 }
+.fh-pill span { order: 2; flex-basis: 100%; text-align: center; opacity: 0.75; font-family: var(--font-mono); font-size: 16px }
+.fh-pill i { width: 10px; height: 10px; border-radius: 999px; background: var(--hud-ai); margin-left: 6px }
+.fh-pill em { order: 1; font-style: normal; font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hud-hp); border: 1px solid var(--hud-hp); border-radius: 999px; padding: 1px 7px }
+
+.fh-keys { position: absolute; right: 48px; top: 128px; font-family: var(--font-mono); font-size: 16px; opacity: 0.72; display: grid; gap: 4px; text-align: right }
+.fh-keys kbd { font: inherit; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 4px; padding: 0 5px; margin-left: 3px }
+.fh-label { position: absolute; right: 48px; top: 100px; font-size: 16px; color: var(--hud-dim); font-family: var(--font-mono); display: flex; gap: 6px; align-items: center }
+
+.fh-banner { position: absolute; inset: 0; display: grid; place-items: center }
+.fh-banner b { font-weight: 800; font-size: 150px; line-height: 1; letter-spacing: -0.05em; color: #fff; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 20px 50px rgba(0, 0, 0, 0.8); transform: skewX(-8deg); animation: fh-ko 0.3s cubic-bezier(0.2, 0.9, 0.2, 1.1) both }
+.fh-banner b.fight { color: var(--hud-hp) }
+.fh-banner b.ko { font-size: 200px }
+.fh-banner span { position: absolute; top: 58%; font-size: 16px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.85 }
+@keyframes fh-ko { from { transform: scale(1.6) skewX(-8deg); opacity: 0 } to { transform: skewX(-8deg); opacity: 1 } }
+
+/* The page around the stage. */
+.fighter-stage-root { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #07090f; border-radius: var(--radius-card); isolation: isolate }
+.fighter-stage-root canvas { position: absolute; inset: 0 }
+.fighter-ov { position: absolute; inset: 0; z-index: 6; display: grid; place-items: safe center; background: rgba(5, 7, 12, 0.62); backdrop-filter: blur(6px); padding: 16px; overflow: auto }
+.fighter-ov-fit { grid-template-rows: minmax(0, 1fr) } /* the move list is bounded by the stage and scrolls inside */
+.fighter-key { white-space: nowrap; font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; background: var(--surface-2) }
+.fighter-debug-note { position: absolute; left: 16px; bottom: 16px; z-index: 4; font-family: var(--font-mono); font-size: 12px; color: var(--hud-dim); background: var(--hud-glass); border: 1px solid var(--hud-line); border-radius: 999px; padding: 3px 10px }
+
+@media (prefers-reduced-motion: reduce) {
+  .fh-hp .bar i.lost { transition: none }
+  .fh-gauge .seg6 i.hot { animation: none }
+}

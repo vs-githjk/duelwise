@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Vesper, the Hard opponent">
+  <!-- Duelwise persona: Vesper (Hard). Clubhouse portrait: tinted plate, ink bust, paper face. -->
+  <defs><clipPath id="vesper-clip"><circle cx="80" cy="80" r="78"/></clipPath></defs>
+  <circle cx="80" cy="80" r="78" fill="var(--p-tint,#a98ac4)"/>
+  <g clip-path="url(#vesper-clip)">
+    <path d="M10 166 C12 132 36 116 60 112 C60 102 100 102 100 112 C124 116 148 132 150 166 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M98 120 L113 115 L120 139 L105 144 Z" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M110 124 C110 120 115 120 115 124 C115 127 112.5 129 112.5 131 L111 131 C111 129 110 127 110 124 Z M112.5 130.5 L112 134 L114 134 Z" fill="var(--av-ink,#15181e)"/>
+    <ellipse cx="80" cy="82" rx="26" ry="31" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M46 70 C46 38 114 38 114 70 L114 106 L104 106 L104 78 C102 64 92 58 80 58 C68 58 58 64 56 78 L56 106 L46 106 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M54 84 C56 58 70 52 80 52 C90 52 104 58 106 84 C98 74 90 72 86 74 C78 66 66 72 54 84 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M60 74 L75 72" stroke="var(--av-ink,#15181e)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M85 70 L100 74" stroke="var(--av-ink,#15181e)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M61 84 Q68 78 75 84 Q68 88 61 84 Z" fill="var(--av-ink,#15181e)"/>
+    <path d="M85 84 Q92 78 99 84 Q92 88 85 84 Z" fill="var(--av-ink,#15181e)"/>
+    <circle cx="68.5" cy="83.5" r="1.6" fill="var(--av-paper,#f3ead8)"/>
+    <circle cx="92.5" cy="83.5" r="1.6" fill="var(--av-paper,#f3ead8)"/>
+    <path d="M72 100 Q80 103 90 98" fill="none" stroke="var(--av-ink,#15181e)" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M51 106 L51 111" stroke="var(--av-ink,#15181e)" stroke-width="1.5"/>
+    <circle cx="51" cy="114" r="3.5" fill="var(--av-paper,#f3ead8)" stroke="var(--av-ink,#15181e)" stroke-width="1.5"/>
+    <path d="M109 106 L109 111" stroke="var(--av-ink,#15181e)" stroke-width="1.5"/>
+    <circle cx="109" cy="114" r="3.5" fill="var(--av-paper,#f3ead8)" stroke="var(--av-ink,#15181e)" stroke-width="1.5"/>
+  </g>
+</svg>

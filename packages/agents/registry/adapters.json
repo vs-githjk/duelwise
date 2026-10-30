@@ -1,0 +1,9 @@
+{
+  "four": {
+    "learns": false,
+    "adapter": "trainer.four.retrain_adapter",
+    "class": "FourRetrainAdapter",
+    "filters": "packages/core/src/filters/four.ts",
+    "note": "learns turns true when a promoted version has humanMatchesUsed above 0 (claim C11); the other five games get adapters in T44"
+  }
+}

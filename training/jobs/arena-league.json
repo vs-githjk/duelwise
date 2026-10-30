@@ -1,0 +1,11 @@
+{
+  "name": "arena-league",
+  "cmd": ["scripts/py", "-m", "trainer.ppo.train_realtime", "--game", "arena", "--league", "--bench", "plan/bench/T7.json", "--procs", "2", "--envs", "128", "--budget-scale", "0.5", "--close-steps", "3000000", "--warm-start", "400000"],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 12,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/arena-league/ckpt",
+  "milestones": {"morningLevels": "runs/arena-league/levels/morning.json", "fullLevels": "runs/arena-league/levels/full.json"}
+}

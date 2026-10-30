@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./play.css";
+
+/* Self-hosted, OFL-licensed (docs/third-party/fonts.md). Latin only; swap keeps text visible while they load. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/geist-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fonts/geist-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: var(--font-size-base);
+    font-feature-settings: "ss01";
+    /* Lining numerals everywhere: ratings, clocks and tables line up, and Fraunces' old-style figures never appear. */
+    font-variant-numeric: lining-nums;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--action); color: var(--action-ink); }
+  :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+  .font-display { font-weight: 700; line-height: 1.04; letter-spacing: -0.015em; text-wrap: balance; font-variant-numeric: lining-nums tabular-nums; }
+  .tabular { font-variant-numeric: lining-nums tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Persona tokens and avatar wrapper (design v3). One tint per character, used only on the avatar plate. */
+:root {
+  --persona-easy: #e8c877;
+  --persona-medium: #8fb0d0;
+  --persona-hard: #a98ac4;
+  --persona-champion: #c9a34d;
+  --persona-champion-plate: #2a2724;
+  --av-ink: #15181e;
+  --av-paper: #f3ead8;
+}
+.av { display: inline-block; flex: none; width: var(--s, 44px); height: var(--s, 44px); position: relative; }
+.av svg { width: 100%; height: 100%; display: block; }
+.av.easy { --p-tint: var(--persona-easy); }
+.av.medium { --p-tint: var(--persona-medium); }
+.av.hard { --p-tint: var(--persona-hard); }
+.av.champion { --p-tint: var(--persona-champion); --p-plate: var(--persona-champion-plate); }
+.av-stack { display: inline-flex; align-items: center; }
+.av-stack .av { margin-left: -8px; border: 2px solid var(--surface); border-radius: 999px; background: var(--surface); }
+.av-stack .av:first-child { margin-left: 0; }
+.av.path-locked svg { filter: grayscale(1) brightness(1.12) contrast(.85); }
+.av.dim svg { filter: grayscale(1); opacity: 0.55; }
+
+/* Motion stays within the existing surfaces. */
+.hero-scene { position: relative; isolation: isolate; }
+.hero-scene { background: radial-gradient(ellipse 80% 70% at 50% 0%, var(--peach-soft), transparent 75%); }
+.hero-kicker, .hero-title, .hero-cards { animation: polish-arrive 600ms var(--ease-out) backwards; }
+.hero-title { animation-delay: 80ms; }
+.hero-cards { animation-delay: 200ms; }
+@keyframes polish-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.game-card { transition: transform 300ms var(--ease-out), box-shadow 300ms; }
+.game-card:hover { box-shadow: var(--shadow-card), 0 16px 30px rgba(15, 24, 30, .12); }
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .game-card-art::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--sheen-x, 50%) var(--sheen-y, 50%), rgba(255,255,255,.3), transparent 55%); transition: opacity 300ms; }
+  .game-card:hover .game-card-art::after { opacity: 1; }
+  :is(button, a).bg-action { position: relative; overflow: hidden; }
+  :is(button, a).bg-action::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.25) 50%, transparent 65%); transform: translateX(-150%); }
+  :is(button, a).bg-action:hover::after { animation: button-shine 800ms ease-out; }
+}
+@keyframes preview-chess { 0%, 25%, 100% { transform: translateX(0); } 45%, 65% { transform: translateX(20px); } }
+@keyframes preview-disc { 0%, 15%, 100% { transform: translateY(0); } 35%, 65% { transform: translateY(30px); } }
+@keyframes preview-flip { 0%, 15%, 35%, 100% { transform: rotateY(0); } 25% { transform: rotateY(75deg); } }
+@keyframes preview-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes preview-spark { 0%, 100% { transform: scale(.85); opacity: .65; } 50% { transform: scale(1.15); opacity: 1; } }
+@keyframes preview-light { 0%, 44%, 48%, 100% { opacity: 1; } 45%, 47% { opacity: .55; } }
+@keyframes live-breathe { 0%, 100% { opacity: .65; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.2); } }
+@keyframes button-shine { to { transform: translateX(150%); } }
+.game-card svg .art-piece, .game-card svg .art-disc, .game-card svg .art-card, .game-card svg .art-letter, .game-card svg .art-fighter, .game-card svg .art-reticle { transition: transform 550ms var(--ease-out); transform-box: fill-box; transform-origin: center; }
+.game-card:hover .art-piece:nth-child(even) { transform: translateY(-3px); }
+.game-card:hover .art-disc { transform: translateY(8px); }
+.game-card:hover .art-card:nth-child(even) { transform: rotate(6deg) translateY(-3px); }
+.game-card:hover .art-letter:nth-child(even) { transform: rotateX(25deg); }
+.game-card:hover .art-fighter { transform: translateX(3px); }
+.game-card:hover .art-reticle { transform: scale(1.25); }
+.persona-card, .persona-row { --persona-glow: var(--persona-easy); transition: box-shadow 250ms, border-color 250ms; }
+.persona-card[data-level="medium"], .persona-row[data-persona="medium"] { --persona-glow: var(--persona-medium); }
+.persona-card[data-level="hard"], .persona-row[data-persona="hard"] { --persona-glow: var(--persona-hard); }
+.persona-card[data-level="champion"], .persona-row[data-persona="champion"] { --persona-glow: var(--persona-champion); }
+.persona-card:hover, .persona-row:hover, .persona-row[data-selected="true"] { box-shadow: 0 0 20px color-mix(in srgb, var(--persona-glow) 25%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--persona-glow) 55%, transparent); }
+.persona-card[data-level="champion"], .persona-row[data-persona="champion"] { position: relative; }
+.persona-card[data-level="champion"]::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 1px solid var(--persona-champion); opacity: .35; pointer-events: none; animation: champion-edge 4s ease-in-out infinite alternate; }
+@keyframes champion-edge { to { opacity: .8; } }
+.level-radio { transition: transform 200ms var(--ease-out), background-color 200ms, border-color 200ms; }
+.persona-row[data-selected="true"] .level-radio { transform: scale(1.08); }
+button, a.inline-flex, [role="switch"] { transition: transform 120ms var(--ease-out); }
+button:active, a.inline-flex:active, [role="switch"]:active { transform: scale(.98); }
+.thinking-dot { animation: thinking-breathe 1.8s ease-in-out infinite; }
+@keyframes thinking-breathe { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
+.result-rise { position: relative; }
+.result-rise:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.result-rise[data-outcome="loss"] { animation: result-settle 450ms var(--ease-out); }
+@keyframes result-settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.result-chips { position: absolute; top: 28px; right: 35px; pointer-events: none; }
+.result-chips i { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--felt); opacity: 0; transform: rotate(calc(var(--chip-index) * 45deg)) translateY(0); animation: chip-burst 600ms ease-out both; }
+.result-chips i:nth-child(even) { background: var(--persona-champion); }
+@keyframes chip-burst { 15% { opacity: .9; } 100% { opacity: 0; transform: rotate(calc(var(--chip-index) * 45deg)) translateY(-36px) scale(.5); } }
+
+/* The hero glow bleeds past the card; clip it to the page width so phones never scroll sideways. */
+.hero-scene { overflow-x: clip; overflow-clip-margin: 0; }

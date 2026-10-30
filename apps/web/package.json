@@ -1,0 +1,48 @@
+{
+  "name": "@duelwise/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "e2e": "playwright test",
+    "e2e:prod": "playwright test -c playwright.prod.config.ts"
+  },
+  "dependencies": {
+    "@duelwise/agents": "workspace:*",
+    "@duelwise/core": "workspace:*",
+    "@electric-sql/pglite": "0.5.10",
+    "@neondatabase/serverless": "1.2.0",
+    "@resvg/resvg-wasm": "2.6.2",
+    "@sentry/node": "11.8.0",
+    "@sentry/react": "11.8.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-router": "1.170.45",
+    "@tanstack/react-start": "1.169.3",
+    "better-auth": "1.7.12",
+    "chess.js": "1.4.0",
+    "drizzle-orm": "0.45.4",
+    "motion": "14.5.0",
+    "nitro": "3.0.260903-beta",
+    "onnxruntime-web": "1.30.0",
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "tailwindcss": "4.3.3",
+    "three": "0.186.1",
+    "vite": "8.3.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "4.5.1",
+    "@playwright/test": "1.62.0",
+    "@types/bun": "1.4.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "drizzle-kit": "0.31.11",
+    "typescript": "7.0.2"
+  }
+}

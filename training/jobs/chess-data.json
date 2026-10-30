@@ -1,0 +1,11 @@
+{
+  "name": "chess-data",
+  "cmd": ["bash", "scripts/data/fetch-lichess.sh", "all"],
+  "cpuSlots": 1,
+  "mps": false,
+  "maxHours": 2,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/chess-data/ckpt",
+  "milestones": {"policyPositionsPerBucket": 1000000, "valuePositions": 3000000, "outDir": "data/cache/chess"}
+}

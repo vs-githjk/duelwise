@@ -1,0 +1,5 @@
+[install]
+linker = "hoisted"
+
+[test]
+# Each file is run alone by scripts/run_suite.py; no global preload.

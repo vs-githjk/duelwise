@@ -1,0 +1,11 @@
+{
+  "name": "fighter-league-b4",
+  "cmd": ["scripts/py", "-m", "trainer.ppo.train_realtime", "--game", "fighter", "--b3", "--champion-run", "fighter-league-b3", "--b2-run", "fighter-league-b3", "--procs", "2", "--envs", "128", "--b3-steps", "30000000,30000000", "--b3-seconds", "4800,4800"],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 3,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/fighter-league-b4/ckpt",
+  "milestones": {"b3Levels": "runs/fighter-league-b4/levels/b3.json", "gatedLevels": "runs/fighter-league-b4/levels/gated.json"}
+}

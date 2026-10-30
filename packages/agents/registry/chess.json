@@ -1,0 +1,766 @@
+{
+  "game": "chess",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-10-30T03:59:56.800Z",
+      "promotedAt": "2026-10-30T03:59:56.800Z",
+      "status": "measured",
+      "artifacts": {
+        "value.bin": "apps/web/public/agents/chess/v1/value.bin",
+        "value.onnx": "apps/web/public/agents/chess/v1/value.onnx",
+        "policy-b1100.onnx": "apps/web/public/agents/chess/v1/policy-b1100.onnx",
+        "policy-b1500.onnx": "apps/web/public/agents/chess/v1/policy-b1500.onnx",
+        "policy-b1900.onnx": "apps/web/public/agents/chess/v1/policy-b1900.onnx"
+      },
+      "sha256": {
+        "value.bin": "3f67c624c45c11b18d14d08fb733cfd76acedcd122f1015471a74021d75adb74",
+        "value.onnx": "b8ab15ce9901293934ae92cfee94a8a2cd29e0873c2a89b5fdc6ad48b86a18d0",
+        "policy-b1100.onnx": "9173bcfe10a71509f3960e750e3057d413ccefeec3e40cec00710933f7686384",
+        "policy-b1500.onnx": "c2a4deeaf02e0fe0384e7a6726385c6bce2d91f899dee24f46fb610c250a03f8",
+        "policy-b1900.onnx": "a39175dc0d74d1b894a1a42918b7cdcab54c9f432576dde6f74eba57b61ee1ac"
+      },
+      "trainedSteps": 53855,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "each level plays 400 games per seat against its test bot; each seat must clear the 95% Wilson lower bound gate",
+        "eloLabel": "site Elo; Stockfish anchor pending until T43",
+        "eloNote": "Easy is anchored at 1000 and each higher level is the chained gap from its head-to-head score. It is not a Stockfish-anchored or FIDE-comparable rating.",
+        "championBudget": {
+          "calibration": {
+            "nodeBudget": 129000,
+            "medianNodesPerSecond": 128898,
+            "positions": 12,
+            "loadAverage1m": 5.836426,
+            "cores": 8,
+            "at": "2026-10-29T23:55:19.161Z",
+            "per": [
+              {
+                "nodes": 122880,
+                "ms": 1007.422583,
+                "depth": 6
+              },
+              {
+                "nodes": 135168,
+                "ms": 1004.0191669999999,
+                "depth": 6
+              },
+              {
+                "nodes": 116736,
+                "ms": 1006.490667,
+                "depth": 6
+              },
+              {
+                "nodes": 108545,
+                "ms": 1005.6468329999998,
+                "depth": 5
+              },
+              {
+                "nodes": 144384,
+                "ms": 1002.6550830000006,
+                "depth": 6
+              },
+              {
+                "nodes": 129024,
+                "ms": 1000.9806669999998,
+                "depth": 5
+              },
+              {
+                "nodes": 123904,
+                "ms": 1006.71425,
+                "depth": 5
+              },
+              {
+                "nodes": 138240,
+                "ms": 1001.489207999999,
+                "depth": 6
+              },
+              {
+                "nodes": 104448,
+                "ms": 1003.0899580000005,
+                "depth": 5
+              },
+              {
+                "nodes": 137217,
+                "ms": 1000.8086670000012,
+                "depth": 6
+              },
+              {
+                "nodes": 122880,
+                "ms": 1001.0152500000004,
+                "depth": 6
+              },
+              {
+                "nodes": 153601,
+                "ms": 1003.2192919999998,
+                "depth": 8
+              }
+            ]
+          },
+          "timing": {
+            "nodeBudget": 129500,
+            "positions": 40,
+            "maxMs": 2385,
+            "p95Ms": 1968,
+            "medianMs": 1213,
+            "loadAverage1m": 11.026855,
+            "at": "2026-10-29T23:56:09.165Z"
+          },
+          "note": "The Champion plays the same fixed node budget in the ladder, on the page and in the server check, so its measured strength is the strength a player meets."
+        },
+        "twoPlyBot": {
+          "rule": "Hard against the round-3 judge's 2-ply bot: 400 games, 200 per seat, pooled score at least 0.7 and each seat at least 0.6",
+          "n": 400,
+          "points": 288,
+          "score": 0.72,
+          "floor": 0.7,
+          "passed": true,
+          "bySeat": [
+            {
+              "seat": 0,
+              "n": 200,
+              "points": 153.5,
+              "ci95": [
+                0.7042502528949388,
+                0.8206674973371659
+              ]
+            },
+            {
+              "seat": 1,
+              "n": 200,
+              "points": 134.5,
+              "ci95": [
+                0.6047423347009865,
+                0.7337560275982212
+              ]
+            }
+          ]
+        },
+        "openings": "4 random plies from the start position, shared by the two colour-swapped games of a pair",
+        "puzzleAccuracy": {
+          "easy": {
+            "perBand": 100,
+            "bands": [
+              {
+                "band": [
+                  400,
+                  900
+                ],
+                "n": 100,
+                "solved": 61,
+                "accuracy": 0.61,
+                "ci95": [
+                  0.51203,
+                  0.699831
+                ]
+              },
+              {
+                "band": [
+                  900,
+                  1300
+                ],
+                "n": 100,
+                "solved": 38,
+                "accuracy": 0.38,
+                "ci95": [
+                  0.290976,
+                  0.477902
+                ]
+              },
+              {
+                "band": [
+                  1300,
+                  1700
+                ],
+                "n": 100,
+                "solved": 17,
+                "accuracy": 0.17,
+                "ci95": [
+                  0.108936,
+                  0.25548
+                ]
+              },
+              {
+                "band": [
+                  1700,
+                  2100
+                ],
+                "n": 100,
+                "solved": 7,
+                "accuracy": 0.07,
+                "ci95": [
+                  0.034319,
+                  0.137495
+                ]
+              },
+              {
+                "band": [
+                  2100,
+                  2500
+                ],
+                "n": 100,
+                "solved": 2,
+                "accuracy": 0.02,
+                "ci95": [
+                  0.005502,
+                  0.070012
+                ]
+              },
+              {
+                "band": [
+                  2500,
+                  4000
+                ],
+                "n": 100,
+                "solved": 0,
+                "accuracy": 0,
+                "ci95": [
+                  0,
+                  0.036993
+                ]
+              }
+            ],
+            "overall": {
+              "band": [
+                400,
+                4000
+              ],
+              "n": 600,
+              "solved": 125,
+              "accuracy": 0.208333,
+              "ci95": [
+                0.177744,
+                0.242634
+              ]
+            }
+          },
+          "medium": {
+            "perBand": 100,
+            "bands": [
+              {
+                "band": [
+                  400,
+                  900
+                ],
+                "n": 100,
+                "solved": 76,
+                "accuracy": 0.76,
+                "ci95": [
+                  0.667677,
+                  0.833087
+                ]
+              },
+              {
+                "band": [
+                  900,
+                  1300
+                ],
+                "n": 100,
+                "solved": 52,
+                "accuracy": 0.52,
+                "ci95": [
+                  0.423166,
+                  0.615354
+                ]
+              },
+              {
+                "band": [
+                  1300,
+                  1700
+                ],
+                "n": 100,
+                "solved": 33,
+                "accuracy": 0.33,
+                "ci95": [
+                  0.245631,
+                  0.426947
+                ]
+              },
+              {
+                "band": [
+                  1700,
+                  2100
+                ],
+                "n": 100,
+                "solved": 21,
+                "accuracy": 0.21,
+                "ci95": [
+                  0.141657,
+                  0.2998
+                ]
+              },
+              {
+                "band": [
+                  2100,
+                  2500
+                ],
+                "n": 100,
+                "solved": 8,
+                "accuracy": 0.08,
+                "ci95": [
+                  0.041093,
+                  0.149981
+                ]
+              },
+              {
+                "band": [
+                  2500,
+                  4000
+                ],
+                "n": 100,
+                "solved": 5,
+                "accuracy": 0.05,
+                "ci95": [
+                  0.021544,
+                  0.11175
+                ]
+              }
+            ],
+            "overall": {
+              "band": [
+                400,
+                4000
+              ],
+              "n": 600,
+              "solved": 195,
+              "accuracy": 0.325,
+              "ci95": [
+                0.288739,
+                0.363488
+              ]
+            }
+          },
+          "hard": {
+            "perBand": 100,
+            "bands": [
+              {
+                "band": [
+                  400,
+                  900
+                ],
+                "n": 100,
+                "solved": 78,
+                "accuracy": 0.78,
+                "ci95": [
+                  0.689296,
+                  0.849987
+                ]
+              },
+              {
+                "band": [
+                  900,
+                  1300
+                ],
+                "n": 100,
+                "solved": 53,
+                "accuracy": 0.53,
+                "ci95": [
+                  0.432889,
+                  0.624892
+                ]
+              },
+              {
+                "band": [
+                  1300,
+                  1700
+                ],
+                "n": 100,
+                "solved": 38,
+                "accuracy": 0.38,
+                "ci95": [
+                  0.290976,
+                  0.477902
+                ]
+              },
+              {
+                "band": [
+                  1700,
+                  2100
+                ],
+                "n": 100,
+                "solved": 23,
+                "accuracy": 0.23,
+                "ci95": [
+                  0.158433,
+                  0.321544
+                ]
+              },
+              {
+                "band": [
+                  2100,
+                  2500
+                ],
+                "n": 100,
+                "solved": 6,
+                "accuracy": 0.06,
+                "ci95": [
+                  0.027786,
+                  0.124768
+                ]
+              },
+              {
+                "band": [
+                  2500,
+                  4000
+                ],
+                "n": 100,
+                "solved": 5,
+                "accuracy": 0.05,
+                "ci95": [
+                  0.021544,
+                  0.11175
+                ]
+              }
+            ],
+            "overall": {
+              "band": [
+                400,
+                4000
+              ],
+              "n": 600,
+              "solved": 203,
+              "accuracy": 0.338333,
+              "ci95": [
+                0.30161,
+                0.377114
+              ]
+            }
+          },
+          "champion": {
+            "perBand": 100,
+            "bands": [
+              {
+                "band": [
+                  400,
+                  900
+                ],
+                "n": 100,
+                "solved": 98,
+                "accuracy": 0.98,
+                "ci95": [
+                  0.929988,
+                  0.994498
+                ]
+              },
+              {
+                "band": [
+                  900,
+                  1300
+                ],
+                "n": 100,
+                "solved": 93,
+                "accuracy": 0.93,
+                "ci95": [
+                  0.862505,
+                  0.965681
+                ]
+              },
+              {
+                "band": [
+                  1300,
+                  1700
+                ],
+                "n": 100,
+                "solved": 91,
+                "accuracy": 0.91,
+                "ci95": [
+                  0.837738,
+                  0.951927
+                ]
+              },
+              {
+                "band": [
+                  1700,
+                  2100
+                ],
+                "n": 100,
+                "solved": 74,
+                "accuracy": 0.74,
+                "ci95": [
+                  0.64629,
+                  0.815953
+                ]
+              },
+              {
+                "band": [
+                  2100,
+                  2500
+                ],
+                "n": 100,
+                "solved": 59,
+                "accuracy": 0.59,
+                "ci95": [
+                  0.492014,
+                  0.681327
+                ]
+              },
+              {
+                "band": [
+                  2500,
+                  4000
+                ],
+                "n": 100,
+                "solved": 33,
+                "accuracy": 0.33,
+                "ci95": [
+                  0.245631,
+                  0.426947
+                ]
+              }
+            ],
+            "overall": {
+              "band": [
+                400,
+                4000
+              ],
+              "n": 600,
+              "solved": 448,
+              "accuracy": 0.746667,
+              "ci95": [
+                0.710373,
+                0.779822
+              ]
+            }
+          }
+        },
+        "pairs": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 800,
+            "points": 791.5,
+            "score": 0.989375,
+            "ci95": [
+              0.979573,
+              0.9945
+            ],
+            "stoppedEarly": false,
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 395,
+                "ci95": [
+                  0.9710762636252324,
+                  0.9946492492539086
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 396.5,
+                "ci95": [
+                  0.9763623693263211,
+                  0.9967918013441976
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 800,
+            "points": 740.5,
+            "score": 0.925625,
+            "ci95": [
+              0.905339,
+              0.941843
+            ],
+            "stoppedEarly": false,
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 377.5,
+                "ci95": [
+                  0.9166643923767993,
+                  0.962393446269598
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 363,
+                "ci95": [
+                  0.8751014143285968,
+                  0.9321460656678132
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 800,
+            "points": 616.5,
+            "score": 0.770625,
+            "ci95": [
+              0.740239,
+              0.798425
+            ],
+            "stoppedEarly": false,
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 314,
+                "ci95": [
+                  0.7421294761094388,
+                  0.8224485160352897
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 302.5,
+                "ci95": [
+                  0.711867281111352,
+                  0.795757667966145
+                ]
+              }
+            ]
+          }
+        ],
+        "baseline": {
+          "label": "random legal moves",
+          "n": 800,
+          "points": 794,
+          "score": 0.9925,
+          "bySeat": [
+            {
+              "seat": 0,
+              "n": 400,
+              "points": 396,
+              "ci95": [
+                0.9745734351746728,
+                0.9961045162320534
+              ]
+            },
+            {
+              "seat": 1,
+              "n": 400,
+              "points": 398,
+              "ci95": [
+                0.981955081404273,
+                0.9986277470576238
+              ]
+            }
+          ]
+        },
+        "laddered": [
+          "easy",
+          "medium",
+          "hard",
+          "champion"
+        ]
+      }
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "net": "policy-b1100.onnx",
+        "band": "b1100",
+        "temperature": 1,
+        "topP": 0.9,
+        "guard": "mate"
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "net": "policy-b1500.onnx",
+        "band": "b1500",
+        "temperature": 1,
+        "guard": "material",
+        "guardMargin": 2
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "net": "policy-b1900.onnx",
+        "band": "b1900",
+        "temperature": 0,
+        "logitMargin": 0.5,
+        "guard": "material",
+        "guardMargin": 1
+      }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "search": "iterative-deepening PVS, transposition table, quiescence, MVV-LVA",
+        "eval": "value.bin (TS evaluator)",
+        "measuredNodeBudget": 129500
+      }
+    }
+  },
+  "measured": {
+    "easy": {
+      "metric": "score vs random legal moves",
+      "value": 0.9925,
+      "ci95": [
+        0.983735,
+        0.996558
+      ],
+      "n": 800,
+      "opponents": "random legal moves",
+      "siteElo": 1000,
+      "measuredAt": "2026-10-30T03:59:56.800Z",
+      "harness": "bun",
+      "commit": "61fe89c"
+    },
+    "medium": {
+      "metric": "score vs easy",
+      "value": 0.989375,
+      "ci95": [
+        0.979573,
+        0.9945
+      ],
+      "n": 800,
+      "opponents": "easy",
+      "siteElo": 1787.612797,
+      "measuredAt": "2026-10-30T03:59:56.800Z",
+      "harness": "bun",
+      "commit": "61fe89c"
+    },
+    "hard": {
+      "metric": "score vs medium",
+      "value": 0.925625,
+      "ci95": [
+        0.905339,
+        0.941843
+      ],
+      "n": 800,
+      "opponents": "medium",
+      "siteElo": 2225.616036,
+      "measuredAt": "2026-10-30T03:59:56.800Z",
+      "harness": "bun",
+      "commit": "61fe89c"
+    },
+    "champion": {
+      "metric": "score vs hard",
+      "value": 0.770625,
+      "ci95": [
+        0.740239,
+        0.798425
+      ],
+      "n": 800,
+      "opponents": "hard",
+      "siteElo": 2436.134841,
+      "measuredAt": "2026-10-30T03:59:56.800Z",
+      "harness": "bun",
+      "commit": "61fe89c"
+    }
+  },
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": false
+}

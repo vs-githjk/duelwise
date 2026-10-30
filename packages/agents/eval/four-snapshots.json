@@ -1,0 +1,68 @@
+{
+ "rule": "Easy: earliest snapshot whose raw policy sampled at temperature 0.15 scores at least 0.90 against random; Medium: midpoint snapshot; Hard and Champion: latest",
+ "beatRandomThreshold": 0.9,
+ "gamesPerSnapshot": 200,
+ "seed": 23,
+ "snapshots": [
+  {
+   "snapshot": "snap-00001024",
+   "games": 1024,
+   "scoreVsRandom": 0.95
+  },
+  {
+   "snapshot": "snap-00002048",
+   "games": 2048,
+   "scoreVsRandom": 0.9125
+  },
+  {
+   "snapshot": "snap-00003072",
+   "games": 3072,
+   "scoreVsRandom": 0.955
+  },
+  {
+   "snapshot": "snap-00004096",
+   "games": 4096,
+   "scoreVsRandom": 0.97
+  },
+  {
+   "snapshot": "snap-00005120",
+   "games": 5120,
+   "scoreVsRandom": 0.985
+  },
+  {
+   "snapshot": "snap-00006144",
+   "games": 6144,
+   "scoreVsRandom": 0.9825
+  }
+ ],
+ "levels": {
+  "easy": {
+   "snapshot": "snap-00001024",
+   "games": 1024,
+   "steps": 407,
+   "file": "easy.onnx",
+   "sha256": "d5b8dab6726fcd647d3404720fbeecc6f3a9b28ece8a1de3109213aaafbbd5c0"
+  },
+  "medium": {
+   "snapshot": "snap-00003072",
+   "games": 3072,
+   "steps": 1407,
+   "file": "medium.onnx",
+   "sha256": "1cc77d6dfd6d06436474bdb76f9234847d494d87457814d97668b03e57ee1f7f"
+  },
+  "hard": {
+   "snapshot": "snap-00006144",
+   "games": 6144,
+   "steps": 2842,
+   "file": "hard.onnx",
+   "sha256": "118a4ae756d503ae4b427963c920deb96b556df5da9d6c47c88bf33bb19372e7"
+  },
+  "champion": {
+   "snapshot": "snap-00006144",
+   "games": 6144,
+   "steps": 2842,
+   "file": "champion.onnx",
+   "sha256": "118a4ae756d503ae4b427963c920deb96b556df5da9d6c47c88bf33bb19372e7"
+  }
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "duelwise",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @duelwise/web dev",
+    "test": "bun test",
+    "e2e": "bun run --cwd apps/web e2e",
+    "guards": "bun test scripts/guards.test.ts",
+    "typecheck": "bun run --filter '*' typecheck",
+    "train": "scripts/py -m trainer.cli",
+    "export": "scripts/py -m trainer.cli export",
+    "measure": "scripts/py -m trainer.cli measure",
+    "retrain": "scripts/py -m trainer.cli retrain",
+    "smoke": "bun scripts/smoke.ts",
+    "design:tokens": "bun scripts/design/tokens-to-css.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "typescript": "7.0.2"
+  }
+}

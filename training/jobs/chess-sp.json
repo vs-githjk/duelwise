@@ -1,0 +1,11 @@
+{
+  "name": "chess-sp",
+  "cmd": ["scripts/py", "-m", "trainer.chess.selfplay_value", "--max-minutes", "330", "--workers", "2", "--resume"],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 6,
+  "after": ["chess-value"],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/chess-sp/ckpt",
+  "milestones": {"checkpointEverySeconds": 900, "candidates": "runs/chess-sp/candidates/v*/value.bin", "promotion": "gated in T50, never automatic"}
+}

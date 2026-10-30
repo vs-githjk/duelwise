@@ -1,0 +1,11 @@
+{
+  "name": "chess-policy",
+  "cmd": ["scripts/py", "-m", "trainer.chess.train_policy", "--max-minutes", "25"],
+  "cpuSlots": 0,
+  "mps": true,
+  "maxHours": 2,
+  "after": ["chess-data"],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/chess-policy/ckpt",
+  "milestones": {"checkpointEverySeconds": 900, "buckets": ["b1100", "b1500", "b1900"], "exports": "runs/chess-policy/export/<bucket>/policy.onnx"}
+}

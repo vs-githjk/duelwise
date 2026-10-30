@@ -1,0 +1,1 @@
+CC0 1.0 Universal. OpenGameArt "low poly fps rifle and hands", https://opengameart.org/content/low-poly-fps-rifle-and-hands (licence field: CC0, https://creativecommons.org/publicdomain/zero/1.0/). Trimmed to the glTF binary only.

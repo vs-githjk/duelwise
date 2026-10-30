@@ -1,0 +1,377 @@
+{
+  "game": "fighter",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-10-27T07:17:51.511Z",
+      "promotedAt": "2026-10-27T07:17:51.511Z",
+      "status": "measured",
+      "artifacts": {
+        "hard.onnx": "apps/web/public/agents/fighter/v1/hard.onnx"
+      },
+      "sha256": {
+        "hard.onnx": "78320992b484a735768c82a006905fbc6ae8d0882fb34380363067767f5c7709"
+      },
+      "trainedSteps": 30015488,
+      "humanMatchesUsed": 0,
+      "gate": {
+        "rule": "R15: 400 matches per bot on each seat, bots under the same limits and delayed view; a level publishes when the Wilson 95% lower bound clears the bar against every bot on each seat by itself",
+        "matches": 800,
+        "levels": {
+          "easy": {
+            "bots": null,
+            "source": null,
+            "step": null
+          },
+          "medium": {
+            "bots": null,
+            "source": null,
+            "step": null
+          },
+          "hard": {
+            "bots": [
+              {
+                "bot": "random",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.95,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "rushdown",
+                "wins": 798,
+                "draws": 0,
+                "losses": 2,
+                "score": 0.9975,
+                "lower": 0.990931,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 398,
+                    "draws": 0,
+                    "losses": 2,
+                    "score": 0.995,
+                    "lower": 0.981955
+                  }
+                }
+              },
+              {
+                "bot": "turtle",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "zoner",
+                "wins": 794,
+                "draws": 0,
+                "losses": 6,
+                "score": 0.9925,
+                "lower": 0.983735,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 397,
+                    "draws": 0,
+                    "losses": 3,
+                    "score": 0.9925,
+                    "lower": 0.978184
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 397,
+                    "draws": 0,
+                    "losses": 3,
+                    "score": 0.9925,
+                    "lower": 0.978184
+                  }
+                }
+              },
+              {
+                "bot": "throwloop",
+                "wins": 797,
+                "draws": 0,
+                "losses": 3,
+                "score": 0.99625,
+                "lower": 0.989033,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 397,
+                    "draws": 0,
+                    "losses": 3,
+                    "score": 0.9925,
+                    "lower": 0.978184
+                  }
+                }
+              },
+              {
+                "bot": "backwalk",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "pokeloop",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "sweepspam",
+                "wins": 799,
+                "draws": 0,
+                "losses": 1,
+                "score": 0.99875,
+                "lower": 0.992954,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 399,
+                    "draws": 0,
+                    "losses": 1,
+                    "score": 0.9975,
+                    "lower": 0.985977
+                  }
+                }
+              },
+              {
+                "bot": "fireball",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "throwtap",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.6,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              }
+            ],
+            "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+            "step": 30015488
+          },
+          "champion": {
+            "bots": null,
+            "source": null,
+            "step": null
+          }
+        },
+        "ladder": {
+          "pairs": [
+            {
+              "lower": "easy",
+              "upper": "medium",
+              "score": 0.8825,
+              "n": 400,
+              "lowerBound": 0.847245
+            },
+            {
+              "lower": "medium",
+              "upper": "hard",
+              "score": 1,
+              "n": 400,
+              "lowerBound": 0.990488
+            },
+            {
+              "lower": "hard",
+              "upper": "champion",
+              "score": 0.055,
+              "n": 400,
+              "lowerBound": 0.036598
+            }
+          ],
+          "note": "Seat-swapped head to head, each upper level against the level below. Site Elo is anchored at 1000 on Easy and chained up; the Easy and Medium anchors use their Practice model, so Hard and Champion Elo rest on those pairs."
+        }
+      }
+    }
+  ],
+  "levels": {
+    "hard": {
+      "version": "v1",
+      "config": {
+        "model": "hard.onnx",
+        "observation": "v2",
+        "obsFeatures": 162,
+        "sampling": "policy samples"
+      }
+    }
+  },
+  "measured": {
+    "hard": {
+      "metric": "score vs scripted zoner bot (weakest seat of the weakest gate bot)",
+      "value": 0.9925,
+      "ci95": [
+        0.978184,
+        0.997446
+      ],
+      "n": 400,
+      "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball and throwtap bots under the same limits and delayed view",
+      "siteElo": 2550.096934,
+      "measuredAt": "2026-10-27T07:17:51.511Z",
+      "harness": "python",
+      "commit": "918ac35"
+    }
+  },
+  "unpublished": {
+    "easy": "in training: no snapshot cleared the scripted-bot gate during training, so easy is not published.",
+    "medium": "in training: no snapshot cleared the scripted-bot gate during training, so medium is not published.",
+    "champion": "in training: no snapshot cleared the scripted-bot gate during training, so champion is not published."
+  },
+  "learnsFromHumans": false
+}

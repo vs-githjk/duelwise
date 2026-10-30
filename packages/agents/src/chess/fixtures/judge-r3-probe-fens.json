@@ -1,0 +1,38 @@
+[
+ {
+  "tag": "hard:0:28",
+  "fen": "r2qr1k1/ppp2pbp/2n1b1p1/2B1p3/6nP/1P2P3/P1PPN1P1/1RQK1BNR b - - 2 14",
+  "san": "b6",
+  "uci": "b7b6"
+ },
+ {
+  "tag": "hard:0:58",
+  "fen": "r3q1k1/p4pb1/6pp/2B5/2P1b2P/3pP2N/P2Pn1P1/1R1Q1K2 b - - 3 29",
+  "san": "Nc3",
+  "uci": "e2c3"
+ },
+ {
+  "tag": "hard:1:28",
+  "fen": "r4rk1/pppq1pbp/5np1/3pn1N1/P5P1/N1P2P2/1PQP3P/R1B3KR b - - 2 14",
+  "san": "Nd3",
+  "uci": "e5d3"
+ },
+ {
+  "tag": "hard:2:46",
+  "fen": "3r2k1/pbq2ppp/1p3n2/n7/PP6/4rP1P/QK2PbP1/RN3BNR b - - 0 23",
+  "san": "Nc6",
+  "uci": "a5c6"
+ },
+ {
+  "tag": "hard:2:66",
+  "fen": "3r2k1/pb3ppp/1p6/1P2r3/n1Nn2P1/4bP1P/4P3/K2R1BNR b - - 1 33",
+  "san": "Rc5",
+  "uci": "e5c5"
+ },
+ {
+  "tag": "medium:2:40",
+  "fen": "1rr3k1/3bppb1/p5pp/q7/P3QP2/1P5N/3NP1PP/1R2KB1R b K - 2 20",
+  "san": "Bb2",
+  "uci": "g7b2"
+ }
+]
