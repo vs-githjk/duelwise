@@ -48,3 +48,5 @@ html:has(.touch-play-stage) { overflow: hidden; overscroll-behavior: none }
 .touch-play-stage .fh-top { left: var(--pad); right: var(--pad) }
 .touch-play-stage .fh-gauge.l { left: var(--pad) }
 .touch-play-stage .fh-gauge.r { right: var(--pad) }
+/* The labelled fallback view note sits top centre, under the timer and clear of the stick, the buttons and the HUD boxes. */
+.touch-play-stage .fighter-debug-note, .touch-play-stage .arena-debug-note { left: 50%; right: auto; bottom: auto; top: 30%; transform: translateX(-50%); white-space: nowrap }
