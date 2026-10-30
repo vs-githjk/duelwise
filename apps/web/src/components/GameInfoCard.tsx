@@ -17,7 +17,6 @@ export function GameInfoCard({ card }: { card: CardData }) {
       <div className="grid content-start gap-1.5 p-4">
         <div className="flex flex-wrap items-baseline gap-2">
           <h3 className="font-display text-display-sm">{cfg.displayName}</h3>
-          {cfg.devices === 'desktop' && <span className="rounded-full bg-peach-soft px-2.5 py-0.5 font-mono text-xs font-medium uppercase tracking-wider text-peach-deep">Phone and desktop</span>}
           {card.learnsFromHumans && <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-xs font-semibold text-good-ink" data-testid={`info-learns-chip-${id}`}>Learns from you</span>}
         </div>
         <p className="text-sm text-muted" data-testid={`info-note-${id}`}>{card.note}</p>

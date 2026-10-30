@@ -86,8 +86,8 @@ test.describe('landing', () => {
     for (const level of LEVELS) await expect(page.getByTestId(`path-info-${level}`)).toBeVisible()
     await expect(page.getByTestId('landing-board')).toBeVisible()
     await expect(page.getByTestId('how-it-learns')).toBeVisible()
-    await expect(page.getByTestId('game-info-fighter')).toContainText('Phone and desktop')
-    await expect(page.getByTestId('game-info-arena')).toContainText('Phone and desktop')
+    await expect(page.getByTestId('game-info-fighter')).not.toContainText('Phone and desktop')
+    await expect(page.getByTestId('game-info-arena')).not.toContainText('Phone and desktop')
     await expect(page.getByText('Desktop', { exact: true })).toHaveCount(0)
     // Step in is the one door.
     await expect(page.getByTestId('step-in')).toHaveAttribute('href', '/play')
@@ -124,7 +124,7 @@ test.describe('landing', () => {
           await expect(card).toContainText('In development')
         }
         await expect(card.getByRole('link', { name: 'The AI' })).toHaveAttribute('href', `/agents/${PRODUCT.games[game].slug}`)
-        if (PRODUCT.games[game].devices === 'desktop') await expect(card).toContainText('Phone and desktop')
+        await expect(card).not.toContainText('Phone and desktop')
       }
     })
   }
