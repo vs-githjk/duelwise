@@ -76,7 +76,9 @@ export default defineConfig({
       publicAssets: [{ dir: resvgPublicDir(), baseURL: '/_resvg', maxAge: 604800 }],
       // Only the model folders (/agents/<game>/<version>/...) are static; the SSR pages /agents/<slug> carry the viewer's name and must not be cached.
       // The model files are static and large; let browsers and the CDN keep them. A new model gets a new file name or folder.
-      hooks: { compiled: (nitro: { options: { output: { serverDir: string } } }) => copyOrtFiles(nitro.options.output.serverDir) },
+      // Added as a module, not as `hooks.compiled`: a `compiled` key in the config replaces the deploy preset's own compiled hook
+      // (the Vercel preset writes .vercel/output/config.json there), so the routes file was never written and every page 404ed.
+      modules: [(nitro: { options: { output: { serverDir: string } }; hooks: { hook: (name: 'compiled', fn: () => void) => void } }) => nitro.hooks.hook('compiled', () => copyOrtFiles(nitro.options.output.serverDir))],
       routeRules: {
         '/**': { headers: SECURITY_HEADERS },
         // A browser must re-check the worker on every visit, or an update never reaches anyone.
