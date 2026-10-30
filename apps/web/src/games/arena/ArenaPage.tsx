@@ -98,7 +98,7 @@ function ControlsPanel({ keys, onChange, onClose }: { keys: KeyMap; onChange: (k
   return (
     <section className="grid w-full max-w-lg gap-4 rounded-card border border-line bg-surface p-6 text-ink shadow-card" aria-label="Controls" role="dialog" data-no-capture>
       <h2 className="font-display text-display-md">Controls</h2>
-      <p className="text-sm text-muted">Mouse aims and the left button fires. Keyboard and mouse only for now; gamepad comes later. Select a key to change it, then press the new key.</p>
+      <p className="text-sm text-muted">A mouse or trackpad aims. Left click or F fires, and the arrow keys move as well as W A S D. Keyboard and mouse only for now; gamepad comes later. Select a key to change it, then press the new key.</p>
       <ul className="grid gap-1.5">
         {ACTIONS.map((a) => (
           <li key={a} className="flex items-center justify-between gap-3 text-sm">
@@ -302,7 +302,7 @@ export default function ArenaPage() {
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">
-            First person, first to 7 rounds on Coldstore. You buy at the start of every round and so does the opponent, with the same rules and the same money. Mouse aims, left button fires.
+            First person, first to 7 rounds on Coldstore. You buy at the start of every round and so does the opponent, with the same rules and the same money. A mouse or trackpad aims; left click or F fires.
           </p>
           <LevelPicker value={picked} onChange={setPicked}
             levels={Object.fromEntries(LEVELS.map((l) => [l, { preview: !published(l), practice: !published(l), strength: published(l) ? 'Strength tested' : undefined }]))}

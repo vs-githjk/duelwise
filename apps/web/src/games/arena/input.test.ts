@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { MOVE } from '@duelwise/core/src/games/arena/input'
-import { ArenaInputSampler, DEFAULT_KEYS, DEFAULT_SETTINGS, cmPer360, parseKeyMap, parseSettings, rebind } from './input'
+import { ACTIONS, ArenaInputSampler, DEFAULT_KEYS, DEFAULT_SETTINGS, cmPer360, parseKeyMap, parseSettings, rebind } from './input'
 
 const press = (s: ArenaInputSampler, ...codes: string[]) => codes.forEach((c) => s.down(c))
 
@@ -20,6 +20,73 @@ describe('arena keyboard and mouse', () => {
     expect(s.sample().move).toBe(MOVE.B)
     s.blur()
     expect(s.sample().move).toBe(MOVE.N)
+  })
+
+  test('the arrow keys move as a second binding next to WASD', () => {
+    const s = new ArenaInputSampler()
+    press(s, 'ArrowUp')
+    expect(s.sample().move).toBe(MOVE.F)
+    press(s, 'ArrowRight')
+    expect(s.sample().move).toBe(MOVE.FR)
+    s.up('ArrowUp')
+    press(s, 'ArrowDown')
+    expect(s.sample().move).toBe(MOVE.BR)
+    press(s, 'ArrowLeft')
+    expect(s.sample().move).toBe(MOVE.B)
+    // Mixed: W and the Down arrow are forward and back, so they cancel like any opposite pair.
+    s.blur()
+    press(s, 'KeyW', 'ArrowDown')
+    expect(s.sample().move).toBe(MOVE.N)
+  })
+
+  test('F fires like the mouse button: held keeps firing, a short tap still fires once, release stops, same input shape', () => {
+    const s = new ArenaInputSampler()
+    s.down('KeyF'); s.up('KeyF')
+    expect(s.sample().fire).toBe(1)
+    expect(s.sample().fire).toBe(0)
+    s.down('KeyF')
+    expect(s.sample().fire).toBe(1)
+    expect(s.sample().fire).toBe(1)
+    s.up('KeyF')
+    expect(s.sample().fire).toBe(0)
+    // The sim input is the same object shape as before: the new binding adds no field and no action to the replay.
+    const keys = Object.keys(s.sample()).sort()
+    expect(keys).toEqual(Object.keys({ ...new ArenaInputSampler().sample() }).sort())
+    expect(keys).toContain('fire')
+    // F and the mouse button together are still one fire.
+    s.mouseDown(0); s.down('KeyF')
+    expect(s.sample().fire).toBe(1)
+    s.mouseUp(0)
+    expect(s.sample().fire).toBe(1)
+    s.up('KeyF')
+    expect(s.sample().fire).toBe(0)
+  })
+
+  test('fire can be rebound like the others, and no default key does two things', () => {
+    const moved = rebind(DEFAULT_KEYS, 'fire', 'KeyG')
+    expect(moved.fire).toEqual(['KeyG'])
+    const s = new ArenaInputSampler(moved)
+    s.down('KeyF')
+    expect(s.sample().fire).toBe(0)
+    s.down('KeyG')
+    expect(s.sample().fire).toBe(1)
+    // Binding fire to a key another action had takes it from that action.
+    const taken = rebind(DEFAULT_KEYS, 'fire', 'Space')
+    expect(taken.jump).toEqual([])
+    const all = ACTIONS.flatMap((a) => DEFAULT_KEYS[a])
+    expect(new Set(all).size).toBe(all.length)
+    // The keys the page reads outside the map stay free: buy keys, Tab is scoreboard, Esc is pause.
+    for (const reserved of ['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3']) expect(all).not.toContain(reserved)
+    expect(DEFAULT_KEYS.fire).toEqual(['KeyF'])
+    expect(DEFAULT_KEYS.back).toContain('KeyS')
+  })
+
+  test('a key map saved before Fire existed keeps its bindings and gets F for fire', () => {
+    const { fire: _f, ...old } = DEFAULT_KEYS
+    const saved = JSON.stringify({ ...old, forward: ['KeyI'] })
+    const m = parseKeyMap(saved)
+    expect(m.forward).toEqual(['KeyI'])
+    expect(m.fire).toEqual(['KeyF'])
   })
 
   test('buttons: jump, crouch (two keys), walk, reload', () => {
@@ -123,7 +190,9 @@ describe('arena keyboard and mouse', () => {
   test('rebinding takes the key from the action that had it', () => {
     const m = rebind(DEFAULT_KEYS, 'jump', 'KeyW')
     expect(m.jump).toEqual(['KeyW'])
-    expect(m.forward).toEqual([])
+    // W moves off forward; forward keeps its second binding, so the key is never on two actions.
+    expect(m.forward).toEqual(['ArrowUp'])
+    expect(m.forward).not.toContain('KeyW')
   })
 
   test('malformed saved data gives the defaults', () => {
