@@ -8,6 +8,7 @@ import { personaFor } from '../../personas'
 import { ago, recentCsv, utcTime } from './format'
 import { DevicesPanel, DriftPanel, KpiRow, LengthPanel, PerGamePanel, WinsPanel } from './Panels'
 import { RecentPanel, WhoPlayedPanel } from './Tables'
+import { AdminSection } from './Admin'
 import { Card } from './Card'
 
 export interface OwnerFilters {
@@ -32,6 +33,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
   const [revealError, setRevealError] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const [clockNow, setClockNow] = useState<number | null>(null)
+  const [adminRefs, setAdminRefs] = useState<string[]>([])
 
   // The page refreshes itself every minute; if a refresh stops arriving, say so instead of showing old numbers as current.
   useEffect(() => {
@@ -46,7 +48,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
   const behindMin = clockNow !== null ? Math.round((clockNow - new Date(v.generatedAt).getTime()) / 60_000) : 0
   const stale = clockNow !== null && clockNow - new Date(v.generatedAt).getTime() > STALE_MS
 
-  const shownRefs = [...new Set([...v.recent.rows.filter((r) => r.playerKind === 'user').map((r) => r.player), ...v.whoPlayed.filter((p) => p.playerKind === 'user').map((p) => p.player)])]
+  const shownRefs = [...new Set([...v.recent.rows.filter((r) => r.playerKind === 'user').map((r) => r.player), ...v.whoPlayed.filter((p) => p.playerKind === 'user').map((p) => p.player), ...adminRefs])]
   const missing = emails === null ? [] : shownRefs.filter((r) => !(r in emails))
   const missingKey = missing.join(',')
   useEffect(() => {
@@ -168,6 +170,8 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
           </span>
         </button>
       </div>
+
+      <AdminSection emails={emails} onRefs={setAdminRefs} />
 
       <RecentPanel v={v} emails={emails} onPage={(page) => onFilters({ page })} onCsv={downloadCsv} />
       <WhoPlayedPanel v={v} emails={emails} />
