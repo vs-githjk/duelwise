@@ -38,7 +38,7 @@ Status of this guide: the repo side was checked (`bun run smoke` passes on a pro
    - Framework preset: Other (the build output comes from Nitro, which detects Vercel on its own).
    - Root Directory: `apps/web`, with "Include source files outside of the Root Directory in the Build Step" switched on. The web app imports the workspace packages in `packages/`, so they must be in the build. (Not tested by an agent. If the install fails to find `bun.lock`, set Root Directory to the repository root and the build command to `bun run --cwd apps/web build`; whether the Nitro output is then picked up is unverified.)
    - Install command: `bun install`. Build command: `bun run build`.
-   - `apps/web/vercel.json` already sets `"bunVersion": "1.x"`.
+   - Framework Preset: **Nitro**. The server runs on Vercel's Node runtime (no `vercel.json`); the Bun runtime ran out of memory on every request.
 4. Do not deploy yet. Add the environment variables first (section 5), because the sign-in callbacks need `SITE`.
 
 Limits that matter on Hobby: request bodies are capped at 4.5 MB (the match upload endpoint answers 413 before that), and `apps/web/public` must stay under the 150 MB budget in the plan.
