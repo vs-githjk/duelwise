@@ -20,7 +20,7 @@ export interface OwnerParams {
 const NOT_FOUND: HandlerResponse<{ error: string }> = { status: 404, body: { error: 'not found' } }
 /** Most events one view reads; a bigger audience needs a SQL rollup, which this page does not do yet. */
 const EVENT_CAP = 50_000
-const MAX_REVEAL = 200
+const MAX_REVEAL = 100
 
 /** Reads untrusted query input into known values. */
 export function parseOwnerParams(q: Record<string, unknown>): OwnerParams {

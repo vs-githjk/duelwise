@@ -74,7 +74,7 @@ function Bars({ days, label, testId }: { days: DayCount[]; label: string; testId
       <div role="img" aria-label={`${label}: ${total} in the last ${days.length} days. ${days.map((d) => `${shortDate(d.day)} ${d.count}`).join(', ')}`} className="flex h-28 items-end gap-1">
         {days.map((d) => (
           <div key={d.day} className="flex h-full min-w-0 flex-1 flex-col justify-end gap-1" title={`${shortDate(d.day)}: ${d.count}`}>
-            <span className="text-center text-[10px] leading-none text-muted tabular">{d.count || ''}</span>
+            <span className="text-center text-xs leading-none text-muted tabular">{d.count || ''}</span>
             <div className="w-full rounded-t-sm" style={{ height: `${d.count ? Math.max(4, Math.round((d.count / max) * 80)) : 2}px`, background: d.count ? 'var(--action)' : 'var(--line)' }} />
           </div>
         ))}

@@ -48,7 +48,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
   const behindMin = clockNow !== null ? Math.round((clockNow - new Date(v.generatedAt).getTime()) / 60_000) : 0
   const stale = clockNow !== null && clockNow - new Date(v.generatedAt).getTime() > STALE_MS
 
-  const shownRefs = [...new Set([...v.recent.rows.filter((r) => r.playerKind === 'user').map((r) => r.player), ...v.whoPlayed.filter((p) => p.playerKind === 'user').map((p) => p.player), ...adminRefs])]
+  const shownRefs = [...new Set([...v.recent.rows.filter((r) => r.playerKind === 'user').map((r) => r.player), ...v.whoPlayed.filter((p) => p.playerKind === 'user').map((p) => p.player), ...adminRefs])].slice(0, 100)
   const missing = emails === null ? [] : shownRefs.filter((r) => !(r in emails))
   const missingKey = missing.join(',')
   useEffect(() => {
