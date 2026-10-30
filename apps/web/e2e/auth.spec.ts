@@ -12,6 +12,18 @@ async function devSignIn(page: Page, name: string) {
 }
 
 test.describe('sign-in and the training notice', () => {
+  test('the sign-in page is a centred card that says why, keeps guests playing and links the privacy page', async ({ page }) => {
+    await page.goto('/signin')
+    await page.waitForLoadState('networkidle')
+    const root = page.getByTestId('signin')
+    await expect(root.getByRole('heading', { level: 1 })).toHaveText('Keep your place')
+    await expect(root).toContainText('Playing never needs it')
+    await expect(root.getByTestId('signin-privacy').getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy')
+    await expect(root.getByTestId('signin-privacy')).toContainText('name and email')
+    await root.getByTestId('signin-guest').click()
+    await expect(page).toHaveURL(/\/play$/)
+  })
+
   test('a guest sees Sign in; dev sign-in swaps it for the user menu', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
