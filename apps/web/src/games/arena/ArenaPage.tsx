@@ -1,4 +1,5 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
+import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -278,6 +279,11 @@ export default function ArenaPage() {
   const inMatch = screen === 'match'
   const touch = useTouchDevice()
   usePlayViewport(touch && inMatch)
+  const gate = useLandscapeGate(touch)
+  useReleaseLandscape(inMatch, touch)
+  const matchLive = inMatch && (match.phase === 'loading' || match.phase === 'playing')
+  const rotateBlock = (gate.portrait && matchLive) || gate.waiting
+  useRotatePause({ block: gate.portrait && matchLive, playing: match.phase === 'playing', paused: match.paused, pause: match.pause, resume: match.resume })
   const over = match.phase === 'over'
   const result = match.finished?.record.result
   const playing = match.phase === 'playing'
@@ -303,7 +309,7 @@ export default function ArenaPage() {
             descriptions={Object.fromEntries(LEVELS.map((l) => [l, limitsText(l)]))}
             action={
             <div className="flex flex-wrap gap-2">
-            <button type="button" className={btnPrimary} onClick={() => void begin()}>
+            <button type="button" className={btnPrimary} onClick={() => gate.requestStart(() => void begin())}>
               Start match vs {personaFor(picked).name}
             </button>
             <button type="button" className={btnPlain} onClick={() => setPanel('settings')}>
@@ -427,14 +433,14 @@ export default function ArenaPage() {
                   leaderboard={false}
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}
                   humanSeat={0}
-                  onRematch={() => void begin(picked)}
+                  onRematch={() => gate.requestStart(() => void begin(picked))}
                   onChangeLevel={() => {
                     match.quit()
                     setScreen('prematch')
                   }}
                   onPlayLevel={(l) => {
                     setPicked(l)
-                    void begin(l)
+                    gate.requestStart(() => void begin(l))
                   }}
                   extra={
                     hud ? (
@@ -476,6 +482,7 @@ export default function ArenaPage() {
           </p>
         ) : null}
       </div>
+      {rotateBlock ? <RotateOverlay cancelLabel={gate.waiting ? 'Cancel' : 'Quit match'} onCancel={() => { if (gate.waiting) gate.cancel(); else match.quit() }} /> : null}
     </GameShell>
   )
 }

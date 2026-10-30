@@ -3,7 +3,7 @@ import { PRODUCT } from '@duelwise/core/src/product.ts'
 import { fighterCore } from '@duelwise/core/src/games/fighter/core.ts'
 import { BTN, DIR } from '@duelwise/core/src/games/fighter/input.ts'
 
-// Phone touch controls for Tinderbox (fighter) and Coldstore (arena): layout on iPhone 13 and Pixel 7, real
+// Phone touch controls for Tinderbox (fighter) and Coldstore (arena): layout on iPhone 13 and Pixel 7 in landscape (portrait is held behind the rotate overlay: e2e/mobile.spec.ts), real
 // multi-touch through CDP touch events, drag to aim, held fire, the buy menu, and no touch controls on desktop.
 
 /** A phone profile that runs in the chromium project (the device presets name webkit). */
@@ -27,21 +27,18 @@ async function centerOf(page: Page, locator: ReturnType<Page['locator']>, dx = 0
 const touch = (cdp: CDPSession, type: 'touchStart' | 'touchMove' | 'touchEnd', pts: Pt[]) =>
   cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map((p) => ({ x: p.x, y: p.y, id: p.id })) })
 
-for (const [name, profile] of [['iPhone 13 landscape', devices['iPhone 13 landscape']], ['iPhone 13 portrait', devices['iPhone 13']], ['Pixel 7 landscape', devices['Pixel 7 landscape']]] as const) {
+for (const [name, profile] of [['iPhone 13 landscape', devices['iPhone 13 landscape']], ['Pixel 7 landscape', devices['Pixel 7 landscape']]] as const) {
   for (const game of ['fighter', 'arena'] as const) {
     test.describe(`${game} on ${name}`, () => {
       test.use(phone(profile))
       test('controls are 48 px or larger, inside the screen, with no horizontal scroll', async ({ page }) => {
         await begin(page, game)
-        const portrait = name.includes('portrait')
         const info = await page.evaluate(() => ({
           fits: document.documentElement.scrollWidth <= innerWidth, w: innerWidth, h: innerHeight,
-          rotate: getComputedStyle(document.querySelector('.touch-rotate')!).display,
           boxes: [...document.querySelectorAll('.touch-controls button, .touch-stick')].map((e) => { const r = e.getBoundingClientRect(); return { n: e.getAttribute('aria-label') ?? e.textContent, w: r.width, h: r.height, l: r.left, t: r.top, r: r.right, b: r.bottom } }),
         }))
         if (process.env.TOUCH_SHOTS) await page.screenshot({ path: `${process.env.TOUCH_SHOTS}/${game}-${name.replace(/ /g, '-').toLowerCase()}.png` })
         expect(info.fits).toBe(true)
-        expect(info.rotate).toBe(portrait ? 'block' : 'none')
         for (const b of info.boxes) {
           expect(b.w, `${b.n} width`).toBeGreaterThanOrEqual(48)
           expect(b.h, `${b.n} height`).toBeGreaterThanOrEqual(48)

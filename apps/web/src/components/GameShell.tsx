@@ -63,12 +63,12 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (
     <OpponentContext.Provider value={{ game, level }}>
-    <div className={cn('mx-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-4 py-4', className)} data-testid="game-shell" data-game={game}>
+    <div className={cn('mx-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-4 py-4 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-2', className)} data-testid="game-shell" data-game={game}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link to="/play" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-ink">
           All games
         </Link>
-        <h1 className="font-display text-display-md">{cfg.displayName}</h1>
+        <h1 className="font-display text-display-md [@media(max-height:700px)]:text-2xl">{cfg.displayName}</h1>
         {level ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-0.5 pl-0.5 pr-2.5 text-xs font-semibold text-ink" data-testid="header-persona">
             <Avatar level={level} size={22} decorative />
@@ -81,7 +81,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
           {cfg.kind !== 'realtime' ? <Link to="/leaderboard/$game" params={{ game: cfg.slug }} className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-ink" data-testid="game-leaderboard-link">
             Leaderboard
           </Link> : null}
-          <button type="button" onClick={openGuide} aria-label={level ? "How to play" : undefined} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">{level ? "?" : "How to play"}</button>
+          <button type="button" onClick={openGuide} aria-label={level ? "How to play" : undefined} className="min-h-11 min-w-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">{level ? "?" : "How to play"}</button>
           {actions}
         </div>
       </header>

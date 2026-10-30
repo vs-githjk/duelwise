@@ -1,3 +1,4 @@
+html:has(.touch-play-stage) { overflow: hidden; overscroll-behavior: none }
 .touch-play-stage { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100dvh !important; aspect-ratio: auto !important; z-index: 100; border-radius: 0 !important; touch-action: none; overscroll-behavior: none }
 .touch-controls { position: absolute; inset: 0; z-index: 20; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none }
 .touch-controls button, .touch-stick, .touch-aim { pointer-events: auto; touch-action: none }
@@ -8,8 +9,6 @@
 .touch-buttons button, .touch-pause { min-width: 48px; min-height: 48px; padding: 4px; border: 1px solid #ffffffaa; border-radius: 12px; color: white; background: #101828bb; font-size: 11px; font-weight: 700; text-transform: capitalize }
 .touch-buttons button:active { background: #b7502d }
 .touch-pause { position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)) }
-.touch-rotate { display: none; position: absolute; top: 36%; left: 50%; transform: translateX(-50%); color: white; background: #101828bb; padding: 4px 8px; border-radius: 6px; font-size: 11px; white-space: nowrap }
-@media (orientation: portrait) { .touch-rotate { display: block } }
 .touch-play-stage .ab-menu { z-index: 25; right: max(8px, env(safe-area-inset-right)); top: max(60px, env(safe-area-inset-top)); width: min(280px, 55%); max-height: 45%; }
 .touch-play-stage .fighter-ov, .touch-play-stage .arena-ov { z-index: 30; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 
@@ -27,7 +26,25 @@
 .touch-play-stage .fh-gauge { bottom: auto; top: 110px; width: 300px }
 .touch-play-stage .fh-gauge .seg6 i { width: 44px }
 .touch-play-stage .fh-gauge .sup i { width: 56px }
-.touch-play-stage .ah-vitals { left: 160px; bottom: 20px }
+.touch-play-stage .ah-vitals { left: calc(150px / var(--s, 1)); bottom: 20px }
 .touch-play-stage .ah-ammo { right: 540px; bottom: 20px }
 .touch-play-stage .ah-pill { display: none }
-@media (orientation: portrait) { .touch-pause { top: 20% } }
+
+/* "Turn your phone sideways" overlay (landscape.tsx), Sunroom: warm canvas, ink text, blue action. */
+.rotate-ov { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: var(--canvas); color: var(--ink); text-align: center; overscroll-behavior: none; touch-action: none }
+.rotate-card { display: grid; justify-items: center; gap: 14px; max-width: 22rem }
+.rotate-phone { color: var(--action) }
+.rotate-phone-body { transform-box: view-box; transform-origin: 32px 28px; animation: rotate-hint 2.6s ease-in-out infinite }
+.rotate-arrow { color: var(--peach-deep) }
+.rotate-title { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.15; font-weight: 700 }
+.rotate-line { color: var(--muted); font-size: 1rem; line-height: 1.4 }
+.rotate-cancel { min-height: 48px; min-width: 120px; padding: 0 22px; border: 1px solid var(--line); border-radius: var(--radius-control, 12px); background: var(--surface); color: var(--ink); font-weight: 600; font-size: 1rem }
+@keyframes rotate-hint { 0%, 15% { transform: rotate(0deg) } 55%, 85% { transform: rotate(-90deg) } 100% { transform: rotate(0deg) } }
+@media (prefers-reduced-motion: reduce) { .rotate-phone-body { animation: none; transform: rotate(-90deg) } }
+/* A short landscape window (the overlay can also show briefly while a phone turns): keep it on one screen. */
+@media (max-height: 420px) { .rotate-card { gap: 8px } .rotate-phone { width: 56px; height: 56px } .rotate-title { font-size: 1.25rem } .rotate-line { font-size: 0.875rem } }
+/* Where the HUD is fitted by height and fills the screen (a 16:9 phone), keep the top bars and gauges clear of the Pause button: symmetric, so the timer stays centred. */
+.touch-play-stage .fh-scale { --pad: max(48px, calc(64px / var(--s, 1) - (50vw / var(--s, 1) - 720px))) }
+.touch-play-stage .fh-top { left: var(--pad); right: var(--pad) }
+.touch-play-stage .fh-gauge.l { left: var(--pad) }
+.touch-play-stage .fh-gauge.r { right: var(--pad) }

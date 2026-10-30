@@ -1,4 +1,5 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
+import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -259,6 +260,11 @@ export default function FighterPage() {
   const inMatch = screen === 'match'
   const touch = useTouchDevice()
   usePlayViewport(touch && inMatch)
+  const gate = useLandscapeGate(touch)
+  useReleaseLandscape(inMatch, touch)
+  const matchLive = inMatch && (match.phase === 'loading' || match.phase === 'playing')
+  const rotateBlock = (gate.portrait && matchLive) || gate.waiting
+  useRotatePause({ block: gate.portrait && matchLive, playing: match.phase === 'playing', paused: match.paused, pause: match.pause, resume: match.resume })
   const over = match.phase === 'over'
   const result = match.finished?.record.result
   const showMenu = match.paused && panel === null
@@ -345,7 +351,7 @@ export default function FighterPage() {
           </div>
           <p className="text-sm text-muted">{SHARED_MOVES_NOTE} The AI picks after you.</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={btnPrimary} onClick={() => void begin()}>
+            <button type="button" className={btnPrimary} onClick={() => gate.requestStart(() => void begin())}>
               Start match vs {personaFor(picked).name}
             </button>
             <button type="button" className={btnPlain} onClick={() => setScreen('prematch')}>
@@ -408,7 +414,7 @@ export default function FighterPage() {
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}
                   humanSeat={0}
                   onRematch={() => {
-                    void match.start(host.current!, { level: picked, choices: [me, aiChoiceFor(me)] })
+                    gate.requestStart(() => void match.start(host.current!, { level: picked, choices: [me, aiChoiceFor(me)] }))
                   }}
                   onChangeLevel={() => {
                     match.quit()
@@ -416,7 +422,7 @@ export default function FighterPage() {
                   }}
                   onPlayLevel={(l) => {
                     setPicked(l)
-                    void match.start(host.current!, { level: l, choices: [me, aiChoiceFor(me)] })
+                    gate.requestStart(() => void match.start(host.current!, { level: l, choices: [me, aiChoiceFor(me)] }))
                   }}
                   extra={
                     highlights.length > 0 ? (
@@ -459,6 +465,7 @@ export default function FighterPage() {
           </p>
         ) : null}
       </div>
+      {rotateBlock ? <RotateOverlay cancelLabel={gate.waiting ? 'Cancel' : 'Quit match'} onCancel={() => { if (gate.waiting) gate.cancel(); else match.quit() }} /> : null}
     </GameShell>
   )
 }
