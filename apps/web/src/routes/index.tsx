@@ -1,15 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { PRODUCT } from '@duelwise/core/src/product'
 import { GameInfoCard } from '../components/GameInfoCard'
 import { Hero } from '../components/Hero'
 import { LEVELS } from '../lib/level-info'
 import { personaFor } from '../personas'
 import { HowItLearns } from '../components/HowItLearns'
+import { HOME_URL_META, SHARE_TITLE } from '../lib/site-meta'
 import { getLandingData } from '../server/landing-fns'
 
 export const Route = createFileRoute('/')({
   loader: () => getLandingData(),
-  head: () => ({ meta: [{ title: `${PRODUCT.name}: ${PRODUCT.tagline}` }] }),
+  head: () => ({ meta: [{ title: SHARE_TITLE }, HOME_URL_META] }),
   component: Landing,
 })
 

@@ -10,6 +10,7 @@ import { OfflineChip } from '../components/OfflineChip'
 import { ServiceWorker } from '../components/ServiceWorker'
 import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
+import { shareMeta } from '../lib/site-meta'
 import { getViewer } from '../server/profile-fns'
 
 /** The last signed-in answer this browser tab got, so a page change with no connection keeps the header as it was. Browser only. */
@@ -27,7 +28,7 @@ export const Route = createRootRoute({
     }
   },
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: PRODUCT.name }, { name: 'description', content: PRODUCT.tagline }, { name: 'theme-color', content: '#2b6fe6' }, { name: 'apple-mobile-web-app-capable', content: 'yes' }, { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }, { name: 'apple-mobile-web-app-title', content: 'Duelwise' }],
+    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: PRODUCT.name }, { name: 'theme-color', content: '#2b6fe6' }, { name: 'apple-mobile-web-app-capable', content: 'yes' }, { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }, { name: 'apple-mobile-web-app-title', content: 'Duelwise' }, ...shareMeta()],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },

@@ -47,7 +47,7 @@ test.describe('landing', () => {
   test('the hero is the fight card: the challenge, four opponents with real records, one Step in to the game picker', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Can you beat my agents?')
-    await expect(page).toHaveTitle(new RegExp(PRODUCT.tagline.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    await expect(page).toHaveTitle('Duelwise: Can you beat my agents?')
     for (const level of LEVELS) {
       const card = page.getByTestId(`fighter-${level}`)
       await expect(card).toBeVisible()
@@ -281,5 +281,21 @@ test.describe('landing bundle', () => {
       // The dev server of a combined run watches this folder; leaving a production build behind upsets its glob imports.
       rmSync(join(WEB, '.output'), { recursive: true, force: true })
     }
+  })
+})
+
+test.describe('link preview tags', () => {
+  test('the site shares an absolute 1200x630 image and the truthful copy', async ({ page, request }) => {
+    await page.goto('/')
+    const content = (sel: string) => page.locator(sel).getAttribute('content')
+    expect(await content('meta[property="og:image"]')).toBe('https://duelwise.app/og/duelwise-og.png?v=2')
+    expect(await content('meta[property="og:image:width"]')).toBe('1200')
+    expect(await content('meta[property="og:image:height"]')).toBe('630')
+    expect(await content('meta[property="og:title"]')).toBe('Duelwise: Can you beat my agents?')
+    expect(await content('meta[name="twitter:card"]')).toBe('summary_large_image')
+    expect(await content('meta[name="description"]')).toBe(await content('meta[property="og:description"]'))
+    expect(await page.content()).not.toMatch(/learns from every match/i)
+    const img = await request.get('/og/duelwise-og.png')
+    expect(img.status()).toBe(200)
   })
 })

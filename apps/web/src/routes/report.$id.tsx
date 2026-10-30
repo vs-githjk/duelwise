@@ -26,6 +26,11 @@ export const Route = createFileRoute('/report/$id')({
         { property: 'og:image:height', content: '630' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:image', content: image },
+        { property: 'og:image:alt', content: title },
+        { name: 'twitter:image:alt', content: title },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: PRODUCT.tagline },
+        { property: 'og:url', content: `${loaderData.origin}/report/${v.id}` },
       )
     }
     return { meta }
