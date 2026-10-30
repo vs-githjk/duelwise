@@ -32,7 +32,8 @@ export const Route = createRootRoute({
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
       { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
-      { rel: 'icon', href: 'data:,' },
+      { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
+      { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icons/favicon-32.png' },
       // The two faces every page paints first; Geist Mono and the rest load when something uses them.
       { rel: 'preload', href: '/fonts/geist-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'preload', href: '/fonts/fraunces-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
