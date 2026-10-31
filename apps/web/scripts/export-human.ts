@@ -164,6 +164,8 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
     if (page.length === 0) break
     for (const r of page) {
       total++
+      // First of all rules: an opted-out match must not even reach the duplicate check, or it would mark the opted-in copy of itself as a repeat.
+      if (o.excludePokerOptOut && r.poker_ok === false) { reject('poker_opt_out'); continue }
       const id = String(r.id)
       const traffic = (r.traffic as string | null) ?? null
       if (traffic === 'test') { reject('traffic_test'); continue }
@@ -203,7 +205,6 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
       }
       if (o.game === 'four') out.moves = fourMoves(rec)
       if (o.game === 'chess') out.moves = [...rec.actions].sort((a, b) => a[0] - b[0]).map((a) => decodeAbs(a[2]))
-      if (o.excludePokerOptOut && out.profileOk === false) { reject('poker_opt_out'); continue }
       candidates.push(out)
     }
     const last = page[page.length - 1]!

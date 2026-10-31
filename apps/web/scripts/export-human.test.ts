@@ -497,6 +497,36 @@ describe('review fixes', () => {
     expect(s.training).toBe(train.length)
   }, 120000)
 
+  test('an opted-out match never marks a match as seen: the opted-in copy of the same seed and actions is kept, in either order', async () => {
+    const first = await freshDb()
+    await first.db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
+    await first.add('out-first', holdemRecord('out-first', 51), { guestId: 'g-out' })
+    await first.add('in-second', holdemRecord('in-second', 51), { guestId: 'g-in' })
+    const a = await out()
+    const s1 = await exportHuman({ game: 'holdem', query: first.query, outDir: a, holdoutPercent: 0, uncapped: true, shareCap: false, excludePokerOptOut: true })
+    expect((await readRows(a, 'holdem')).map((r) => r.id)).toEqual(['in-second'])
+    expect(s1.rejected).toEqual({ poker_opt_out: 1 })
+
+    const second = await freshDb()
+    await second.db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
+    await second.add('in-first', holdemRecord('in-first', 52), { guestId: 'g-in' })
+    await second.add('out-second', holdemRecord('out-second', 52), { guestId: 'g-out' })
+    const b = await out()
+    const s2 = await exportHuman({ game: 'holdem', query: second.query, outDir: b, holdoutPercent: 0, uncapped: true, shareCap: false, excludePokerOptOut: true })
+    expect((await readRows(b, 'holdem')).map((r) => r.id)).toEqual(['in-first'])
+    expect(s2.rejected).toEqual({ poker_opt_out: 1 })
+  }, 120000)
+
+  test('every match of an opted-out player counts as an opt-out, whatever else is wrong with it, and nothing of it is decoded', async () => {
+    const t = await freshDb()
+    await t.db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
+    await t.add('folds', holdemRecord('folds', 53, 5, true), { guestId: 'g-out' }) // the filters would call this inhuman_timing
+    await t.add('broken', null, { game: 'holdem', guestId: 'g-out', record: new Uint8Array([1, 2, 3]) })
+    const s = await exportHuman({ game: 'holdem', query: t.query, outDir: await out(), holdoutPercent: 0, uncapped: true, shareCap: false, excludePokerOptOut: true })
+    expect(s.rejected).toEqual({ poker_opt_out: 2 })
+    expect(s.kept).toBe(0)
+  }, 120000)
+
   test('opted-out poker players are dropped before anything is written', async () => {
     const t = await freshDb()
     await t.db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
