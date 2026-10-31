@@ -12,9 +12,9 @@ export function LetterTracker({ words, marks }: { words: string[]; marks: number
   const group = (label: string, letters: string[], kind: number, state: string) =>
     letters.length === 0 ? null : (
       <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1" data-group={state}>
-        <span className="text-sm font-semibold text-muted">{label}</span>
+        <span className="text-base font-semibold text-muted">{label}</span>
         {letters.map((c) => (
-          <span key={c} data-letter={c} data-state={state} className="inline-flex items-center gap-0.5 rounded-control border border-line bg-surface px-1.5 font-mono text-sm font-semibold uppercase leading-6 text-ink">
+          <span key={c} data-letter={c} data-state={state} className="inline-flex items-center gap-0.5 rounded-control border border-line bg-surface px-1.5 font-mono text-base font-semibold uppercase leading-6 text-ink">
             {c}
             <Marker kind={kind} />
           </span>

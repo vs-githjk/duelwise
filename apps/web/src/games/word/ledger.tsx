@@ -140,7 +140,7 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
   const rounds = Math.max(played, you.rows.length + (live ? 1 : 0))
   return (
     <section data-testid="word-ledger" aria-label="Round ledger" data-paper="" className="lane-paper grid gap-2 rounded-card border p-3 sm:p-4">
-      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2 text-sm font-semibold text-muted sm:gap-x-3" aria-hidden="true" data-testid="ledger-header">
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2 text-base font-semibold text-muted sm:gap-x-3" aria-hidden="true" data-testid="ledger-header">
         <span />
         <b className="text-base font-bold text-ink">You</b>
         <span data-testid="ledger-opponent">{opponentName}, same word</span>
@@ -163,8 +163,8 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
           ))}
         </div>
       </div>
-      {played === 0 ? <p className="text-sm text-muted" data-testid="ledger-empty">Type a word below. Your tiles land on the left, {opponentName}'s marks on the right, without letters.</p> : null}
-      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-sm font-medium text-muted" data-testid="marker-key" aria-label="What the marks mean">
+      {played === 0 ? <p className="text-base text-muted" data-testid="ledger-empty">Type a word below. Your tiles land on the left, {opponentName}'s marks on the right, without letters.</p> : null}
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-base font-medium text-muted" data-testid="marker-key" aria-label="What the marks mean">
         {[[2, 'Right spot'], [1, 'Wrong spot'], [0, 'Not in the word']].map(([kind, label]) => (
           <li key={kind} className="inline-flex items-center gap-1"><Marker kind={kind as number} />{label}</li>
         ))}
@@ -207,8 +207,8 @@ export function ResultScore({ you, opponentName, opponent }: { you: number[][]; 
   const line = (rows: number[][]) => { const p = raceProgress(rows); return p.solved ? `Solved in ${rows.length}` : `${p.placed} of ${WORD_LENGTH} placed` }
   return (
     <dl className="grid grid-cols-2 gap-3 rounded-control bg-surface-2 px-3 py-2" data-testid="word-result-score">
-      <div className="grid min-w-0"><dt className="truncate text-sm font-semibold text-muted">You</dt><dd className="font-display text-xl font-bold tabular">{line(you)}</dd></div>
-      <div className="grid min-w-0"><dt className="truncate text-sm font-semibold text-muted">{opponentName}</dt><dd className="font-display text-xl font-bold tabular">{line(opponent)}</dd></div>
+      <div className="grid min-w-0"><dt className="truncate text-base font-semibold text-muted">You</dt><dd className="font-display text-xl font-bold tabular">{line(you)}</dd></div>
+      <div className="grid min-w-0"><dt className="truncate text-base font-semibold text-muted">{opponentName}</dt><dd className="font-display text-xl font-bold tabular">{line(opponent)}</dd></div>
     </dl>
   )
 }

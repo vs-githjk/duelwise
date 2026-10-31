@@ -96,7 +96,7 @@ export function GuessInput({ onSubmit, disabled = false, onDraft, className }: G
           Guess
         </button>
       </div>
-      <p id={errorId} role="alert" data-testid="guess-error" className="min-h-5 text-sm text-bad-ink">
+      <p id={errorId} role="alert" data-testid="guess-error" className="min-h-5 text-base text-bad-ink">
         {error}
       </p>
     </form>
