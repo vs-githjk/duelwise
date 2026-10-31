@@ -37,6 +37,11 @@ const DUCK_UP_MS = 900
 /** A hold that is never released (a speech that never ends) lets go on its own after this long. */
 const MAX_HOLD_MS = 20000
 
+/** Whether a game's match music should be on: an explicit flag from a page that knows its own phase wins, else a picked level with no result yet. */
+export function matchMusicWanted(p: { level?: unknown; result?: unknown; matchActive?: boolean }): boolean {
+  return p.matchActive ?? (p.level !== undefined && !p.result)
+}
+
 /** The loop for a game (by id), or null for a game without one. */
 export function moodForGame(game: string): Mood | null {
   return MOOD_BY_GAME[game] ?? null

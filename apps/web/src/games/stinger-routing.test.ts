@@ -39,3 +39,35 @@ for (const [name, cue] of Object.entries(games)) {
     expect(events.map((e) => e.outcome)).toEqual(['win', 'loss'])
   })
 }
+
+test('turning Sound effects off cancels a spoken line, and a line waiting for voices is dropped', async () => {
+  const { setMuted } = await import('../lib/audio')
+  const { speakLine } = await import('../lib/speech')
+  const calls = { cancel: 0, speak: 0 }
+  const holder: { ready: (() => void) | null } = { ready: null }
+  let voices: unknown[] = []
+  class Utter { constructor(public text: string) {} }
+  g.SpeechSynthesisUtterance = Utter
+  g.window = {
+    speechSynthesis: {
+      speak: () => void calls.speak++,
+      cancel: () => void calls.cancel++,
+      getVoices: () => voices,
+      addEventListener: (_t: string, fn: () => void) => { holder.ready = fn },
+    },
+  }
+  g.localStorage = { getItem: () => null, setItem: () => {} }
+  resetAudioForTests()
+  expect(speakLine('hello', { force: true })).toBe(true) // waits for voices
+  setMuted(true) // muted before the voices arrive
+  holder.ready?.()
+  expect(calls.speak).toBe(0)
+  // A line already being spoken is cancelled the moment sound effects go off.
+  setMuted(false)
+  voices = [{ lang: 'en-US', name: 'x' }]
+  expect(speakLine('again', { force: true })).toBe(true)
+  expect(calls.speak).toBe(1)
+  const before = calls.cancel
+  setMuted(true)
+  expect(calls.cancel).toBe(before + 1)
+})

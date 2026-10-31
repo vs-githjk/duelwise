@@ -171,7 +171,10 @@ function parseRange(header, size) {
 /** Safari plays a media file from the worker only when a Range request is answered with 206, so a kept copy is sliced here. */
 async function rangeFromCache(request, hit) {
   const blob = await hit.clone().blob()
-  const range = parseRange(request.headers.get('range'), blob.size)
+  const header = request.headers.get('range')
+  // Several ranges in one header are not supported: answer with the whole file (200), which the browser accepts.
+  if (header && header.indexOf(',') !== -1) return hit.clone()
+  const range = parseRange(header, blob.size)
   if (!range) return new Response(null, { status: 416, headers: { 'content-range': 'bytes */' + blob.size } })
   return new Response(blob.slice(range[0], range[1] + 1), {
     status: 206,

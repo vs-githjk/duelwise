@@ -288,7 +288,7 @@ export default function ArenaPage() {
   }, [inMatch, match.paused])
 
   return (
-    <GameShell game="arena" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="Practice" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }}>
+    <GameShell matchActive={matchLive} game="arena" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="Practice" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }}>
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">

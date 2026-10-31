@@ -280,6 +280,10 @@ describe('the music is optional', () => {
     expect(parse('bytes=20-30', 10)).toBeNull()
     expect(parse('bytes=0-1,4-5', 10)).toBeNull()
     expect(parse(null, 10)).toBeNull()
+    // A header with several ranges is not supported: the whole file comes back with 200.
+    const whole = await (sandbox.rangeFromCache as (r: unknown, h: Response) => Promise<Response>)({ headers: new Headers({ range: 'bytes=0-1,4-5' }) }, new Response('0123456789'))
+    expect(whole.status).toBe(200)
+    expect(await whole.text()).toBe('0123456789')
     const hit = new Response('0123456789', { headers: { 'content-type': 'audio/mpeg' } })
     const req = { headers: new Headers({ range: 'bytes=2-5' }) }
     const res = await (sandbox.rangeFromCache as (r: unknown, h: Response) => Promise<Response>)(req, hit)

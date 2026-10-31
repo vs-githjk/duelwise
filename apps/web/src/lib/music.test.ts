@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { isMusicOn, isMuted, resetAudioForTests, setMusicOn, setMuted, setVolume, getVolume } from './audio'
-import { DUCK_LEVEL, MUSIC_LEVEL, TRACKS, duckMusic, moodForGame, musicState, playStinger, resetMusicForTests, setMatchMusic, startMusic, tickMusic, unlockMusic } from './music'
+import { DUCK_LEVEL, MUSIC_LEVEL, TRACKS, duckMusic, matchMusicWanted, moodForGame, musicState, playStinger, resetMusicForTests, setMatchMusic, startMusic, tickMusic, unlockMusic } from './music'
 
 const g = globalThis as unknown as Record<string, unknown>
 const saved = { window: g.window, document: g.document, Audio: g.Audio, localStorage: g.localStorage }
@@ -351,6 +351,29 @@ describe('the Start tap', () => {
     expect(resumes).toBe(1)
     // The loop is routed through a gain node on that context (iOS ignores element volume), so the element itself stays at full.
     expect(els[0]!.volume).toBe(1)
+    stop()
+  })
+})
+
+describe('when a page says the match music is on', () => {
+  test('an explicit flag wins (Tinderbox and Coldstore stop at the result, which has no result slot); otherwise a level and no result', () => {
+    const live = (phase: string) => phase === 'loading' || phase === 'playing'
+    const page = (phase: string) => matchMusicWanted({ level: 'easy', matchActive: live(phase) })
+    expect([page('setup'), page('loading'), page('playing'), page('over')]).toEqual([false, true, true, false])
+    expect(matchMusicWanted({ level: 'easy' })).toBe(true)
+    expect(matchMusicWanted({ level: 'easy', result: {} })).toBe(false)
+    expect(matchMusicWanted({})).toBe(false)
+  })
+
+  test('the loop fades out when a real-time match goes from playing to over', () => {
+    const b = fakeBrowser()
+    const stop = startMusic()
+    b.fire('pointerup')
+    setMatchMusic('action')
+    tickMusic(2000)
+    setMatchMusic(matchMusicWanted({ level: 'easy', matchActive: false }) ? 'action' : null)
+    tickMusic(2000)
+    expect(els[0]!.paused).toBe(true)
     stop()
   })
 })

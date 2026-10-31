@@ -1,5 +1,5 @@
 import { VOICE_KEY } from './progress'
-import { isMuted } from './audio'
+import { isMuted, subscribeAudio } from './audio'
 import { duckMusic } from './music'
 
 /**
@@ -63,6 +63,9 @@ export function cancelSpeech(): void {
   } catch {}
 }
 
+// Turning Sound effects off silences a line that is already being spoken.
+if (typeof window !== 'undefined') subscribeAudio(() => { if (isMuted()) cancelSpeech() })
+
 /** Speaks one line once. Voices load late in some browsers, so an empty list waits for `voiceschanged` one time. */
 export function speakLine(text: string, opts: { force?: boolean } = {}): boolean {
   const s = synth()
@@ -73,6 +76,7 @@ export function speakLine(text: string, opts: { force?: boolean } = {}): boolean
   const say = () => {
     if (done) return
     done = true
+    if (isMuted()) return // muted while the voices were loading
     try {
       s.cancel()
       const u = new SpeechSynthesisUtterance(text)
