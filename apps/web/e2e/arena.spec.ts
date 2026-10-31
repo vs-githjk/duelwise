@@ -251,8 +251,8 @@ test.describe('arena play page', () => {
     const picker = page.getByTestId('level-picker')
     await expect(picker).toBeVisible()
     await expect(picker.getByText(limitsText('easy'))).toBeVisible()
-    await expect(picker.getByText('Reacts in 200 ms, at most 240 actions a minute, turns at most 540 degrees a second')).toBeVisible()
-    await expect(picker.getByText('Reacts in 50 ms, no action cap, no aim limit')).toBeVisible()
+    await expect(picker.getByText('Waits 200 ms before reacting, like a sharp human, at most 240 actions a minute, turns at most 540 degrees a second')).toBeVisible()
+    await expect(picker.getByText('Waits 50 ms before reacting, faster than a person can react, no action cap, no aim limit')).toBeVisible()
     await expect(page.getByText(PRODUCT.games.arena.displayName, { exact: false }).first()).toBeVisible()
   })
 

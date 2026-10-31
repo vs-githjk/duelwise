@@ -16,6 +16,7 @@ import { AgentLink, MAX_WAIT_MS } from './agentLink'
 import { KeyboardInput, loadKeyMap, saveKeyMap, type KeyMap } from './input'
 import type { Callout, HudView } from './hud'
 import { playCue } from './sounds'
+import { reactionText } from './strength'
 
 // One fighter match, from the seed to the replay-checked record.
 //
@@ -104,7 +105,7 @@ const MAX_INFLIGHT = 12
 /** What the page shows for a level's limits, from the same config the agent and the trainer use. */
 export function limitsText(level: Level): string {
   const c = LEVEL_LIMITS.fighter[level]
-  return `Reacts in ${delayMsFor(level)} ms, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}`
+  return `${reactionText(delayMsFor(level))}, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}`
 }
 export const delayMsFor = (level: Level): number => Math.round((LEVEL_LIMITS.fighter[level].delayFrames * 1000) / 60)
 export const apmCapFor = (level: Level): number | null => LEVEL_LIMITS.fighter[level].apmCap

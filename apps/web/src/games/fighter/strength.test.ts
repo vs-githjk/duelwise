@@ -104,3 +104,20 @@ describe('a Practice level states only the loop result the last test measured (L
     expect(practiceResult(null, 'hard')).toBeNull()
   })
 })
+
+test('the reaction line reads as a handicap on the AI, with the true numbers, never as a cheat', async () => {
+  const { reactionText } = await import('./strength')
+  const { LEVEL_LIMITS } = await import('@duelwise/core/src/limiter')
+  const { limitsText: arena } = await import('../arena/strength')
+  const { limitsText: fighter } = await import('./useFighterMatch')
+  expect(reactionText(200)).toBe('Waits 200 ms before reacting, like a sharp human')
+  expect(reactionText(300)).toBe('Waits 300 ms before reacting, like an average person')
+  expect(reactionText(50)).toBe('Waits 50 ms before reacting, faster than a person can react')
+  for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
+    for (const [text, game] of [[arena(level), 'arena'], [fighter(level), 'fighter']] as const) {
+      const ms = Math.round((LEVEL_LIMITS[game][level].delayFrames * 1000) / 60)
+      expect(text.startsWith(`Waits ${ms} ms before reacting`)).toBe(true)
+      expect(text).not.toContain('Reacts in')
+    }
+  }
+})
