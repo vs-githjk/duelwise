@@ -1,14 +1,12 @@
 import { getRequestHeader, getRequestHeaders, setResponseHeader } from '@tanstack/react-start/server'
 import { createAuth } from '../lib/auth'
 import { getServerDb } from './server-db'
-import { existingGuestId, resolveGuest } from './guest'
+import { claimGuestForOwner, existingGuestId, resolveGuest } from './guest'
 import { cookieSecure } from './origin'
 import { userOrNull } from './safe-user'
 import type { Caller } from './match-handlers'
 import { isOwner } from './telemetry'
 import { isTestRequest, requestTraffic, TEST_HEADER } from './traffic'
-import * as schema from '../db/schema'
-import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 
 let auth: ReturnType<typeof createAuth> | null = null
 
@@ -39,14 +37,9 @@ export async function callerFromRequest(): Promise<Caller> {
   // A signed-in user keeps the browser's existing guest id, so an opt-out made as a guest still applies.
   if (user) {
     const guestId = await existingGuestId(db, getRequestHeader('cookie'))
-    // The guest this owner browsed as before signing in is the owner's too (first seen on the owner's device).
-    if (owner && guestId) {
-      await db
-        .update(schema.guest)
-        .set({ traffic: 'owner' })
-        .where(and(eq(schema.guest.id, guestId), or(isNull(schema.guest.traffic), inArray(schema.guest.traffic, ['human']))))
-        .catch(() => {})
-    }
+    // The guest this owner browsed as before signing in is the owner's too, but only when it has no earlier matches: the owner
+    // signing in on someone else's browser must not relabel that person's history. Later matches are tagged by the owner session.
+    if (owner && guestId) await claimGuestForOwner(db, guestId).catch(() => false)
     return { userId: user.id, guestId, traffic }
   }
   const g = await resolveGuest(db, getRequestHeader('cookie'), cookieSecure(process.env), isTestRequest(facts) ? 'test' : 'human')

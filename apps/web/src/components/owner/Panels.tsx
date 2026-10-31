@@ -27,8 +27,9 @@ function Tile({ label, value, sub, subTone, series, testId, small, parts }: { la
 export function KpiRow({ v }: { v: OwnerViewBody }) {
   const k = v.kpisBy.human
   const by = v.kpisBy
-  const parts = (f: (k: Kpis) => string): ReactNode => (
-    <>Owner <b className="font-semibold text-ink">{f(by.owner)}</b> · Test <b className="font-semibold text-ink">{f(by.test)}</b> · Total <b className="font-semibold text-ink">{f(by.total)}</b></>
+  // Counts add up (Total is the sum). Rates and medians do not: each group gets its own, and the last one is over all matches together.
+  const parts = (f: (k: Kpis) => string, totalLabel = 'Total'): ReactNode => (
+    <>Owner <b className="font-semibold text-ink">{f(by.owner)}</b> · Test <b className="font-semibold text-ink">{f(by.test)}</b> · {totalLabel} <b className="font-semibold text-ink">{f(by.total)}</b></>
   )
   const rate = (r: number | null) => (r === null ? '-' : pct(r, 0))
   const delta = k.matches.previous > 0 ? Math.round(((k.matches.value - k.matches.previous) / k.matches.previous) * 100) : null
@@ -49,17 +50,17 @@ export function KpiRow({ v }: { v: OwnerViewBody }) {
       <Tile
         testId="kpi-ai-win"
         label="AI win rate"
-        parts={parts((x) => `${rate(x.aiWin.rate)} of ${x.aiWin.rated}`)}
+        parts={<>Human <b className="font-semibold text-ink">{k.aiWin.aiWins} of {k.aiWin.rated}</b> · {parts((x) => `${x.aiWin.aiWins} of ${x.aiWin.rated}`, 'All matches')}</>}
         value={k.aiWin.rate === null ? '-' : pct(k.aiWin.rate, 0)}
         sub={k.aiWin.humans === null ? 'no rated results' : `humans ${pct(k.aiWin.humans, 0)}, draws ${pct(k.aiWin.draws ?? 0, 0)}`}
         series={k.aiWin.series}
       />
-      <Tile testId="kpi-median" label="Median match" parts={parts((x) => clock(x.medianMs.value))} value={clock(k.medianMs.value)} sub={games || 'no finished matches'} series={k.medianMs.series} />
+      <Tile testId="kpi-median" label="Median match" parts={parts((x) => clock(x.medianMs.value), 'All matches')} value={clock(k.medianMs.value)} sub={games || 'no finished matches'} series={k.medianMs.series} />
       <Tile
         testId="kpi-ending"
         small
         label="Abandon / resign"
-        parts={parts((x) => (x.ending.abandon === null ? '-' : `${pct(x.ending.abandon, 0)}/${pct(x.ending.resign ?? 0, 0)}`))}
+        parts={parts((x) => (x.ending.abandon === null ? '-' : `${pct(x.ending.abandon, 0)}/${pct(x.ending.resign ?? 0, 0)}`), 'All matches')}
         value={k.ending.abandon === null ? '-' : `${pct(k.ending.abandon, 1)} / ${pct(k.ending.resign ?? 0, 1)}`}
         sub={abandonDelta === null ? 'no earlier period to compare' : `abandon ${signed(abandonDelta)} pts`}
         subTone={abandonDelta !== null && abandonDelta > 0 ? 'bad' : undefined}
@@ -68,7 +69,7 @@ export function KpiRow({ v }: { v: OwnerViewBody }) {
       <Tile
         testId="kpi-optout"
         label="Training opt-out"
-        parts={parts((x) => (x.optOut.players === 0 ? '-' : pct(x.optOut.optedOut / x.optOut.players, 0)))}
+        parts={parts((x) => (x.optOut.players === 0 ? '-' : pct(x.optOut.optedOut / x.optOut.players, 0)), 'All players')}
         value={k.optOut.players === 0 ? '-' : pct(k.optOut.optedOut / k.optOut.players, 1)}
         sub={`${k.optOut.optedOut} of ${k.optOut.players} players`}
         series={k.optOut.series}

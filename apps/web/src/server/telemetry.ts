@@ -1,4 +1,4 @@
-import { and, eq, sql, type AnyColumn, type SQL } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
@@ -30,9 +30,6 @@ export async function playerRef(kind: 'user' | 'guest', id: string): Promise<str
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${kind}:${id}`)))
   return `pl_${Array.from(digest.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('')}`
 }
-
-/** SQL: a player code that has never played from a headless browser (not test traffic). */
-export const notTestRef = (col: AnyColumn | SQL): SQL => sql`${col} not in (select player_ref from telemetry_event where device = 'headless')`
 
 export interface EventInput {
   kind: schema.TelemetryKind

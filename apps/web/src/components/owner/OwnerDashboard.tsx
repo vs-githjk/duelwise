@@ -155,7 +155,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
       ) : null}
 
       <p className="text-sm text-muted" data-testid="owner-counted">
-        Every number shows the human count first, then Owner (your own games), Test (our automated runs) and Total; the parts always add up to the total. AI training games run on your own machine and never write to this database.
+        Every number shows the human figure first, then Owner (your own games) and Test (our automated runs). Counts add up: Human + Owner + Test = Total. Rates and medians do not add, so each group has its own and the last figure is over all matches together. AI training games run on your own machine and never write to this database.
       </p>
       <p className="text-sm text-muted" data-testid="owner-last-event">
         {v.lastEventAt ? `Last event ${ago(v.lastEventAt, v.generatedAt)}, at ${utcTime(v.lastEventAt)} UTC.` : 'No event has been recorded yet.'} Times are UTC. Numbers come from server events only; nothing is sent to a third party.

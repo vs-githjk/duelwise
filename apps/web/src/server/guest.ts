@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, isNull, notExists, or, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import * as schema from '../db/schema'
 import { defaultTrainingAllowed } from './profile'
@@ -55,4 +55,24 @@ export async function resolveGuest(db: Db, cookieHeader: string | null | undefin
   const id = crypto.randomUUID()
   await db.insert(schema.guest).values({ id, trainingAllowed: defaultTrainingAllowed(), traffic })
   return { id, created: true, setCookie: guestCookieHeader(id, secure) }
+}
+
+/**
+ * Marks the guest an owner browsed as before signing in as the owner's own, but only when it has no earlier matches: an owner
+ * signing in on someone else's browser must not relabel that person's history. Matches from then on are tagged by the owner's
+ * session. Returns whether the guest was marked.
+ */
+export async function claimGuestForOwner(db: Db, guestId: string): Promise<boolean> {
+  const rows = await db
+    .update(schema.guest)
+    .set({ traffic: 'owner' })
+    .where(
+      and(
+        eq(schema.guest.id, guestId),
+        or(isNull(schema.guest.traffic), inArray(schema.guest.traffic, ['human'])),
+        notExists(db.select({ one: sql`1` }).from(schema.match).where(eq(schema.match.guestId, guestId))),
+      ),
+    )
+    .returning({ id: schema.guest.id })
+  return rows.length > 0
 }

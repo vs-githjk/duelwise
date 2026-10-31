@@ -64,9 +64,15 @@ export async function ownerViewHandler(
   // Every event belongs to one class, the class of its player (a player is in exactly one), so the parts add up to the total.
   const classRows = (await db.execute(sql`with ${classCte(env)} select ref, cls from pc`)) as unknown as { rows?: Array<{ ref: string; cls: string }> } | Array<{ ref: string; cls: string }>
   const classOf = new Map((Array.isArray(classRows) ? classRows : (classRows.rows ?? [])).map((r) => [r.ref, r.cls]))
+  // A match has its own class: its own tag, else a headless event, else its player's class.
+  const since = new Date(from.getTime() - 86_400_000)
+  const tagged = new Map((await db.select({ id: schema.match.id, traffic: schema.match.traffic }).from(schema.match).where(gte(schema.match.startedAt, since))).flatMap((m) => (m.traffic ? [[m.id, m.traffic] as const] : [])))
   const clsOf = (e: EventRow): 'human' | 'owner' | 'test' => {
+    const own = tagged.get(e.matchId)
+    if (own) return own
+    if (e.device === 'headless') return 'test'
     const c = classOf.get(e.playerRef)
-    return c === 'owner' || c === 'test' || c === 'human' ? c : e.device === 'headless' ? 'test' : 'human'
+    return c === 'owner' || c === 'test' || c === 'human' ? c : 'human'
   }
   const view = (list: EventRow[]) => buildOwnerView({ events: list, firstSeen, providers, now, range: p.range, game: p.game, level: p.level, page: p.page, targetFor })
   const by = (c: 'human' | 'owner' | 'test') => view(events.filter((e) => clsOf(e) === c))

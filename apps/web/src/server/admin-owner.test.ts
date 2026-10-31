@@ -8,6 +8,7 @@ import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { adminActiveHandler, adminOverviewHandler, adminPeopleHandler, adminPlayerHandler, parsePeopleParams, type PlayerDetail } from './admin-owner'
 import { playerRef } from './telemetry'
+import { claimGuestForOwner } from './guest'
 import { revealEmailsHandler } from './telemetry-owner'
 
 let client: PGlite
@@ -423,5 +424,79 @@ describe('traffic classes', () => {
     const rows = (await db.execute(sql`select 'pl_' || left(encode(sha256(convert_to('guest:' || ${G1}, 'UTF8')), 'hex'), 8) as ref`)) as unknown as { rows?: Array<{ ref: string }> } | Array<{ ref: string }>
     const ref = Array.isArray(rows) ? rows[0]!.ref : rows.rows![0]!.ref
     expect(ref).toBe(await playerRef('guest', G1))
+  })
+})
+
+describe('review round 1', () => {
+  test('one test-tagged match or headless event never turns a real player into Test; only a player with no human signal is Test', async () => {
+    // Wren has a human-tagged match, then one test-tagged match: still human, but that match counts as Test.
+    await db.update(schema.match).set({ traffic: 'human' }).where(sql`guest_id = ${G1}`)
+    const stray = await put({ guestId: G1, win: true, when: days(0, 6) })
+    await db.update(schema.match).set({ traffic: 'test' }).where(sql`id = ${stray}`)
+    // Guest 0042 has a headless telemetry event but a human-tagged match.
+    await db.update(schema.match).set({ traffic: 'human' }).where(sql`guest_id = ${G2}`)
+    await legacyHeadless('guest', G2)
+    // Hal has only test signals: a test-tagged match and a test guest row.
+    await tagGuest(G3, 'test')
+    await put({ guestId: G3, when: days(0, 4) })
+    await db.update(schema.match).set({ traffic: 'test' }).where(sql`guest_id = ${G3}`)
+    const pg = await PG()
+    const cls = (n: string) => pg.rows.find((r) => r.name === n)!.traffic
+    expect(cls('Wren')).toBe('human')
+    expect(cls('guest 0042')).toBe('human')
+    expect(cls('Hidden Hal')).toBe('test')
+    // Match-level counts follow each match's own tag, not the person's class.
+    const o = await OV()
+    expect(o.matchesPerGame.find((g) => g.game === 'word')!).toMatchObject({ test: 2 }) // Wren's stray match and Hal's
+    const feedWren = o.feed.filter((f) => f.name === 'Wren')
+    expect(feedWren.find((f) => f.matchId === stray)!.traffic).toBe('test')
+    expect(feedWren.some((f) => f.traffic === 'human')).toBe(true)
+    for (const g of o.matchesPerGame) addsUp(g)
+    for (const d of o.matchesPerDay) addsUp(d)
+    // Active players count each match in its own class; the parts still add up.
+    const a = await AC()
+    for (const x of [a.dau, a.wau, a.mau, a.returning30, ...a.perDay]) addsUp(x)
+    expect(a.dau.test).toBe(2) // Wren's stray test match and Hal, both today
+  })
+
+  test('a headless telemetry event on one match of an untagged player makes that match Test, not the person', async () => {
+    const m = await put({ guestId: G2, when: days(0, 3) })
+    await db.insert(schema.telemetryEvent).values({
+      id: crypto.randomUUID(), at: NOW, kind: 'match_started', matchId: m, game: 'word', level: 'easy', persona: 'Pip', device: 'headless',
+      trainingBasis: 'legitimate-interest', playerRef: 'pl_00000000', playerKind: 'guest',
+    })
+    const o = await OV()
+    expect(o.feed.find((f) => f.matchId === m)!.traffic).toBe('test')
+    expect(o.feed.filter((f) => f.name === 'guest 0042' && f.matchId !== m).every((f) => f.traffic === 'human')).toBe(true)
+  })
+
+  test('an owner signing in on a browser whose guest has history does not relabel that guest; an empty guest becomes the owner', async () => {
+    expect(await claimGuestForOwner(db, G1)).toBe(false) // Wren has matches
+    expect((await db.select().from(schema.guest).where(sql`id = ${G1}`))[0]!.traffic).toBeNull()
+    expect((await OV()).players.guests.human).toBe(3)
+    await db.insert(schema.guest).values({ id: 'dddddddd-1111-2222-3333-dddddddddddd', traffic: 'human', createdAt: days(0, 1) })
+    expect(await claimGuestForOwner(db, 'dddddddd-1111-2222-3333-dddddddddddd')).toBe(true)
+    expect((await OV()).players.guests).toEqual({ human: 3, owner: 1, test: 0, total: 4 })
+    // A guest already tagged test is never taken over.
+    await db.insert(schema.guest).values({ id: 'eeeeeeee-1111-2222-3333-eeeeeeeeeeee', traffic: 'test' })
+    expect(await claimGuestForOwner(db, 'eeeeeeee-1111-2222-3333-eeeeeeeeeeee')).toBe(false)
+  })
+
+  test('active windows are explicit UTC whatever the session time zone, and rows dated after now are not counted', async () => {
+    await put({ guestId: G3, win: true, when: new Date('2026-10-30T02:00:00.000Z') }) // UTC day 30, but day 29 in Los Angeles
+    await put({ guestId: G3, win: true, when: new Date(NOW.getTime() + 3_600_000) }) // dated in the future
+    const utc = await AC()
+    try {
+      await client.exec("set time zone 'America/Los_Angeles'")
+      const la = await AC()
+      expect(la).toEqual(utc)
+      await client.exec("set time zone 'Pacific/Kiritimati'")
+      expect(await AC()).toEqual(utc)
+    } finally {
+      await client.exec("set time zone 'UTC'")
+    }
+    expect(utc.dau.human).toBe(3) // guest 0042, Ada and Hal (the 02:00 match); the future match adds nothing
+    expect(utc.perDay.at(-1)!.human).toBe(3)
+    expect(utc.mau.human).toBe(4) // plus Wren
   })
 })

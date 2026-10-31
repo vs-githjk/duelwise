@@ -72,7 +72,7 @@ export interface OwnerViewInput {
 export interface Kpis {
   players: { value: number; newCount: number; returning: number; series: Array<number | null> }
   matches: { value: number; previous: number; series: Array<number | null> }
-  aiWin: { rated: number; rate: number | null; humans: number | null; draws: number | null; series: Array<number | null> }
+  aiWin: { aiWins: number; rated: number; rate: number | null; humans: number | null; draws: number | null; series: Array<number | null> }
   medianMs: { value: number | null; byGame: Array<{ game: GameId; medianMs: number }>; series: Array<number | null> }
   ending: { abandon: number | null; resign: number | null; abandonPrevious: number | null; series: Array<number | null> }
   optOut: { optedOut: number; players: number; series: Array<number | null> }
@@ -190,6 +190,7 @@ function kpiSet(rows: EventRow[], newSince: (ref: string) => boolean) {
     newCount: [...players].filter(newSince).length,
     matches: rows.filter((e) => e.kind === 'match_started').length,
     rated: ratedRows.length,
+    aiWins: ai,
     aiWin: share(ai, ratedRows.length),
     humans: share(humans, ratedRows.length),
     draws: share(draws, ratedRows.length),
@@ -251,7 +252,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
   const kpis: Kpis = {
     players: { value: k.players, newCount: k.newCount, returning: k.players - k.newCount, series: per.map((p) => p.players) },
     matches: { value: k.matches, previous: kp.matches, series: per.map((p) => p.matches) },
-    aiWin: { rated: k.rated, rate: k.aiWin, humans: k.humans, draws: k.draws, series: per.map((p) => p.aiWin) },
+    aiWin: { aiWins: k.aiWins, rated: k.rated, rate: k.aiWin, humans: k.humans, draws: k.draws, series: per.map((p) => p.aiWin) },
     medianMs: { value: k.medianMs, byGame: byGameMedian, series: per.map((p) => p.medianMs) },
     ending: { abandon: k.abandon, resign: k.resign, abandonPrevious: kp.abandon, series: per.map((p) => p.abandon) },
     optOut: { optedOut: k.optedOut, players: k.players, series: per.map((p) => (p.players > 0 ? p.optedOut / p.players : null)) },

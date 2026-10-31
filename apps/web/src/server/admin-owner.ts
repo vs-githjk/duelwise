@@ -6,7 +6,7 @@ import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
-import { addTo, classCte, emptySplit, MATCH_PID, type Split } from './traffic-sql'
+import { addTo, classCte, emptySplit, MATCH_CLS, MATCH_PID, type Split } from './traffic-sql'
 import type { Traffic } from './traffic'
 
 /**
@@ -192,12 +192,12 @@ export async function adminOverviewHandler(
       from pc where created >= ${fromIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
-      select to_char(m.finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, coalesce(pc.cls, 'human') as cls, count(*)::int as count
+      select to_char(m.finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, ${MATCH_CLS} as cls, count(*)::int as count
       from match m left join pc on pc.pid = ${MATCH_PID}
       where m.status = 'finished' and m.finished_at >= ${fromIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
-      select m.game, coalesce(pc.cls, 'human') as cls, count(*)::int as count
+      select m.game, ${MATCH_CLS} as cls, count(*)::int as count
       from match m left join pc on pc.pid = ${MATCH_PID} where m.status = 'finished' group by 1, 2`),
     db
       .select({
@@ -209,6 +209,7 @@ export async function adminOverviewHandler(
         result: schema.match.result,
         record: schema.match.record,
         finishedAt: schema.match.finishedAt,
+        traffic: schema.match.traffic,
       })
       .from(schema.match)
       .where(and(eq(schema.match.status, 'finished'), isNotNull(schema.match.finishedAt)))
@@ -224,7 +225,12 @@ export async function adminOverviewHandler(
   for (const r of rowsOf<{ game: string; cls: string; count: number }>(gameRows)) addTo(gameSplit.get(r.game) ?? gameSplit.set(r.game, emptySplit()).get(r.game)!, r.cls, Number(r.count))
   const feedUsers = [...new Set(feedRows.flatMap((r) => (r.userId ? [r.userId] : [])))]
   const feedGuests = [...new Set(feedRows.flatMap((r) => (!r.userId && r.guestId ? [r.guestId] : [])))]
-  const [labels, classes] = await Promise.all([labelsFor(db, feedUsers, feedGuests), classesOf(db, env, [...feedUsers.map((i) => `u:${i}`), ...feedGuests.map((i) => `g:${i}`)])])
+  const [labels, classes, headlessMatches] = await Promise.all([
+    labelsFor(db, feedUsers, feedGuests),
+    classesOf(db, env, [...feedUsers.map((i) => `u:${i}`), ...feedGuests.map((i) => `g:${i}`)]),
+    feedRows.length ? db.select({ id: schema.telemetryEvent.matchId }).from(schema.telemetryEvent).where(and(eq(schema.telemetryEvent.device, 'headless'), inArray(schema.telemetryEvent.matchId, feedRows.map((r) => r.id)))) : Promise.resolve([]),
+  ])
+  const headless = new Set(headlessMatches.map((h) => h.id))
   const feed: FeedRow[] = []
   for (const r of feedRows) {
     const result = viewOf(r.result, r.record)
@@ -233,7 +239,7 @@ export async function adminOverviewHandler(
     const id = r.userId ?? r.guestId
     if (!id) continue
     const label = labels.get(`${r.userId ? 'u' : 'g'}:${id}`)
-    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human', game: r.game, level: r.level, result, at: r.finishedAt.toISOString() })
+    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: r.traffic ?? (headless.has(r.id) ? 'test' : (classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human')), game: r.game, level: r.level, result, at: r.finishedAt.toISOString() })
   }
   const body: AdminOverview = {
     generatedAt: now.toISOString(),
@@ -283,11 +289,14 @@ export async function adminActiveHandler(
   const today = dayKey(now)
   const w7 = dayKey(new Date(now.getTime() - 6 * DAY_MS))
   const w30 = dayKey(new Date(now.getTime() - (ACTIVE_DAYS - 1) * DAY_MS))
+  // The window is explicit UTC: from 00:00:00 UTC of the first day to now. Nothing dated after now is counted, and the session time zone never matters.
+  const startIso = `${w30}T00:00:00.000Z`
+  const endIso = now.toISOString()
   const cte = classCte(env)
   const played = sql`
-    select ${MATCH_PID} as pid, coalesce(pc.cls, 'human') as cls, (m.finished_at at time zone 'UTC')::date as d
+    select ${MATCH_PID} as pid, ${MATCH_CLS} as cls, (m.finished_at at time zone 'UTC')::date as d
     from match m left join pc on pc.pid = ${MATCH_PID}
-    where m.status = 'finished' and m.finished_at >= ${w30}::date::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
+    where m.status = 'finished' and m.finished_at >= ${startIso}::timestamptz and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
   const [dayRows, totalRows] = await Promise.all([
     db.execute(sql`with ${cte}, m2 as (${played}) select to_char(d, 'YYYY-MM-DD') as day, cls, count(distinct pid)::int as count from m2 group by d, cls`),
     db.execute(sql`
