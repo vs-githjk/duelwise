@@ -409,7 +409,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
               <section aria-labelledby="history-title" data-testid="player-history">
                 <h3 id="history-title" className="mb-2 flex flex-wrap items-baseline justify-between gap-2 font-display text-display-sm">
                   Match history
-                  <span className="font-sans text-sm font-normal text-muted">{detail.matchesTotal > detail.matches.length ? `newest ${detail.matches.length} of ${detail.matchesTotal}` : `${detail.matchesTotal} ${detail.matchesTotal === 1 ? 'match' : 'matches'}`}</span>
+                  <span className="font-sans text-sm font-normal text-muted">{detail.matchesTotal > detail.matches.length ? `newest ${detail.matches.length} of ${detail.matchesTotal}` : `${detail.playedTotal} played${detail.matchesTotal > detail.playedTotal ? `, ${detail.matchesTotal - detail.playedTotal} in progress` : ''}`}</span>
                 </h3>
                 {detail.matches.length === 0 ? <p className="text-muted">No matches yet.</p> : null}
                 <div className="hidden overflow-x-auto md:block">

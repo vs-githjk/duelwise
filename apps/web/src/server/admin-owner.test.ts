@@ -59,7 +59,7 @@ async function put(f: Put) {
   await db.insert(schema.match).values({
     id, game, userId: f.userId ?? null, guestId: f.userId ? null : (f.guestId ?? null), agentVersion: 'v1', level, seed: n, status,
     result: status === 'finished' ? result : null, record, recordValid: status === 'finished' ? (f.valid ?? true) : null, invalidReason: f.reason ?? null,
-    trainingAllowed: true, startedAt: when, finishedAt: status === 'finished' ? when : null,
+    trainingAllowed: true, startedAt: when, finishedAt: status === 'finished' || status === 'resigned' || status === 'abandoned' ? when : null, // the server stamps finished_at on a resign and an abandon too
   })
   return id
 }
@@ -121,10 +121,10 @@ describe('overview', () => {
     expect(o.newPerDay.find((d) => d.day === '2026-10-25')!.total).toBe(1) // Ada
     expect(o.newPerDay.reduce((s, d) => s + d.total, 0)).toBe(3) // the others joined before the window
     expect(o.matchesPerDay).toHaveLength(14)
-    expect(o.matchesPerDay.reduce((s, d) => s + d.total, 0)).toBe(6) // the resigned match is not a finished one
+    expect(o.matchesPerDay.reduce((s, d) => s + d.total, 0)).toBe(7) // played = finished, resigned or abandoned: the resigned four match counts
     expect(o.matchesPerGame.find((g) => g.game === 'word')!.total).toBe(4)
     expect(o.matchesPerGame.find((g) => g.game === 'chess')!.total).toBe(1)
-    expect(o.matchesPerGame.find((g) => g.game === 'four')!.total).toBe(0)
+    expect(o.matchesPerGame.find((g) => g.game === 'four')!.total).toBe(1) // Wren's resigned match
   })
 
   test('the feed is the last 50 finished matches, newest first, with a label and a result, and no email', async () => {
@@ -158,7 +158,7 @@ describe('people table', () => {
     expect(page.totalBy).toEqual({ human: 4, owner: 1, test: 0, total: 5 })
     expect(page.rows.map((r) => [r.name, r.traffic]).sort()).toEqual([['Countess', 'human'], ['Hidden Hal', 'human'], ['Owner', 'owner'], ['Wren', 'human'], ['guest 0042', 'human']])
     const wren = page.rows.find((r) => r.name === 'Wren')!
-    expect(wren).toMatchObject({ kind: 'guest', matches: 3, hidden: false, perGame: { word: 2, chess: 1 }, winsByLevel: { easy: 1, medium: 0, hard: 1, champion: 0 } })
+    expect(wren).toMatchObject({ kind: 'guest', matches: 4, hidden: false, perGame: { word: 2, chess: 1, four: 1 }, winsByLevel: { easy: 1, medium: 0, hard: 1, champion: 0 } })
     expect(wren.joinedAt).toBe(days(10).toISOString())
     expect(wren.lastSeenAt).toBe(days(0, 5).toISOString()) // the resigned match is the latest sign of life
     const nameless = page.rows.find((r) => r.name === 'guest 0042')!
@@ -276,13 +276,13 @@ async function legacyHeadless(kind: 'user' | 'guest', id: string) {
 
 describe('active players', () => {
   test('DAU, WAU, MAU and returning count distinct players across guests and accounts, by UTC day', async () => {
-    // Seed: Wren finished matches on days 3,2,1; guest 0042 one today; Ada arena today and word 4 days ago. All human.
+    // Seed: Wren played on days 3,2,1 and resigned one today; guest 0042 one today; Ada arena today and word 4 days ago. All human.
     const a = await AC()
-    expect([a.dau.human, a.wau.human, a.mau.human, a.returning7.human, a.returning30.human]).toEqual([2, 3, 3, 2, 2])
+    expect([a.dau.human, a.wau.human, a.mau.human, a.returning7.human, a.returning30.human]).toEqual([3, 3, 3, 2, 2])
     expect(a.perDay).toHaveLength(30)
-    expect(a.perDay.at(-1)).toMatchObject({ day: '2026-10-30', human: 2, total: 2 })
+    expect(a.perDay.at(-1)).toMatchObject({ day: '2026-10-30', human: 3, total: 3 })
     expect(a.perDay.find((d) => d.day === '2026-10-29')!.total).toBe(1)
-    expect(a.perDay.reduce((s, d) => s + d.total, 0)).toBe(6)
+    expect(a.perDay.reduce((s, d) => s + d.total, 0)).toBe(7)
   })
 
   test('the windows are UTC days: 8 days ago is in MAU only, 00:00 today is in DAU', async () => {
@@ -290,14 +290,15 @@ describe('active players', () => {
     await put({ guestId: G3, win: true, when: new Date('2026-10-30T00:00:00.000Z') })
     await put({ guestId: G3, win: true, when: new Date('2026-10-29T23:59:59.000Z') })
     const a = await AC()
-    expect(a.dau.total).toBe(3)
+    expect(a.dau.total).toBe(4)
     expect(a.mau.total).toBe(4)
     expect(a.returning30.total).toBe(3)
   })
 
-  test('unfinished matches and empty history count nobody', async () => {
+  test('matches still in progress, offline tickets and empty history count nobody', async () => {
     await db.execute(sql`truncate table match cascade`)
-    await put({ guestId: G1, status: 'resigned' })
+    await put({ guestId: G1, status: 'started' })
+    await put({ guestId: G1, status: 'ticket' })
     const a = await AC()
     for (const s of [a.dau, a.wau, a.mau, a.returning7, a.returning30]) expect(s).toEqual({ human: 0, owner: 0, test: 0, total: 0 })
     expect(a.perDay.every((d) => d.total === 0)).toBe(true)
@@ -334,7 +335,7 @@ describe('traffic classes', () => {
     const o = await OV()
     expect(o.players.guests).toEqual({ human: 2, owner: 1, test: 0, total: 3 })
     expect(o.feed.find((f) => f.name === 'guest 0042')!.traffic).toBe('owner')
-    expect((await AC()).dau).toEqual({ human: 1, owner: 1, test: 0, total: 2 })
+    expect((await AC()).dau).toEqual({ human: 2, owner: 1, test: 0, total: 3 }) // Wren (resigned today) and Ada; guest 0042 is the owner
   })
 
   test('rows from before the column fall back to the headless telemetry signal', async () => {
@@ -363,8 +364,8 @@ describe('traffic classes', () => {
     await put({ guestId: G3, game: 'four', win: true, when: days(0, 1) })
     const o = await OV()
     for (const s of [o.players.all, o.players.guests, o.players.accounts, ...o.newPerDay, ...o.matchesPerDay, ...o.matchesPerGame]) addsUp(s)
-    expect(o.matchesPerDay.reduce((n, d) => n + d.total, 0)).toBe(8)
-    expect(o.matchesPerGame.reduce((n, g) => n + g.total, 0)).toBe(8)
+    expect(o.matchesPerDay.reduce((n, d) => n + d.total, 0)).toBe(9)
+    expect(o.matchesPerGame.reduce((n, g) => n + g.total, 0)).toBe(9)
     expect(o.players.all.total).toBe(o.players.guests.total + o.players.accounts.total)
     const a = await AC()
     for (const s of [a.dau, a.wau, a.mau, a.returning7, a.returning30, ...a.perDay]) addsUp(s)
@@ -495,8 +496,85 @@ describe('review round 1', () => {
     } finally {
       await client.exec("set time zone 'UTC'")
     }
-    expect(utc.dau.human).toBe(3) // guest 0042, Ada and Hal (the 02:00 match); the future match adds nothing
-    expect(utc.perDay.at(-1)!.human).toBe(3)
+    expect(utc.dau.human).toBe(4) // guest 0042, Ada, Wren (resigned today) and Hal (the 02:00 match); the future match adds nothing
+    expect(utc.perDay.at(-1)!.human).toBe(4)
     expect(utc.mau.human).toBe(4) // plus Wren
+  })
+})
+
+describe('only played matches count', () => {
+  const snapshot = async () => ({
+    o: await OV(),
+    a: await AC(),
+    pg: await PG(),
+    detail: (await adminPlayerHandler(db, OWNER, ENV, { ref: await playerRef('guest', G1) }, practiceFor)).body as PlayerDetail,
+  })
+
+  test('offline tickets, expired tickets and a started match never played do not move any count', async () => {
+    const before = await snapshot()
+    // 30 tickets issued in advance, 5 expired ones and a started match that has not ended, across every kind of player.
+    for (let i = 0; i < 10; i++) {
+      await put({ guestId: G1, status: 'ticket', when: days(0, 2) })
+      await put({ guestId: G2, status: 'ticket', when: days(0, 1) })
+      await put({ userId: 'u-ada', status: 'ticket', when: days(0, 1) })
+    }
+    for (let i = 0; i < 5; i++) await put({ guestId: G3, status: 'expired', when: days(0, 3) })
+    const after = await snapshot()
+    // Every figure the page shows is unchanged except the started match below, which is not added yet.
+    expect(after.o.players).toEqual(before.o.players)
+    expect(after.o.matchesPerDay).toEqual(before.o.matchesPerDay)
+    expect(after.o.matchesPerGame).toEqual(before.o.matchesPerGame)
+    expect(after.o.feed).toEqual(before.o.feed)
+    expect(after.a).toEqual(before.a)
+    expect(after.pg.rows.map((r) => [r.name, r.matches, r.perGame, r.lastSeenAt])).toEqual(before.pg.rows.map((r) => [r.name, r.matches, r.perGame, r.lastSeenAt]))
+    expect(after.pg.totalBy).toEqual(before.pg.totalBy)
+    expect(after.detail.matchesTotal).toBe(before.detail.matchesTotal)
+    expect(after.detail.matches.length).toBe(before.detail.matches.length)
+    // A started match that never ended is listed as in progress for that player but is not played.
+    await put({ guestId: G1, status: 'started', when: days(0, 1) })
+    const started = await snapshot()
+    expect(started.o.matchesPerGame).toEqual(before.o.matchesPerGame)
+    expect(started.a).toEqual(before.a)
+    expect(started.pg.rows.find((r) => r.name === 'Wren')!.matches).toBe(before.pg.rows.find((r) => r.name === 'Wren')!.matches)
+    expect(started.detail.playedTotal).toBe(before.detail.playedTotal)
+    expect(started.detail.matchesTotal).toBe(before.detail.matchesTotal + 1)
+  })
+
+  test('a resigned or abandoned match counts as played', async () => {
+    const before = await AC()
+    await put({ guestId: G3, status: 'abandoned', when: days(0, 1) })
+    await put({ guestId: G3, game: 'chess', status: 'resigned', when: days(0, 1) })
+    const o = await OV()
+    expect(o.matchesPerGame.find((g) => g.game === 'chess')!.total).toBe(2)
+    expect((await AC()).dau.total).toBe(before.dau.total + 1)
+    expect((await PG({ q: 'hal' })).rows[0]!.matches).toBe(2)
+  })
+
+  test('a guest holding only tickets can still be claimed by an owner signing in', async () => {
+    await db.insert(schema.guest).values({ id: 'ffffffff-1111-2222-3333-ffffffffffff', traffic: 'human' })
+    await put({ guestId: 'ffffffff-1111-2222-3333-ffffffffffff', status: 'ticket' })
+    expect(await claimGuestForOwner(db, 'ffffffff-1111-2222-3333-ffffffffffff')).toBe(true)
+  })
+})
+
+describe('owner view counts played matches only', () => {
+  test('a start event with no end does not move matches, players, per-game, devices or who played', async () => {
+    const { ownerViewHandler } = await import('./telemetry-owner')
+    const target = () => null
+    const ev = async (kind: schema.TelemetryKind, matchId: string, id: string, outcome: string | null) => ({
+      id: crypto.randomUUID(), at: days(0, 3), kind, matchId, game: 'chess', level: 'easy', persona: 'Pip', device: 'desktop', outcome, durationMs: outcome ? 60_000 : null,
+      trainingBasis: 'legitimate-interest', playerRef: await playerRef('guest', id), playerKind: 'guest',
+    })
+    await db.insert(schema.telemetryEvent).values([await ev('match_started', 'p1', G2, null), await ev('match_finished', 'p1', G2, 'ai')])
+    const get = async () => (await ownerViewHandler(db, OWNER, ENV, { who: 'all' }, target, NOW)).body as import('./telemetry-stats').OwnerViewBody
+    const before = await get()
+    await db.insert(schema.telemetryEvent).values([await ev('match_started', 'p2', G1, null), await ev('match_started', 'p3', G2, null)])
+    const after = await get()
+    expect(after.kpis.matches.value).toBe(before.kpis.matches.value)
+    expect(after.kpis.players.value).toBe(before.kpis.players.value)
+    expect(after.perGameLevel).toEqual(before.perGameLevel)
+    expect(after.devices).toEqual(before.devices)
+    expect(after.whoPlayed).toEqual(before.whoPlayed)
+    expect(before.kpis.matches.value).toBe(1)
   })
 })

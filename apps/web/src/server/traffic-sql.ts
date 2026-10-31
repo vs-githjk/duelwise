@@ -30,7 +30,7 @@ export function classCte(env: { OWNER_EMAILS?: string | undefined }): SQL {
   tm as (
     select case when user_id is not null then 'u:' || user_id else 'g:' || guest_id end as pid,
       bool_or(traffic = 'test') as t, bool_or(traffic = 'owner') as o, bool_or(traffic = 'human') as h
-    from match where coalesce(user_id, guest_id) is not null group by 1
+    from match where coalesce(user_id, guest_id) is not null and status in ('finished', 'resigned', 'abandoned') group by 1
   ),
   hl as (select distinct player_ref from telemetry_event where device = 'headless'),
   hm as (select distinct match_id from telemetry_event where device = 'headless'),

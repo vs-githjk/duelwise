@@ -58,7 +58,7 @@ export async function resolveGuest(db: Db, cookieHeader: string | null | undefin
 }
 
 /**
- * Marks the guest an owner browsed as before signing in as the owner's own, but only when it has no earlier matches: an owner
+ * Marks the guest an owner browsed as before signing in as the owner's own, but only when it has no earlier played matches (offline tickets do not count): an owner
  * signing in on someone else's browser must not relabel that person's history. Matches from then on are tagged by the owner's
  * session. Returns whether the guest was marked.
  */
@@ -70,7 +70,7 @@ export async function claimGuestForOwner(db: Db, guestId: string): Promise<boole
       and(
         eq(schema.guest.id, guestId),
         or(isNull(schema.guest.traffic), inArray(schema.guest.traffic, ['human'])),
-        notExists(db.select({ one: sql`1` }).from(schema.match).where(eq(schema.match.guestId, guestId))),
+        notExists(db.select({ one: sql`1` }).from(schema.match).where(and(eq(schema.match.guestId, guestId), inArray(schema.match.status, ['finished', 'resigned', 'abandoned'])))),
       ),
     )
     .returning({ id: schema.guest.id })

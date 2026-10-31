@@ -176,11 +176,15 @@ const scored = (e: EventRow) => e.kind === 'match_finished' && (e.outcome === 'h
 const rated = (e: EventRow) => scored(e) || e.kind === 'match_resigned' || e.kind === 'match_abandoned'
 const aiWon = (e: EventRow) => e.kind === 'match_resigned' || e.kind === 'match_abandoned' || e.outcome === 'ai'
 
-function kpiSet(rows: EventRow[], newSince: (ref: string) => boolean) {
+/** A match is played once it has a finished, resigned or abandoned event; a start with no end yet is not counted. */
+const isPlayed = (e: EventRow) => e.kind !== 'match_started'
+
+function kpiSet(all: EventRow[], newSince: (ref: string) => boolean) {
+  const rows = all.filter(isPlayed)
   const players = new Set(rows.map((e) => e.playerRef))
   const done = rows.filter(scored)
   const ratedRows = rows.filter(rated)
-  const terminal = rows.filter((e) => e.kind !== 'match_started')
+  const terminal = rows
   const ai = ratedRows.filter(aiWon).length
   const humans = ratedRows.filter((e) => e.outcome === 'human').length
   const draws = ratedRows.length - ai - humans
@@ -188,7 +192,7 @@ function kpiSet(rows: EventRow[], newSince: (ref: string) => boolean) {
   return {
     players: players.size,
     newCount: [...players].filter(newSince).length,
-    matches: rows.filter((e) => e.kind === 'match_started').length,
+    matches: rows.length,
     rated: ratedRows.length,
     aiWins: ai,
     aiWin: share(ai, ratedRows.length),
@@ -286,7 +290,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
       return share(d.filter((e) => (outcome === 'ai' ? aiWon(e) : e.outcome === outcome)).length, d.length)
     })
 
-  const started = cur.filter((e) => e.kind === 'match_started')
+  const started = cur.filter(isPlayed) // played matches (the name is kept for the device split below)
   const perGameLevel = GAMES.map((game) => {
     const levels = Object.fromEntries(LEVELS.map((l) => [l, started.filter((e) => e.game === game && e.level === l).length])) as Record<Level, number>
     return { game, total: LEVELS.reduce((a, l) => a + levels[l], 0), levels }
@@ -344,7 +348,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
   })
 
   const refs = new Map<string, EventRow[]>()
-  for (const e of cur) (refs.get(e.playerRef) ?? refs.set(e.playerRef, []).get(e.playerRef)!).push(e)
+  for (const e of cur.filter(isPlayed)) (refs.get(e.playerRef) ?? refs.set(e.playerRef, []).get(e.playerRef)!).push(e)
   const whoPlayed: PlayerRow[] = [...refs.entries()]
     .map(([ref, rows]) => {
       const done = rows.filter(scored)
@@ -359,7 +363,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
         firstSeen: (input.firstSeen.get(ref) ?? new Date(Math.min(...times))).toISOString(),
         lastSeen: last.toISOString(),
         isNew: isNew(ref),
-        matches: rows.filter((e) => e.kind === 'match_started').length,
+        matches: rows.length,
         games: GAMES.filter((g) => rows.some((e) => e.game === g)),
         wins: done.filter((e) => e.outcome === 'human').length,
         losses: rows.filter((e) => rated(e) && aiWon(e)).length,

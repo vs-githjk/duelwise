@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
@@ -31,6 +31,9 @@ const GAMES = Object.keys(PRODUCT.games) as GameId[]
 const isGame = (g: string): g is GameId => Object.prototype.hasOwnProperty.call(PRODUCT.games, g)
 const isLevel = (l: string): l is Level => (LEVELS as readonly string[]).includes(l)
 const DAY_MS = 86_400_000
+/** A match counts as played when it finished, was resigned or was abandoned. Offline tickets (issued in advance), expired tickets and matches still waiting are never counted as played. */
+export const PLAYED = ['finished', 'resigned', 'abandoned'] as const
+const PLAYED_SQL = sql.raw(`('finished', 'resigned', 'abandoned')`)
 
 export type PeopleSort = 'last' | 'joined' | 'matches'
 export interface PeopleParams {
@@ -113,7 +116,10 @@ export interface PlayerDetail {
   joinedAt: string
   lastSeenAt: string
   matches: HistoryRow[]
+  /** Matches listed in the history: played ones and ones still in progress. Offline tickets and expired tickets are never listed or counted. */
   matchesTotal: number
+  /** Of those, the ones played: finished, resigned or abandoned. */
+  playedTotal: number
   path: Array<{ game: GameId; cleared: Record<Level, boolean> }>
 }
 
@@ -194,11 +200,11 @@ export async function adminOverviewHandler(
       with ${cte}
       select to_char(m.finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, ${MATCH_CLS} as cls, count(*)::int as count
       from match m left join pc on pc.pid = ${MATCH_PID}
-      where m.status = 'finished' and m.finished_at >= ${fromIso}::timestamptz group by 1, 2`),
+      where m.status in ${PLAYED_SQL} and m.finished_at >= ${fromIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
       select m.game, ${MATCH_CLS} as cls, count(*)::int as count
-      from match m left join pc on pc.pid = ${MATCH_PID} where m.status = 'finished' group by 1, 2`),
+      from match m left join pc on pc.pid = ${MATCH_PID} where m.status in ${PLAYED_SQL} group by 1, 2`),
     db
       .select({
         id: schema.match.id,
@@ -296,7 +302,7 @@ export async function adminActiveHandler(
   const played = sql`
     select ${MATCH_PID} as pid, ${MATCH_CLS} as cls, (m.finished_at at time zone 'UTC')::date as d
     from match m left join pc on pc.pid = ${MATCH_PID}
-    where m.status = 'finished' and m.finished_at >= ${startIso}::timestamptz and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
+    where m.status in ${PLAYED_SQL} and m.finished_at >= ${startIso}::timestamptz and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
   const [dayRows, totalRows] = await Promise.all([
     db.execute(sql`with ${cte}, m2 as (${played}) select to_char(d, 'YYYY-MM-DD') as day, cls, count(distinct pid)::int as count from m2 group by d, cls`),
     db.execute(sql`
@@ -351,7 +357,7 @@ export async function adminPeopleHandler(
       with ${classCte(env)}, ${PEOPLE_CTE},
       s as (
         select case when user_id is not null then 'u' else 'g' end as kind, coalesce(user_id, guest_id) as id,
-          (count(*) filter (where status = 'finished'))::int as matches, max(coalesce(finished_at, started_at)) as last_played
+          (count(*) filter (where status in ${PLAYED_SQL}))::int as matches, max(finished_at) filter (where status in ${PLAYED_SQL}) as last_played
         from match where coalesce(user_id, guest_id) is not null group by 1, 2
       )
       select p.kind, p.id, p.name, p.show, p.joined, coalesce(s.matches, 0) as matches, greatest(p.joined, s.last_played) as last_seen, coalesce(pc.cls, 'human') as cls
@@ -372,7 +378,7 @@ export async function adminPeopleHandler(
     ? await db
         .select({ userId: schema.match.userId, guestId: schema.match.guestId, game: schema.match.game, level: schema.match.level, result: schema.match.result, record: schema.match.record })
         .from(schema.match)
-        .where(and(eq(schema.match.status, 'finished'), or(...mine)))
+        .where(and(inArray(schema.match.status, [...PLAYED]), or(...mine)))
     : []
   const mineBy = new Map<string, typeof played>()
   for (const m of played) {
@@ -386,7 +392,7 @@ export async function adminPeopleHandler(
     for (const m of mineBy.get(`${r.kind}:${r.id}`) ?? []) {
       if (!isGame(m.game)) continue
       perGame[m.game] = (perGame[m.game] ?? 0) + 1
-      if (isLevel(m.level) && viewOf(m.result, m.record) === 'won') winsByLevel[m.level]++
+      if (isLevel(m.level) && viewOf(m.result, m.record) === 'won') winsByLevel[m.level]++ // only a finished match has a record
     }
     rows.push({
       ref: await playerRef(r.kind === 'u' ? 'user' : 'guest', r.id),
@@ -446,10 +452,10 @@ export async function adminPlayerHandler(
         finishedAt: schema.match.finishedAt,
       })
       .from(schema.match)
-      .where(own)
+      .where(and(own, notInArray(schema.match.status, ['ticket', 'expired'])))
       .orderBy(desc(schema.match.startedAt))
       .limit(HISTORY_CAP),
-    db.select({ n: sql<number>`count(*)::int` }).from(schema.match).where(own),
+    db.select({ n: sql<number>`count(*)::int`, played: sql<number>`(count(*) filter (where ${schema.match.status} in ('finished', 'resigned', 'abandoned')))::int` }).from(schema.match).where(and(own, notInArray(schema.match.status, ['ticket', 'expired']))),
   ])
   const label = labels.get(`${who.kind === 'user' ? 'u' : 'g'}:${who.id}`)
   const cleared = new Map<GameId, Record<Level, boolean>>()
@@ -488,6 +494,7 @@ export async function adminPlayerHandler(
     lastSeenAt: (newest > joinedAt ? newest : joinedAt).toISOString(),
     matches,
     matchesTotal: Number(totalRow[0]?.n ?? matches.length),
+    playedTotal: Number(totalRow[0]?.played ?? 0),
     path: GAMES.map((game) => ({ game, cleared: cleared.get(game)! })),
   }
   return { status: 200, body: detail }
