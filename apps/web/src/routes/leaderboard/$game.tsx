@@ -138,7 +138,7 @@ function Column({ c }: { c: BoardColumn }) {
       <header className="flex items-center gap-2.5 border-b border-line px-4 py-3">
         <Avatar level={c.level} size={32} decorative />
         <b className="font-semibold">{name}</b>
-        <span className="ml-auto font-mono text-xs text-muted tabular" data-testid={`board-players-${c.level}`}>{c.practice ? 'Practice' : `${c.players.toLocaleString('en-US')} ${c.players === 1 ? 'player' : 'players'}`}</span>
+        <span className="ml-auto font-mono text-xs text-muted tabular" data-testid={`board-players-${c.level}`}>{c.practice ? 'Practice' : `${c.players.toLocaleString('en-US')} played, ${(c.rows.length + c.more).toLocaleString('en-US')} won`}</span>
       </header>
       {c.practice ? (
         <p className="px-4 py-4 text-sm text-muted" data-testid={`board-practice-${c.level}`}>

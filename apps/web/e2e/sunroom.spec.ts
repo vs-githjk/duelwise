@@ -237,7 +237,7 @@ test.describe('board, learn graph and settings', () => {
     await expect(page.getByTestId('board-title')).toHaveText('Word Duel board, last 30 days')
     for (const level of ['easy', 'medium', 'hard', 'champion']) await expect(page.getByTestId(`board-col-${level}`)).toBeVisible()
     // Earlier specs in the same run may have left matches in the in-memory store, so the numbers are not fixed: an empty column says so, a full one lists rows.
-    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ players?$/)
+    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ played, [\d,]+ won$/)
     await expect(page.getByTestId('board-rows-easy').or(page.getByTestId('board-empty-easy'))).toBeVisible()
     if (await page.getByTestId('board-empty-easy').count()) await expect(page.getByTestId('board-empty-easy')).toHaveText('No wins at Easy yet. Be the first.')
     await expect(page.getByTestId('leaderboard-switcher').getByRole('link')).toHaveCount(6)
