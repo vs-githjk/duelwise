@@ -60,7 +60,7 @@ function Page() {
           <Avatar key={l} level={l} size={48} decorative className="rounded-full ring-2 ring-canvas" />
         ))}
       </div>
-      <p className="text-muted">Sign in to keep your name, rating and rank on every device. Playing never needs it.</p>
+      <p className="text-muted">Sign in to get a rating and keep your name on every device. Playing never needs it.</p>
       <div className="grid gap-3 rounded-card border border-line bg-surface p-5 text-left shadow-card" data-testid="signin-card">
       {cfg.google ? (
         <button type="button" className={button} onClick={() => void authClient.signIn.social({ provider: 'google', callbackURL: '/play' })}>

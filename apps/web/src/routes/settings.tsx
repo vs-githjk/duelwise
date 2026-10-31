@@ -168,7 +168,7 @@ function Page() {
             </button>
           </>
         ) : (
-          <>You are playing as a guest, remembered by this browser only. Signing in is never required; it just carries your name to other devices.</>
+          <>You are playing as a guest, remembered by this browser only. Signing in is never required; it gets you a rating and carries your name to other devices.</>
         )}
       </Row>
       <Row title="Let my matches help train the agents" testId="training-settings" control={settings ? <TrainingToggle allowed={settings.trainingAllowed} busy={busy} onChange={setAllowed} /> : <p className="text-muted">Loading</p>}>

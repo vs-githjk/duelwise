@@ -204,7 +204,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const warn = 'rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink'
   const uploadLine =
     upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
-    : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating and appear on the leaderboard.'}</p>
+    : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating.'}</p>
     : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
     : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
     : upload?.status === 'not-counted' ? <p className={warn} role="status" data-testid="result-upload">This offline match could not be counted: {upload.reason}.</p>
