@@ -72,7 +72,7 @@ function Page() {
           <Link to="/settings" className="text-action underline">
             settings page
           </Link>
-          . It is a separate switch from training use. Switching it off leaves you out of every later profile, including for matches you already played.
+          . It is a separate switch from training use. Switching it off leaves you out of every later profile, including for matches you already played. If you also played as a guest in another browser, sign in there once so those matches are left out too.
         </p>
       </section>
 
