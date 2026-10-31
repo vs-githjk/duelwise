@@ -7,6 +7,20 @@ import { cn } from '../lib/cn'
 import { trainingNoticeText } from '../lib/honest-copy'
 import { registryFor } from '../lib/registries'
 
+const hiddenKey = (game: GameId) => `duelwise.notice-hidden.${game}`
+function readHidden(game: GameId): boolean {
+  try {
+    return window.localStorage.getItem(hiddenKey(game)) === '1'
+  } catch {
+    return false
+  }
+}
+function writeHidden(game: GameId): void {
+  try {
+    window.localStorage.setItem(hiddenKey(game), '1')
+  } catch {}
+}
+
 /** Loads the player's training settings and offers a setter. Null until the first answer arrives. */
 export function useTrainingSettings() {
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -57,8 +71,13 @@ export function TrainingToggle({ allowed, busy, onChange, className }: { allowed
  */
 export function TrainingNotice({ game, compact = false, className }: { game: GameId; /** True once a match has started: the notice shrinks to one line, with the full text one tap away. */ compact?: boolean; className?: string }) {
   const { settings, busy, setAllowed, dismiss } = useTrainingSettings()
-  // A notice with no switch (the game does not train) is dismissed on this page only; it must not hide the full notice on a game that does.
+  // A notice with no switch (the game does not train) is dismissed for this game only, and remembered in this browser; it must not hide the full notice on a game that does.
   const [hiddenHere, setHiddenHere] = useState(false)
+  useEffect(() => setHiddenHere(readHidden(game)), [game])
+  const hideHere = () => {
+    writeHidden(game)
+    setHiddenHere(true)
+  }
   const [detail, setDetail] = useState(false)
   if (!settings || settings.noticeSeen || hiddenHere) return null
   const copy = trainingNoticeText(game, registryFor(game)?.learnsFromHumans ?? false, PRODUCT.trainingDataBasis)
@@ -70,7 +89,7 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
         <button type="button" onClick={() => setDetail(true)} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-action underline">
           Details
         </button>
-        <button type="button" onClick={() => (copy.trainable ? void dismiss() : setHiddenHere(true))} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-1 text-sm font-semibold">
+        <button type="button" onClick={() => (copy.trainable ? void dismiss() : hideHere())} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-1 text-sm font-semibold">
           Got it
         </button>
       </section>
@@ -96,7 +115,7 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
       </div>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
         {copy.trainable ? <TrainingToggle allowed={settings.trainingAllowed} busy={busy} onChange={setAllowed} /> : null}
-        <button type="button" onClick={() => (copy.trainable ? void dismiss() : setHiddenHere(true))} className="inline-flex min-h-11 items-center rounded-control bg-action px-4 font-semibold text-action-ink">
+        <button type="button" onClick={() => (copy.trainable ? void dismiss() : hideHere())} className="inline-flex min-h-11 items-center rounded-control bg-action px-4 font-semibold text-action-ink">
           Got it
         </button>
       </div>
