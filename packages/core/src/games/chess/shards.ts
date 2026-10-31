@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { REL_POLICY_SIZE } from './policy-index'
 import { parsePosition, toPerspective } from './position'
@@ -127,9 +127,24 @@ export class ShardWriter {
     readonly recordBytes: number,
     readonly shardRecords: number,
     private source: Record<string, unknown> = {},
+    /** append: carry on after the shards already in `dir` (a resumed stream) instead of clearing them. Falls back to clearing when the index is missing or does not match. */
+    opts: { append?: boolean } = {},
   ) {
     mkdirSync(dir, { recursive: true })
-    for (const f of readdirSync(dir)) if (f.startsWith('shard-') || f.startsWith('index.json')) rmSync(join(dir, f), { force: true })
+    let kept = false
+    const indexPath = join(dir, 'index.json')
+    if (opts.append && existsSync(indexPath)) {
+      const idx = JSON.parse(readFileSync(indexPath, 'utf8')) as ShardIndex
+      const files = idx.shards.map((x) => x.file)
+      if (idx.kind === kind && idx.recordBytes === recordBytes && files.every((f) => existsSync(join(dir, f)))) {
+        this.shards = idx.shards.slice()
+        this.total = idx.positions
+        kept = true
+        // A shard file the index does not list is a half-finished write of the interrupted run: drop it.
+        for (const f of readdirSync(dir)) if (f.startsWith('shard-') && !files.includes(f)) rmSync(join(dir, f), { force: true })
+      }
+    }
+    if (!kept) for (const f of readdirSync(dir)) if (f.startsWith('shard-') || f.startsWith('index.json')) rmSync(join(dir, f), { force: true })
     this.buf = new Uint8Array(shardRecords * recordBytes)
   }
   get positions(): number {
