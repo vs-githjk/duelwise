@@ -282,3 +282,27 @@ describe('stingers', () => {
     stop()
   })
 })
+
+describe('the Start tap', () => {
+  test('the music unlock and primeAudio on the same tap resume the shared AudioContext once', async () => {
+    const { primeAudio } = await import('./audio')
+    let resumes = 0
+    class FakeCtx {
+      destination = {}
+      resume() { resumes++; return Promise.resolve() }
+      createBuffer() { return {} }
+      createBufferSource() { return { buffer: null, connect() {}, start() {} } }
+      createGain() { return { gain: { value: 0 }, connect() {} } }
+      createMediaElementSource() { return { connect() {} } }
+    }
+    const b = fakeBrowser()
+    ;(g.window as Record<string, unknown>).AudioContext = FakeCtx
+    const stop = startMusic()
+    b.fire('click') // the capture handler: music unlock
+    primeAudio() // then the game's own Start handler
+    expect(resumes).toBe(1)
+    // The loop is routed through a gain node on that context (iOS ignores element volume), so the element itself stays at full.
+    expect(els[0]!.volume).toBe(1)
+    stop()
+  })
+})

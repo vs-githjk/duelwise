@@ -2,14 +2,13 @@ import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchCo
 import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { PHASE } from '@duelwise/core/src/games/arena/state'
 import { GameShell } from '../../components/GameShell'
 import { ResultPanel } from '../../components/ResultPanel'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { playTrainingBullet, resultTrainingNote } from '../../lib/honest-copy'
 import { cn } from '../../lib/cn'
 import { LEVELS, LEVEL_LABEL } from '../../lib/level-info'
@@ -40,16 +39,6 @@ function levelFromUrl(): Level {
   // R32: every level is playable; an unpublished one is a labelled Practice level.
   if ((LEVELS as readonly string[]).includes(q ?? '')) return q as Level
   return LEVELS.find((l) => published(l)) ?? 'hard'
-}
-
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
 }
 
 const btnPrimary = 'inline-flex min-h-11 items-center justify-center rounded-control bg-action px-5 font-semibold text-action-ink disabled:cursor-not-allowed disabled:opacity-50'
@@ -299,7 +288,7 @@ export default function ArenaPage() {
   }, [inMatch, match.paused])
 
   return (
-    <GameShell game="arena" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="Practice" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }} actions={<MuteToggle />}>
+    <GameShell game="arena" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="Practice" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }}>
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">

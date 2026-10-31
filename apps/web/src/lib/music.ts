@@ -10,7 +10,7 @@
 // Nothing here may throw into a game: every browser call is guarded.
 
 import { PRODUCT } from '@duelwise/core/src/product'
-import { getVolume, isMusicOn, isMuted, play, registerSounds, sharedAudioContext, subscribeAudio } from './audio'
+import { getVolume, isMusicOn, isMuted, play, registerSounds, resumeAudioContext, sharedAudioContext, subscribeAudio } from './audio'
 
 export type Mood = 'lobby' | 'board' | 'poker' | 'action'
 export type StingerOutcome = 'win' | 'loss'
@@ -248,11 +248,7 @@ export function setMood(next: Mood): void {
 /** Call from inside a user gesture: lets the music start (and resumes the shared AudioContext, which iOS keeps suspended until a tap). */
 export function unlockMusic(): void {
   gestured = true
-  try {
-    void sharedAudioContext()?.resume?.()
-  } catch {
-    // no Web Audio
-  }
+  resumeAudioContext()
   sync()
 }
 
@@ -271,11 +267,7 @@ function setHidden(h: boolean): void {
       }
     }
   } else {
-    try {
-      void sharedAudioContext()?.resume?.()
-    } catch {
-      // no Web Audio
-    }
+    resumeAudioContext()
   }
   sync()
 }

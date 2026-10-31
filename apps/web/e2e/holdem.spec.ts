@@ -165,13 +165,15 @@ test.describe("Heads-Up Hold'em play page", () => {
     expect(rail).toBe(true)
   })
 
-  test('mute toggle persists across a reload', async ({ page }) => {
+  test('the sound effects switch in the game header persists across a reload', async ({ page }) => {
     await page.goto(URL)
-    const toggle = page.getByRole('button', { name: /Sound (on|off)/ })
-    await expect(toggle).toHaveText('Sound on')
-    await toggle.click()
+    await page.getByTestId('game-sound-button').click()
+    const sfx = page.getByTestId('game-sound-panel').getByTestId('sfx-switch')
+    await expect(sfx).toBeChecked()
+    await sfx.uncheck()
     await page.reload()
-    await expect(page.getByRole('button', { name: /Sound (on|off)/ })).toHaveText('Sound off')
+    await page.getByTestId('game-sound-button').click()
+    await expect(page.getByTestId('game-sound-panel').getByTestId('sfx-switch')).not.toBeChecked()
   })
 
   test.describe('table that tells the story', () => {

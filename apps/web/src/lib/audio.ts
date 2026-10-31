@@ -67,6 +67,7 @@ export function setMusicOn(on: boolean): void {
 export function resetAudioForTests(): void {
   prefs = null
   primeCtx = null
+  lastResume = -Infinity
   sounds.clear()
   pools.clear()
 }
@@ -131,6 +132,25 @@ export function play(name: string, opts: PlayOpts = {}): void {
 
 let primeCtx: AudioContext | null = null
 
+let lastResume = -Infinity
+
+/**
+ * Resumes the shared AudioContext, at most once a second. A tap fires pointerup then click, and both the music's unlock and primeAudio
+ * call this; one resume is enough. The music asks only when the context is not already running; the Start tap's prime always asks.
+ */
+export function resumeAudioContext(opts: { always?: boolean } = {}): void {
+  const ctx = sharedAudioContext()
+  if (!ctx || (!opts.always && ctx.state === 'running')) return
+  const now = Date.now()
+  if (now - lastResume < 1000) return
+  lastResume = now
+  try {
+    void ctx.resume?.()
+  } catch {
+    // no Web Audio
+  }
+}
+
 /** The one AudioContext the page shares (the unlock blip, and the music's gain stage, which iOS needs because it ignores element volume). Null where Web Audio is missing. */
 export function sharedAudioContext(): AudioContext | null {
   try {
@@ -153,7 +173,7 @@ export function primeAudio(): void {
   try {
     const ctx = sharedAudioContext()
     if (ctx) {
-      void ctx.resume?.()
+      resumeAudioContext({ always: true })
       const src = ctx.createBufferSource()
       src.buffer = ctx.createBuffer(1, 1, 22050)
       src.connect(ctx.destination)

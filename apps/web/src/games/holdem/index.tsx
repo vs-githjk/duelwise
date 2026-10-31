@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { holdemCore } from '@duelwise/core/src/games/holdem/core'
 import { luckLine, luckOfMatchAsync } from '@duelwise/core/src/games/holdem/luck'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
@@ -10,7 +10,6 @@ import { StrengthLine } from '../../components/SiteElo'
 import { ResultPanel } from '../../components/ResultPanel'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { personaFor } from '../../personas'
 import { BetControls } from './BetControls'
@@ -44,16 +43,6 @@ function seedFromUrl(): number | undefined {
 }
 
 const nameOf = (level: Level) => personaFor(level).name
-
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
-}
 
 export default function HoldemPage() {
   const match = useHoldemMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', nameOf, sourceRegistry?.learnsFromHumans === true)
@@ -117,7 +106,6 @@ export default function HoldemPage() {
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
       previewLabel="Practice"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={over && match.result ? (
             <>
               {match.leftAfter !== null ? (
