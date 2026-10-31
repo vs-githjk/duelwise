@@ -13,7 +13,7 @@ import { takeCall } from './progress'
 import { isOffline, subscribeConnection } from './connection'
 import { getPractice } from './practice'
 import { setMatchActive } from './match-active'
-import { beaconFinish, beaconResign, clearPending, clearResignedOnLeave, resignOnPageLeave, postResign, retryPending, savePending, type ResignReply } from './integrity'
+import { beaconFinish, beaconResign, clearPending, clearResignedOnLeave, clearResignedOnRestore, resignOnPageLeave, postResign, retryPending, savePending, type ResignReply } from './integrity'
 
 export interface RecorderInit {
   game: GameId
@@ -276,7 +276,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   /** True while a counted match is live, so the page can say that leaving it resigns. */
   const [counted, setCounted] = useState(false)
   /** The counted match in progress and the latest tick, so a closing tab can resign it. Null otherwise. */
-  const live = useRef<{ matchId: string; tick: number } | null>(null)
+  const live = useRef<{ matchId: string; tick: number; practice?: boolean } | null>(null)
   /** The record of a finished counted match until the server answers, so a closing tab can still deliver it. */
   const pending = useRef<{ matchId: string; bytes: Uint8Array } | null>(null)
   /** A finished offline match waiting in the upload queue; the page tells the player when the server has settled it. */
@@ -295,8 +295,8 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
       const m = live.current
       if (!m) return
       live.current = null
-      // Only a real page leave (reload, close) is explained on the next load; unmounting inside the app is not.
-      if (pageGone) resignOnPageLeave(game, m.matchId, m.tick)
+      // Only a real page leave (reload, close, navigating away) is explained on the next load; unmounting inside the app is not.
+      if (pageGone) resignOnPageLeave(game, m.matchId, m.tick, undefined, undefined, m.practice === true)
       else beaconResign(m.matchId, m.tick)
     }
     // Records an earlier page could not deliver (closed tab, offline) are sent now, before the abandon window.
@@ -317,12 +317,15 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     const unsubscribe = subscribeConnection(() => { if (!isOffline()) online() })
     window.addEventListener('online', online)
     const onPageHide = () => leave(true)
+    const onPageShow = (e: PageTransitionEvent) => clearResignedOnRestore(e.persisted)
     window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       window.removeEventListener('online', online)
       window.removeEventListener(QUEUE_EVENT, settled)
       unsubscribe()
       window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('pageshow', onPageShow)
       leave()
     }
   }, [game])
@@ -356,7 +359,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
       setFinished(null)
       setUpload({ status: 'none' })
       // An offline ticket cannot be resigned (the server is out of reach and the ticket is not a match yet), so it is never "live".
-      live.current = issued?.rated && issued.matchId && !issued.offline ? { matchId: issued.matchId, tick: 0 } : null
+      live.current = issued?.rated && issued.matchId && !issued.offline ? { matchId: issued.matchId, tick: 0, ...(issued.practice ? { practice: true } : {}) } : null
       setCounted(live.current !== null)
       // Synchronously, not from an effect: a reload decision made a moment from now must already see the match.
       setMatchActive(true)

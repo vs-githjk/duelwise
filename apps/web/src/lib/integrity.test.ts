@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { beaconResign, clearResignedOnLeave, listPending, postResign, readResignedOnLeave, resignOnPageLeave, retryPending, RESIGN_URL, savePending, type KeyValueStore } from './integrity'
+import { beaconResign, clearResignedOnLeave, clearResignedOnRestore, listPending, postResign, readResignedOnLeave, resignOnPageLeave, retryPending, RESIGN_URL, savePending, type KeyValueStore } from './integrity'
 
 describe('beaconResign', () => {
   test('sends the match id and tick to the resign endpoint', async () => {
@@ -82,5 +82,26 @@ describe('the resigned-on-leave note', () => {
     expect(resignOnPageLeave('chess', 'm-1', 5, taken, bad)).toBe(true)
     expect(readResignedOnLeave('chess', bad)).toBe(false)
     expect(() => clearResignedOnLeave(bad)).not.toThrow()
+  })
+})
+
+describe('the page-leave note, second round', () => {
+  const mem = () => {
+    const m = new Map<string, string>()
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
+  }
+  const taken = { sendBeacon: () => true }
+  test('a practice match is still resigned by beacon but leaves no note', () => {
+    const s = mem()
+    expect(resignOnPageLeave('chess', 'm-1', 5, taken, s, true)).toBe(true)
+    expect(readResignedOnLeave('chess', s)).toBe(false)
+  })
+  test('a page restored from the back-forward cache drops the note; a normal load does not', () => {
+    const s = mem()
+    resignOnPageLeave('chess', 'm-1', 5, taken, s)
+    clearResignedOnRestore(false, s)
+    expect(readResignedOnLeave('chess', s)).toBe(true)
+    clearResignedOnRestore(true, s)
+    expect(readResignedOnLeave('chess', s)).toBe(false)
   })
 })
