@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, describe, expect, test } from 'bun:test'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -14,6 +14,11 @@ import { assertSelectOnly, exportHuman, redact, matchWeight, pgliteCopyQuery, pl
 const dirs: string[] = []
 afterAll(async () => {
   for (const d of dirs) await rm(d, { recursive: true, force: true })
+})
+// Each PGlite holds its own Postgres in memory: close them per test, or this file peaks above 2.5 GB.
+const clients: PGlite[] = []
+afterEach(async () => {
+  for (const c of clients.splice(0)) await c.close()
 })
 
 const FOUR = [3, 3, 2, 4, 3, 2, 4, 1, 3, 5, 0, 6]
@@ -57,6 +62,7 @@ function holdemRecord(id: string, seed: number, hands = 5, fold = false): MatchR
 
 async function freshDb() {
   const client = new PGlite()
+  clients.push(client)
   const db = drizzle(client, { schema })
   await migrateDb(db)
   let n = 0
