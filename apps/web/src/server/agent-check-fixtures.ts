@@ -27,12 +27,12 @@ export function fakeAgent(game: GameId, opts: { preview?: boolean; onDispose?: (
 }
 
 /** Plays a whole game: a random human in seat 0 and the fake agent in seat 1. `forgeAt` swaps the n-th agent action for another legal one. */
-export async function play(game: GameId, seed: number, forgeAt?: number, level: MatchRecordV1['agent']['level'] = 'hard', matchId = 'm'): Promise<MatchRecordV1> {
+export async function play(game: GameId, seed: number, forgeAt?: number, level: MatchRecordV1['agent']['level'] = 'hard', matchId = 'm', options?: MatchRecordV1['options']): Promise<MatchRecordV1> {
   const core = getCore(game)
   const agent = fakeAgent(game)
   agent.reset(seed)
   const human = makeRng(seed ^ 0x77)
-  let s = core.init(seed)
+  let s = core.init(seed, options)
   const actions: MatchRecordV1['actions'] = []
   let tick = 0
   let agentMoves = 0
@@ -65,7 +65,7 @@ export async function play(game: GameId, seed: number, forgeAt?: number, level: 
   const rec: MatchRecordV1 = {
     schema: 1, matchId, game, coreVersion: core.version, agent: { version: 'v1', level }, seed, humanSeat: 0, actions,
     result: core.result(s)!, finalHash: core.hash(s), startedAt: '2026-10-23T10:00:00.000Z', endedAt: '2026-10-23T10:01:00.000Z',
-    device: 'desktop', input: 'mouse', trainingAllowed: true,
+    device: 'desktop', input: 'mouse', trainingAllowed: true, ...(options ? { options } : {}),
   }
   expect(replay(rec).ok).toBe(true) // a forged record is still a legal game: that is the hole
   return rec
