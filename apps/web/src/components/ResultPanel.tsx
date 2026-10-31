@@ -134,8 +134,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord, practice, accepted])
   const spoke = useRef(false)
+  // A rated win is spoken once the server has answered, so the voice never says the plain line and then the promising one.
+  const settling = clearable && upload?.status === 'uploading'
   const [voiceSupported, setVoiceSupported] = useState(false)
   const [voiceOn, setVoiceOn] = useState(false)
   useEffect(() => {
@@ -145,12 +147,12 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }, [])
   useEffect(() => {
     // Once per match, even when React runs this effect twice in development; after the record answer when the line quotes it.
-    if (says && !recordWait && !spoke.current) {
+    if (says && !recordWait && !settling && !spoke.current) {
       spoke.current = true
       speakLine(says.text)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordWait])
+  }, [recordWait, settling])
   const toggleVoice = () => {
     const next = readVoicePref() === 'on' ? 'off' : 'on'
     writeVoicePref(next)

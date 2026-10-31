@@ -77,3 +77,24 @@ test('mayClear: only an accepted, rated, played-out win moves the path', () => {
   expect(mayClear({ ...base, practice: true })).toBe(false)
   expect(mayClear({ ...base, outcome: 'loss' })).toBe(false)
 })
+
+test('a win that did not count never says the next opponent is up next, unlocked or opening', () => {
+  const uncounted = [{ status: 'uploading' }, { status: 'queued' }, { status: 'rejected', reason: 'x' }, { status: 'failed', message: 'x' }, { status: 'not-counted', matchId: 'm', reason: 'x' }, { status: 'none' }] as Upload[]
+  for (const upload of uncounted) {
+    const html = renderWith(upload)
+    expect(html, upload.status).toContain('Clean win over Pip. Well done.')
+    expect(html, upload.status).not.toMatch(/up next|is up\b|unlocked|Marlow notices/i)
+  }
+})
+test('a counted win may promise the next opponent', () => {
+  expect(renderWith({ status: 'counted', matchId: 'm' })).toContain('Marlow is up next')
+})
+test('a practice win offers a rated match, not progression', () => {
+  const html = renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'holdem', level: 'easy', practice: true }}>
+      <ResultPanel result={won} humanSeat={0} onRematch={() => {}} upload={{ status: 'counted', matchId: 'm' }} />
+    </OpponentContext.Provider>,
+  )
+  expect(html).toContain('Win it again in a rated match to open Marlow')
+  expect(html).not.toMatch(/up next|unlocked/i)
+})

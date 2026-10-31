@@ -23,6 +23,11 @@ export interface SaysInput {
   humanMoves: number
   /** The opponent's wins and losses against people, when the match store has them. */
   record?: { wins: number; losses: number } | null
+  /**
+   * Whether this win may promise progression. 'counted' (the default) is a win the server has counted; 'plain' is one that has not counted
+   * (still uploading, rejected, fixed seed, not counted); 'practice' is a practice win. Only the two win lines ever name the next opponent.
+   */
+  progress?: 'counted' | 'plain' | 'practice'
 }
 
 const lvl = (l: Level) => LEVELS.indexOf(l)
@@ -61,6 +66,10 @@ export function sayLine(i: SaysInput): { situation: Situation; text: string } {
   const situation = situationOf(i)
   const set = (lines as Record<string, Record<string, string>>)[i.level]!
   let template = set[situation]!
+  if ((situation === 'win' || situation === 'callRight') && i.progress && i.progress !== 'counted') {
+    const suffix = i.progress === 'practice' ? 'Practice' : 'Plain'
+    template = set[`${situation}${suffix}`] ?? template
+  }
   if (situation === 'loss' && i.level === 'champion' && i.record && i.record.wins + i.record.losses >= 20 && set.lossRecord) template = set.lossRecord
   const text = template
     .replaceAll('{unit}', UNIT[i.game])
