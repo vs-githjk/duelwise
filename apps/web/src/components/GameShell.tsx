@@ -11,6 +11,7 @@ import { PreviewBadge } from './PreviewBadge'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
 import { HowToPlay } from './HowToPlay'
+import { GameSoundControl } from './GameSoundControl'
 import { hasSeenGuide, markGuideSeen } from './how-to-play-data'
 
 const DESKTOP_QUERY = '(min-width: 900px) and (pointer: fine)'
@@ -83,6 +84,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
             Leaderboard
           </Link> : null}
           <button type="button" onClick={openGuide} aria-label={level ? "How to play" : undefined} className="min-h-11 min-w-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">{level ? "?" : "How to play"}</button>
+          <GameSoundControl />
           {actions}
         </div>
       </header>

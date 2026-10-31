@@ -1,5 +1,6 @@
 import { VOICE_KEY } from './progress'
 import { isMuted } from './audio'
+import { duckMusic } from './music'
 
 /**
  * The opponent's line, spoken with the browser's own speech (Web Speech API). No keys, no network, no files.
@@ -82,6 +83,10 @@ export function speakLine(text: string, opts: { force?: boolean } = {}): boolean
       }
       u.rate = 1
       u.pitch = 1
+      // The music sits lower while the line is spoken and comes back when it ends, fails or is cancelled.
+      let release: (() => void) | null = null
+      u.onstart = () => { release ??= duckMusic() }
+      u.onend = u.onerror = () => { release?.(); release = null }
       s.speak(u)
     } catch {}
   }

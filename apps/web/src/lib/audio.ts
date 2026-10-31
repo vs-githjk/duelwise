@@ -1,12 +1,16 @@
 // Sound helper shared by every play page. Games register named sounds (CC0 files in public/) and call
-// play(name). Master volume and mute persist in localStorage; storage can throw (private windows), so
-// every access is wrapped and the helper works without it.
+// play(name). Master volume, the sound effects switch and the music switch persist in localStorage; storage can
+// throw (private windows), so every access is wrapped and the helper works without it. Background music itself
+// lives in music.ts and reads these preferences.
 
 const KEY = 'duelwise.audio'
 
 interface AudioPrefs {
   volume: number
+  /** Sound effects off. (The name is older than the music switch; the opponent's spoken line follows it too.) */
   muted: boolean
+  /** Background music on. Defaults to on; it still waits for the first tap. */
+  music: boolean
 }
 
 const listeners = new Set<() => void>()
@@ -15,13 +19,14 @@ let prefs: AudioPrefs | null = null
 
 function load(): AudioPrefs {
   if (prefs) return prefs
-  prefs = { volume: 0.7, muted: false }
+  prefs = { volume: 0.7, muted: false, music: true }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const v = JSON.parse(raw) as Partial<AudioPrefs>
       if (typeof v.volume === 'number' && v.volume >= 0 && v.volume <= 1) prefs.volume = v.volume
       if (typeof v.muted === 'boolean') prefs.muted = v.muted
+      if (typeof v.music === 'boolean') prefs.music = v.music
     }
   } catch {
     // storage unavailable or corrupt: keep defaults
@@ -51,9 +56,17 @@ export function setMuted(m: boolean): void {
   save()
 }
 
+export const isMusicOn = (): boolean => load().music
+
+export function setMusicOn(on: boolean): void {
+  load().music = on
+  save()
+}
+
 /** Re-reads storage on the next call; for tests. */
 export function resetAudioForTests(): void {
   prefs = null
+  primeCtx = null
   sounds.clear()
   pools.clear()
 }
@@ -118,6 +131,19 @@ export function play(name: string, opts: PlayOpts = {}): void {
 
 let primeCtx: AudioContext | null = null
 
+/** The one AudioContext the page shares (the unlock blip, and the music's gain stage, which iOS needs because it ignores element volume). Null where Web Audio is missing. */
+export function sharedAudioContext(): AudioContext | null {
+  try {
+    const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+    const Ctx = w.AudioContext ?? w.webkitAudioContext
+    if (!Ctx) return null
+    primeCtx ??= new Ctx()
+    return primeCtx
+  } catch {
+    return null
+  }
+}
+
 /**
  * Unlocks sound for later. iOS only lets a page make sound after a tap, and Tinderbox and Coldstore start on a phone turning
  * (not a tap), so the Start tap calls this: it resumes one shared AudioContext with a silent blip and plays every registered
@@ -125,14 +151,12 @@ let primeCtx: AudioContext | null = null
  */
 export function primeAudio(): void {
   try {
-    const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
-    const Ctx = w.AudioContext ?? w.webkitAudioContext
-    if (Ctx) {
-      primeCtx ??= new Ctx()
-      void primeCtx.resume?.()
-      const src = primeCtx.createBufferSource()
-      src.buffer = primeCtx.createBuffer(1, 1, 22050)
-      src.connect(primeCtx.destination)
+    const ctx = sharedAudioContext()
+    if (ctx) {
+      void ctx.resume?.()
+      const src = ctx.createBufferSource()
+      src.buffer = ctx.createBuffer(1, 1, 22050)
+      src.connect(ctx.destination)
       src.start(0)
     }
   } catch {
