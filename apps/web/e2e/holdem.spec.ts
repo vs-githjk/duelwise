@@ -116,6 +116,8 @@ test.describe("Heads-Up Hold'em play page", () => {
     await page.getByRole('button', { name: 'Yes, concede' }).click()
     await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', 'loss')
     await expect(page.getByTestId('holdem-record')).toHaveAttribute('data-record-ok', 'true')
+    // Nobody went all-in, so there is no luck line to show.
+    await expect(page.getByTestId('holdem-luck')).toHaveCount(0)
   })
 
   test('works at 360 px: no horizontal scroll, controls reachable and big enough', async ({ page }) => {
@@ -425,6 +427,34 @@ test.describe("Heads-Up Hold'em play page", () => {
       }
       const sawRunout = counts.size >= 2
       expect(sawRunout, `board sizes seen during the run-out: ${[...counts]}`).toBe(true)
+    })
+    test('after an all-in run-out the result says how much was luck, and Rematch stays on screen on a phone', async ({ page }) => {
+      test.setTimeout(240_000)
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await start(page, '?seed=11', '5')
+      // Shove or call every decision until the match ends; seed 11 reaches a run-out (see the specs above).
+      for (let guard = 0; guard < 1500; guard++) {
+        const t = await turn(page)
+        if (t === 'over') break
+        if (t === 'you') {
+          const allin = page.getByTestId('preset-allin')
+          if (await allin.isVisible()) {
+            await allin.click()
+            await page.getByTestId('bet-raise').click()
+          } else await page.getByTestId('bet-call').click()
+        }
+        await page.waitForTimeout(50)
+      }
+      await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
+      const luck = page.getByTestId('holdem-luck')
+      await expect(luck).toBeVisible()
+      await expect(luck).toHaveText(/^(You (won|lost) \d+ chips?|The match ended level)\. (With average luck on your all-ins, you'd have (won|lost) about \d+|With average luck on your all-ins, you'd have finished about level)\. You ran (lucky|unlucky)\.$|^(You (won|lost) \d+ chips?|The match ended level)\. Your all-ins ran about even with the odds\.$/)
+      await expect(luck).not.toHaveText(/[\u2013\u2014]/)
+      // The record still replays, and the line did not push the actions off a phone screen.
+      await expect(page.getByTestId('holdem-record')).toHaveAttribute('data-record-ok', 'true')
+      await expect(page.getByTestId('rematch')).toBeInViewport()
+      await page.screenshot({ path: process.env.LUCK_SHOT ?? 'test-results/holdem-luck-phone.png' })
     })
   })
 })
