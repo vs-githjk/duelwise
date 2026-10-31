@@ -74,7 +74,7 @@ describe("Hold'em match length on the server", () => {
   })
 
   test('a default 30 hand start rejects a short record, and a short start rejects a default or non-strict record', async () => {
-    const a = await begin(GUEST)
+    const a = await begin(GUEST, { untilBust: true })
     const ra = a.body as { matchId: string; seed: number }
     const bad = await finish(db, encodeRecord(play(ra.matchId, ra.seed, { hands: 5, untilBust: true })), GUEST)
     expect((bad.body as { valid: boolean }).valid).toBe(false)
@@ -87,13 +87,19 @@ describe("Hold'em match length on the server", () => {
     expect((bad3.body as { valid: boolean }).valid).toBe(false)
   })
 
-  test('every counted Hold\'em match is stored with the strict bust rule, even a default one', async () => {
-    const r = await begin(GUEST)
+  test('an old client that sends no options gets the legacy match: 30 hands, no bust rule, accepted and rated as before', async () => {
+    const r = await begin(USER)
     const { matchId, seed } = r.body as { matchId: string; seed: number }
     const row = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)))[0]!
-    expect((row.filterFlags as { holdemOptions: unknown }).holdemOptions).toEqual({ untilBust: true })
-    const out = await finish(db, encodeRecord(play(matchId, seed, { untilBust: true })), GUEST)
+    expect((row.filterFlags as { holdemOptions?: unknown } | null)?.holdemOptions).toBeUndefined()
+    const out = await finish(db, encodeRecord(play(matchId, seed, undefined)), USER)
     expect(out.body).toMatchObject({ valid: true })
+    expect((out.body as { elo?: unknown }).elo).toBeDefined()
+    // A record that claims the strict rule for a legacy start is the one that differs, and is invalid.
+    const r2 = await begin(GUEST)
+    const m2 = r2.body as { matchId: string; seed: number }
+    const bad = await finish(db, encodeRecord(play(m2.matchId, m2.seed, { untilBust: true })), GUEST)
+    expect((bad.body as { valid: boolean }).valid).toBe(false)
   })
 
   test('the start refuses unknown lengths, odd options, options for other games and a leave claimed up front', async () => {

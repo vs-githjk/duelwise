@@ -199,8 +199,7 @@ export async function startMatchHandler(
     const o = options as MatchOptions
     chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), untilBust: true }
   }
-  // Every counted Hold'em match uses the strict bust rule, whatever the client asked for: the server stores it and the record must carry it.
-  if (game === 'holdem') chosen = { ...(chosen ?? {}), untilBust: true }
+  // A start with no options is the legacy format (30 hands, no bust rule), so a client from before the length pick still counts as it did. A start with options always gets the strict bust rule.
 
   const { trainingAllowed, playerAllowed } = await trainingFor(db, who, game as GameId, opts)
 
