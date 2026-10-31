@@ -1,6 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord, RecordError, type MatchRecordV1 } from '@duelwise/core/src/match-record'
+import { optionsProblem, sameChoice, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
 import { wordCore } from '@duelwise/core/src/games/word/core'
@@ -52,6 +53,8 @@ export interface FinishBody {
   provisional?: boolean
   /** True for a valid match of a game whose matches do not move a rating yet (real-time games), so the page can say so. */
   unranked?: boolean
+  /** True when the player left a Hold'em match before its chosen end: counted as a result on the chips so far, but unrated. */
+  left?: boolean
 }
 
 export interface FinishOptions {
@@ -89,6 +92,16 @@ export interface StartOptions {
   recordsTrainable?: (game: GameId) => boolean
   /** The measured site Elo of an agent level; scores the loss of a match swept for exceeding the open-match cap. */
   siteElo?: FinishOptions['siteElo']
+}
+
+/** The match length stored at the start (absent for a default 30 hand match, and for every game but Hold'em). */
+export function chosenOptions(flags: Record<string, unknown> | null): MatchOptions | undefined {
+  const o = (flags as { holdemOptions?: unknown } | null)?.holdemOptions
+  return o !== null && typeof o === 'object' && optionsProblem(o) === null ? (o as MatchOptions) : undefined
+}
+
+function describeChoice(o: MatchOptions | undefined): string {
+  return `${o?.hands ?? 30} hands${o?.untilBust ? ' until a bust' : ''}`
 }
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })
@@ -171,10 +184,21 @@ export async function startMatchHandler(
   opts: StartOptions = {},
 ): Promise<HandlerResponse<StartBody | { error: string }>> {
   if (typeof input !== 'object' || input === null) return err(400, 'expected { game, level }')
-  const { game, level, call } = input as { game?: unknown; level?: unknown; call?: unknown }
+  const { game, level, call, options } = input as { game?: unknown; level?: unknown; call?: unknown; options?: unknown }
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
   if (!who.userId && !who.guestId) return err(401, 'no player')
+
+  // Hold'em's match length is chosen here and stored with the match, so the finish step can reject a record that claims another.
+  let chosen: MatchOptions | undefined
+  if (options !== undefined) {
+    if (game !== 'holdem') return err(400, 'options are only for holdem')
+    const why = optionsProblem(options)
+    if (why) return err(400, why)
+    if ((options as MatchOptions).leftAfter !== undefined) return err(400, 'leftAfter is set when the match ends, not when it starts')
+    const o = options as MatchOptions
+    if (!sameChoice(o, undefined)) chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), ...(o.untilBust ? { untilBust: true } : {}) }
+  }
 
   const { trainingAllowed, playerAllowed } = await trainingFor(db, who, game as GameId, opts)
 
@@ -183,7 +207,7 @@ export async function startMatchHandler(
 
   // The call ("How far do you think you get?") is optional and only a level name; anything else is ignored.
   const calledLevel = typeof call === 'string' && LEVELS.includes(call) ? (call as Level) : null
-  const { matchId, seed, agentVersion } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel })
+  const { matchId, seed, agentVersion } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel, ...(chosen ? { filterFlags: { holdemOptions: chosen } } : {}) })
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
@@ -331,6 +355,7 @@ export async function finishMatchHandler(
   if (rec.game !== row.game) reason = `game mismatch: started ${row.game}, record says ${rec.game}`
   else if (rec.agent.level !== row.level) reason = `level mismatch: started ${row.level}, record says ${rec.agent.level}`
   else if (rec.seed !== row.seed) reason = `seed does not match the one issued for this match`
+  else if (!sameChoice(rec.options, chosenOptions(row.filterFlags))) reason = `match length does not match the one chosen at the start (started ${describeChoice(chosenOptions(row.filterFlags))}, record says ${describeChoice(rec.options)})`
   else if (ticketed && rec.agent.version !== row.agentVersion) reason = `this offline match was played against agent ${rec.agent.version}, but its ticket was issued for ${row.agentVersion}`
   else if (ticketed && opts.currentAgentVersion && opts.currentAgentVersion(row.game as GameId, row.level as Level) !== row.agentVersion) reason = 'the opponent was updated after this offline ticket was issued, so the match cannot be checked'
   else {
@@ -392,6 +417,8 @@ export async function finishMatchHandler(
   if (PRODUCT.games[row.game as GameId].kind === 'realtime') return { status: 200, body: { valid, result, unranked: true } }
   if (!row.userId || !result) return { status: 200, body: { valid, result } }
   const siteElo = opts.siteElo?.(row.game as GameId, row.level as Level, row.agentVersion) ?? null
+  // A match the player left before its chosen end is valid and may be trained on, but never moves a rating: nobody can farm Elo by leaving when ahead.
+  if (rec.options?.leftAfter !== undefined) return { status: 200, body: { valid, result, unranked: true, left: true } }
   const change = await applyRatingIfRanked(db, {
     userId: row.userId,
     game: row.game as GameId,

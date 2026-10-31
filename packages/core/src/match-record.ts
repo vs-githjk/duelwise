@@ -1,6 +1,7 @@
 import type { GameId, Level } from './product'
 import { PRODUCT } from './product'
 import type { Result, Seat } from './types'
+import { optionsProblem } from './games/holdem/match'
 import { gunzipAsync, gunzipSync, gzipAsync, gzipSync } from './gzip'
 
 export interface MatchRecordV1 {
@@ -21,6 +22,8 @@ export interface MatchRecordV1 {
   device: 'phone' | 'tablet' | 'desktop'
   input: 'mouse' | 'touch' | 'keyboard'
   trainingAllowed: boolean
+  /** Hold'em only: the match length chosen at the start, and where the player left (unrated). Absent means the default 30 hand match. */
+  options?: { hands?: number; untilBust?: boolean; leftAfter?: number }
 }
 
 export class RecordError extends Error {
@@ -75,6 +78,11 @@ export function validateRecord(v: unknown): MatchRecordV1 {
   if (typeof v.device !== 'string' || !DEVICES.includes(v.device)) fail('bad device')
   if (typeof v.input !== 'string' || !INPUTS.includes(v.input)) fail('bad input')
   if (typeof v.trainingAllowed !== 'boolean') fail('trainingAllowed must be a boolean')
+  if (v.options !== undefined) {
+    if (v.game !== 'holdem') fail('options are only for holdem')
+    const why = optionsProblem(v.options)
+    if (why) fail('bad options: ' + why)
+  }
   return v as unknown as MatchRecordV1
 }
 
