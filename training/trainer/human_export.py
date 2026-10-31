@@ -25,6 +25,28 @@ class AppRootError(RuntimeError):
     pass
 
 
+_PGLITE: Path | None = None
+
+
+def use_pglite(path: Path | str | None) -> None:
+    """Rehearsal source: read a COPY of a scratch PGlite database instead of Postgres. The dev database (.data/pglite) is refused."""
+    global _PGLITE
+    if path is None:
+        _PGLITE = None
+        return
+    p = Path(path).resolve()
+    for root in (common_root(), PUBLIC):
+        if p == (root / ".data" / "pglite").resolve() or (root / ".data").resolve() in p.parents:
+            raise RuntimeError(f"{p} is the dev database folder; use a scratch copy (rehearsals never read .data)")
+    if not p.is_dir():
+        raise RuntimeError(f"--pglite {p}: not a directory")
+    _PGLITE = p
+
+
+def _source_args() -> list[str]:
+    return ["--pglite", str(_PGLITE)] if _PGLITE else []
+
+
 def app_root() -> Path:
     """The Duelwise app checkout that holds the TypeScript scripts: $DUELWISE_APP_ROOT, else the learn worktree of the public repo while
     it exists, else the public main checkout. (The private archive carries an older copy of the app without these scripts.)"""
@@ -55,7 +77,7 @@ def _run(cmd: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess
 
 
 def require_database() -> None:
-    if not os.environ.get("DATABASE_URL"):
+    if _PGLITE is None and not os.environ.get("DATABASE_URL"):
         raise RuntimeError("DATABASE_URL is not set. Export it in the shell for this one command; nothing was read.")
 
 
@@ -64,7 +86,7 @@ def export_human(game: str, out_root: Path, *, extra: list[str] | None = None, t
     require_database()
     root = app_root()
     out_root.mkdir(parents=True, exist_ok=True)
-    _run([find_bun(), str(root / EXPORT_SCRIPT), "--game", game, "--out", str(out_root), *(extra or [])], root, timeout)
+    _run([find_bun(), str(root / EXPORT_SCRIPT), "--game", game, "--out", str(out_root), *_source_args(), *(extra or [])], root, timeout)
     return json.loads((out_root / game / "summary.json").read_text())
 
 
@@ -72,7 +94,7 @@ def build_profiles(out_root: Path, timeout: int = 900) -> dict:
     require_database()
     root = app_root()
     out_root.mkdir(parents=True, exist_ok=True)
-    p = _run([find_bun(), str(root / PROFILE_SCRIPT), "--out", str(out_root)], root, timeout)
+    p = _run([find_bun(), str(root / PROFILE_SCRIPT), "--out", str(out_root), *_source_args()], root, timeout)
     return json.loads(p.stdout.strip().splitlines()[-1])
 
 

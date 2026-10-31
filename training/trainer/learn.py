@@ -33,7 +33,7 @@ from pathlib import Path
 
 from . import gates
 from .bridge import find_bun
-from .human_export import AppRootError, app_root, build_chess_shards, build_profiles, export_human, fetch_expert, human_root
+from .human_export import AppRootError, app_root, build_chess_shards, build_profiles, export_human, fetch_expert, human_root, use_pglite
 from .ladder import GATE_MIN_GAMES, GATE_MIN_SCORE, promotion_gate
 from .paths import runs_dir, worktree_root
 
@@ -186,13 +186,19 @@ def add_arguments(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--gate-sims", type=int, default=200, help="Four: simulations per move in the gate games")
     ap.add_argument("--skip-fetch", action="store_true", help="chess: do not download Lichess data when the b2200 shards are missing")
     ap.add_argument("--work-dir", default=None, help="default: runs/learn/<game>/<timestamp>")
+    ap.add_argument("--pglite", default=None, help="rehearsal only: an absolute scratch PGlite folder to read (a copy is opened) instead of DATABASE_URL; the dev database is refused")
 
 
 def run_cli(a: argparse.Namespace) -> int:
     if not a.smoke and a.gate_games_per_seat < gates.GATE_GAMES_PER_SEAT:
         print(f"learn: --gate-games-per-seat {a.gate_games_per_seat} is below the {gates.GATE_GAMES_PER_SEAT} a gate needs; use --smoke for a quick check", file=sys.stderr)
         return 2
-    if not os.environ.get("DATABASE_URL"):
+    try:
+        use_pglite(a.pglite)
+    except RuntimeError as e:
+        print(f"learn: {e}", file=sys.stderr)
+        return 2
+    if a.pglite is None and not os.environ.get("DATABASE_URL"):
         print("learn: DATABASE_URL is not set. Export it in this shell for this one command (read only); nothing was read, trained or gated.", file=sys.stderr)
         return 2
     work = Path(a.work_dir) if a.work_dir else runs_dir() / "learn" / a.game / stamp()

@@ -256,6 +256,21 @@ def test_database_url_is_scrubbed_from_errors(tmp_path, monkeypatch):
     assert "pw" not in str(e.value) and "[database url]" in str(e.value)
 
 
+def test_rehearsal_source_refuses_the_dev_database(tmp_path, monkeypatch):
+    dev = human_export.PUBLIC / ".data" / "pglite"
+    with pytest.raises(RuntimeError, match="dev database"):
+        human_export.use_pglite(dev)
+    with pytest.raises(RuntimeError, match="not a directory"):
+        human_export.use_pglite(tmp_path / "missing")
+    human_export.use_pglite(tmp_path)
+    try:
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        human_export.require_database()  # a scratch database needs no URL
+        assert human_export._source_args() == ["--pglite", str(tmp_path.resolve())]
+    finally:
+        human_export.use_pglite(None)
+
+
 def test_export_refuses_without_a_database_url_and_app_root_can_be_set(tmp_path, monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     with pytest.raises(RuntimeError, match="DATABASE_URL"):
