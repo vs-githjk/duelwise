@@ -29,7 +29,8 @@ export default defineConfig({
   reporter: [['list']],
   // Every e2e request carries the test marker, so the owner page counts these runs as test traffic.
   use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure', storageState: guidesSeen, extraHTTPHeaders: { 'x-dw-test': '1' } },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Playwright starts Chromium with --mute-audio; Vidyut wants to hear that a run is going, so the flag is dropped (also for the WebKit config, which spreads this one).
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { ignoreDefaultArgs: ['--mute-audio'] } } }],
   webServer: {
     command: `bun run dev`,
     cwd: import.meta.dirname,

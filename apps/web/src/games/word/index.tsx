@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry } from '@duelwise/agents/src/registry'
 import registryJson from '@duelwise/agents/registry/word.json'
@@ -9,7 +9,6 @@ import { PlayMode } from '../../components/PlayModeToggle'
 import { personaFor, styleLine } from '../../personas'
 import { calledFor } from '../../lib/progress'
 import { ResultPanel } from '../../components/ResultPanel'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
@@ -34,16 +33,6 @@ function firstSelectable(): Level {
 function seedFromUrl(): number | undefined {
   const raw = new URLSearchParams(window.location.search).get('seed')
   return raw !== null && /^\d{1,10}$/.test(raw) && Number(raw) < 2 ** 32 ? Number(raw) : undefined
-}
-
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
 }
 
 export default function WordDuelPage() {
@@ -71,7 +60,6 @@ export default function WordDuelPage() {
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
       previewLabel="Practice"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={
         over && match.finished && state ? (
             <div className="grid gap-3">

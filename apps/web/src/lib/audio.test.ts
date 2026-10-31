@@ -24,7 +24,7 @@ describe('audio preferences', () => {
     resetAudioForTests()
     expect(getVolume()).toBe(0.3)
     expect(isMuted()).toBe(true)
-    expect(JSON.parse(store.data.get('duelwise.audio')!)).toEqual({ volume: 0.3, muted: true })
+    expect(JSON.parse(store.data.get('duelwise.audio')!)).toEqual({ volume: 0.3, muted: true, music: true })
   })
 
   test('volume is clamped and subscribers hear changes', () => {

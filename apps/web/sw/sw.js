@@ -159,10 +159,38 @@ async function navigate(request, keep) {
   }
 }
 
+/** The 'bytes=a-b' of a Range header as [start, end] against a file of `size` bytes, or null when it is not a single satisfiable range. Pure, so it can be tested. */
+function parseRange(header, size) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header || '')
+  if (!m || (m[1] === '' && m[2] === '') || size <= 0) return null
+  let start = m[1] === '' ? Math.max(0, size - Number(m[2])) : Number(m[1])
+  let end = m[1] === '' || m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)
+  return start <= end && start < size ? [start, end] : null
+}
+
+/** Safari plays a media file from the worker only when a Range request is answered with 206, so a kept copy is sliced here. */
+async function rangeFromCache(request, hit) {
+  const blob = await hit.clone().blob()
+  const header = request.headers.get('range')
+  // Several ranges in one header are not supported: answer with the whole file (200), which the browser accepts.
+  if (header && header.indexOf(',') !== -1) return hit.clone()
+  const range = parseRange(header, blob.size)
+  if (!range) return new Response(null, { status: 416, headers: { 'content-range': 'bytes */' + blob.size } })
+  return new Response(blob.slice(range[0], range[1] + 1), {
+    status: 206,
+    headers: {
+      'content-type': hit.headers.get('content-type') || 'application/octet-stream',
+      'content-range': 'bytes ' + range[0] + '-' + range[1] + '/' + blob.size,
+      'content-length': String(range[1] - range[0] + 1),
+    },
+  })
+}
+
 async function staticFirst(request) {
   const statics = await caches.open(STATIC)
   // ignoreVary: files cached at install were fetched with other request headers than the page sends.
   const hit = await statics.match(request, { ignoreVary: true })
+  if (hit && request.headers && request.headers.has('range') && !isPageForFile(request.url, hit)) return rangeFromCache(request, hit)
   if (hit && !isPageForFile(request.url, hit)) return hit
   if (hit) await statics.delete(request, { ignoreVary: true }) // a page kept as a file: never serve it again
   const res = await fetch(request)

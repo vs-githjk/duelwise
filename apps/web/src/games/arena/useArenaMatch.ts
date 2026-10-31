@@ -9,6 +9,7 @@ import { createAgent, type RuntimeAgent } from '@duelwise/agents/src/runtime/age
 import { seatView, viewDue, FRAME_SKIP } from '@duelwise/agents/src/arena/view'
 import type { ArenaReply } from '@duelwise/agents/src/arena/agent'
 import { play, registerSounds, getVolume, isMuted, subscribeAudio } from '../../lib/audio'
+import { playStinger } from '../../lib/music'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
 import { DebugRenderer, opponentVisible, type StageRenderer } from './render/DebugRenderer'
@@ -512,7 +513,8 @@ export function useArenaMatch(agentVersion: (level: Level) => string, learnsFrom
           if (window.__arena) window.__arena.record = out.record
           setIds({ matchId: out.record.matchId, seed })
           const r = out.record.result
-          cue(r.winner === HUMAN ? 'win' : 'lose', 600)
+          // The match result: the shared stinger. (The round cues below stay as they are.)
+          playStinger(r.winner === HUMAN ? 'win' : 'loss', 600)
         } catch (e) {
           setFailure(e instanceof Error ? e.message : 'The match record could not be made.')
         }

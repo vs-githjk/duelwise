@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -8,7 +8,6 @@ import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { personaFor } from '../../personas'
 import { ResultPanel } from '../../components/ResultPanel'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { PlayHud } from '../../components/PlayHud'
@@ -41,16 +40,6 @@ function seedFromUrl(): number | undefined {
 function fenFromUrl(): string | undefined {
   if (!import.meta.env.DEV) return undefined
   return new URLSearchParams(window.location.search).get('fen') ?? undefined
-}
-
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
 }
 
 /** Moves in pairs ("1. e4 e5"), newest last, scrolled to the end. */
@@ -117,7 +106,6 @@ export default function ChessPage() {
       preview={!setup && (match.preview || levelInfo[match.level].preview)}
       previewLabel="Practice"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={over && match.result ? (
             <>
               {match.sans.at(-1)?.endsWith('#') ? <p className="text-center font-semibold" data-testid="chess-mating-move">{moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans.at(-1), inCheck: true, over: true })}</p> : null}

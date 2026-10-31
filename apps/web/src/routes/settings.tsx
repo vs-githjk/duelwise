@@ -9,7 +9,8 @@ import { forgetPrivateData } from '../lib/pwa'
 import { deleteMyAccount } from '../server/account-fns'
 import { forgetThisDevice, getMyIdentity, saveBoardVisibility } from '../server/identity-fns'
 import { NameField } from '../components/IdentityCard'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../lib/audio'
+import { getVolume, isMuted, subscribeAudio } from '../lib/audio'
+import { SoundSwitches } from '../components/SoundSwitches'
 import { forgetLocal } from '../lib/progress'
 import { readVoicePref, speechSupported, writeVoicePref } from '../lib/speech'
 
@@ -65,7 +66,7 @@ function BoardSwitch() {
   )
 }
 
-/** Master sound (the mute the games use) and the opponent's spoken line, which follows it. */
+/** The Music and Sound effects switches, and the opponent's spoken line, which follows Sound effects. */
 function SoundRow() {
   useSyncExternalStore(subscribeAudio, getVolume, getVolume)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
@@ -75,14 +76,10 @@ function SoundRow() {
     setCan(speechSupported())
     setVoice(readVoicePref() === 'on')
   }, [])
-  const idSound = useId()
   const idVoice = useId()
   return (
     <div className="grid gap-1">
-      <label htmlFor={idSound} className="inline-flex min-h-11 cursor-pointer items-center gap-3">
-        <input id={idSound} type="checkbox" role="switch" className="size-5 accent-action" checked={!muted} onChange={(e) => setMuted(!e.target.checked)} />
-        <span className="font-medium">Sound</span>
-      </label>
+      <SoundSwitches className="grid gap-1" />
       {can ? (
         <label htmlFor={idVoice} className="inline-flex min-h-11 cursor-pointer items-center gap-3">
           <input
@@ -178,7 +175,7 @@ function Page() {
         Wins at each level, last 30 days, for everybody. Switch this off to stay off every board; your own path and report stay yours.
       </Row>
       <Row title="Sound" testId="sound-settings" control={<SoundRow />}>
-        One switch for every game sound. The opponent's line after a match is spoken by your browser's own voice, never over the network.
+        Music plays softly in the lobby and during games, and starts after your first tap. Sound effects cover the game cues and the win and loss sounds. The opponent's line after a match is spoken by your browser's own voice, never over the network.
       </Row>
       {user ? null : (
         <Row

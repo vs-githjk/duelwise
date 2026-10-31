@@ -152,14 +152,15 @@ test.describe('Four in a Row play page', () => {
     expect(colBox!.width).toBeGreaterThanOrEqual(36)
   })
 
-  test('mute toggle persists across a reload', async ({ page }) => {
+  test('the sound effects switch in the game header persists across a reload', async ({ page }) => {
     await page.goto(URL)
-    const toggle = page.getByRole('button', { name: /Sound (on|off)/ })
-    await expect(toggle).toHaveText('Sound on')
-    await toggle.click()
-    await expect(toggle).toHaveText('Sound off')
+    await page.getByTestId('game-sound-button').click()
+    const sfx = page.getByTestId('game-sound-panel').getByTestId('sfx-switch')
+    await expect(sfx).toBeChecked()
+    await sfx.uncheck()
     await page.reload()
-    await expect(page.getByRole('button', { name: /Sound (on|off)/ })).toHaveText('Sound off')
+    await page.getByTestId('game-sound-button').click()
+    await expect(page.getByTestId('game-sound-panel').getByTestId('sfx-switch')).not.toBeChecked()
   })
 
   const discTransforms = (page: Page) =>

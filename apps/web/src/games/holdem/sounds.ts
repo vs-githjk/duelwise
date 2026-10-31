@@ -1,4 +1,5 @@
 import { getVolume, isMuted } from '../../lib/audio'
+import { playStinger } from '../../lib/music'
 
 // Small synthesised cues (Web Audio: filtered noise for card and chip clicks, oscillators for the result
 // jingles), so there are no sample files to license. They honour the shared master volume and mute.
@@ -81,6 +82,8 @@ function noiseBuffer(ac: AudioContext): AudioBuffer {
 
 /** Plays one cue. Silent when muted or when the browser blocks audio; never throws. `delayMs` staggers a reveal. */
 export function playCue(name: Cue, delayMs = 0): void {
+  // The result sounds are the shared win and loss stingers (lib/music.ts), which also duck the music; the draw jingle stays here.
+  if (name === 'win' || name === 'lose') return playStinger(name === 'win' ? 'win' : 'loss', delayMs)
   try {
     if (isMuted()) return
     const ac = context()
