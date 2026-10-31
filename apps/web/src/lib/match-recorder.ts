@@ -12,7 +12,7 @@ import { requestWakeDrain } from './pwa'
 import { takeCall } from './progress'
 import { isOffline, subscribeConnection } from './connection'
 import { setMatchActive } from './match-active'
-import { beaconFinish, beaconResign, clearPending, postResign, retryPending, savePending, type ResignReply } from './integrity'
+import { beaconFinish, beaconResign, clearPending, clearResignedOnLeave, resignOnPageLeave, postResign, retryPending, savePending, type ResignReply } from './integrity'
 
 export interface RecorderInit {
   game: GameId
@@ -283,13 +283,15 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   // resigned by beacon: closing the tab must not dodge a loss. pagehide also fires on a bfcache
   // freeze, which is the same as leaving for this purpose.
   useEffect(() => {
-    const leave = () => {
+    const leave = (pageGone = false) => {
       const p = pending.current
       if (p) beaconFinish(p.bytes)
       const m = live.current
       if (!m) return
       live.current = null
-      beaconResign(m.matchId, m.tick)
+      // Only a real page leave (reload, close) is explained on the next load; unmounting inside the app is not.
+      if (pageGone) resignOnPageLeave(game, m.matchId, m.tick)
+      else beaconResign(m.matchId, m.tick)
     }
     // Records an earlier page could not deliver (closed tab, offline) are sent now, before the abandon window.
     void retryPending()
@@ -308,12 +310,13 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     window.addEventListener(QUEUE_EVENT, settled)
     const unsubscribe = subscribeConnection(() => { if (!isOffline()) online() })
     window.addEventListener('online', online)
-    window.addEventListener('pagehide', leave)
+    const onPageHide = () => leave(true)
+    window.addEventListener('pagehide', onPageHide)
     return () => {
       window.removeEventListener('online', online)
       window.removeEventListener(QUEUE_EVENT, settled)
       unsubscribe()
-      window.removeEventListener('pagehide', leave)
+      window.removeEventListener('pagehide', onPageHide)
       leave()
     }
   }, [game])
@@ -321,6 +324,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   /** Gets the seed for a new match (from the server unless `devSeed` is given). Call before the game's init. */
   const begin = useCallback(
     async (level: Level, devSeed?: number, options?: MatchRecordV1['options']): Promise<Session> => {
+      clearResignedOnLeave()
       const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game) ?? undefined, options)
       session.current = s
       setUnratedReason(s.unratedReason ?? null)
