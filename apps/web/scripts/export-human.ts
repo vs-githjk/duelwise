@@ -17,7 +17,8 @@
 // count most, per plan/expert-data-research.md section 5: easy 0, medium 0.25, hard 1, champion 2; win 1, draw 0.6, loss 0.15.
 // DATABASE_URL is read from the environment and never printed. The connection runs every statement in a READ ONLY transaction.
 import { createHash } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { decodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
@@ -118,6 +119,7 @@ export function matchWeight(level: string, outcome: HumanRow['outcome'], elo: nu
 const SELECT = (poker: boolean) => `
   select m.id, m.game, m.user_id, m.guest_id, m.agent_version, m.level, m.status, m.record_valid, m.training_allowed, m.filter_flags, m.traffic,
          m.started_at::text as started_text,
+         to_char(m.started_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as started_iso,
          case when m.status = 'finished' then m.record end as record,
          ${poker ? 'coalesce(p.poker_profile_allowed, g.poker_profile_allowed, true)' : 'null::boolean'} as poker_ok,
          r.elo as elo
@@ -182,7 +184,7 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
       if (!verdict.ok) { reject(verdict.reason); continue }
       const rec = record!
       const outcome: HumanRow['outcome'] = rec.result.winner === null ? 'draw' : rec.result.winner === rec.humanSeat ? 'win' : 'loss'
-      const startedAt = new Date(String(r.started_text).replace(' ', 'T').replace(/\+00$/, 'Z'))
+      const startedAt = new Date(String(r.started_iso))
       const elo = r.elo == null ? null : Number(r.elo)
       const level = String(r.level)
       const out: HumanRow = {
@@ -271,15 +273,60 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   return summary
 }
 
+/** One statement, and it is a select. (Neon also runs it in a READ ONLY transaction; this is the second lock.) */
+export function assertSelectOnly(text: string): void {
+  if (!/^\s*select\b/i.test(text) || /;\s*\S/.test(text)) throw new Error('export-human: only a single select statement is allowed')
+}
+
 /** A Query over Neon that runs every statement in a READ ONLY transaction and refuses anything that is not a select. */
 export async function neonReadOnly(url: string): Promise<Query> {
   const { neon } = await import('@neondatabase/serverless')
   const sql = neon(url)
   return async (text, params = []) => {
-    if (!/^\s*select\b/i.test(text)) throw new Error('export-human: only select statements are allowed')
+    assertSelectOnly(text)
     const [rows] = await sql.transaction([sql.query(text, params)], { readOnly: true })
     return rows as Array<Record<string, unknown>>
   }
+}
+
+/**
+ * A Query over a COPY of a PGlite database directory (a rehearsal source: a scratch database, never the live dev one). The original is not
+ * opened; select statements only. Call `close` when done.
+ */
+export async function pgliteCopyQuery(dir: string): Promise<{ query: Query; close: () => Promise<void> }> {
+  const { PGlite } = await import('@electric-sql/pglite')
+  const scratch = await mkdtemp(join(tmpdir(), 'duelwise-human-'))
+  const copy = join(scratch, 'pglite')
+  await cp(dir, copy, { recursive: true })
+  await rm(join(copy, 'postmaster.pid'), { force: true })
+  const client = new PGlite(copy)
+  await client.waitReady
+  return {
+    query: async (text, params = []) => {
+      assertSelectOnly(text)
+      return (await client.query<Record<string, unknown>>(text, params as never)).rows
+    },
+    close: async () => {
+      await client.close()
+      await rm(scratch, { recursive: true, force: true })
+    },
+  }
+}
+
+/** The query for a run: --pglite <dir> (a copy of a scratch database) or DATABASE_URL (Neon, read only). Exits with a usage error otherwise. */
+export async function sourceFromArgs(args: string[]): Promise<{ query: Query; close: () => Promise<void>; secret: string | null }> {
+  const i = args.indexOf('--pglite')
+  if (i >= 0) {
+    const dir = args[i + 1]
+    if (!dir || !dir.startsWith('/')) throw new Error('--pglite needs an absolute directory')
+    return { ...(await pgliteCopyQuery(dir)), secret: null }
+  }
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    console.error('DATABASE_URL is not set. Nothing was read.')
+    process.exit(1)
+  }
+  return { query: await neonReadOnly(url), close: async () => {}, secret: url }
 }
 
 async function main() {
@@ -292,25 +339,24 @@ async function main() {
   const game = flag('--game') as GameId | undefined
   const out = flag('--out')
   if (!game || !out || !out.startsWith('/') || !(game in PRODUCT.games)) {
-    console.error('usage: DATABASE_URL=... bun export-human.ts --game four|chess|holdem --out <absolute dir> [--since <iso>] [--cap-per-day 20] [--include-practice] [--include-left] [--include-untagged] [--holdout-percent 10]')
+    console.error('usage: DATABASE_URL=... bun export-human.ts --game four|chess|holdem --out <absolute dir> [--pglite <absolute scratch db dir>] [--since <iso>] [--cap-per-day 20] [--include-practice] [--include-left] [--include-untagged] [--holdout-percent 10]')
     process.exit(2)
   }
-  const url = process.env.DATABASE_URL
-  if (!url) {
-    console.error('DATABASE_URL is not set. Nothing was read.')
-    process.exit(1)
-  }
+  let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
   try {
+    src = await sourceFromArgs(args)
     const summary = await exportHuman({
-      game, query: await neonReadOnly(url), outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
+      game, query: src.query, outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
       capPerDay: flag('--cap-per-day') ? Number(flag('--cap-per-day')) : undefined, includePractice: has('--include-practice'),
       includeLeft: has('--include-left'), includeUntagged: has('--include-untagged'), holdoutPercent: flag('--holdout-percent') ? Number(flag('--holdout-percent')) : undefined,
     })
     console.log(JSON.stringify(summary))
   } catch (e) {
     // Never echo the connection string: print the message only.
-    console.error('export-human failed:', e instanceof Error ? e.message.replaceAll(url, '[database url]') : 'unknown error')
+    console.error('export-human failed:', e instanceof Error ? (src?.secret ? e.message.replaceAll(src.secret, '[database url]') : e.message) : 'unknown error')
     process.exit(1)
+  } finally {
+    await src?.close()
   }
 }
 

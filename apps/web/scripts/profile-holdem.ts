@@ -11,7 +11,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { countMatch, emptyCounts, profileOf, type PlayerProfile, type ProfileCounts } from '@duelwise/core/src/games/holdem/profile'
-import { exportHuman, neonReadOnly, type HumanRow } from './export-human'
+import { exportHuman, sourceFromArgs, type HumanRow } from './export-human'
 
 export interface ProfileEntry {
   player: string
@@ -56,17 +56,14 @@ async function main() {
   const args = process.argv.slice(2)
   const out = args[args.indexOf('--out') + 1]
   if (args.indexOf('--out') < 0 || !out || !out.startsWith('/')) {
-    console.error('usage: DATABASE_URL=... bun profile-holdem.ts --out <absolute dir>')
+    console.error('usage: DATABASE_URL=... bun profile-holdem.ts --out <absolute dir> [--pglite <absolute scratch db dir>]')
     process.exit(2)
   }
-  const url = process.env.DATABASE_URL
-  if (!url) {
-    console.error('DATABASE_URL is not set. Nothing was read.')
-    process.exit(1)
-  }
   const scratch = await mkdtemp(join(tmpdir(), 'duelwise-profile-'))
+  let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
   try {
-    await exportHuman({ game: 'holdem', query: await neonReadOnly(url), outDir: scratch, holdoutPercent: 0, capPerDay: Number.MAX_SAFE_INTEGER, shareCap: false, includeLeft: true })
+    src = await sourceFromArgs(args)
+    await exportHuman({ game: 'holdem', query: src.query, outDir: scratch, holdoutPercent: 0, capPerDay: Number.MAX_SAFE_INTEGER, shareCap: false, includeLeft: true })
     const rows = (await readFile(join(scratch, 'holdem', 'matches.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l) as HumanRow)
     const { profiles, summary } = buildProfiles(rows)
     const dir = join(resolve(out), 'holdem-profiles')
@@ -75,9 +72,10 @@ async function main() {
     await writeFile(join(dir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
     console.log(JSON.stringify(summary))
   } catch (e) {
-    console.error('profile-holdem failed:', e instanceof Error ? e.message.replaceAll(url, '[database url]') : 'unknown error')
+    console.error('profile-holdem failed:', e instanceof Error ? (src?.secret ? e.message.replaceAll(src.secret, '[database url]') : e.message) : 'unknown error')
     process.exit(1)
   } finally {
+    await src?.close()
     await rm(scratch, { recursive: true, force: true })
   }
 }

@@ -9,7 +9,7 @@ import { encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-recor
 import type { Seat } from '@duelwise/core/src/types'
 import { migrateDb } from '../src/db/migrate'
 import * as schema from '../src/db/schema'
-import { exportHuman, matchWeight, playerKey, type HumanRow, type Query } from './export-human'
+import { assertSelectOnly, exportHuman, matchWeight, pgliteCopyQuery, playerKey, type HumanRow, type Query } from './export-human'
 
 const dirs: string[] = []
 afterAll(async () => {
@@ -268,4 +268,44 @@ describe('export-human caps, weights and holdout', () => {
     expect(Object.fromEntries(rows.map((r) => [r.id, r.profileOk]))).toEqual({ p1: false, p2: false, p3: true })
     await expect(exportHuman({ game: 'word', query: t.query, outDir: dir })).rejects.toThrow()
   }, 120000)
+})
+
+describe('rehearsal source', () => {
+  test('reads a copy of a scratch PGlite folder, allows only selects, and leaves the original untouched', async () => {
+    const base = await out()
+    const dbDir = join(base, 'scratch-pglite')
+    const client = new PGlite(dbDir)
+    const db = drizzle(client, { schema })
+    await migrateDb(db)
+    await db.insert(schema.match).values({
+      id: 'k1', game: 'four', guestId: 'g-k', agentVersion: 'v1', level: 'hard', seed: 1, status: 'finished', recordValid: true, trainingAllowed: true, traffic: 'human',
+      record: encodeRecord(fourRecord('k1', 1)), startedAt: new Date('2026-10-30T08:00:00Z'), finishedAt: new Date(),
+    })
+    await client.close()
+    const { query, close } = await pgliteCopyQuery(dbDir)
+    try {
+      const dir = await out()
+      const s = await exportHuman({ game: 'four', query, outDir: dir, holdoutPercent: 0 })
+      expect(s.kept).toBe(1)
+      await expect(query('delete from match')).rejects.toThrow(/single select/)
+      await expect(query('select 1; delete from match')).rejects.toThrow(/single select/)
+      await expect(query('with x as (delete from match returning 1) select * from x')).rejects.toThrow(/single select/)
+      expect((await query('select 1 as one;'))[0]!.one).toBe(1)
+    } finally {
+      await close()
+    }
+    const again = new PGlite(dbDir)
+    expect((await again.query<{ n: number }>('select count(*)::int as n from match')).rows[0]!.n).toBe(1)
+    await again.close()
+  }, 120000)
+})
+
+describe('assertSelectOnly', () => {
+  test('accepts one select and nothing else', () => {
+    expect(() => assertSelectOnly('select 1')).not.toThrow()
+    expect(() => assertSelectOnly('  SELECT a from b where c = $1;  ')).not.toThrow()
+    for (const bad of ['delete from match', 'update match set level = 1', 'select 1; select 2', 'insert into match select 1', 'drop table match']) {
+      expect(() => assertSelectOnly(bad)).toThrow()
+    }
+  })
 })
