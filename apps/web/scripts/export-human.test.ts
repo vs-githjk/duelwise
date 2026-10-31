@@ -410,7 +410,77 @@ describe('review fixes', () => {
     for (const bad of ['21', 'abc', '']) {
       const p = Bun.spawnSync(['bun', join(import.meta.dir, 'export-human.ts'), '--game', 'four', '--out', '/tmp/duelwise-never-written', '--cap-per-day', bad], { env: { ...process.env, DATABASE_URL: 'postgres://x' }, stdout: 'pipe', stderr: 'pipe' })
       expect(p.exitCode).toBe(1)
+      expect(p.stderr.toString()).toContain('--cap-per-day') // the flag's own error, not the fake url failing later
     }
+  }, 120000)
+
+  const script = (name: string, env: Record<string, string> = { DATABASE_URL: 'postgres://x' }) => (...args: string[]) => {
+    const p = Bun.spawnSync(['bun', join(import.meta.dir, name), ...args], { env: { ...process.env, ...env }, stdout: 'pipe', stderr: 'pipe' })
+    return { code: p.exitCode, out: p.stdout.toString(), err: p.stderr.toString() }
+  }
+  const scratchDb = async () => {
+    const dir = join(await out(), 'scratch-pglite')
+    const client = new PGlite(dir)
+    await migrateDb(drizzle(client, { schema }))
+    await client.close()
+    return dir
+  }
+
+  test('--cap-per-day with no value, or a non-numeric, zero, negative or too large one, stops the run with an error', () => {
+    const run = script('export-human.ts')
+    for (const tail of [['--cap-per-day'], ['--cap-per-day', '--include-left'], ['--cap-per-day', 'abc'], ['--cap-per-day', '5x'], ['--cap-per-day', '0'], ['--cap-per-day', '-1'], ['--cap-per-day', '2.5'], ['--cap-per-day', '21']]) {
+      const r = run('--game', 'four', '--out', '/tmp/duelwise-never-written', ...tail)
+      expect(r.code).toBe(1)
+      expect(r.err).toContain('--cap-per-day')
+    }
+  }, 120000)
+
+  test('on a real source a bare --cap-per-day is refused, where it used to run with 20, and a good value is used', async () => {
+    const db = await scratchDb()
+    const run = script('export-human.ts', {})
+    const o = join(await out(), 'o')
+    const bare = run('--game', 'four', '--out', o, '--pglite', db, '--cap-per-day')
+    expect(bare.code).toBe(1)
+    expect(bare.out).toBe('')
+    const five = run('--game', 'four', '--out', o, '--pglite', db, '--cap-per-day', '5')
+    expect(five.code).toBe(0)
+    expect(JSON.parse(five.out).options.capPerDay).toBe(5)
+    const none = run('--game', 'four', '--out', o, '--pglite', db)
+    expect(JSON.parse(none.out).options.capPerDay).toBe(20)
+    expect(JSON.parse(none.out).options.holdoutPercent).toBe(10)
+  }, 120000)
+
+  test('--since and --holdout-percent get the same check: no quiet fall back to everything, or to no holdout', () => {
+    const run = script('export-human.ts')
+    for (const [flag, tail] of [['--since', ['--since']], ['--since', ['--since', '']], ['--since', ['--since', 'yesterdayish']], ['--holdout-percent', ['--holdout-percent']], ['--holdout-percent', ['--holdout-percent', 'abc']], ['--holdout-percent', ['--holdout-percent', '-1']], ['--holdout-percent', ['--holdout-percent', '101']]] as const) {
+      const r = run('--game', 'four', '--out', '/tmp/duelwise-never-written', ...tail)
+      expect(r.code).toBe(1)
+      expect(r.err).toContain(flag)
+    }
+  }, 120000)
+
+  test('a holdout that is not a percentage is an error inside exportHuman too: NaN would put every row in training', async () => {
+    const t = await freshDb()
+    for (const bad of [Number.NaN, -1, 101]) {
+      await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), holdoutPercent: bad })).rejects.toThrow(/holdoutPercent/)
+    }
+    await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), holdoutPercent: 0 })).resolves.toBeDefined()
+    await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), holdoutPercent: 100 })).resolves.toBeDefined()
+  }, 120000)
+
+  test('a misspelled, stray or repeated argument stops either script instead of leaving the default in place', () => {
+    const exportRun = script('export-human.ts')
+    for (const tail of [['--cap-per-dya', '5'], ['--cap-per-day=5'], ['--include-practise'], ['5'], ['--cap-per-day', '5', '--cap-per-day', '6']]) {
+      const r = exportRun('--game', 'four', '--out', '/tmp/duelwise-never-written', ...tail)
+      expect(r.code).toBe(1)
+      expect(r.err).toContain('export-human failed:')
+      expect(r.err).not.toContain('postgres://')
+    }
+    const profileRun = script('profile-holdem.ts')
+    expect(profileRun('--out', '/tmp/duelwise-never-written', '--include-practice').err).toContain('--include-practice')
+    expect(profileRun('--out', '/tmp/duelwise-never-written', '--include-practice').code).toBe(1)
+    expect(profileRun('--out').code).not.toBe(0)
+    expect(exportRun('--game', 'four', '--out').code).not.toBe(0)
   }, 120000)
 
   test('the share cap holds against the final training population, holdout included', async () => {

@@ -11,7 +11,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { countMatch, emptyCounts, profileOf, type PlayerProfile, type ProfileCounts } from '@duelwise/core/src/games/holdem/profile'
-import { exportHuman, runScript, sourceFromArgs, type Defer, type HumanRow } from './export-human'
+import { assertKnownArgs, exportHuman, flagValue, runScript, sourceFromArgs, type Defer, type HumanRow } from './export-human'
 
 export interface ProfileEntry {
   player: string
@@ -54,8 +54,9 @@ export function buildProfiles(rows: readonly HumanRow[], alreadyDropped = 0): { 
 
 async function main(defer: Defer) {
   const args = process.argv.slice(2)
-  const out = args[args.indexOf('--out') + 1]
-  if (args.indexOf('--out') < 0 || !out || !out.startsWith('/')) {
+  assertKnownArgs(args, ['--out', '--pglite'])
+  const out = flagValue(args, '--out')
+  if (!out || !out.startsWith('/')) {
     console.error('usage: DATABASE_URL=... bun profile-holdem.ts --out <absolute dir> [--pglite <absolute scratch db dir>]')
     process.exitCode = 2
     return

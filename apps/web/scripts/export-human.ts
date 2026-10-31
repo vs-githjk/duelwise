@@ -146,6 +146,7 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   const capPerDay = o.uncapped ? Number.MAX_SAFE_INTEGER : o.capPerDay ?? DAILY_CAP
   if (!o.uncapped && !(Number.isInteger(capPerDay) && capPerDay >= 1 && capPerDay <= DAILY_CAP)) throw new Error(`export-human: capPerDay must be an integer from 1 to ${DAILY_CAP}`)
   const holdoutPercent = o.holdoutPercent ?? 10
+  if (!(holdoutPercent >= 0 && holdoutPercent <= 100)) throw new Error('export-human: holdoutPercent must be from 0 to 100') // NaN would quietly hold out nothing
   const poker = await hasPokerOptOut(o.query)
   if (o.excludePokerOptOut && !poker) throw new Error('export-human: the database has no poker profile switch (migration 0007); refusing to export for profiles')
   const sql = SELECT(poker)
@@ -393,30 +394,65 @@ export async function sourceFromArgs(args: string[]): Promise<{ query: Query; cl
   return { query: await neonReadOnly(url), close: async () => {} }
 }
 
+/** Every argument must be a flag this script knows, given once. A misspelling must stop the run, not leave the default in place. */
+export function assertKnownArgs(args: readonly string[], valueFlags: readonly string[], switches: readonly string[] = []): void {
+  const seen = new Set<string>()
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!
+    if (!valueFlags.includes(a) && !switches.includes(a)) throw new Error(`unknown argument ${a}`)
+    if (seen.has(a)) throw new Error(`${a} was given twice`)
+    seen.add(a)
+    if (valueFlags.includes(a)) i++
+  }
+}
+
+/** A flag's value, undefined when the flag is absent. A flag with no value is an error, never a quiet fall back to the default. */
+export function flagValue(args: readonly string[], name: string): string | undefined {
+  const i = args.indexOf(name)
+  if (i < 0) return undefined
+  const v = args[i + 1]
+  if (!v || v.startsWith('--')) throw new Error(`${name} needs a value`)
+  return v
+}
+
+function integerFlag(args: readonly string[], name: string, min: number, max: number): number | undefined {
+  const v = flagValue(args, name)
+  if (v === undefined) return undefined
+  if (!/^\d+$/.test(v) || Number(v) < min || Number(v) > max) throw new Error(`${name} must be an integer from ${min} to ${max}`)
+  return Number(v)
+}
+
+const VALUE_FLAGS = ['--game', '--out', '--pglite', '--since', '--cap-per-day', '--holdout-percent']
+const SWITCHES = ['--include-practice', '--include-left', '--include-untagged']
+
+/** Checks the whole command line before any source is opened. */
+export function parseExportArgs(args: readonly string[]) {
+  assertKnownArgs(args, VALUE_FLAGS, SWITCHES)
+  const since = flagValue(args, '--since')
+  if (since !== undefined && Number.isNaN(Date.parse(since))) throw new Error('--since must be a date, like 2026-10-30')
+  return {
+    game: flagValue(args, '--game') as GameId | undefined,
+    out: flagValue(args, '--out'),
+    since: since === undefined ? undefined : new Date(since),
+    capPerDay: integerFlag(args, '--cap-per-day', 1, DAILY_CAP),
+    holdoutPercent: integerFlag(args, '--holdout-percent', 0, 100),
+    includePractice: args.includes('--include-practice'),
+    includeLeft: args.includes('--include-left'),
+    includeUntagged: args.includes('--include-untagged'),
+  }
+}
+
 async function main(defer: Defer) {
   const args = process.argv.slice(2)
-  const flag = (name: string): string | undefined => {
-    const i = args.indexOf(name)
-    return i >= 0 ? args[i + 1] : undefined
-  }
-  const has = (name: string) => args.includes(name)
-  const game = flag('--game') as GameId | undefined
-  const out = flag('--out')
+  const { game, out, ...options } = parseExportArgs(args)
   if (!game || !out || !out.startsWith('/') || !(game in PRODUCT.games)) {
     console.error('usage: DATABASE_URL=... bun export-human.ts --game four|chess|holdem --out <absolute dir> [--pglite <absolute scratch db dir>] [--since <iso>] [--cap-per-day 20] [--include-practice] [--include-left] [--include-untagged] [--holdout-percent 10]')
     process.exitCode = 2
     return
   }
-  const capFlag = flag('--cap-per-day')
-  if (capFlag !== undefined && !/^\d+$/.test(capFlag)) throw new Error(`--cap-per-day must be an integer from 1 to ${DAILY_CAP}`)
   const src = await sourceFromArgs(args)
   defer(() => src.close())
-  const summary = await exportHuman({
-    game, query: src.query, outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
-    capPerDay: capFlag !== undefined ? Number(capFlag) : undefined, includePractice: has('--include-practice'),
-    includeLeft: has('--include-left'), includeUntagged: has('--include-untagged'), holdoutPercent: flag('--holdout-percent') ? Number(flag('--holdout-percent')) : undefined,
-  })
-  console.log(JSON.stringify(summary))
+  console.log(JSON.stringify(await exportHuman({ game, query: src.query, outDir: resolve(out), ...options })))
 }
 
 if (import.meta.main) await runScript('export-human', main)
