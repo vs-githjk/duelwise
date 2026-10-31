@@ -238,7 +238,7 @@ describe('player drill-down', () => {
     expect(d.playedTotal).toBe(1)
     expect(d.matches[0]).toMatchObject({ result: 'won', practiceMode: true, practice: false, counted: false, valid: true })
     expect(d.path.find((p) => p.game === 'chess')!.cleared.hard).toBe(false)
-    const feed = (await adminOverviewHandler(db, OWNER, ENV, NOW)).body as { feed: Array<{ matchId: string; practiceMode: boolean }>; matchesPerGame: Array<{ game: string; all: number }> }
+    const feed = (await adminOverviewHandler(db, OWNER, ENV, NOW)).body as import('./admin-owner').AdminOverview
     expect(feed.feed.find((f) => f.matchId === id)?.practiceMode).toBe(true)
     expect(feed.feed.filter((f) => f.matchId !== id).every((f) => f.practiceMode === false)).toBe(true)
   })

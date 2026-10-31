@@ -4,6 +4,7 @@ import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
 import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { personaFor } from '../../personas'
 import { ResultPanel } from '../../components/ResultPanel'
@@ -189,6 +190,7 @@ export default function ChessPage() {
       {setup ? (
         <section className="grid gap-4" data-testid="chess-setup">
           <p className="text-muted">You play White and move first. Tap a piece and then a highlighted square, or drag it. Draws by stalemate, repetition and the fifty-move rule are detected for you.</p>
+          <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.chess.slug} disabled={match.phase === 'starting'}
             action={
               <>

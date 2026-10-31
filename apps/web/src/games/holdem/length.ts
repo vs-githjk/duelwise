@@ -15,9 +15,13 @@ export const STORAGE_KEY = 'duelwise.holdem.length'
 
 const isChoice = (v: unknown): v is LengthChoice => LENGTH_CHOICES.some((c) => c.id === v)
 
-/** The match options a choice stands for. Every counted match uses the strict bust rule; the 30 hand length is the default, so it is left out. */
-export function optionsFor(choice: LengthChoice): MatchOptions {
-  return Number(choice) === MATCH_HANDS ? { untilBust: true } : { hands: Number(choice), untilBust: true }
+/**
+ * The match options a choice stands for. Every rated match uses the strict bust rule; a practice match has none (a busted player buys
+ * back in for free), so it carries only the length. The 30 hand length is the default, so it is left out.
+ */
+export function optionsFor(choice: LengthChoice, practice = false): MatchOptions {
+  const bust = practice ? {} : { untilBust: true as const }
+  return Number(choice) === MATCH_HANDS ? { ...bust } : { hands: Number(choice), ...bust }
 }
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
