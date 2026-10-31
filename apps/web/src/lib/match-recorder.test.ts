@@ -114,9 +114,9 @@ describe('createMatchRecorder', () => {
   })
 })
 
-function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string }> } {
+function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean }> } {
   const sent: Uint8Array[] = []
-  const started: Array<{ game: string; level: string }> = []
+  const started: Array<{ game: string; level: string; practice?: boolean }> = []
   return {
     sent,
     started,
