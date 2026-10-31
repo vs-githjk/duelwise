@@ -127,7 +127,12 @@ def main(argv: list[str] | None = None) -> int:
     rt = sub.add_parser("retrain", help="train a challenger on filtered human matches and gate it against the champion")
     add_arguments(rt)
     rt.set_defaults(fn=run_cli)
-    if argv and argv[0] == "retrain":  # `bun run retrain -- --game four` may pass a literal `--` through
+    from . import learn as learn_cmd
+
+    ln = sub.add_parser("learn", help="export human matches, train, gate and print PASS or FAIL; never publishes")
+    learn_cmd.add_arguments(ln)
+    ln.set_defaults(fn=learn_cmd.run_cli)
+    if argv and argv[0] in ("retrain", "learn"):  # `bun run retrain -- --game four` may pass a literal `--` through
         argv = [x for i, x in enumerate(argv) if not (x == "--" and i == 1)]
     a, _ = ap.parse_known_args(argv) if argv and argv[0] in ("export", "measure") else (ap.parse_args(argv), None)
     try:

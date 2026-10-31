@@ -23,6 +23,18 @@ test.describe('privacy notice matches the legitimate-interest basis', () => {
     await expect(page).toHaveURL(/\/settings$/)
   })
 
+  test('says what a Hold\'em play profile is, that no agent uses it today, and where to switch it off', async ({ page }) => {
+    await page.goto('/privacy')
+    const section = page.getByTestId('privacy-poker-profile')
+    await expect(section).toContainText(/how often you enter a hand, raise, fold to a bet and reach showdown/)
+    await expect(section).toContainText(/No agent changes how it plays because of a profile today/)
+    await expect(section).toContainText(/separate switch from training use/)
+    await expect(section).not.toHaveText(BANNED)
+    await section.getByRole('link', { name: 'settings page' }).click()
+    await expect(page).toHaveURL(/\/settings$/)
+    await expect(page.getByTestId('poker-profile-settings')).toBeVisible()
+  })
+
   test('terms carry the hidden-information caveat and play chips only', async ({ page }) => {
     await page.goto('/terms')
     await expect(page.getByTestId('terms-hidden-info')).toContainText(/read the agent's cards or position from memory/)

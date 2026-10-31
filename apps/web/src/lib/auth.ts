@@ -2,6 +2,8 @@ import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import * as schema from '../db/schema'
+import { existingGuestId } from '../server/guest'
+import { carryPokerOptOutAtSignIn } from '../server/poker-profile'
 
 /** The slice of process.env this file reads, so tests pass their own. */
 export interface AuthEnv {
@@ -58,7 +60,15 @@ export function buildAuthOptions(env: AuthEnv, db: unknown) {
       // The dev sign-in has no inbox to verify: its users count as verified so the owner dashboard can be tried locally.
       user: { create: { before: async (user: Record<string, unknown>) => ({ data: cfg.dev ? { ...user, emailVerified: true } : user }) } },
       session: {
-        create: { before: async (session: Record<string, unknown>) => ({ data: { ...session, ipAddress: '', userAgent: '' } }) },
+        create: {
+          // Sign-in is the one moment an account and this browser's guest are known to be the same person. This runs before the session exists
+          // and its failure stops the sign-in, on purpose: no session may exist with a poker opt-out left behind.
+          before: async (session: Record<string, unknown>, ctx?: { headers?: Headers; request?: Request } | null) => {
+            const cookie = (ctx?.headers ?? ctx?.request?.headers)?.get('cookie')
+            await carryPokerOptOutAtSignIn(db as never, String(session.userId), await existingGuestId(db as never, cookie))
+            return { data: { ...session, ipAddress: '', userAgent: '' } }
+          },
+        },
         update: { before: async (session: Record<string, unknown>) => ({ data: { ...session, ipAddress: '', userAgent: '' } }) },
       },
     },
