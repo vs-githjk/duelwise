@@ -318,7 +318,7 @@ function Feed({ o, emails, onOpen }: { o: AdminOverview; emails: Record<string, 
             <span className="justify-self-end sm:order-last sm:justify-self-end text-sm text-muted">{ago(f.at, o.generatedAt)}</span>
             <span className="text-sm">{gameName(f.game)}</span>
             <span className="inline-flex items-center gap-2 text-sm"><Avatar level={f.level} size={22} decorative />{personaFor(f.level).name}</span>
-            <span className="flex flex-wrap items-center gap-1 justify-self-start"><Chip tone={RESULT_TONE[f.result]!}>{f.result}</Chip><TrafficTag t={f.traffic} /></span>
+            <span className="flex flex-wrap items-center gap-1 justify-self-start"><Chip tone={RESULT_TONE[f.result]!}>{f.result}</Chip><TrafficTag t={f.traffic} />{f.practiceMode ? <Outline title="Played in Practice mode: recorded, unrated">practice match</Outline> : null}</span>
           </li>
         ))}
       </ul>
@@ -330,6 +330,7 @@ function CountedChips({ m }: { m: HistoryRow }) {
   return (
     <span className="flex flex-wrap gap-1">
       {m.practice ? <Outline title="Practice levels never touch the board">practice</Outline> : null}
+      {m.practiceMode ? <Outline title="Played in Practice mode: recorded, unrated">practice match</Outline> : null}
       {m.counted ? <Chip tone="bg-good-soft text-good-ink">counted</Chip> : <Outline>not counted</Outline>}
       {m.valid === true ? <Outline>valid</Outline> : m.valid === false ? <Chip tone="bg-bad-soft text-bad-ink">invalid</Chip> : <Outline>unchecked</Outline>}
     </span>

@@ -8,6 +8,8 @@ import { OpponentContext } from '../personas/context'
 import { personaFor } from '../personas'
 import { DesktopOnlyNotice } from './DesktopOnlyNotice'
 import { PreviewBadge } from './PreviewBadge'
+import { PracticeBadge } from './PracticeBadge'
+import { setPractice, usePractice } from '../lib/practice'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
 import { HowToPlay } from './HowToPlay'
@@ -56,13 +58,19 @@ export interface GameShellProps {
 export function GameShell({ game, level, preview, previewLabel, thinking = false, aside, result, actions, onOpenGuide, children, className }: GameShellProps) {
   const [guideOpen, setGuideOpen] = useState(false)
   useEffect(() => { if (!hasSeenGuide(game)) { markGuideSeen(game); setGuideOpen(true) } }, [game])
+  // Every game page opens as Rated; a Practice pick lasts only as long as the page.
+  useEffect(() => {
+    setPractice(false)
+    return () => setPractice(false)
+  }, [game])
+  const practicePick = usePractice()
   const closeGuide = useCallback(() => setGuideOpen(false), [])
   const openGuide = () => { onOpenGuide?.(); setGuideOpen(true) }
   const cfg = PRODUCT.games[game]
   const isDesktop = useIsDesktop()
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (
-    <OpponentContext.Provider value={{ game, level }}>
+    <OpponentContext.Provider value={{ game, level, practice: level !== undefined && practicePick }}>
     <div className={cn('mx-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-4 py-4 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-2', className)} data-testid="game-shell" data-game={game}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link to="/play" data-testid="game-back" className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-line bg-surface px-3 text-sm font-semibold text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
@@ -77,6 +85,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
           </span>
         ) : null}
         {preview ? <PreviewBadge label={previewLabel} /> : null}
+        {level && practicePick ? <PracticeBadge /> : null}
         <ThinkingIndicator active={thinking} label={level ? `${personaFor(level).name} is thinking` : 'Thinking'} className="ml-1" />
         <div className="ml-auto flex items-center gap-2">
           {cfg.kind !== 'realtime' ? <Link to="/leaderboard/$game" params={{ game: cfg.slug }} className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-ink" data-testid="game-leaderboard-link">

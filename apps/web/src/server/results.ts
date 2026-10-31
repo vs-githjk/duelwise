@@ -1,5 +1,5 @@
 import { and, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
-import { notLeft } from './competitive'
+import { competitive } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
@@ -56,7 +56,7 @@ export async function finishedResults(db: Db, opts: { game?: GameId; since: Date
         gte(schema.match.finishedAt, opts.since),
         inArray(schema.match.level, [...LEVELS]),
         sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`,
-        notLeft,
+        competitive,
         notTestMatch(),
         ...(opts.game ? [eq(schema.match.game, opts.game)] : []),
       ),

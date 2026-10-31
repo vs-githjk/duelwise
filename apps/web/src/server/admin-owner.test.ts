@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { encodeRecord } from '@duelwise/core/src/match-record'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { migrateDb } from '../db/migrate'
@@ -229,6 +229,18 @@ describe('player drill-down', () => {
     expect(d.matches.filter((m) => m.counted)).toHaveLength(3)
     expect(d.matches.find((m) => m.game === 'chess')).toMatchObject({ result: 'lost', counted: true })
     expect(d.path.find((p) => p.game === 'word')!.cleared).toEqual({ easy: true, medium: false, hard: true, champion: false })
+  })
+
+  test('a match played in Practice mode is played and tagged, but not counted and never a path clear', async () => {
+    const id = await put({ guestId: G3, game: 'chess', level: 'hard', win: true, when: days(1) })
+    await db.update(schema.match).set({ filterFlags: { practice: true } }).where(eq(schema.match.id, id))
+    const d = (await adminPlayerHandler(db, OWNER, ENV, { ref: await playerRef('guest', G3) }, practiceFor)).body as PlayerDetail
+    expect(d.playedTotal).toBe(1)
+    expect(d.matches[0]).toMatchObject({ result: 'won', practiceMode: true, practice: false, counted: false, valid: true })
+    expect(d.path.find((p) => p.game === 'chess')!.cleared.hard).toBe(false)
+    const feed = (await adminOverviewHandler(db, OWNER, ENV, NOW)).body as import('./admin-owner').AdminOverview
+    expect(feed.feed.find((f) => f.matchId === id)?.practiceMode).toBe(true)
+    expect(feed.feed.filter((f) => f.matchId !== id).every((f) => f.practiceMode === false)).toBe(true)
   })
 
   test('a player with no matches still opens', async () => {

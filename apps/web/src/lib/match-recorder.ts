@@ -11,6 +11,7 @@ import { recordOffline, tallyLine } from './offline-record'
 import { requestWakeDrain } from './pwa'
 import { takeCall } from './progress'
 import { isOffline, subscribeConnection } from './connection'
+import { getPractice } from './practice'
 import { setMatchActive } from './match-active'
 import { beaconFinish, beaconResign, clearPending, clearResignedOnLeave, resignOnPageLeave, postResign, retryPending, savePending, type ResignReply } from './integrity'
 
@@ -132,7 +133,7 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
 
 /** The two server calls a counted match makes. Injected so tests and other callers need no network. */
 export interface MatchApi {
-  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options'] }): Promise<StartBody>
+  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options']; practice?: boolean }): Promise<StartBody>
   finish(bytes: Uint8Array): Promise<FinishBody>
   /** Gives up a counted match; the server scores it as a loss. */
   resign?(matchId: string, tick: number): Promise<ResignReply>
@@ -160,6 +161,8 @@ export interface Session {
   matchId?: string
   agentVersion?: string
   rated: boolean
+  /** True for a Practice match: the server was told at the start, keeps the match and may train on it, and counts it nowhere competitive. */
+  practice?: boolean
   /** True when the server withheld the seed (Word Duel): `seed` is 0 and must not be used for the game. */
   sealed?: boolean
   /** Why the match is not counted, when it is not. */
@@ -185,17 +188,20 @@ export async function beginSession(
   takeTicket: (game: GameId, level: Level) => Promise<Ticket | null> = takeLocalTicket,
   call?: Level,
   options?: MatchRecordV1['options'],
+  practice = false,
 ): Promise<Session> {
-  if (devSeed !== undefined) return { seed: devSeed, rated: false, unratedReason: 'This match used a fixed test seed, so it is not counted.' }
+  if (devSeed !== undefined) return { seed: devSeed, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
-    const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}) })
+    const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
-    return { seed: s.seed, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(s.sealed === true ? { sealed: true } : {}) }
+    return { seed: s.seed, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
   } catch {
     // No server: a ticket issued earlier (while online) keeps the match counted, once its record uploads.
     // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
-    const ticket = options ? null : await takeTicket(game, level).catch(() => null)
+    // A ticket is issued as a rated match, so a practice match never takes one: it is played here and not sent anywhere.
+    const ticket = options || practice ? null : await takeTicket(game, level).catch(() => null)
     if (ticket) return { seed: ticket.seed, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
+    if (practice) return { seed: randomLocalSeed(), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
     return { seed: randomLocalSeed(), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
   }
 }
@@ -323,13 +329,13 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
 
   /** Gets the seed for a new match (from the server unless `devSeed` is given). Call before the game's init. */
   const begin = useCallback(
-    async (level: Level, devSeed?: number, options?: MatchRecordV1['options']): Promise<Session> => {
+    async (level: Level, devSeed?: number, options?: MatchRecordV1['options'], practice: boolean = getPractice()): Promise<Session> => {
       clearResignedOnLeave()
-      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game) ?? undefined, options)
+      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game) ?? undefined, options, practice)
       session.current = s
       setUnratedReason(s.unratedReason ?? null)
       // Online start: remember the level and top the offline ticket pool up in the background.
-      if (s.rated && !s.offline) { notePlayed(game, level); void refillTickets([game]) }
+      if (s.rated && !s.offline && !s.practice) { notePlayed(game, level); void refillTickets([game]) }
       return s
     },
     [api, game],
@@ -411,7 +417,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
           } else setUpload(u)
         })
       }
-    } else if (offlineNow() && out.ok) {
+    } else if (offlineNow() && out.ok && !issued?.practice) {
       // An unranked match played with no server and no ticket still counts on the player's own record, on this device.
       const tally = recordOffline(game, out.record.result, out.record.humanSeat)
       setUnratedReason((prev) => `${prev ?? ''} ${tallyLine(tally)}`.trim())

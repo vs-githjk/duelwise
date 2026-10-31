@@ -9,6 +9,7 @@ import { personaFor, styleLine } from '../personas'
 import { showsPreviewBadge } from '../lib/honest-copy'
 import { EloExplainer } from './SiteElo'
 import { usePath } from '../lib/progress'
+import { usePractice } from '../lib/practice'
 import { CallPicker } from './IdentityCard'
 import { PathCard } from './PathCard'
 import { LearnGraph } from './LearnGraph'
@@ -47,7 +48,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   const state = usePath(game)
   const { path, current, open } = state
   // A stop is locked until the one before it is cleared; `?any=1` opens them all. Outside a game page (no game in context) nothing is gated.
-  const gated = game !== undefined && state.hydrated && !open
+  // Practice opens every opponent: it never clears the path, so there is nothing to farm. Rated keeps the lock.
+  const practiceMode = usePractice()
+  const gated = game !== undefined && state.hydrated && !open && !practiceMode
   const pathLocked = (level: Level) => gated && !path[level] && current !== level
   const touched = useRef(false)
   useEffect(() => {
@@ -67,7 +70,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
       {LEVELS.map((level) => {
         const info = levels[level] ?? { preview: true }
         const practice = info.practice || (info.preview && !info.inTraining)
-        const locked = Boolean(info.inTraining) && !practice
+        // In Practice a level in training is playable when a model for it ships; with nothing to load it stays shut.
+        const openInPractice = practiceMode && info.loadable === true
+        const locked = Boolean(info.inTraining) && !practice && !openInPractice
         const byPath = pathLocked(level)
         const on = level === value
         return (
@@ -99,7 +104,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
                   `Locked. Beat ${personaFor(LEVELS[LEVELS.indexOf(level) - 1] ?? 'easy').name} to unlock ${personaFor(level).name}.`
                 ) : locked ? (
                   <>
-                    <span className="opacity-80">Not available yet. {info.inTraining}</span>
+                    <span className="opacity-80">{practiceMode ? 'Still training.' : 'Not available yet.'} {info.inTraining}</span>
                     {statsSlug ? (
                       <>
                         {' '}
@@ -110,7 +115,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
                     ) : null}
                   </>
                 ) : (
-                  descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])
+                  (openInPractice && info.inTraining ? `Still training, so only playable as practice. ${info.inTraining}` : undefined) ?? descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])
                 )}
               </span>
             </span>

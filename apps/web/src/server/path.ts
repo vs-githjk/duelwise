@@ -1,5 +1,5 @@
 import type { PgDatabase } from 'drizzle-orm/pg-core'
-import { notLeft } from './competitive'
+import { competitive } from './competitive'
 import { and, eq, inArray } from 'drizzle-orm'
 import { decodeRecord } from '@duelwise/core/src/match-record'
 import type { GameId, Level } from '@duelwise/core/src/product'
@@ -21,7 +21,7 @@ export async function getPath(db: Db, who: { userId?: string; guestId?: string }
   const rows = await db
     .select({ level: schema.match.level, result: schema.match.result, record: schema.match.record })
     .from(schema.match)
-    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), inArray(schema.match.level, [...LEVELS]), notLeft, own))
+    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), inArray(schema.match.level, [...LEVELS]), competitive, own))
   for (const r of rows) {
     if (!r.record || !r.result || r.result.winner === null || cleared[r.level as Level]) continue
     try {

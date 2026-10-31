@@ -14,6 +14,7 @@ import { marginOf, type ShareFacts } from '../lib/share'
 import { Ladder, ShareBlock, SaysBox } from './ResultExtras'
 import { cancelSpeech, readVoicePref, speakLine, speechSupported, voiceActive, writeVoicePref } from '../lib/speech'
 import { isMuted } from '../lib/audio'
+import { PRACTICE_RESULT } from '../lib/practice'
 
 /** Games whose opponent moves the server re-runs before a rated match counts (server/agent-check.ts SERVER_CHECKED); a guest's check finishes after the answer. */
 const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem']
@@ -68,7 +69,7 @@ export interface ResultPanelProps {
 export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
-  const { level, game } = useOpponent()
+  const { level, game, practice = false } = useOpponent()
   const persona = level ? personaFor(level) : null
   const ref = useRef<HTMLElement>(null)
   const headline = useRef<HTMLHeadingElement>(null)
@@ -97,9 +98,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const called = game && !left ? calledFor(game) : null
   const pathState = usePath(game)
   // Whether this stop was already cleared before this match, read once, so "unlocked" is only said for a new clear.
-  const [firstClear] = useState(() => !left && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  const [firstClear] = useState(() => !left && !practice && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
   useEffect(() => {
-    if (!left && outcome === 'win' && game && level && upload?.status !== 'rejected') noteCleared(game, level)
+    // A practice win or a left match is not a clear: the path moves only for a rated match that was played to its end.
+    if (!left && !practice && outcome === 'win' && game && level && upload?.status !== 'rejected') noteCleared(game, level)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // Only the Champion's loss line quotes its record against people, so only that loss asks the server for it. 'wait' lasts until the answer or a short timeout, so the spoken line and the written one match.
@@ -151,7 +153,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const [rank, setRank] = useState<{ place: number; of: number } | null>(null)
   const counted = upload?.status === 'counted' || upload?.status === 'synced'
   useEffect(() => {
-    if (!counted || outcome !== 'win' || !game || !level) return
+    if (practice || !counted || outcome !== 'win' || !game || !level) return
     let alive = true
     void import('../server/identity-fns')
       .then(({ getLevelBoardView }) => getLevelBoardView({ data: { game } }))
@@ -167,7 +169,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const facts: ShareFacts | null = game && level && !left ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
   const margin = facts ? marginOf(facts) : null
   const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
-  const nextPlayable = next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
+  const nextPlayable = !practice && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
   const elo = eloProp ?? (upload?.status === 'counted' ? upload.elo : undefined)
   const provisional = provProp ?? (upload?.status === 'counted' ? upload.provisional : undefined)
   const delta = elo ? elo.after - elo.before : null
@@ -203,7 +205,8 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   )
   const warn = 'rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink'
   const uploadLine =
-    upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
+    practice && (upload?.status === 'uploading' || upload?.status === 'counted' || upload?.status === 'synced' || upload?.status === 'queued') ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{upload.status === 'uploading' ? 'Saving this practice match' : 'Saved to your history. It changes no rating, path or leaderboard.'}</p>
+    : upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
     : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating.'}</p>
     : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
     : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
@@ -231,6 +234,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
           <span className="size-2 rounded-full bg-current" aria-hidden="true" />
           {left ? 'Left early' : outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
         </span>
+        {practice ? <span className="inline-flex w-fit items-center rounded-full bg-action-soft px-3 py-1 text-xs font-semibold text-ink" data-testid="result-practice">{PRACTICE_RESULT}</span> : null}
         <h2 ref={headline} tabIndex={-1} className="result-headline font-display text-display-md leading-tight outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action" data-testid="result-headline">
           {called ? <span className="block text-sm font-semibold text-muted" data-testid="result-call">You called {personaFor(called).name}.</span> : null}
           {left ? (
@@ -267,15 +271,15 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
           {game ? <a href="/play" className={cn(textLink, 'gap-1.5 focus-visible:outline-2 focus-visible:outline-action')} data-testid="result-back"><span aria-hidden="true">←</span> All games</a> : null}
         </div>
         {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? `${personaFor(next).name} is unlocked.` : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
-        {game && level ? <Ladder path={pathState.path} call={called} played={level} won={!left && outcome === 'win'} levels={levels} /> : null}
+        {game && level && !practice ? <Ladder path={pathState.path} call={called} played={level} won={!left && outcome === 'win'} levels={levels} /> : null}
         {extra}
-        {(game && leaderboard) || hasReport ? (
+        {(game && leaderboard && !practice) || hasReport ? (
           <div className="flex flex-wrap items-center gap-x-2" aria-label="More">
-            {game && leaderboard ? <a href={`/leaderboard/${PRODUCT.games[game].slug}`} className={textLink} data-testid="result-leaderboard-link">View leaderboard</a> : null}
+            {game && leaderboard && !practice ? <a href={`/leaderboard/${PRODUCT.games[game].slug}`} className={textLink} data-testid="result-leaderboard-link">View leaderboard</a> : null}
             {hasReport ? <a href={`/report/${upload!.matchId}`} className={textLink} data-testid="result-report-link">View match report</a> : null}
           </div>
         ) : null}
-        {facts && game ? <ShareBlock facts={facts} game={game} /> : null}
+        {facts && game && !practice ? <ShareBlock facts={facts} game={game} /> : null}
         <div className="grid gap-1.5">
           {uploadLine}
           {unratedReason ? <p className="text-xs text-muted" data-testid="result-unrated">{unratedReason}</p> : null}

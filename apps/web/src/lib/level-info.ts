@@ -44,6 +44,8 @@ export interface LevelInfo {
   strength?: string
   /** Set when the level failed its gate: this plain sentence is shown and the level is not selectable. */
   inTraining?: string
+  /** True when the registry ships a model for the level, published or not. Practice may play it even while it is in training. */
+  loadable?: boolean
 }
 
 export function levelInfoFromRegistry(reg: Registry | null): Record<Level, LevelInfo> {
@@ -55,6 +57,7 @@ export function levelInfoFromRegistry(reg: Registry | null): Record<Level, Level
       preview: !published,
       practice: !published && (reg?.game === 'arena' || isPracticeReason(reg?.unpublished?.[level])),
       strength: measured ? `site Elo ${Math.round(measured.siteElo)}` : undefined,
+      loadable: Boolean(reg?.levels[level]),
       inTraining: reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : undefined,
     }
   }

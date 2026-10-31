@@ -6,6 +6,7 @@ import * as schema from '../db/schema'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
+import { practiceColumn, withPractice } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -32,7 +33,7 @@ export interface AbandonOptions {
   siteElo?: (game: GameId, level: Level, agentVersion: string) => number | null
 }
 
-type Abandoned = { id: string; userId: string | null; guestId: string | null; level: string; agentVersion: string; startedAt: Date }
+type Abandoned = { id: string; userId: string | null; guestId: string | null; level: string; agentVersion: string; startedAt: Date; practice?: boolean }
 
 /** Records the event and charges the loss for matches that were just flipped to 'abandoned'. */
 export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], now: Date, opts: AbandonOptions): Promise<void> {
@@ -45,7 +46,8 @@ export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], n
       who: { userId: r.userId, guestId: r.guestId },
       durationMs: Math.max(0, now.getTime() - r.startedAt.getTime()),
     })
-    if (!r.userId) continue
+    // A practice match moves no rating, so walking away from it costs nothing.
+    if (!r.userId || r.practice) continue
     // Per-row catch: the rows are already marked abandoned, so one failed rating must not strand the rest.
     try {
       const change = await applyRatingIfRanked(db, {
@@ -63,7 +65,7 @@ export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], n
   }
 }
 
-export const ABANDONED_ROW = { id: schema.match.id, userId: schema.match.userId, guestId: schema.match.guestId, level: schema.match.level, agentVersion: schema.match.agentVersion, startedAt: schema.match.startedAt }
+export const ABANDONED_ROW = { id: schema.match.id, userId: schema.match.userId, guestId: schema.match.guestId, level: schema.match.level, agentVersion: schema.match.agentVersion, startedAt: schema.match.startedAt, practice: practiceColumn }
 
 /**
  * Settles every started match that outlived its game's maximum duration plus the grace period: the
@@ -77,7 +79,7 @@ export async function abandonStale(db: Db, now: Date = new Date(), opts: Abandon
     const cutoff = new Date(now.getTime() - MAX_MATCH_MS[game] - ABANDON_GRACE_MS)
     const rows = await db
       .update(schema.match)
-      .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: { abandoned: true } })
+      .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: withPractice({ abandoned: true }) })
       .where(and(eq(schema.match.game, game), eq(schema.match.status, 'started'), lt(schema.match.startedAt, cutoff)))
       .returning(ABANDONED_ROW)
     await settleAbandoned(db, game, rows, now, opts)
@@ -107,7 +109,7 @@ export async function sweepOpenOverCap(db: Db, who: { userId?: string | undefine
   if (open.length === 0) return 0
   const rows = await db
     .update(schema.match)
-    .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: { abandoned: true, overCap: true } })
+    .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: withPractice({ abandoned: true, overCap: true }) })
     .where(and(inArray(schema.match.id, open.map((o) => o.id)), eq(schema.match.status, 'started')))
     .returning({ ...ABANDONED_ROW, game: schema.match.game })
   for (const r of rows) await settleAbandoned(db, r.game as GameId, [r], now, opts)

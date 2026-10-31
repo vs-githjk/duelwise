@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
-import { notLeft } from './competitive'
+import { competitive, PRACTICE_FLAG } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
@@ -88,7 +88,7 @@ export async function getBoard(db: Db, now: Date = new Date(), latestLimit = 4):
   const rows = await db
     .select(cols)
     .from(schema.match)
-    .where(and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, notLeft, notTestMatch()))
+    .where(and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive, notTestMatch()))
     .orderBy(desc(schema.match.finishedAt))
     .limit(latestLimit * 3)
   return {
@@ -157,7 +157,8 @@ function learningOf(
 ): Learning {
   if (r.recordValid === false) return `Rejected: ${r.invalidReason ?? 'record did not replay'}`
   if (!learnsFromHumans(r.game)) return 'Stats only'
-  const flagged = r.filterFlags && Object.values(r.filterFlags).some((v) => v === true)
+  // A practice match is unrated, not filtered: it is trained on when the player allowed it.
+  const flagged = r.filterFlags && Object.entries(r.filterFlags).some(([k, v]) => v === true && k !== PRACTICE_FLAG)
   return r.trainingAllowed && !flagged ? 'Eligible for training' : 'Stats only'
 }
 
@@ -184,9 +185,9 @@ export async function getMyRecord(
       and(
         eq(schema.match.userId, userId),
         or(
-          and(eq(schema.match.status, 'finished'), inArray(schema.match.recordValid, [true, false]), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, notLeft),
+          and(eq(schema.match.status, 'finished'), inArray(schema.match.recordValid, [true, false]), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive),
           // A resignation or abandonment costs rating like a loss, so it counts as one here. These rows have no record.
-          inArray(schema.match.status, ['resigned', 'abandoned']),
+          and(inArray(schema.match.status, ['resigned', 'abandoned']), competitive),
         ),
       ),
     )

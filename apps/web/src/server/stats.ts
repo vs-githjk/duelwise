@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, notInArray, sql } from 'drizzle-orm'
-import { notLeft } from './competitive'
+import { competitive } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
@@ -80,7 +80,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
  * seat is read from the stored record, because the match row does not keep it.
  */
 /** Bookkeeping written by the deferred agent check; not a reason a match was filtered. */
-const INTERNAL_FLAGS = new Set(['deferredCheckAt', 'deferredTrainingRevoked', 'leftTable'])
+const INTERNAL_FLAGS = new Set(['deferredCheckAt', 'deferredTrainingRevoked', 'leftTable', 'practice'])
 
 /** The same rule the funnel uses for its last step: the player allowed training and no filter flag is set. */
 export function trainingEligible(m: { filterFlags: unknown; trainingAllowed: boolean }): boolean {
@@ -139,7 +139,7 @@ export async function getGameStats(db: Db, game: GameId, now: Date = new Date(),
   const recent = await db
     .select({ level: schema.match.level, result: schema.match.result, record: schema.match.record, finishedAt: schema.match.finishedAt })
     .from(schema.match)
-    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), gte(schema.match.finishedAt, windowStart), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, notLeft, notTestMatch()))
+    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), gte(schema.match.finishedAt, windowStart), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive, notTestMatch()))
   for (const m of recent) {
     if (!m.record || !m.result || !m.finishedAt || !(LEVELS as readonly string[]).includes(m.level)) continue
     let humanSeat: 0 | 1

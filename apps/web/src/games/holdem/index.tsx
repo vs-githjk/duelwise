@@ -10,6 +10,8 @@ import { StrengthLine } from '../../components/SiteElo'
 import { ResultPanel } from '../../components/ResultPanel'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
+import { PlayMode } from '../../components/PlayModeToggle'
+import { usePractice } from '../../lib/practice'
 import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { personaFor } from '../../personas'
@@ -63,6 +65,7 @@ export default function HoldemPage() {
   const [leaving, setLeaving] = useState(false)
   const [length, setLength] = useState<LengthChoice>(readChoice)
   const controlsRef = useRef<HTMLDivElement>(null)
+  const practicePick = usePractice()
 
   const begin = (level: Level) => {
     const s = fixedSeed
@@ -70,7 +73,7 @@ export default function HoldemPage() {
     setConfirming(false)
     setLeaving(false)
     saveChoice(length)
-    return match.start(level, s, optionsFor(length))
+    return match.start(level, s, optionsFor(length, practicePick))
   }
 
   const measured = registry?.measured[match.level]
@@ -93,6 +96,8 @@ export default function HoldemPage() {
   const turn: TableTurn = over || state?.over ? 'over' : match.reveal ? 'reveal' : match.canAct ? 'you' : 'ai'
   const status = over
     ? 'Match over'
+    : match.buyBackOffer
+      ? 'Out of chips'
     : match.failure
       ? 'Stopped'
       : match.reveal
@@ -120,6 +125,11 @@ export default function HoldemPage() {
       actions={<MuteToggle />}
       result={over && match.result ? (
             <>
+              {match.practice && match.buyIns > 0 ? (
+                <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-buyins">
+                  You bought back in {match.buyIns} {match.buyIns === 1 ? 'time' : 'times'}
+                </p>
+              ) : null}
               <ResultPanel
                 result={match.result}
                 leftAfter={match.leftAfter}
@@ -209,6 +219,7 @@ export default function HoldemPage() {
             Heads-up no-limit Texas Hold&apos;em. Blinds 1 and 2, and both stacks reset to 100 chips every hand. Pick a match of 5, 10, 15 or 30 hands. If a player loses all 100 chips in one hand, the match ends at once and that player loses. Otherwise whoever has more chips after the last hand wins. You can leave the table after any finished hand: the match is scored on the chips so far, but it is unrated.
           </p>
           <MatchLength value={length} onChange={setLength} disabled={match.phase === 'starting'} />
+          <PlayMode disabled={match.phase === 'starting'} practiceHint="If you bust, buy back in for free as often as you like." />
           <p className="rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="chips-only-note">
             {CHIPS_ONLY}
           </p>
@@ -262,7 +273,20 @@ export default function HoldemPage() {
           <p className="text-center text-sm" data-testid="holdem-log">
             {match.log}
           </p>
-          {over ? null : match.failure ? (
+          {over ? null : match.buyBackOffer ? (
+            <section className="grid justify-items-center gap-2 rounded-card border border-line bg-surface-2 p-4 text-center" data-testid="buyback" aria-label="Buy back in">
+              <b className="font-display text-display-sm">You are out of chips</b>
+              <p className="max-w-prose text-sm text-muted">This is practice, so buying back in is free. You get a fresh 100 chips and the match goes on to the {match.limit} hands you chose.</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button type="button" onClick={match.buyBackIn} className="min-h-12 rounded-control bg-action px-6 font-semibold text-action-ink" data-testid="buy-back">
+                  Buy back in
+                </button>
+                <button type="button" onClick={() => void match.leave()} className="min-h-12 rounded-control border border-line bg-surface px-5 font-semibold" data-testid="buyback-leave">
+                  Leave table
+                </button>
+              </div>
+            </section>
+          ) : match.failure ? (
             <div className="grid justify-items-center gap-2">
               <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink">
                 {match.failure}
