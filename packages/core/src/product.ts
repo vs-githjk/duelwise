@@ -12,13 +12,13 @@ export interface GameConfig {
 // apps/web/src/games/<id>/index.tsx exists; there is deliberately no enabled flag.
 export const PRODUCT: {
   name: string
-  tagline: 'Six games. One AI that learns from every match. Beat it if you can.'
+  tagline: 'Six games. Learning from you, starting with Four in a Row. Beat them if you can.'
   trainingDataBasis: 'legitimate-interest' | 'opt-in'
   championMinDelayFrames: number
   games: Record<GameId, GameConfig>
 } = {
   name: 'Duelwise',
-  tagline: 'Six games. One AI that learns from every match. Beat it if you can.',
+  tagline: 'Six games. Learning from you, starting with Four in a Row. Beat them if you can.',
   trainingDataBasis: 'legitimate-interest',
   championMinDelayFrames: 3,
   games: {

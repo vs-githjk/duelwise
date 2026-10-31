@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { PRODUCT } from './product'
 
 test('tagline is exact', () => {
-  expect(PRODUCT.tagline).toBe('Six games. One AI that learns from every match. Beat it if you can.')
+  expect(PRODUCT.tagline).toBe('Six games. Learning from you, starting with Four in a Row. Beat them if you can.')
 })
 
 test('six games with display name and slug, no enabled flag', () => {

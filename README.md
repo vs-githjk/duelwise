@@ -53,7 +53,7 @@ On a phone, Tinderbox and Coldstore have touch controls, and the app installs an
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. | No |
 | Coldstore | The same method as Tinderbox. | No |
 
-"Learns from every match", the line on the product, is the goal. Today it is true for one game. Making human matches train all six is on the roadmap.
+"Learning from you, starting with Four in a Row", the line on the product, is where this stands. Making human matches train all six is on the roadmap.
 
 ## How it works
 
