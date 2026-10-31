@@ -153,15 +153,29 @@ test.describe('the correction after the result appears never undoes the player',
     test.setTimeout(90_000)
     await pick(page, `/play/chess?seed=3&fen=${encodeURIComponent('6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1')}`)
     await page.getByTestId('sq-a1').click()
+    // Everything is timed on the page's own clock, from the moment the result panel is added to the page: a Playwright round trip takes seconds when the
+    // machine is busy, so a wheel sent from here would land long after the 1 s correction had come and gone. The page plays the player instead:
+    // 0.1 s after the panel appears it fires a wheel (the signal the panel listens for) and scrolls past the verdict, then 1.8 s after
+    // the panel appeared (0.8 s after the correction would have looked) it reports where the verdict is.
+    const reading = page.evaluate(() => new Promise<{ afterScroll: number; later: number }>((resolve) => {
+      new MutationObserver((_m, obs) => {
+        const panel = document.querySelector('[data-testid="result-panel"]')
+        if (!panel) return
+        obs.disconnect()
+        const t0 = performance.now()
+        let afterScroll = 0
+        setTimeout(() => {
+          window.dispatchEvent(new Event('wheel'))
+          window.scrollBy({ top: 500, behavior: 'instant' }) // well past the verdict, but short of the page end, where a shrinking page would clamp the position
+          afterScroll = panel.getBoundingClientRect().top
+        }, 100)
+        setTimeout(() => resolve({ afterScroll, later: panel.getBoundingClientRect().top }), 1800 - (performance.now() - t0))
+      }).observe(document.body, { childList: true, subtree: true })
+    }))
     await page.getByTestId('sq-a8').click()
-    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 60_000 })
-    // The player takes over soon after the result appears, well before the 1 s correction would look: a real wheel
-    // far enough that the verdict is off the top, which is what the late correction would undo.
-    await page.waitForTimeout(150)
-    await page.mouse.move(200, 400)
-    await page.mouse.wheel(0, 1200)
-    await page.waitForTimeout(2200)
-    const top = await page.getByTestId('result-panel').evaluate((el) => el.getBoundingClientRect().top)
-    expect(top, 'the late correction pulled the page back to the verdict').toBeLessThan(-100)
+    const { afterScroll, later } = await reading
+    expect(afterScroll, 'the player scrolled the verdict off the top').toBeLessThan(-100)
+    // Not an exact match: a line that arrives above the panel a moment later (the mating-move note) nudges it by a few dozen px. A pull back to the verdict puts it at about 0.
+    expect(later, 'the late correction pulled the page back to the verdict').toBeLessThan(-100)
   })
 })
