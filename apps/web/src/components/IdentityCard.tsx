@@ -101,9 +101,9 @@ export function NameField() {
 }
 
 /** "How far do you think you get?" Four choices, one per opponent. The pick is a prediction; the result sheet compares it with what happened. */
-export function CallPicker({ game, path }: { game: GameId; path: PathMap }) {
+export function CallPicker({ game }: { game: GameId; path?: PathMap }) {
   const label = useId()
-  const [call, setCall] = useCall(game, path)
+  const [call, setCall] = useCall(game)
   return (
     <div className="grid gap-1.5" role="radiogroup" aria-labelledby={label} data-testid="call-picker">
       <span id={label} className="text-sm font-semibold">How far do you think you get?</span>

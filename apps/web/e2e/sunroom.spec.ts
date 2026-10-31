@@ -73,8 +73,8 @@ test.describe('adventure path (locks are on)', () => {
     expect(geo.dy).toBeLessThan(0.5)
     expect(geo.pad).toBeGreaterThanOrEqual(6)
     expect(geo.shadow).toContain('6px')
-    // The call defaults to the stop after the current one.
-    await expect(page.getByTestId('call-picker').locator('input[value="medium"]')).toBeChecked()
+    // No call is made for the player: nothing is checked until they tap one.
+    await expect(page.getByTestId('call-picker').locator('input:checked')).toHaveCount(0)
   })
 
   test('?any=1 opens every stop for testing and is never linked from the page', async ({ page }) => {

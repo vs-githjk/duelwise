@@ -167,10 +167,11 @@ export function noteCleared(game: GameId, level: Level): void {
 
 const played: Partial<Record<GameId, Level>> = {}
 
-/** The call a match starts with: the one the player picked, else the default for their path. It is used up here, so the next match starts from the default again. */
-export function takeCall(game: GameId): Level {
-  const call = readCall(game) ?? defaultCall(readPath(game))
-  played[game] = call
+/** The call a match starts with: only what the player tapped, else null (no call is invented). It is used up here, so the next match starts with no call again. */
+export function takeCall(game: GameId): Level | null {
+  const call = readCall(game)
+  if (call) played[game] = call
+  else delete played[game]
   write(CALL_KEY, JSON.stringify(Object.fromEntries(Object.entries(readJson<Record<string, string>>(CALL_KEY) ?? {}).filter(([g]) => g !== game))))
   return call
 }
@@ -184,8 +185,8 @@ export function keepCall(game: GameId): void {
   if (c) writeCall(game, c)
 }
 
-/** The picked call for one game, with the path-based default when nothing is picked. */
-export function useCall(game: GameId | undefined, path: PathMap): [Level, (l: Level) => void] {
+/** The picked call for one game, or null while the player has tapped none. */
+export function useCall(game: GameId | undefined): [Level | null, (l: Level) => void] {
   const [picked, setPicked] = useState<Level | null>(null)
   useEffect(() => {
     if (!game) return
@@ -201,5 +202,5 @@ export function useCall(game: GameId | undefined, path: PathMap): [Level, (l: Le
     },
     [game],
   )
-  return [picked ?? defaultCall(path), set]
+  return [picked, set]
 }

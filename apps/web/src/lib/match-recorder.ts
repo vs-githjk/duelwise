@@ -321,7 +321,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   /** Gets the seed for a new match (from the server unless `devSeed` is given). Call before the game's init. */
   const begin = useCallback(
     async (level: Level, devSeed?: number, options?: MatchRecordV1['options']): Promise<Session> => {
-      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game), options)
+      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game) ?? undefined, options)
       session.current = s
       setUnratedReason(s.unratedReason ?? null)
       // Online start: remember the level and top the offline ticket pool up in the background.
