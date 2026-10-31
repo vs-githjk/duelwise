@@ -56,6 +56,8 @@ export interface ResultPanelProps {
   moves?: number
   /** False for a game whose matches never reach a leaderboard (the real-time games): the panel then offers no leaderboard link. Default true. */
   leaderboard?: boolean
+  /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
+  leftAfter?: number | null
   className?: string
 }
 
@@ -63,7 +65,8 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, className }: ResultPanelProps) {
+  const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game } = useOpponent()
   const persona = level ? personaFor(level) : null
@@ -91,12 +94,12 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
     return () => { giveUp(); for (const e of events) window.removeEventListener(e, giveUp) }
   }, [])
   const opp = persona?.name ?? 'The AI'
-  const called = game ? calledFor(game) : null
+  const called = game && !left ? calledFor(game) : null
   const pathState = usePath(game)
   // Whether this stop was already cleared before this match, read once, so "unlocked" is only said for a new clear.
-  const [firstClear] = useState(() => outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  const [firstClear] = useState(() => !left && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
   useEffect(() => {
-    if (outcome === 'win' && game && level && upload?.status !== 'rejected') noteCleared(game, level)
+    if (!left && outcome === 'win' && game && level && upload?.status !== 'rejected') noteCleared(game, level)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // Only the Champion's loss line quotes its record against people, so only that loss asks the server for it. 'wait' lasts until the answer or a short timeout, so the spoken line and the written one match.
@@ -120,7 +123,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord }) : null), [game, level, result, humanSeat, called, moves, oppRecord])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord])
   const spoke = useRef(false)
   const [voiceSupported, setVoiceSupported] = useState(false)
   const [voiceOn, setVoiceOn] = useState(false)
@@ -161,9 +164,9 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       alive = false
     }
   }, [counted, outcome, game, level])
-  const facts: ShareFacts | null = game && level ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
+  const facts: ShareFacts | null = game && level && !left ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
   const margin = facts ? marginOf(facts) : null
-  const next = outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
+  const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
   const nextPlayable = next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
   const elo = eloProp ?? (upload?.status === 'counted' ? upload.elo : undefined)
   const provisional = provProp ?? (upload?.status === 'counted' ? upload.provisional : undefined)
@@ -218,19 +221,22 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       role="region"
       aria-label="Match result"
       data-testid="result-panel"
-      data-outcome={outcome}
+      data-outcome={left ? 'draw' : outcome}
       className={cn('result-rise result-panel relative grid gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5', className)}
     >
-      {outcome === 'win' ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
+      {outcome === 'win' && !left ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
       <div className="result-stripe" data-result-stripe aria-hidden="true" />
       <div className="result-verdict grid content-start gap-2">
         <span className={cn('inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', outcome === 'win' ? 'bg-good-soft text-good-ink' : outcome === 'loss' ? 'bg-bad-soft text-bad-ink' : 'bg-neutral-soft text-neutral-ink')} data-testid="result-chip">
           <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-          {outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
+          {left ? 'Left early' : outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
         </span>
         <h2 ref={headline} tabIndex={-1} className="result-headline font-display text-display-md leading-tight outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action" data-testid="result-headline">
           {called ? <span className="block text-sm font-semibold text-muted" data-testid="result-call">You called {personaFor(called).name}.</span> : null}
-          <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>
+          {left ? (
+            <span className="block text-neutral-ink" data-testid="holdem-left-note">Unrated, you left after {leftAfter} {leftAfter === 1 ? 'hand' : 'hands'}</span>
+          ) : null}
+          {left ? null : <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>}
         </h2>
         {level && persona ? <span className="sr-only" data-testid="result-persona">{`You played ${persona.name} (${LEVEL_LABEL[level]}).`}</span> : null}
         <div className="grid gap-1.5">{resultFacts}</div>
@@ -261,7 +267,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
           {game ? <a href="/play" className={cn(textLink, 'gap-1.5 focus-visible:outline-2 focus-visible:outline-action')} data-testid="result-back"><span aria-hidden="true">←</span> All games</a> : null}
         </div>
         {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? `${personaFor(next).name} is unlocked.` : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
-        {game && level ? <Ladder path={pathState.path} call={called} played={level} won={outcome === 'win'} levels={levels} /> : null}
+        {game && level ? <Ladder path={pathState.path} call={called} played={level} won={!left && outcome === 'win'} levels={levels} /> : null}
         {extra}
         {(game && leaderboard) || hasReport ? (
           <div className="flex flex-wrap items-center gap-x-2" aria-label="More">

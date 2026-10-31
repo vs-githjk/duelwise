@@ -120,13 +120,9 @@ export default function HoldemPage() {
       actions={<MuteToggle />}
       result={over && match.result ? (
             <>
-              {match.leftAfter !== null ? (
-                <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-left-note">
-                  Unrated, you left after {match.leftAfter} {match.leftAfter === 1 ? 'hand' : 'hands'}
-                </p>
-              ) : null}
               <ResultPanel
                 result={match.result}
+                leftAfter={match.leftAfter}
                 humanSeat={HUMAN}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
