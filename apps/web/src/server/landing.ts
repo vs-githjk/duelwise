@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
 import { notLeft } from './competitive'
+import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
@@ -87,7 +88,7 @@ export async function getBoard(db: Db, now: Date = new Date(), latestLimit = 4):
   const rows = await db
     .select(cols)
     .from(schema.match)
-    .where(and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, notLeft))
+    .where(and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, notLeft, notTestMatch()))
     .orderBy(desc(schema.match.finishedAt))
     .limit(latestLimit * 3)
   return {
