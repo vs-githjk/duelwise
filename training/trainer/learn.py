@@ -34,6 +34,7 @@ from pathlib import Path
 from . import gates
 from .bridge import find_bun
 from .human_export import AppRootError, app_root, build_chess_shards, build_profiles, export_human, fetch_expert, human_root, use_pglite
+from .human import check_share
 from .ladder import GATE_MIN_GAMES, GATE_MIN_SCORE, promotion_gate
 from .paths import runs_dir, worktree_root
 
@@ -41,6 +42,9 @@ GAMES = ("four", "chess", "holdem")
 #: Gate games run in exactly two worker processes (the budget allows at most two; one process would wait on its own entry module).
 PROCESSES = 2
 CHESS_FINETUNE_LR = 5e-4
+#: Human share of the chess fine-tune batches by default. The locked cap is 0.30 (trainer.human.MAX_HUMAN_SHARE); most Duelwise players are
+#: far below 2200, so the 2200+ Lichess games stay the bulk. --human-share can raise it up to the cap.
+DEFAULT_HUMAN_SHARE = 0.15
 EXPERT_TARGET = 1_000_000
 EXPERT_MAX_BYTES = 2_000_000_000
 
@@ -136,7 +140,7 @@ def learn_chess(work: Path, a: argparse.Namespace, log=print) -> dict:
     argv = ["--buckets", "b2200", "--init-from", str(init), "--lr", str(CHESS_FINETUNE_LR), "--max-minutes", str(a.budget_minutes),
             "--run-dir", str(run_dir), "--ckpt-dir", str(work / "ckpt"), "--data-dir", str(cache), "--threads", "1"]
     if human_dir:
-        argv += ["--human-dir", str(human_dir), "--human-share", "0.3"]
+        argv += ["--human-dir", str(human_dir), "--human-share", str(check_share(a.human_share))]
     if a.smoke:
         argv += ["--max-steps", "20", "--batch", "64", "--device", "cpu", "--eval-batches", "3"]
     log("learn chess: fine-tuning b2200 from b1900")
@@ -184,6 +188,7 @@ def add_arguments(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--smoke", action="store_true", help="a few seconds of plumbing; the gates are not played and the result is always FAIL")
     ap.add_argument("--gate-games-per-seat", type=int, default=gates.GATE_GAMES_PER_SEAT, help="never below 400 for a real run")
     ap.add_argument("--gate-sims", type=int, default=200, help="Four: simulations per move in the gate games")
+    ap.add_argument("--human-share", type=float, default=DEFAULT_HUMAN_SHARE, help="chess: share of each fine-tune batch from Duelwise games, at most 0.30")
     ap.add_argument("--skip-fetch", action="store_true", help="chess: do not download Lichess data when the b2200 shards are missing")
     ap.add_argument("--work-dir", default=None, help="default: runs/learn/<game>/<timestamp>")
     ap.add_argument("--pglite", default=None, help="rehearsal only: an absolute scratch PGlite folder to read (a copy is opened) instead of DATABASE_URL; the dev database is refused")

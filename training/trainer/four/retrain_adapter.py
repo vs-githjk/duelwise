@@ -15,7 +15,6 @@ Interface (trainer.retrain calls these):
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import time
@@ -25,7 +24,7 @@ import numpy as np
 import torch
 
 from ..bridge import find_bun
-from ..human_export import export_human, human_root
+from ..human_export import export_human, has_source, human_root
 from ..paths import common_root, runs_dir, worktree_root
 from ..registry import champion_artifact
 from ..retrain_types import Challenger
@@ -118,7 +117,7 @@ class FourRetrainAdapter:
         (apps/web/scripts/export-human.ts: read only, human and owner traffic, daily cap, weights, holdout). Without it, from the local
         PGlite database (read-only copy); a database that does not exist yields zero matches."""
         out_dir.mkdir(parents=True, exist_ok=True)
-        if os.environ.get("DATABASE_URL"):
+        if has_source():
             return self.export_postgres(out_dir)
         script = self.root / "apps" / "web" / "scripts" / "export-matches.ts"
         db = common_root() / ".data" / "pglite"

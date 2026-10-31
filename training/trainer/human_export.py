@@ -43,6 +43,11 @@ def use_pglite(path: Path | str | None) -> None:
     _PGLITE = p
 
 
+def has_source() -> bool:
+    """A Postgres URL in the environment, or a rehearsal PGlite folder: the learn export has something to read."""
+    return _PGLITE is not None or bool(os.environ.get("DATABASE_URL"))
+
+
 def _source_args() -> list[str]:
     return ["--pglite", str(_PGLITE)] if _PGLITE else []
 
@@ -59,8 +64,9 @@ def app_root() -> Path:
 
 
 def human_root() -> Path:
-    """Where exported human data lives: <common root>/data/human (gitignored: it holds players' match records)."""
-    return common_root() / "data" / "human"
+    """Where exported human data lives: <common root>/data/human, or $DUELWISE_HUMAN_ROOT (gitignored: it holds players' match records)."""
+    env = os.environ.get("DUELWISE_HUMAN_ROOT")  # rehearsals point this at a scratch folder so synthetic rows never land in the real one
+    return Path(env) if env else common_root() / "data" / "human"
 
 
 def _scrub(text: str) -> str:
@@ -77,7 +83,7 @@ def _run(cmd: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess
 
 
 def require_database() -> None:
-    if _PGLITE is None and not os.environ.get("DATABASE_URL"):
+    if not has_source():
         raise RuntimeError("DATABASE_URL is not set. Export it in the shell for this one command; nothing was read.")
 
 

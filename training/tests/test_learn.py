@@ -188,13 +188,12 @@ def test_four_export_uses_the_postgres_export_when_a_database_url_is_set(tmp_pat
         return s
 
     monkeypatch.setattr(ra, "export_human", fake_export)
+    monkeypatch.setattr(ra, "has_source", lambda: True)
     monkeypatch.setattr(ra, "human_root", lambda: fake_root)
-    monkeypatch.setenv("DATABASE_URL", "postgres://never-printed")
     out = tmp_path / "data"
     s = ra.FourRetrainAdapter(root=tmp_path).export_matches(out)
     assert s["source"] == "postgres (read only)" and s["kept"] == 3 and s["humanMatches"] == 2 and s["startPositions"] == 2
     assert (out / "matches.jsonl").exists() and (out / "holdout-starts.json").exists()
-    assert "never-printed" not in json.dumps(s)
 
 
 # --- the learn command ----------------------------------------------------------------------------------------------------------
@@ -210,6 +209,16 @@ def test_learn_needs_a_database_url_and_refuses_a_short_gate(tmp_path, monkeypat
     monkeypatch.setenv("DATABASE_URL", "postgres://x")
     assert learn.run_cli(ap.parse_args(["--game", "chess", "--gate-games-per-seat", "50"])) == 2
     assert "400" in capsys.readouterr().err
+
+
+def test_learn_human_share_default_is_under_the_cap_and_the_flag_is_checked():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    learn.add_arguments(ap)
+    assert ap.parse_args(["--game", "chess"]).human_share == learn.DEFAULT_HUMAN_SHARE <= MAX_HUMAN_SHARE
+    with pytest.raises(ValueError):
+        check_share(ap.parse_args(["--game", "chess", "--human-share", "0.4"]).human_share)
 
 
 def test_learn_prints_pass_only_when_every_gate_passes_and_never_publishes(tmp_path, capsys):
