@@ -1,6 +1,7 @@
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { holdemCore } from '@duelwise/core/src/games/holdem/core'
+import { luckLine, luckOfMatchAsync } from '@duelwise/core/src/games/holdem/luck'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -75,6 +76,19 @@ export default function HoldemPage() {
   const measured = registry?.measured[match.level]
   const state = match.state
   const over = match.phase === 'over'
+  // How much of the result was the cards: all-ins before the river paid at equity. It is worked out after the result has rendered, one
+  // all-in hand per tick, so the verdict and Rematch never wait for it. Null (no line) when nobody went all-in.
+  const [luck, setLuck] = useState<string | null>(null)
+  useEffect(() => {
+    const rec = match.finished?.record
+    setLuck(null)
+    if (!over || !rec) return
+    let dead = false
+    luckOfMatchAsync({ seed: rec.seed, humanSeat: rec.humanSeat, options: rec.options, actions: rec.actions }, { cancelled: () => dead })
+      .then((l) => { if (!dead) setLuck(luckLine(l)) })
+      .catch(() => {})
+    return () => { dead = true }
+  }, [over, match.finished])
   const opponent = nameOf(match.level)
   const turn: TableTurn = over || state?.over ? 'over' : match.reveal ? 'reveal' : match.canAct ? 'you' : 'ai'
   const status = over
@@ -122,6 +136,7 @@ export default function HoldemPage() {
                 levels={levelInfo}
                 moves={match.finished ? match.finished.record.actions.filter((a) => a[1] === match.finished!.record.humanSeat).length : 0}
                 onChangeLevel={match.backToSetup}
+                reveal={luck ? <p className="text-sm text-muted" data-testid="holdem-luck">{luck}</p> : null}
               />
               {match.finished ? (
                 <span hidden data-testid="holdem-record" data-record-ok={String(match.finished.ok)} data-final-hash={match.finished.record.finalHash} data-seed={String(match.seed)} />
