@@ -230,7 +230,7 @@ export function useFighterMatch(agentVersion: (level: Level) => string, learnsFr
       if (kb.current.actionFor(e.code)) e.preventDefault()
       kb.current.up(e.code)
     }
-    const blur = () => kb.current.blur()
+    const blur = () => kb.current.blurKeys()
     const hidden = () => {
       if (document.hidden) setPause(true)
     }
@@ -429,7 +429,11 @@ export function useFighterMatch(agentVersion: (level: Level) => string, learnsFr
         stepPacked(s, p0, p1)
         l.renderer.onStep(l.prev, s)
         observe(phaseBefore, hpBefore, comboBefore)
-        if (window.__fighter) window.__fighter.frame = s.frame
+        if (window.__fighter) {
+          window.__fighter.frame = s.frame
+          window.__fighter.input = p0
+          window.__fighter.x = s.fighters[HUMAN].pos.x
+        }
       }
 
       // Everything the HUD and sounds derive from one sim step.
@@ -535,7 +539,7 @@ export function useFighterMatch(agentVersion: (level: Level) => string, learnsFr
 
 declare global {
   interface Window {
-    /** Debug handle for tests and bug reports: the sim frame, how many agent replies were late, and the finished record. */
-    __fighter?: { frame: number; lateReplies: number; record: import('@duelwise/core/src/match-record').MatchRecordV1 | null }
+    /** Debug handle for tests and bug reports: the sim frame, how many agent replies were late, the finished record, and the human seat's last packed input and position. */
+    __fighter?: { frame: number; lateReplies: number; record: import('@duelwise/core/src/match-record').MatchRecordV1 | null; input?: number; x?: number }
   }
 }
