@@ -47,7 +47,7 @@ export function RecentPanel({
         <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
           <thead className="text-muted">
             <tr>
-              {['When', 'Player', 'Game', 'Opponent', 'Result', 'Length', 'Device', 'Training', ''].map((h, i) => (
+              {['When', 'Player', 'Game', 'Opponent', 'Result', 'Length', 'Device', 'Training'].map((h, i) => (
                 <th key={i} scope="col" className="px-2 py-2 font-medium">{h}</th>
               ))}
             </tr>
@@ -55,7 +55,11 @@ export function RecentPanel({
           <tbody>
             {recent.rows.map((r) => (
               <tr key={r.matchId} className="border-t border-line" data-testid="recent-row" data-result={r.result}>
-                <td className="px-2 py-2 tabular">{utcTime(r.at)}</td>
+                <td className="px-2 py-2 tabular">
+                  {utcTime(r.at)}
+                  {/* The report link sits in the first column so it is on screen on a phone without scrolling the table sideways. */}
+                  <a className="mt-0.5 block min-h-6 text-action underline" href={r.report}>Report</a>
+                </td>
                 <td className="px-2 py-2">
                   <span className="inline-flex flex-wrap items-center gap-1.5">
                     <PlayerCell player={r.player} kind={r.playerKind} emails={emails} />
@@ -73,7 +77,6 @@ export function RecentPanel({
                 <td className="px-2 py-2 tabular">{clock(r.durationMs)}</td>
                 <td className="px-2 py-2">{DEVICE_NAME[r.device] ?? r.device}</td>
                 <td className="px-2 py-2">{r.training}</td>
-                <td className="px-2 py-2"><a className="text-action underline" href={r.report}>Report</a></td>
               </tr>
             ))}
           </tbody>
