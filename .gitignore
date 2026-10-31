@@ -19,3 +19,6 @@ playwright-report/
 # Paid Quaternius clips (kept out of the public repo; see scripts/paid-assets.ts)
 apps/web/public/paid/
 .claude/worktrees/
+
+# Exported human match records (players' games): never committed
+data/human/
