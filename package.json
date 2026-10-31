@@ -16,6 +16,7 @@
     "export": "scripts/py -m trainer.cli export",
     "measure": "scripts/py -m trainer.cli measure",
     "retrain": "scripts/py -m trainer.cli retrain",
+    "learn": "scripts/py -m trainer.cli learn",
     "smoke": "bun scripts/smoke.ts",
     "design:tokens": "bun scripts/design/tokens-to-css.ts"
   },

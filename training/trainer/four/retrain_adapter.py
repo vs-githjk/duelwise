@@ -15,6 +15,8 @@ Interface (trainer.retrain calls these):
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -23,6 +25,7 @@ import numpy as np
 import torch
 
 from ..bridge import find_bun
+from ..human_export import export_human, human_root
 from ..paths import common_root, runs_dir, worktree_root
 from ..registry import champion_artifact
 from ..retrain_types import Challenger
@@ -98,10 +101,12 @@ def positions_of(moves: list[int], min_ply: int = 4) -> int:
 class FourRetrainAdapter:
     game = "four"
 
-    def __init__(self, *, root: Path | None = None, champion_pt: Path | None = None, games_per_iter: int = 64,
+    def __init__(self, *, root: Path | None = None, gate_root: Path | None = None, champion_pt: Path | None = None, games_per_iter: int = 64,
                  parallel: int = 64, sims: int = 100, workers: int = 2, lr: float = 3e-4, window_games: int = 4000,
                  train_ratio: float = 4.0, batch: int = 128, seed: int = 0, smoke_games: int = 8, smoke_sims: int = 8):
         self.root = root or worktree_root()
+        # The checkout whose four-gate.ts plays the gate games (per-seat results, holdout starts); the learn command points it at the app checkout.
+        self.gate_root = gate_root or self.root
         self.champion_pt = champion_pt
         self.cfg = dict(games_per_iter=games_per_iter, parallel=parallel, sims=sims, workers=workers, lr=lr,
                         window_games=window_games, train_ratio=train_ratio, batch=batch, seed=seed)
@@ -109,8 +114,12 @@ class FourRetrainAdapter:
 
     # --- data ----------------------------------------------------------------------------------------------
     def export_matches(self, out_dir: Path) -> dict:
-        """Filtered human matches from the local database (read-only copy). A database that does not exist yields zero matches."""
+        """Filtered human matches. With DATABASE_URL set they come from Postgres through the learn-from-humans export
+        (apps/web/scripts/export-human.ts: read only, human and owner traffic, daily cap, weights, holdout). Without it, from the local
+        PGlite database (read-only copy); a database that does not exist yields zero matches."""
         out_dir.mkdir(parents=True, exist_ok=True)
+        if os.environ.get("DATABASE_URL"):
+            return self.export_postgres(out_dir)
         script = self.root / "apps" / "web" / "scripts" / "export-matches.ts"
         db = common_root() / ".data" / "pglite"
         if not db.exists():
@@ -125,6 +134,21 @@ class FourRetrainAdapter:
         if p.returncode != 0:
             raise RuntimeError(f"export-matches failed: {p.stderr.strip()[-500:]}")
         return json.loads((out_dir / "summary.json").read_text())
+
+    def export_postgres(self, out_dir: Path) -> dict:
+        """The new export, laid out the way train_challenger reads it: matches.jsonl and starts.json here, plus holdout.jsonl and
+        holdout-starts.json for the holdout gate."""
+        raw = human_root()  # data/human/four/ in the common root: the canonical, gitignored copy of the latest export
+        s = export_human("four", raw)
+        src = raw / "four"
+        for name in ("matches.jsonl", "starts.json", "holdout.jsonl", "holdout-starts.json", "summary.json"):
+            shutil.copyfile(src / name, out_dir / (name if name != "summary.json" else "export-summary.json"))
+        summary = {"game": "four", "source": "postgres (read only)", "total": s["total"], "kept": s["kept"], "rejected": s["rejected"],
+                   "humanMatches": s["training"], "holdoutMatches": s["holdout"], "idsSha256": s["idsSha256"],
+                   "startPositions": len(json.loads((out_dir / "starts.json").read_text())["positions"]),
+                   "note": "weights: wins and draws against Hard and Champion count most; Easy counts 0"}
+        (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+        return summary
 
     # --- training --------------------------------------------------------------------------------------------
     def champion_source(self, reg: dict) -> Path:
@@ -156,7 +180,7 @@ class FourRetrainAdapter:
         extra = ["--starts", str(starts), "--start-share", str(START_SHARE)] if positions else []
         matches = [json.loads(line) for line in (data_dir / "matches.jsonl").read_text().splitlines() if line.strip()] \
             if (data_dir / "matches.jsonl").exists() else []
-        used = sum(1 for m in matches if positions_of(m["moves"]) > 0) if positions else 0
+        used = sum(1 for m in matches if positions_of(m["moves"]) > 0 and m.get("weight", 1) > 0) if positions else 0
 
         deadline = time.monotonic() + budget_minutes * 60
         rounds, from_human = 0, 0
@@ -185,14 +209,25 @@ class FourRetrainAdapter:
     def champion_onnx(self, reg: dict) -> Path:
         return self.root / champion_artifact(reg, "champion")
 
-    def play_gate(self, *, challenger: Challenger, reg: dict, games: int, sims: int, processes: int) -> tuple[float, int, dict]:
-        script = self.root / "packages" / "agents" / "src" / "measure" / "four-gate.ts"
+    def run_gate(self, *, challenger: Challenger, reg: dict, games: int, sims: int, processes: int, starts: Path | None = None,
+                 seed_base: int | None = None) -> dict:
+        """Plays the challenger against the champion through the TS harness and returns its JSON line ({points, n, sims, runtime, bySeat}).
+        With `starts` (a JSON file of positions people reached) the games begin from those positions."""
+        script = self.gate_root / "packages" / "agents" / "src" / "measure" / "four-gate.ts"
         champion = self.champion_onnx(reg)
-        p = subprocess.run(
-            [find_bun(), str(script), "--challenger", str(challenger.artifacts["champion"]), "--champion", str(champion),
-             "--games", str(games), "--sims", str(sims), "--processes", str(processes)],
-            capture_output=True, text=True, cwd=self.root, timeout=4 * 3600)
+        cmd = [find_bun(), str(script), "--challenger", str(challenger.artifacts["champion"]), "--champion", str(champion),
+               "--games", str(games), "--sims", str(sims), "--processes", str(processes)]
+        if starts is not None:
+            cmd += ["--starts", str(starts)]
+        if seed_base is not None:
+            cmd += ["--seed-base", str(seed_base)]
+        p = subprocess.run(cmd, capture_output=True, text=True, cwd=self.root, timeout=6 * 3600, stdin=subprocess.DEVNULL)
         if p.returncode != 0:
             raise RuntimeError(f"gate games failed: {p.stderr.strip()[-500:]}")
         out = json.loads(p.stdout.strip().splitlines()[-1])
-        return float(out["points"]), int(out["n"]), {"sims": out["sims"], "harness": out["runtime"], "opponent": str(champion.relative_to(self.root))}
+        out["opponent"] = str(champion.relative_to(self.root)) if champion.is_relative_to(self.root) else str(champion)
+        return out
+
+    def play_gate(self, *, challenger: Challenger, reg: dict, games: int, sims: int, processes: int) -> tuple[float, int, dict]:
+        out = self.run_gate(challenger=challenger, reg=reg, games=games, sims=sims, processes=processes)
+        return float(out["points"]), int(out["n"]), {"sims": out["sims"], "harness": out["runtime"], "opponent": out["opponent"]}
