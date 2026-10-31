@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Result } from '@duelwise/core/src/types'
 import { OpponentContext } from '../personas/context'
-import { mayClear, ResultPanel } from './ResultPanel'
+import { mayClear, ResultPanel, toggleSpeaksNow } from './ResultPanel'
 import type { Upload } from '../lib/match-recorder'
 
 const won: Result = { winner: 0, score: [1, 0], reason: 'ahead by 300 chips after 4 hands' }
@@ -76,4 +76,31 @@ test('mayClear: only an accepted, rated, played-out win moves the path', () => {
   expect(mayClear({ ...base, left: true })).toBe(false)
   expect(mayClear({ ...base, practice: true })).toBe(false)
   expect(mayClear({ ...base, outcome: 'loss' })).toBe(false)
+})
+
+test('a win that did not count never says the next opponent is up next, unlocked or opening', () => {
+  const uncounted = [{ status: 'uploading' }, { status: 'queued' }, { status: 'rejected', reason: 'x' }, { status: 'failed', message: 'x' }, { status: 'not-counted', matchId: 'm', reason: 'x' }, { status: 'none' }] as Upload[]
+  for (const upload of uncounted) {
+    const html = renderWith(upload)
+    expect(html, upload.status).toContain('Clean win over Pip. Well done.')
+    expect(html, upload.status).not.toMatch(/up next|is up\b|unlocked|Marlow notices/i)
+  }
+})
+test('a counted win may promise the next opponent', () => {
+  expect(renderWith({ status: 'counted', matchId: 'm' })).toContain('Marlow is up next')
+})
+test('a practice win offers a rated match, not progression', () => {
+  const html = renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'holdem', level: 'easy', practice: true }}>
+      <ResultPanel result={won} humanSeat={0} onRematch={() => {}} upload={{ status: 'counted', matchId: 'm' }} />
+    </OpponentContext.Provider>,
+  )
+  expect(html).toContain('Win it again in a rated match to open Marlow')
+  expect(html).not.toMatch(/up next|unlocked/i)
+})
+
+test('turning the voice on while a rated win is settling does not speak the provisional line', () => {
+  expect(toggleSpeaksNow('on', true)).toBe(false)
+  expect(toggleSpeaksNow('on', false)).toBe(true)
+  expect(toggleSpeaksNow('off', false)).toBe(false)
 })

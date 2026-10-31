@@ -211,6 +211,18 @@ test.describe('name, call, result sheet, voice and share', () => {
     await expect(page.getByTestId('name-field')).toHaveCount(0)
   })
 
+  test('an unknown share link answers a real 404 and still shows the friendly page', async ({ page, request }) => {
+    for (const path of ['/c/nope/vesper', '/c/word-duel/nobody']) {
+      expect((await request.get(path)).status(), path).toBe(404)
+    }
+    const res = await page.goto('/c/nope/vesper')
+    expect(res!.status()).toBe(404)
+    await expect(page.getByText('Page not found')).toBeVisible()
+    expect((await request.get('/c/word-duel/vesper')).status()).toBe(200)
+    expect((await request.get('/play/nope')).status()).toBe(404)
+    expect((await request.get('/play/word-duel')).status()).toBe(200)
+  })
+
   test.describe('a first-time visitor (not yet welcomed)', () => {
     test.use({ storageState: guidesSeen })
     test('a shared link asks for the name once, framed as the challenge, then opens that game at that level', async ({ page }) => {

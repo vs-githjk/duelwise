@@ -26,6 +26,11 @@ export function mayClear(i: { left: boolean; practice: boolean; outcome: Outcome
   return !i.left && !i.practice && i.outcome === 'win' && (i.status === 'counted' || i.status === 'synced')
 }
 
+/** Whether switching the voice to `next` speaks the line at once: only when turning it on and the line is final (not while a rated win is still settling). */
+export function toggleSpeaksNow(next: 'on' | 'off', settling: boolean): boolean {
+  return next === 'on' && !settling
+}
+
 export function outcomeFor(result: Result, humanSeat: Seat): Outcome {
   if (result.winner === null) return 'draw'
   return result.winner === humanSeat ? 'win' : 'loss'
@@ -134,8 +139,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord, practice, accepted])
   const spoke = useRef(false)
+  // A rated win is spoken once the server has answered, so the voice never says the plain line and then the promising one.
+  const settling = clearable && upload?.status === 'uploading'
   const [voiceSupported, setVoiceSupported] = useState(false)
   const [voiceOn, setVoiceOn] = useState(false)
   useEffect(() => {
@@ -145,17 +152,18 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }, [])
   useEffect(() => {
     // Once per match, even when React runs this effect twice in development; after the record answer when the line quotes it.
-    if (says && !recordWait && !spoke.current) {
+    if (says && !recordWait && !settling && !spoke.current) {
       spoke.current = true
       speakLine(says.text)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordWait])
+  }, [recordWait, settling])
   const toggleVoice = () => {
     const next = readVoicePref() === 'on' ? 'off' : 'on'
     writeVoicePref(next)
     setVoiceOn(next === 'on' && !isMuted())
-    if (next === 'on' && says) speakLine(says.text, { force: true })
+    // While a rated win is still uploading the effect above speaks the final line once it settles, so the toggle stays quiet.
+    if (toggleSpeaksNow(next, settling) && says) speakLine(says.text, { force: true })
     else cancelSpeech()
   }
   // The player's place at this level, once the server has counted the win. Practice levels are never ranked.

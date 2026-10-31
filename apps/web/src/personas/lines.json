@@ -5,7 +5,11 @@
     "closeLoss": "One {unit} short against Pip. That one stings. Run it back.",
     "draw": "A draw with Pip. Nobody is proud of this. Again?",
     "callWrong": "You called {call} and Pip got you. Bold. Rematch before anyone sees the board?",
-    "callRight": "You called Pip and beat Pip. Good start. Marlow is unlocked."
+    "callRight": "You called Pip and beat Pip. Good start. Marlow is unlocked.",
+    "winPlain": "Clean win over Pip. Well done.",
+    "winPractice": "Clean win over Pip. Win it again in a rated match to open Marlow.",
+    "callRightPlain": "You called Pip and beat Pip. Good start.",
+    "callRightPractice": "You called Pip and beat Pip. Win it in a rated match to open Marlow."
   },
   "medium": {
     "win": "Marlow punishes the obvious and you were not obvious. Nicely played. Vesper is up.",
@@ -13,7 +17,11 @@
     "closeLoss": "Marlow by a hair. It will not admit it was close. Rematch?",
     "draw": "Marlow is fine with a draw. You should not be.",
     "callWrong": "You called {call}. Marlow would like a word first.",
-    "callRight": "Called Marlow, beat Marlow. That is a good read. Vesper is the one that bites."
+    "callRight": "Called Marlow, beat Marlow. That is a good read. Vesper is the one that bites.",
+    "winPlain": "Marlow punishes the obvious and you were not obvious. Nicely played.",
+    "winPractice": "Marlow punishes the obvious and you were not. Win it rated to open Vesper.",
+    "callRightPlain": "Called Marlow, beat Marlow. That is a good read.",
+    "callRightPractice": "Called Marlow, beat Marlow. Good read. Win it rated to open Vesper."
   },
   "hard": {
     "win": "You beat Vesper. Properly good. Sable has been told you are coming.",
@@ -21,7 +29,11 @@
     "closeLoss": "That close against Vesper is a result. Rematch while it is fresh.",
     "draw": "A draw with Vesper. Vesper counts that as yours. Again?",
     "callWrong": "You called {call}. Vesper is the bouncer. Rematch?",
-    "callRight": "You called Vesper and took it. Sharp read. Sable has been told."
+    "callRight": "You called Vesper and took it. Sharp read. Sable has been told.",
+    "winPlain": "You beat Vesper. Properly good.",
+    "winPractice": "You beat Vesper. Properly good. Win it in a rated match to open Sable.",
+    "callRightPlain": "You called Vesper and took it. Sharp read.",
+    "callRightPractice": "You called Vesper and took it. Win it in a rated match to open Sable."
   },
   "champion": {
     "win": "You beat Sable. That is a real accomplishment. Frame it.",

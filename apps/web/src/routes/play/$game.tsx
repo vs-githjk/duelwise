@@ -11,8 +11,8 @@ function resolve(slug: string): { folder: string; title: string } | null {
 }
 
 export const Route = createFileRoute('/play/$game')({
-  // Play pages use workers, storage and the pointer, so they render on the client.
-  ssr: false,
+  // Play pages use workers, storage and the pointer, so the page renders on the client; 'data-only' still runs the game check on the server, so an unknown game gets a real 404 status.
+  ssr: 'data-only',
   beforeLoad: ({ params }) => {
     if (!resolve(params.game)) throw notFound()
   },
