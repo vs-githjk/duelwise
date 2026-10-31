@@ -65,6 +65,17 @@ function Page() {
         </p>
       </section>
 
+      <section className="grid gap-2" data-testid="privacy-poker-profile">
+        <h2 className="font-display text-display-sm">Hold'em play profiles</h2>
+        <p className="text-muted">
+          From your stored Heads-Up Hold'em matches we can count how you play: how often you enter a hand, raise, fold to a bet and reach showdown. A profile is those counts under your opaque player code, with no name or email, built offline to study how people play. No agent changes how it plays because of a profile today; if one ever does, it will ship switched off and only after it passes the same strength tests as every other change. The profile is on unless you switch it off on the{' '}
+          <Link to="/settings" className="text-action underline">
+            settings page
+          </Link>
+          . It is a separate switch from training use. Switching it off leaves you out of every later profile, including for matches you already played. If you also played as a guest in another browser, sign in there once so those matches are left out too.
+        </p>
+      </section>
+
       <section className="grid gap-2" data-testid="privacy-deletion">
         <h2 className="font-display text-display-sm">Deleting your data</h2>
         <p className="text-muted">

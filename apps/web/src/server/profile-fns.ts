@@ -4,6 +4,7 @@ import { callerFromRequest, getSessionUser } from './caller'
 import { getServerDb } from './server-db'
 import { viewerOf, type Viewer } from './viewer'
 import { getSettings, markNoticeSeen, setTrainingAllowed, type Settings } from './profile'
+import { getPokerProfileAllowed, setPokerProfileAllowed } from './poker-profile'
 
 /** Who is signed in, for the header menu. */
 export const getViewer = createServerFn({ method: 'GET' }).handler(async (): Promise<Viewer> => {
@@ -37,3 +38,22 @@ export const acknowledgeNotice = createServerFn({ method: 'POST' }).handler(asyn
   await markNoticeSeen(db, who)
   return getSettings(db, who)
 })
+
+/** The Hold'em play-profile switch (poker-profile.ts): on unless the player switched it off. */
+export const getPokerProfileSetting = createServerFn({ method: 'GET' }).handler(async (): Promise<{ allowed: boolean }> => {
+  const who = await callerFromRequest()
+  const { db } = await getServerDb()
+  return { allowed: await getPokerProfileAllowed(db, who) }
+})
+
+export const savePokerProfileAllowed = createServerFn({ method: 'POST' })
+  .validator((d: unknown) => {
+    if (typeof d !== 'object' || d === null || typeof (d as { allowed?: unknown }).allowed !== 'boolean') throw new Error('expected { allowed: boolean }')
+    return { allowed: (d as { allowed: boolean }).allowed }
+  })
+  .handler(async ({ data }): Promise<{ allowed: boolean }> => {
+    const who = await callerFromRequest()
+    const { db } = await getServerDb()
+    await setPokerProfileAllowed(db, who, data.allowed)
+    return { allowed: await getPokerProfileAllowed(db, who) }
+  })

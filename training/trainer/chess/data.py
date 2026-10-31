@@ -9,6 +9,7 @@ policy plane layout is the one in packages/core/src/games/chess/encode.ts (teste
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -31,7 +32,9 @@ _MASK_BYTES = (REL_POLICY_SIZE + 7) // 8
 
 
 def chess_cache_dir() -> Path:
-    return common_root() / "data" / "cache" / "chess"
+    """<common root>/data/cache/chess, or $CHESS_CACHE_DIR (the Lichess fetch scripts honour the same variable)."""
+    env = os.environ.get("CHESS_CACHE_DIR")
+    return Path(env) if env else common_root() / "data" / "cache" / "chess"
 
 
 class Shards:

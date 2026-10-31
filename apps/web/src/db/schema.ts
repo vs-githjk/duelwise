@@ -24,6 +24,8 @@ export const guest = pgTable('guest', {
   displayName: text('display_name'),
   /** Guests opt out of the public board from Settings. Default shown. */
   showOnLeaderboard: boolean('show_on_leaderboard').notNull().default(true),
+  /** Whether Hold'em may keep a behaviour profile of this guest (how often they raise, fold to a bet and so on). On unless they switch it off in Settings. */
+  pokerProfileAllowed: boolean('poker_profile_allowed').notNull().default(true),
   /** Who this player is, set when the row is made: 'test' (automated runs), 'owner' (first seen on the owner's device) or 'human'. Null on rows from before the column existed. */
   traffic: text('traffic').$type<'human' | 'owner' | 'test'>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -87,6 +89,8 @@ export const profile = pgTable('profile', {
   noticeSeenAt: timestamp('notice_seen_at', { withTimezone: true }),
   /** Whether the player's first name may appear on the public leaderboard once they have enough rated games. */
   showOnLeaderboard: boolean('show_on_leaderboard').notNull().default(true),
+  /** Whether Hold'em may keep a behaviour profile of this player. On unless they switch it off in Settings; separate from the training switch. */
+  pokerProfileAllowed: boolean('poker_profile_allowed').notNull().default(true),
   /** The name the player typed for the board; copied from the guest row when they keep it across devices. */
   displayName: text('display_name'),
 })

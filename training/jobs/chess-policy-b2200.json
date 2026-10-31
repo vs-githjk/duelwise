@@ -1,0 +1,10 @@
+{
+  "name": "chess-policy-b2200",
+  "cmd": ["scripts/py", "-m", "trainer.chess.train_policy", "--buckets", "b2200", "--init-from", "runs/chess-policy/ckpt/b1900", "--lr", "5e-4", "--max-minutes", "25", "--human-dir", "data/human/chess/shards", "--human-share", "0.3"],
+  "cpuSlots": 0,
+  "mps": true,
+  "maxHours": 1,
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/chess-policy-b2200/ckpt",
+  "milestones": {"note": "needs data/cache/chess/b2200 (scripts/data/fetch-lichess-expert.sh in the app checkout); human shards are optional: a missing data/human/chess/shards is logged and the run uses Lichess games only", "exports": "runs/chess-policy-b2200/export/b2200/{policy.onnx,holdout.json}"}
+}

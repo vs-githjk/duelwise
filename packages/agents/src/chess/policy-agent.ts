@@ -16,7 +16,7 @@ import { nonRepeatingMoves } from './repetition'
 import type { ChessState } from '@duelwise/core/src/games/chess/core'
 import type { ValueNet } from './value-eval'
 
-export type PolicyBand = 'b1100' | 'b1500' | 'b1900'
+export type PolicyBand = 'b1100' | 'b1500' | 'b1900' | 'b2200'
 
 export interface PolicyConfig {
   band: PolicyBand

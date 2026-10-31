@@ -65,6 +65,20 @@ test.describe('sign-in and the training notice', () => {
     await expect(page.getByTestId('training-settings').getByRole('switch')).toBeChecked()
   })
 
+  test('the Hold\'em play profile switch starts on, persists, and is separate from training', async ({ page }) => {
+    await page.goto('/settings')
+    const poker = page.getByTestId('poker-profile-settings').getByRole('switch')
+    await expect(poker).toBeChecked()
+    await poker.uncheck()
+    await expect(poker).not.toBeChecked()
+    await page.reload()
+    await expect(page.getByTestId('poker-profile-settings').getByRole('switch')).not.toBeChecked()
+    await expect(page.getByTestId('training-settings').getByRole('switch')).toBeChecked()
+    await page.getByTestId('poker-profile-settings').getByRole('switch').check()
+    await page.reload()
+    await expect(page.getByTestId('poker-profile-settings').getByRole('switch')).toBeChecked()
+  })
+
   test('the leaderboard switch is for signed-in players only, starts on and persists (M3)', async ({ page }) => {
     await page.goto('/settings')
     await expect(page.getByTestId('leaderboard-settings')).toHaveCount(0)

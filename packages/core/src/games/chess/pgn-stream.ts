@@ -21,6 +21,8 @@ export interface PgnHeaders {
   TimeControl?: string
   Termination?: string
   Variant?: string
+  WhiteTitle?: string
+  BlackTitle?: string
 }
 export interface RawGame {
   headers: PgnHeaders
@@ -34,7 +36,7 @@ export const BUCKETS = [
 ] as const
 export type BucketName = (typeof BUCKETS)[number]['name']
 
-const KEYS = new Set(['Site', 'Result', 'WhiteElo', 'BlackElo', 'TimeControl', 'Termination', 'Variant'])
+const KEYS = new Set(['Site', 'Result', 'WhiteElo', 'BlackElo', 'TimeControl', 'Termination', 'Variant', 'WhiteTitle', 'BlackTitle'])
 
 /** Splits a stream of PGN text chunks into games. Only the headers this pipeline uses are kept. */
 export async function* readGames(source: AsyncIterable<Uint8Array | string>): AsyncGenerator<RawGame> {
