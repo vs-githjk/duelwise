@@ -120,6 +120,6 @@ describe('luck line copy', () => {
   test('level match and no dashes', () => {
     const t = luckLine(mk(0, 30))!
     expect(t).toContain('level')
-    expect(t).not.toMatch(/[–—]/)
+    expect(t).not.toMatch(/[\u2013\u2014]/)
   })
 })
