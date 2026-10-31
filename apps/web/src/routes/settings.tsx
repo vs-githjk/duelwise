@@ -7,6 +7,7 @@ import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from
 import { authClient } from '../lib/auth-client'
 import { forgetPrivateData } from '../lib/pwa'
 import { deleteMyAccount } from '../server/account-fns'
+import { getPokerProfileSetting, savePokerProfileAllowed } from '../server/profile-fns'
 import { forgetThisDevice, getMyIdentity, saveBoardVisibility } from '../server/identity-fns'
 import { NameField } from '../components/IdentityCard'
 import { getVolume, isMuted, setMuted, subscribeAudio } from '../lib/audio'
@@ -61,6 +62,40 @@ function BoardSwitch() {
     <label htmlFor={id} className="inline-flex min-h-11 cursor-pointer items-center gap-3">
       <input id={id} type="checkbox" role="switch" className="size-5 accent-action" checked={show} disabled={busy} onChange={(e) => void change(e.target.checked)} />
       <span className="font-medium">Show me on the leaderboard</span>
+    </label>
+  )
+}
+
+/** The "Let Hold'em study how I play" switch (apps/web/src/server/poker-profile.ts). On unless switched off; separate from the training switch. */
+function PokerProfileSwitch() {
+  const id = useId()
+  const [allowed, setAllowed] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let live = true
+    getPokerProfileSetting()
+      .then((r) => live && setAllowed(r.allowed))
+      .catch(() => live && setAllowed(true))
+    return () => {
+      live = false
+    }
+  }, [])
+  async function change(next: boolean) {
+    setAllowed(next)
+    setBusy(true)
+    try {
+      setAllowed((await savePokerProfileAllowed({ data: { allowed: next } })).allowed)
+    } catch {
+      setAllowed((await getPokerProfileSetting().catch(() => null))?.allowed ?? true)
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (allowed === null) return <p className="text-muted">Loading</p>
+  return (
+    <label htmlFor={id} className="inline-flex min-h-11 cursor-pointer items-center gap-3">
+      <input id={id} type="checkbox" role="switch" className="size-5 accent-action" checked={allowed} disabled={busy} onChange={(e) => void change(e.target.checked)} />
+      <span className="font-medium">Let Hold'em study how I play</span>
     </label>
   )
 }
@@ -173,6 +208,9 @@ function Page() {
       </Row>
       <Row title="Let my matches help train the agents" testId="training-settings" control={settings ? <TrainingToggle allowed={settings.trainingAllowed} busy={busy} onChange={setAllowed} /> : <p className="text-muted">Loading</p>}>
         {settingsTrainingLine(allRegistries())}
+      </Row>
+      <Row title="Hold'em play profile" testId="poker-profile-settings" control={<PokerProfileSwitch />}>
+        Heads-Up Hold'em can count how you play: how often you raise, fold to a bet and reach showdown. Counts only, under your opaque player code, never your cards, name or email, and no agent plays differently because of them today. Switch this off and you are left out of every later count, matches you already played included. It is separate from the training switch above.
       </Row>
       <Row title="Leaderboard" testId={user ? 'leaderboard-settings' : 'board-settings'} control={<BoardSwitch />}>
         Wins at each level, last 30 days, for everybody. Switch this off to stay off every board; your own path and report stay yours.
