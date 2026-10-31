@@ -158,7 +158,7 @@ export function visibleRegistry(reg: Registry): Registry {
     if (out.levels[level]) out.unpublishedConfig[level] = out.levels[level]!.config
     delete out.levels[level]
     delete out.measured[level]
-    out.unpublished[level] = 'stays Practice until the per-seat strength gate is verified'
+    out.unpublished[level] = 'stays in training until the per-seat strength gate is verified'
   }
   return out
 }

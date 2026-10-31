@@ -28,7 +28,7 @@ test.describe('personas', () => {
       await picker.getByTestId(`persona-name-${level}`).click()
       const row = picker.locator('label').filter({ has: page.locator(`input[value="${level}"]`) })
       await expect(row.locator('input')).toBeChecked()
-      await expect(row).toContainText(reg?.levels?.[level] && reg?.measured?.[level] ? CAST[level].style.chess! : 'Practice')
+      await expect(row).toContainText(reg?.levels?.[level] && reg?.measured?.[level] ? CAST[level].style.chess! : 'In training')
     }
   })
 
@@ -51,7 +51,7 @@ test.describe('personas', () => {
       await expect(card.locator('svg')).toBeVisible()
       for (const g of GAMES) {
         const reg = registryOf(g)
-        await expect(card).toContainText(reg?.levels?.[level] && reg?.measured?.[level] ? CAST[level].style[g]! : 'Practice opponent. Its strength is still being checked.')
+        await expect(card).toContainText(reg?.levels?.[level] && reg?.measured?.[level] ? CAST[level].style[g]! : 'In training: this opponent\'s strength is still being checked.')
       }
     }
     for (const game of GAMES) {
@@ -67,16 +67,16 @@ test.describe('personas', () => {
         } else {
           await expect(cells.nth(i)).toHaveAttribute('data-state', 'in-training')
           if (game === 'fighter' || game === 'arena') {
-            await expect(cells.nth(i)).toContainText('Practice')
-            await expect(cells.nth(i)).not.toContainText('In training')
-          } else await expect(cells.nth(i)).toContainText('Practice')
+            await expect(cells.nth(i)).toContainText('In training')
+            await expect(cells.nth(i)).not.toContainText('Practice')
+          } else await expect(cells.nth(i)).toContainText('In training')
         }
       }
     }
   })
 
   test('realtime games show Practice for unpublished levels and never a site Elo, on /ai and the agent page', async ({ page }) => {
-    const PRACTICE = 'Practice: an early version that has not passed our strength test yet.'
+    const PRACTICE = 'In training: an early version that has not passed our strength test yet.'
     await page.goto('/ai')
     const tinder = page.getByTestId('cast-row-fighter')
     const cold = page.getByTestId('cast-row-arena')
@@ -84,8 +84,8 @@ test.describe('personas', () => {
       const reg = registryOf(game)
       for (const [i, level] of LEVELS.entries()) {
         const cell = row.locator('td').nth(i)
-        if (!reg?.levels?.[level] || !reg?.measured?.[level]) await expect(cell).toContainText('Practice')
-        await expect(cell).not.toContainText('In training')
+        if (!reg?.levels?.[level] || !reg?.measured?.[level]) await expect(cell).toContainText('In training')
+        await expect(cell).not.toContainText('Practice')
       }
     }
     await expect(tinder).not.toContainText('still being measured')

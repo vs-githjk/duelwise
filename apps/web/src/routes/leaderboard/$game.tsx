@@ -64,7 +64,7 @@ function Leaderboard() {
         </p>
       ) : null}
       <p className="max-w-xl text-muted" hidden={!ranked}>
-        Signed-in players appear here after {minGames} counted matches. Ratings are against the four AI opponents; a rating earned against a Practice opponent is provisional.
+        Signed-in players appear here after {minGames} counted matches. Ratings are against the four AI opponents; a rating earned against an opponent still in training is provisional.
       </p>
       {ranked && me ? (
         <p className="max-w-xl rounded-control border border-line bg-surface px-3 py-2 text-sm" data-testid="leaderboard-me">
@@ -138,11 +138,11 @@ function Column({ c }: { c: BoardColumn }) {
       <header className="flex items-center gap-2.5 border-b border-line px-4 py-3">
         <Avatar level={c.level} size={32} decorative />
         <b className="font-semibold">{name}</b>
-        <span className="ml-auto font-mono text-xs text-muted tabular" data-testid={`board-players-${c.level}`}>{c.practice ? 'Practice' : `${c.players.toLocaleString('en-US')} played, ${(c.rows.length + c.more).toLocaleString('en-US')} won`}</span>
+        <span className="ml-auto font-mono text-xs text-muted tabular" data-testid={`board-players-${c.level}`}>{c.practice ? 'In training' : `${c.players.toLocaleString('en-US')} played, ${(c.rows.length + c.more).toLocaleString('en-US')} won`}</span>
       </header>
       {c.practice ? (
         <p className="px-4 py-4 text-sm text-muted" data-testid={`board-practice-${c.level}`}>
-          {name} is Practice until it is measured. A win here counts on your own path, not on the board.
+          {name} is in training until it is measured. A win here counts on your own path, not on the board.
         </p>
       ) : c.rows.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted" data-testid={`board-empty-${c.level}`}>No wins at {LEVEL_LABEL[c.level]} yet. Be the first.</p>
@@ -182,7 +182,7 @@ function AiReference({ game }: { game: GameId }) {
           return (
             <li key={l} className="flex flex-wrap items-baseline justify-between gap-x-4 py-2" data-testid={`leaderboard-ai-${l}`}>
               <span className="font-semibold">{`${personaFor(l).name} (${LEVEL_LABEL[l]})`}</span>
-              <span className="font-mono tabular text-muted">{c.state === 'measured' ? c.strength : 'Practice'}</span>
+              <span className="font-mono tabular text-muted">{c.state === 'measured' ? c.strength : 'In training'}</span>
             </li>
           )
         })}

@@ -67,7 +67,7 @@ function Pips({ published }: { published: number }) {
           <span key={l} className="h-1 w-3.5 rounded-full" style={{ background: i < published ? 'var(--action)' : 'var(--line)' }} />
         ))}
       </span>
-      <span className="text-sm text-muted">{published === LEVELS.length ? 'all four' : published === 0 ? 'Practice' : `${published} of ${LEVELS.length} measured`}</span>
+      <span className="text-sm text-muted">{published === LEVELS.length ? 'all four' : published === 0 ? 'In training' : `${published} of ${LEVELS.length} measured`}</span>
     </span>
   )
 }
@@ -256,14 +256,14 @@ function Detail({ view }: { view: AgentsView & { learn: LearnView } }) {
           <Tile
             testId="tile-champion"
             label="Champion reaction"
-            value={champion.reactionFrames === undefined ? <span className="text-muted">Practice</span> : `${Math.round(champion.reactionFrames * 1000 / 60)} ms (${champion.reactionFrames} frames)`}
+            value={champion.reactionFrames === undefined ? <span className="text-muted">In training</span> : `${Math.round(champion.reactionFrames * 1000 / 60)} ms (${champion.reactionFrames} frames)`}
             sub={champion.state === 'measured' ? champion.plain : champion.reason}
           />
         ) : (
           <Tile
             testId="tile-champion"
             label="Champion strength"
-            value={champion.state === 'measured' ? Math.round(champion.siteElo!) : <span className="text-muted">Practice</span>}
+            value={champion.state === 'measured' ? Math.round(champion.siteElo!) : <span className="text-muted">In training</span>}
             sub={champion.state === 'measured' ? 'site Elo, measured' : champion.reason}
           />
         )}
@@ -304,7 +304,7 @@ function Detail({ view }: { view: AgentsView & { learn: LearnView } }) {
                   <li key={h.version} className="grid grid-cols-[4rem_1fr_auto] gap-x-3 py-2.5 first:pt-0 last:pb-0" data-testid={`version-${h.version}`}>
                     <span className="font-mono text-sm font-semibold">{h.version}</span>
                     <span className="text-sm">
-                      <span className="font-semibold">{h.version === registry.version ? (registry.levels.filter((l) => l.state === 'measured').length === 4 ? 'All levels measured. ' : registry.levels.some((l) => l.state === 'measured') ? `${registry.levels.filter((l) => l.state === 'measured').length} of 4 levels measured. ` : 'Practice. ') : h.status === 'retired' ? 'Retired. ' : 'Earlier version. '}</span>
+                      <span className="font-semibold">{h.version === registry.version ? (registry.levels.filter((l) => l.state === 'measured').length === 4 ? 'All levels measured. ' : registry.levels.some((l) => l.state === 'measured') ? `${registry.levels.filter((l) => l.state === 'measured').length} of 4 levels measured. ` : 'In training. ') : h.status === 'retired' ? 'Retired. ' : 'Earlier version. '}</span>
                       <span className="text-muted">
                         {h.parent ? `From ${h.parent}. ` : 'First version. '}
 
@@ -369,7 +369,7 @@ function AgentStats() {
         <div className="grid max-w-3xl gap-2">
           <h1 className="font-display text-display-md md:text-display-lg">The AI, measured</h1>
           <p className="text-muted">
-            One opponent per game. Strength numbers come from tests or counted matches; an unmeasured level is Practice.
+            One opponent per game. Strength numbers come from tests or counted matches; an unmeasured level is in training.
           </p>
         </div>
         <nav aria-label="Pick a game" className="flex flex-wrap gap-2">

@@ -28,7 +28,7 @@ export function buildCast(registries: Partial<Record<GameId, Registry | null>>):
       cells[level] =
         measured && entry
           ? { state: 'measured', strength: realtime ? (game === 'arena' ? arenaStrengthLine(reg, level) : fighterStrengthLine(reg, level)) : `site Elo ${Math.round(measured.siteElo)}`, reaction: realtime ? reactionLimit(level, entry.config) : null }
-          : { state: 'in-training', practice: true, reason: game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'Practice' }
+          : { state: 'in-training', practice: true, reason: game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'In training' }
     }
     return { game, displayName: PRODUCT.games[game].displayName, realtime, cells }
   })

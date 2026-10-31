@@ -34,8 +34,8 @@ function Cell({ cell, label }: { cell: CastCell; label: string }) {
   if (cell.state === 'in-training') {
     return (
       <td className={CELL} data-label={label} data-state="in-training">
-        {cell.practice ? <span className="font-semibold text-warn-ink">Practice</span> : <span className="font-semibold text-warn-ink">In training</span>}
-        <span className="block text-xs text-muted">{cell.practice && cell.reason.startsWith('Practice') ? 'Early version, not yet strength tested.' : cell.reason}</span>
+        <span className="font-semibold text-warn-ink">In training</span>
+        <span className="block text-xs text-muted">{cell.practice && cell.reason.startsWith('In training') ? 'Early version, not yet strength tested.' : cell.reason}</span>
       </td>
     )
   }
@@ -78,7 +78,7 @@ function TheAI() {
                 {games.map((g) => (
                   <div key={g} className="grid gap-px">
                     <dt className="text-xs font-semibold text-muted">{PRODUCT.games[g].displayName}</dt>
-                    <dd>{verifiedStrength(registryByGame[g] ?? null, level) ? styleLine(level, g) : 'Practice opponent. Its strength is still being checked.'}</dd>
+                    <dd>{verifiedStrength(registryByGame[g] ?? null, level) ? styleLine(level, g) : 'In training: this opponent\'s strength is still being checked.'}</dd>
                   </div>
                 ))}
               </dl>

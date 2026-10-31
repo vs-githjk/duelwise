@@ -315,7 +315,7 @@ export function summariseRegistry(reg: Registry | null): RegistrySummary {
     const entry = reg?.levels[level]
     const m = reg?.measured[level]
     const limits = realtimeLimits(reg?.game, level, entry?.config)
-    if (!reg || !entry || !m) return { level, state: 'in-training', practice: true, reason: reg?.game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'Practice', ...limits }
+    if (!reg || !entry || !m) return { level, state: 'in-training', practice: true, reason: reg?.game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'In training', ...limits }
     const realtime = PRODUCT.games[reg.game].kind === 'realtime'
     return {
       level,

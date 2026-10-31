@@ -6,7 +6,7 @@ import type { Registry } from '@duelwise/agents/src/registry'
 // and only for a level the registry publishes.
 
 /** R32: shown for every level the registry does not publish. The level stays playable; it carries no Elo or strength number. */
-export const PRACTICE_COPY = 'Practice: an early version that has not passed our strength test yet.'
+export const PRACTICE_COPY = 'In training: an early version that has not passed our strength test yet.'
 
 export function isPublished(reg: Registry | null, level: Level): boolean {
   return Boolean(reg?.levels[level]) && Boolean(reg?.measured[level])

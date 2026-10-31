@@ -120,7 +120,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
               </span>
             </span>
             <span className="grid justify-items-end gap-1 text-right font-mono text-xs text-muted tabular">
-              {practice ? <PreviewBadge label="Practice" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
+              {practice ? <PreviewBadge label="In training" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
               {info.strength}
             </span>
           </label>

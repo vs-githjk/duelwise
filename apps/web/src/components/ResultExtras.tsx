@@ -37,7 +37,7 @@ export function Ladder({ path, call, played, won, levels }: { path: PathMap; cal
           <li key={l} className={cn('grid justify-items-center gap-0.5 rounded-control border px-1 py-1.5 text-center', beaten ? 'border-good bg-good-soft' : isCall ? 'border-2 border-dashed border-action bg-surface' : 'border-line bg-surface')} data-testid={`ladder-${l}`}>
             <Avatar level={l} size={28} decorative dim={!beaten && !isCall && l !== played} />
             <b className="text-xs">{personaFor(l).name}</b>
-            <span className={cn('text-xs leading-tight', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'Practice' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
+            <span className={cn('text-xs leading-tight', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'In training' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
           </li>
         )
       })}

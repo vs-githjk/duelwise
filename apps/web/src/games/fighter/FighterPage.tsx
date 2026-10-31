@@ -290,7 +290,7 @@ export default function FighterPage() {
   }, [inMatch, match.paused])
 
   return (
-    <GameShell game="fighter" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="Practice" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }} actions={<MuteToggle />}>
+    <GameShell game="fighter" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="In training" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }} actions={<MuteToggle />}>
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">2.5D, best of 3 rounds, 99 seconds each. One control scheme for you and the AI, so neither side gets an input edge.</p>

@@ -37,9 +37,9 @@ export function tileNote(game: GameId, reg: RegistrySummary): string {
   }
   if (game === 'arena') return base
   const top = [...measured].reverse().find((l) => typeof l.siteElo === 'number')
-  if (!top) return `${base} Every level is Practice for now.`
+  if (!top) return `${base} Every level is in training for now.`
   const practice = reg.levels.filter((l) => l.state !== 'measured').map((l) => named(l.level))
-  const tail = practice.length > 0 ? ` ${practice.join(' and ')} ${practice.length === 1 ? 'is' : 'are'} Practice.` : ''
+  const tail = practice.length > 0 ? ` ${practice.join(' and ')} ${practice.length === 1 ? 'is' : 'are'} in training.` : ''
   return `${base} ${named(top.level)} site Elo ${Math.round(top.siteElo!)}.${tail}`
 }
 

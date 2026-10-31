@@ -120,7 +120,7 @@ export default function HoldemPage() {
       game="holdem"
       level={match.phase === 'setup' ? undefined : match.level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
       actions={<MuteToggle />}
       result={over && match.result ? (

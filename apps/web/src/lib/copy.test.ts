@@ -78,8 +78,8 @@ test('provisionalNote does not say a realtime level is unmeasured', () => {
     expect(provisionalNote(g)).not.toMatch(/not measured yet/)
     expect(provisionalNote(g)).toContain('test bots')
   }
-  for (const g of ['chess', 'four', 'holdem', 'word'] as const) expect(provisionalNote(g)).toBe('provisional, the opponent is Practice')
-  expect(provisionalNote(undefined)).toBe('provisional, the opponent is Practice')
+  for (const g of ['chess', 'four', 'holdem', 'word'] as const) expect(provisionalNote(g)).toBe('provisional, the opponent is in training')
+  expect(provisionalNote(undefined)).toBe('provisional, the opponent is in training')
 })
 
 test('round counts use the singular for one', () => {

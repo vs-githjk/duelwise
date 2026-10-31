@@ -77,14 +77,14 @@ export function GameCard({ card, week, playable }: GameCardProps) {
             <p className="text-sm text-muted" data-testid={`card-note-${id}`}>{card.note}</p>
             {promotionLine(card) ? <p className="text-xs text-muted" data-testid={`card-promotion-${id}`}>{promotionLine(card)}</p> : null}
           </div>
-          {card.measured === 0 && <PreviewBadge label="Practice" />}
+          {card.measured === 0 && <PreviewBadge label="In training" />}
         </div>
         <div className="flex items-center gap-3 text-sm text-muted" data-testid={`card-cast-${id}`}>
           <span>
             {upNext ? 'Up next: ' : 'Start with '}
             <b className="font-semibold text-ink">{(upNext ? personaFor(upNext) : first).name}</b>
           </span>
-          <span className="av-stack ml-auto" role="img" aria-label={`${LEVELS.map((l) => `${personaFor(l).name} (${LEVEL_LABEL[l]})${published.has(l) ? '' : ', Practice'}`).join(', ')}`}>
+          <span className="av-stack ml-auto" role="img" aria-label={`${LEVELS.map((l) => `${personaFor(l).name} (${LEVEL_LABEL[l]})${published.has(l) ? '' : ', In training'}`).join(', ')}`}>
             {LEVELS.map((l) => (
               <Avatar key={l} level={l} size={28} decorative dim={!published.has(l)} />
             ))}
