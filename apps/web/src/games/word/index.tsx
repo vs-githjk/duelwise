@@ -14,7 +14,7 @@ import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { GuessInput } from './GuessInput'
 import { LetterTracker } from './LetterTracker'
-import { RoundCard, WordLedger } from './ledger'
+import { ResultScore, RoundCard, WordLedger } from './ledger'
 import { roundAnnouncement } from './announce'
 import { useWordMatch } from './useWordMatch'
 
@@ -71,6 +71,8 @@ export default function WordDuelPage() {
                 unratedReason={match.unratedReason}
                 reveal={
                   state.answer ? (
+                    <div className="grid gap-3">
+                    <ResultScore you={state.marks[0]} opponentName={personaFor(match.level).name} opponent={state.marks[1]} />
                     <div data-testid="word-answer" className="grid gap-1.5">
                       <span className="text-sm text-muted">The word was</span>
                       <span className="flex gap-1.5" role="img" aria-label={state.answer.toUpperCase()}>
@@ -80,6 +82,7 @@ export default function WordDuelPage() {
                           </span>
                         ))}
                       </span>
+                    </div>
                     </div>
                   ) : null
                 }
@@ -97,7 +100,6 @@ export default function WordDuelPage() {
       aside={
         match.phase === 'setup' || !state ? undefined : (
           <div className="grid gap-3">
-            <RoundCard you={state.marks[0]} opponentName={personaFor(match.level).name} opponent={state.marks[1]} maxGuesses={MAX_GUESSES} over={over} />
             <section className="grid gap-1 rounded-card border border-line bg-surface p-4" data-testid="agent-card">
               <b className="font-display text-display-sm">
                 {personaFor(match.level).name}, {LEVEL_LABEL[match.level]}
@@ -149,6 +151,7 @@ export default function WordDuelPage() {
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
           <PlayHud turn={over ? 'over' : 'you'} swatch="bg-token-you" matchKey={match.seed} />
+          <RoundCard you={state.marks[0]} opponentName={personaFor(match.level).name} opponent={state.marks[1]} maxGuesses={MAX_GUESSES} over={over} />
           <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="word-announce">
             {roundAnnouncement({ mine: state.guesses[0], myRows: state.marks[0], oppName: personaFor(match.level).name, oppRows: state.marks[1], max: MAX_GUESSES })}
           </p>
@@ -164,8 +167,8 @@ export default function WordDuelPage() {
           </div>
           {!over ? (
             <>
-              <LetterTracker words={state.guesses[0]} marks={state.marks[0]} />
               <GuessInput onSubmit={match.submit} disabled={match.thinking} onDraft={setDraft} />
+              <LetterTracker words={state.guesses[0]} marks={state.marks[0]} />
             </>
           ) : null}
           {match.failure ? (

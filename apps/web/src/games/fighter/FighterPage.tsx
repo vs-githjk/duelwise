@@ -85,7 +85,9 @@ function MoveKeys({ id, keys }: { id: number; keys: KeyMap }) {
 }
 
 /** The key map as a table; a click on a key waits for the next key press and rebinds the action to it. */
-function ControlsPanel({ keys, onChange, onClose }: { keys: KeyMap; onChange: (k: KeyMap) => void; onClose: () => void }) {
+const TOUCH_CONTROLS_LINE = 'On a phone, the left stick moves, jumps and crouches, and the right buttons attack.'
+
+function ControlsPanel({ keys, onChange, onClose, touch }: { keys: KeyMap; onChange: (k: KeyMap) => void; onClose: () => void; touch: boolean }) {
   const [listening, setListening] = useState<Action | null>(null)
   const box = useRef<HTMLElement>(null)
   useFocusTrap(box, true)
@@ -112,7 +114,7 @@ function ControlsPanel({ keys, onChange, onClose }: { keys: KeyMap; onChange: (k
   return (
     <section ref={box} className="grid w-full max-w-lg gap-4 rounded-card border border-line bg-surface p-6 shadow-card" aria-label="Controls" role="dialog">
       <h2 className="font-display text-display-md">Controls</h2>
-      <p className="text-sm text-muted">Keyboard only for now; gamepad comes later. Select a key to change it, then press the new key.</p>
+      <p className="text-sm text-muted">{touch ? `${TOUCH_CONTROLS_LINE} With a keyboard, select` : 'Keyboard only for now; gamepad comes later. Select'} a key to change it, then press the new key.</p>
       <ul className="grid gap-1.5">
         {ACTIONS.map((a) => (
           <li key={a} className="flex items-center justify-between gap-3 text-sm">
@@ -299,12 +301,12 @@ export default function FighterPage() {
             } />
           <div className="text-sm text-muted" data-testid="agent-card"><b data-testid="agent-name">{personaFor(picked).name}, {LEVEL_LABEL[picked]}</b><span data-testid="strength-line"> {strengthLine(registry, picked)} {practiceResult(registry, picked)} {limitsExplainer(delayMsFor(picked), apmCapFor(picked))}</span></div>
           <ul className="grid gap-1 text-sm text-muted">
-            <li>Keyboard only for now; gamepad comes later.</li>
+            <li>{touch ? TOUCH_CONTROLS_LINE : 'Keyboard only for now; gamepad comes later.'}</li>
             <li>{playTrainingBullet('fighter', registry)}</li>
           </ul>
           {panel === 'controls' ? (
             <div className="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4">
-              <ControlsPanel keys={match.keys} onChange={match.setKeys} onClose={() => setPanel(null)} />
+              <ControlsPanel keys={match.keys} onChange={match.setKeys} onClose={() => setPanel(null)} touch={touch} />
             </div>
           ) : null}
           {match.failure ? (
@@ -410,7 +412,7 @@ export default function FighterPage() {
             </div>
           ) : null}
           {match.paused && panel ? (
-            <div className={cn('fighter-ov', panel === 'moves' && 'fighter-ov-fit')}>{panel === 'controls' ? <ControlsPanel keys={match.keys} onChange={match.setKeys} onClose={() => setPanel(null)} /> : <MoveList keys={match.keys} onClose={() => setPanel(null)} />}</div>
+            <div className={cn('fighter-ov', panel === 'moves' && 'fighter-ov-fit')}>{panel === 'controls' ? <ControlsPanel keys={match.keys} onChange={match.setKeys} onClose={() => setPanel(null)} touch={touch} /> : <MoveList keys={match.keys} onClose={() => setPanel(null)} />}</div>
           ) : null}
           {over && result ? (
             <div className="fighter-ov">

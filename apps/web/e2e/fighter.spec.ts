@@ -29,6 +29,8 @@ interface Handle {
   frame: number
   lateReplies: number
   record: MatchRecordV1 | null
+  input?: number
+  x?: number
 }
 declare global {
   interface Window {

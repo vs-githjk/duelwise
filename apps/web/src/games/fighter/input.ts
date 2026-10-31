@@ -158,6 +158,13 @@ export class KeyboardInput {
     this.latched = BTN.NONE
   }
 
+  /** Releases the keyboard only. The window losing focus says nothing about a finger on the glass: a touch ends with its own pointer event. */
+  blurKeys(): void {
+    for (const code of this.held) if (!code.startsWith('touch:')) this.held.delete(code)
+    this.order = this.order.filter((a) => this.isHeld(a))
+    if (this.order.length === 0) this.latched = BTN.NONE
+  }
+
   private isHeld(a: Action): boolean {
     return this.held.has(`touch:${a}`) || this.map[a].some((c) => this.held.has(c))
   }
