@@ -205,4 +205,4 @@ export function settingsTrainingLine(regs: Regs): string {
 
 /** The home page subline. True for Practice levels: only some levels carry a measured strength, and it says so. */
 export const HERO_SUBLINE =
-  'Pick a game and a level. Levels with a measured strength show it; Practice levels are playable and have no strength number yet. Where a game learns from people, finished matches can help the next version.'
+  'Pick a game and a level. Levels with a measured strength show it; Levels in training are playable and have no strength number yet. Where a game learns from people, finished matches can help the next version.'

@@ -14,6 +14,7 @@ import { CallPicker } from './IdentityCard'
 import { PathCard } from './PathCard'
 import { LearnGraph } from './LearnGraph'
 import { PreviewBadge } from './PreviewBadge'
+import { ResignedNotice } from './ResignedNotice'
 
 const BLURB: Record<Level, string> = {
   easy: 'Relaxed play with human-like slips.',
@@ -62,6 +63,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   return (
     <div className={cn('grid gap-4', game && 'lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start')} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
+    {game ? <ResignedNotice game={game} /> : null}
     {game ? <PathCard game={game} state={state} practice={practice} /> : null}
     <fieldset className={cn('grid gap-2 lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
       <legend className="sr-only">Opponent level</legend>
@@ -118,7 +120,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
               </span>
             </span>
             <span className="grid justify-items-end gap-1 text-right font-mono text-xs text-muted tabular">
-              {practice ? <PreviewBadge label="Practice" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
+              {practice ? <PreviewBadge label="In training" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
               {info.strength}
             </span>
           </label>

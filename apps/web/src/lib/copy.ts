@@ -109,7 +109,7 @@ export function lastMatchesLabel(count: number): string {
  */
 export function provisionalNote(game: GameId | null | undefined): string {
   if (game && PRODUCT.games[game]?.kind === 'realtime') return 'provisional: this level is measured against test bots, not on the rating scale'
-  return 'provisional, the opponent is Practice'
+  return 'provisional, the opponent is in training'
 }
 
 /** "last match" or "last 5 matches", never "last 1 matches". */

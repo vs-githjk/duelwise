@@ -32,7 +32,7 @@ export function LevelTable({ levels, realtime }: { levels: LevelSummary[]; realt
                 </>
               ) : (
                 <td className="block py-1 text-muted sm:table-cell sm:py-2.5 sm:pr-3" colSpan={realtime ? 1 : 2} data-testid={`in-training-${l.level}`}>
-                  {l.practice ? <span className="font-semibold text-warn-ink">Practice</span> : <span className="font-semibold text-warn-ink">In training</span>}
+                  <span className="font-semibold text-warn-ink">In training</span>
                   <span className="block text-xs">{l.reason}</span>
                 </td>
               )}

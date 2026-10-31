@@ -396,7 +396,7 @@ export function ArenaHud({ view, names, settings, scale, showBoard }: HudProps) 
       <div className="ah-pill" data-testid="ai-pill">
         <b>{names.ai}</b>
         <span>{names.limits}</span>
-        {names.preview ? <em>Practice</em> : null}
+        {names.preview ? <em>In training</em> : null}
       </div>
       {view.alive ? (
         <div className="ah-xh">

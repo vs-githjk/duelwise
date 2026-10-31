@@ -21,6 +21,7 @@ import { Route as ApiFinishRouteImport } from './routes/api/finish'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiResignRouteImport } from './routes/api/resign'
 import { Route as DevViewRouteImport } from './routes/dev/$view'
+import { Route as LeaderboardIndexRouteImport } from './routes/leaderboard/index'
 import { Route as LeaderboardGameRouteImport } from './routes/leaderboard/$game'
 import { Route as PlayIndexRouteImport } from './routes/play/index'
 import { Route as PlayGameRouteImport } from './routes/play/$game'
@@ -89,6 +90,11 @@ const DevViewRoute = DevViewRouteImport.update({
   path: '/dev/$view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaderboardIndexRoute = LeaderboardIndexRouteImport.update({
+  id: '/leaderboard/',
+  path: '/leaderboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardGameRoute = LeaderboardGameRouteImport.update({
   id: '/leaderboard/$game',
   path: '/leaderboard/$game',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/leaderboard/': typeof LeaderboardIndexRoute
   '/play/': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/c/$game/$level': typeof CGameLevelRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/leaderboard': typeof LeaderboardIndexRoute
   '/play': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/c/$game/$level': typeof CGameLevelRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/leaderboard/': typeof LeaderboardIndexRoute
   '/play/': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/c/$game/$level': typeof CGameLevelRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/leaderboard/'
     | '/play/'
     | '/api/auth/$'
     | '/c/$game/$level'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/leaderboard'
     | '/play'
     | '/api/auth/$'
     | '/c/$game/$level'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/leaderboard/'
     | '/play/'
     | '/api/auth/$'
     | '/c/$game/$level'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   PlayGameRoute: typeof PlayGameRoute
   ReportCardIdRoute: typeof ReportCardIdRoute
   ReportIdRoute: typeof ReportIdRoute
+  LeaderboardIndexRoute: typeof LeaderboardIndexRoute
   PlayIndexRoute: typeof PlayIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   CGameLevelRoute: typeof CGameLevelRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leaderboard/': {
+      id: '/leaderboard/'
+      path: '/leaderboard'
+      fullPath: '/leaderboard/'
+      preLoaderRoute: typeof LeaderboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboard/$game': {
       id: '/leaderboard/$game'
       path: '/leaderboard/$game'
@@ -432,6 +452,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayGameRoute: PlayGameRoute,
   ReportCardIdRoute: ReportCardIdRoute,
   ReportIdRoute: ReportIdRoute,
+  LeaderboardIndexRoute: LeaderboardIndexRoute,
   PlayIndexRoute: PlayIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   CGameLevelRoute: CGameLevelRoute,

@@ -58,7 +58,7 @@ export default function WordDuelPage() {
       game="word"
       level={level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
       result={
         over && match.finished && state ? (

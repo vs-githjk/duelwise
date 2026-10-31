@@ -170,7 +170,7 @@ export function FighterHud({ view, names, callouts, keys, showKeys, scale }: { v
       <div className="fh-pill" data-testid="ai-pill">
         <b>{names.ai}</b>
         <span>{names.limits}</span>
-        {names.preview ? <em>Practice</em> : null}
+        {names.preview ? <em>In training</em> : null}
       </div>
       {banner ? (
         <div className="fh-banner" key={`${view.round}-${banner.text}`} data-testid="round-banner" aria-live="polite">

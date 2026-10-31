@@ -25,7 +25,7 @@ test('withholding a level keeps the model configuration available for Practice',
   expect(safe.levels.easy).toBeUndefined()
   expect(safe.measured.easy).toBeUndefined()
   expect(safe.unpublishedConfig?.easy).toEqual({})
-  expect(safe.unpublished?.easy).toContain('Practice')
+  expect(safe.unpublished?.easy).toContain('in training')
 })
 
 import { readFileSync } from 'node:fs'

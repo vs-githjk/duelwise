@@ -6,7 +6,7 @@ export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard', 'champion']
 
 export const LEVEL_LABEL: Record<Level, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', champion: 'Champion' }
 export function isPracticeReason(reason?: string): boolean {
-  return reason !== undefined && /no snapshot cleared|stays Practice|Wilson lower bound .* is below/i.test(reason)
+  return reason !== undefined && /no snapshot cleared|stays Practice|stays in training|Wilson lower bound .* is below/i.test(reason)
 }
 
 /**

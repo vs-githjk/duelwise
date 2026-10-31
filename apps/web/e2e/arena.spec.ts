@@ -263,7 +263,7 @@ test.describe('arena play page', () => {
     for (const l of ALL_LEVELS) {
       const row = picker.locator(`label[data-persona="${l}"]`)
       if (published.includes(l)) await expect(row.getByTestId('preview-badge')).toHaveCount(0)
-      else await expect(row.getByTestId('preview-badge')).toHaveText('Practice')
+      else await expect(row.getByTestId('preview-badge')).toHaveText('In training')
       await expect(picker.locator(`input[value="${l}"]`)).toBeEnabled()
     }
     await expect(page.getByTestId('none-playable')).toHaveCount(0)
@@ -272,7 +272,7 @@ test.describe('arena play page', () => {
     // KC3: the picker note is the Practice copy ("have not passed our strength test", may play weaker than Easy), and only while a Practice level is listed.
     if (ALL_LEVELS.every((l) => published.includes(l))) await expect(page.getByTestId('practice-note')).toHaveCount(0)
     else {
-      await expect(page.getByTestId('practice-note')).toContainText('Practice levels have not passed our strength test')
+      await expect(page.getByTestId('practice-note')).toContainText('Levels in training have not passed our strength test')
     }
   })
 
@@ -310,8 +310,8 @@ test.describe('arena play page', () => {
     await page.goto(`/play/${SLUG}?level=${practice}`)
     const picker = page.getByTestId('level-picker')
     await expect(picker.locator(`input[value="${practice}"]`)).toBeChecked()
-    await expect(picker.getByText('Practice', { exact: true }).first()).toBeVisible()
-    await expect(picker.locator(`label[data-persona="${practice}"]`).getByTestId('preview-badge')).toHaveText('Practice')
+    await expect(picker.getByText('In training', { exact: true }).first()).toBeVisible()
+    await expect(picker.locator(`label[data-persona="${practice}"]`).getByTestId('preview-badge')).toHaveText('In training')
     await expect(page.getByTestId('strength-line')).toContainText(strengthLine(null, practice!))
     await expect(page.getByTestId('agent-name')).not.toContainText('Duelwise')
     await expect(page.getByRole('button', { name: 'Start match' })).toBeEnabled()

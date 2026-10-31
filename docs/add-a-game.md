@@ -131,7 +131,7 @@ GameCore (rules)  ->  agent (one per level)  ->  harness plays levels against ea
 
 ## Publish levels honestly
 
-The rule: **a level shows a strength number only if it measurably beats the level below it, from both seats, over enough games.** Otherwise it still plays, labelled "Practice", with no number.
+The rule: **a level shows a strength number only if it measurably beats the level below it, from both seats, over enough games.** Otherwise it still plays, labelled "In training", with no number.
 
 Two checks enforce it:
 

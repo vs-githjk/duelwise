@@ -16,9 +16,9 @@ export { PRACTICE_COPY, agentVersionFor, isPublished }
 export function strengthLine(reg: Registry | null, level: Level): string {
   const m = reg?.measured[level]
   if (!reg?.levels[level] || !m) {
-    if (level === 'easy') return 'Practice: not yet measured. Easy reacts slower.'
-    if (level === 'medium') return 'Practice: not yet measured. Plays stronger than Easy.'
-    if (level === 'hard') return 'Practice: not yet measured. Plays at Hard difficulty.'
+    if (level === 'easy') return 'In training: not yet measured. Easy reacts slower.'
+    if (level === 'medium') return 'In training: not yet measured. Plays stronger than Easy.'
+    if (level === 'hard') return 'In training: not yet measured. Plays at Hard difficulty.'
     return PRACTICE_COPY
   }
   const atLeast = Math.max(0, Math.min(10, Math.floor(m.ci95[0] * 10 + 1e-9)))
@@ -26,7 +26,7 @@ export function strengthLine(reg: Registry | null, level: Level): string {
 }
 
 /** Shown under the level picker whenever a Practice level is listed: the ladder above Easy is not measured. */
-export const PRACTICE_PICKER_NOTE = 'Practice levels have not passed our strength test.'
+export const PRACTICE_PICKER_NOTE = 'Levels in training have not passed our strength test.'
 
 /** "1 headshot", "0 headshots". */
 export const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`

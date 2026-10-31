@@ -29,7 +29,7 @@ describe('fighter strength copy', () => {
   test('a level that is not published is a Practice level (R32): early version, no strength or Elo number', () => {
     expect(strengthLine(reg({}), 'champion')).toBe(PRACTICE_COPY)
     expect(strengthLine(null, 'hard')).toBe(PRACTICE_COPY)
-    expect(PRACTICE_COPY).toBe('Practice: an early version that has not passed our strength test yet.')
+    expect(PRACTICE_COPY).toBe('In training: an early version that has not passed our strength test yet.')
     expect(PRACTICE_COPY).not.toMatch(/\d|elo/i)
   })
 

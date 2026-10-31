@@ -59,7 +59,7 @@ export default function FourPage() {
       game="four"
       level={match.phase === 'setup' ? undefined : match.level}
       preview={showPracticeBadge(match.phase, match.preview, levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
       result={over && match.result ? (
             <>

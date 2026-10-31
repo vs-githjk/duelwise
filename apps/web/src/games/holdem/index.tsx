@@ -109,15 +109,10 @@ export default function HoldemPage() {
       game="holdem"
       level={match.phase === 'setup' ? undefined : match.level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
       result={over && match.result ? (
             <>
-              {match.leftAfter !== null ? (
-                <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-left-note">
-                  Unrated, you left after {match.leftAfter} {match.leftAfter === 1 ? 'hand' : 'hands'}
-                </p>
-              ) : null}
               {match.practice && match.buyIns > 0 ? (
                 <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-buyins">
                   You bought back in {match.buyIns} {match.buyIns === 1 ? 'time' : 'times'}
@@ -125,6 +120,7 @@ export default function HoldemPage() {
               ) : null}
               <ResultPanel
                 result={match.result}
+                leftAfter={match.leftAfter}
                 humanSeat={HUMAN}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}

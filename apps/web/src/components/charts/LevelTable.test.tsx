@@ -4,12 +4,13 @@ import { LevelTable } from './LevelTable'
 import { summariseRegistry } from '../../server/stats'
 import type { Registry } from '@duelwise/agents/src/registry'
 
-test('no Coldstore Practice level displays an In training label', () => {
+test('every unmeasured Coldstore level is labelled In training and keeps its own strength copy', () => {
   const registry = { game: 'arena', levels: {}, measured: {}, unpublished: {}, versions: [] } as unknown as Registry
   const levels = summariseRegistry(registry).levels
   const html = renderToStaticMarkup(<LevelTable levels={levels} realtime />)
   expect(levels.every((level) => level.practice)).toBe(true)
-  expect(html).not.toContain('In training')
+  expect(html).toContain('In training')
+  expect(html).not.toContain('Practice')
   expect(html).toContain('Easy reacts slower')
   expect(html).toContain('Plays stronger than Easy')
 })

@@ -217,7 +217,7 @@ describe('summariseRegistry', () => {
     expect(s.levels[0]!.plain).toContain('Beats our test bots in at least 4 of 10 games')
     expect(summariseRegistry(registry({ game: 'four' })).levels[0]).toMatchObject({ siteElo: 900 })
     expect(s.levels[2]!.reason).toBe('Hard has not yet proven it beats Medium.')
-    expect(s.levels[3]!.reason).toContain('Practice')
+    expect(s.levels[3]!.reason).toContain('In training')
     expect(s.publishedCount).toBe(2)
   })
 

@@ -34,6 +34,38 @@ export function beaconResign(matchId: string, tick: number, nav: Pick<Navigator,
   }
 }
 
+export const RESIGNED_KEY = 'duelwise.resigned-on-leave'
+
+/**
+ * The page is going away (reload, close, bfcache) with a counted match running: send the resignation and, only when the
+ * browser took it, leave a note for the next page load so the player is told why they are back on setup.
+ */
+export function resignOnPageLeave(game: string, matchId: string, tick: number, nav?: Pick<Navigator, 'sendBeacon'>, store: Pick<KeyValueStore, 'setItem'> | undefined = defaultStore()): boolean {
+  const sent = nav === undefined ? beaconResign(matchId, tick) : beaconResign(matchId, tick, nav)
+  if (!sent) return false
+  try {
+    store?.setItem(RESIGNED_KEY, JSON.stringify({ game, matchId }))
+  } catch {}
+  return true
+}
+
+/** Whether the last match of this game was resigned by a page leave and the player has not started another since. */
+export function readResignedOnLeave(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
+  try {
+    const raw = store?.getItem(RESIGNED_KEY)
+    return raw ? (JSON.parse(raw) as { game?: unknown }).game === game : false
+  } catch {
+    return false
+  }
+}
+
+/** Dropped when the next match starts. */
+export function clearResignedOnLeave(store: Pick<KeyValueStore, 'removeItem'> | undefined = defaultStore()): void {
+  try {
+    store?.removeItem(RESIGNED_KEY)
+  } catch {}
+}
+
 export const FINISH_URL = '/api/finish'
 const PENDING_PREFIX = 'duelwise.pending-finish.'
 

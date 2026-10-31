@@ -104,7 +104,7 @@ export default function ChessPage() {
       game="chess"
       level={setup ? undefined : match.level}
       preview={!setup && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
       result={over && match.result ? (
             <>

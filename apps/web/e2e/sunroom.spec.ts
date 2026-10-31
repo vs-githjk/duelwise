@@ -73,8 +73,8 @@ test.describe('adventure path (locks are on)', () => {
     expect(geo.dy).toBeLessThan(0.5)
     expect(geo.pad).toBeGreaterThanOrEqual(6)
     expect(geo.shadow).toContain('6px')
-    // The call defaults to the stop after the current one.
-    await expect(page.getByTestId('call-picker').locator('input[value="medium"]')).toBeChecked()
+    // No call is made for the player: nothing is checked until they tap one.
+    await expect(page.getByTestId('call-picker').locator('input:checked')).toHaveCount(0)
   })
 
   test('?any=1 opens every stop for testing and is never linked from the page', async ({ page }) => {
@@ -237,7 +237,7 @@ test.describe('board, learn graph and settings', () => {
     await expect(page.getByTestId('board-title')).toHaveText('Word Duel board, last 30 days')
     for (const level of ['easy', 'medium', 'hard', 'champion']) await expect(page.getByTestId(`board-col-${level}`)).toBeVisible()
     // Earlier specs in the same run may have left matches in the in-memory store, so the numbers are not fixed: an empty column says so, a full one lists rows.
-    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ players?$/)
+    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ played, [\d,]+ won$/)
     await expect(page.getByTestId('board-rows-easy').or(page.getByTestId('board-empty-easy'))).toBeVisible()
     if (await page.getByTestId('board-empty-easy').count()) await expect(page.getByTestId('board-empty-easy')).toHaveText('No wins at Easy yet. Be the first.')
     await expect(page.getByTestId('leaderboard-switcher').getByRole('link')).toHaveCount(6)

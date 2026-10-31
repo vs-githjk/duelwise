@@ -46,7 +46,7 @@ export function PathCard({ game, state, practice, className }: { game: GameId; s
               <b className={cn('text-sm', isCurrent ? 'text-ink' : 'font-semibold', locked && 'text-muted')}>{name}</b>
               <span className={cn('text-xs', isCurrent ? 'font-semibold text-action' : 'text-muted')}>
                 {cleared ? 'Cleared' : isCurrent ? 'You are here' : locked ? `Locked, beat ${prev}` : LEVEL_LABEL[level]}
-                {practice.has(level) && !locked ? ', Practice' : ''}
+                {practice.has(level) && !locked ? ', In training' : ''}
               </span>
             </li>
           )

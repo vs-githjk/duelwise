@@ -46,6 +46,8 @@ async function playFourToEnd(page: Page) {
 }
 
 test.describe('demo walk fixes', () => {
+  // The stats check reads the public numbers, which leave Test traffic out (server/public-traffic.ts), so this walk plays as an ordinary visitor: no test marker header.
+  test.use({ extraHTTPHeaders: { 'x-dw-test': '0' } })
   test('1. the level picker says it in plain words for each level', async ({ page }) => {
     const reg = registryOf('chess')
     await page.goto('/play/chess')
@@ -53,7 +55,7 @@ test.describe('demo walk fixes', () => {
     for (const level of LEVELS) {
       const row = picker.locator('label').filter({ has: page.locator(`input[value="${level}"]`) })
       await expect(row.locator('input')).toBeEnabled()
-      if (!reg?.levels?.[level] || !reg?.measured?.[level]) await expect(row).toContainText('Practice')
+      if (!reg?.levels?.[level] || !reg?.measured?.[level]) await expect(row).toContainText('In training')
     }
     const text = await picker.innerText()
     expect(text).not.toMatch(/in training/i)

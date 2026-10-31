@@ -1,9 +1,10 @@
-import { and, desc, eq, gte, isNull, or } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, or, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import { defaultTrainingAllowed, guestOptedOut } from './profile'
 import type { Caller } from './match-handlers'
+import { notTestUser } from './public-traffic'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -27,7 +28,7 @@ export async function getLeaderboard(db: Db, game: GameId, limit = 50): Promise<
     .innerJoin(schema.user, eq(schema.user.id, schema.rating.userId))
     .leftJoin(schema.profile, eq(schema.profile.userId, schema.rating.userId))
     // A player with no profile row has never touched the switch, so they are shown; a row says otherwise only when they turned it off.
-    .where(and(eq(schema.rating.game, game), gte(schema.rating.games, MIN_GAMES), or(isNull(schema.profile.userId), eq(schema.profile.showOnLeaderboard, true))))
+    .where(and(eq(schema.rating.game, game), gte(schema.rating.games, MIN_GAMES), notTestUser(sql`${schema.rating.userId}`), or(isNull(schema.profile.userId), eq(schema.profile.showOnLeaderboard, true))))
     .orderBy(desc(schema.rating.elo), desc(schema.rating.games), schema.user.name)
     .limit(limit)
   return rows.map((r, i) => ({ rank: i + 1, name: r.name.trim().split(/\s+/)[0] || 'Player', elo: r.elo, games: r.games }))
