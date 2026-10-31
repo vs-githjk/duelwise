@@ -62,31 +62,41 @@ export type ChunkVerdict = 'stale' | 'offline' | 'fine'
 /**
  * Tells a deleted asset from a bad connection by asking the network for the failing file. No connection or no answer is
  * "offline" (touch nothing). A 404 or an HTML page where a script should be is "stale". Anything else (the file is fine) is not ours.
- * With no URL in the error, the page's own entry script stands in; with none of those either, do nothing.
+ * With no URL in the error (Safari), the page's own module scripts stand in; with none of those either, do nothing.
  */
 export async function judgeChunkFailure(
   error: unknown,
-  o: { online?: boolean; doFetch?: typeof fetch; knownAsset?: () => string | null } = {},
+  o: { online?: boolean; doFetch?: typeof fetch; knownAssets?: () => string[] } = {},
 ): Promise<ChunkVerdict> {
   const online = o.online ?? (typeof navigator === 'undefined' ? true : navigator.onLine)
   if (!online) return 'offline'
-  const url = urlIn(error) ?? (o.knownAsset ?? entryScript)()
-  if (!url) return 'fine'
-  try {
-    const res = await (o.doFetch ?? fetch)(url, { cache: 'no-store' })
-    const type = res.headers.get('content-type') ?? ''
-    return res.status === 404 || type.includes('text/html') ? 'stale' : 'fine'
-  } catch {
-    return 'offline'
+  const named = urlIn(error)
+  const urls = named ? [named] : (o.knownAssets ?? pageModuleUrls)()
+  if (urls.length === 0) return 'fine'
+  const doFetch = o.doFetch ?? fetch
+  let stale = false
+  for (const url of urls) {
+    try {
+      const res = await doFetch(url, { cache: 'no-store' })
+      const type = res.headers.get('content-type') ?? ''
+      if (res.status === 404 || type.includes('text/html')) stale = true
+    } catch {
+      return 'offline'
+    }
   }
+  return stale ? 'stale' : 'fine'
 }
 
-function entryScript(): string | null {
+/** The page's own module scripts and preloads (at most 6): safari words a failed import without saying which file, so these stand in. */
+function pageModuleUrls(): string[] {
   try {
-    const el = typeof document === 'undefined' ? null : (document.querySelector('script[type="module"][src]') as HTMLScriptElement | null)
-    return el?.src || null
+    if (typeof document === 'undefined') return []
+    const found = [...document.querySelectorAll('script[type="module"][src], link[rel="modulepreload"][href]')]
+      .map((el) => (el as HTMLScriptElement).src || (el as HTMLLinkElement).href)
+      .filter(Boolean)
+    return [...new Set(found)].slice(0, 6)
   } catch {
-    return null
+    return []
   }
 }
 

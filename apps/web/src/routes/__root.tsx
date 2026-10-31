@@ -13,6 +13,7 @@ import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
 import { shareMeta } from '../lib/site-meta'
 import { installStaleChunkGuard } from '../lib/stale-chunk'
+import { CSS_GUARD_SCRIPT } from '../lib/css-guard'
 import { getViewer } from '../server/profile-fns'
 
 /** The last signed-in answer this browser tab got, so a page change with no connection keeps the header as it was. Browser only. */
@@ -41,6 +42,8 @@ export const Route = createRootRoute({
       { rel: 'preload', href: '/fonts/geist-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'preload', href: '/fonts/fraunces-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
     ],
+    // Production only: the dev server injects styles from script, so the check would misfire there.
+    scripts: import.meta.env.PROD ? [{ children: CSS_GUARD_SCRIPT }] : [],
   }),
   shellComponent: RootDocument,
   component: RootPage,

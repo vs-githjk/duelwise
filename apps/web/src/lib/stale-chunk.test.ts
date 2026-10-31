@@ -49,13 +49,21 @@ describe('judgeChunkFailure', () => {
   test('a file that is there is not ours to fix', async () => {
     expect(await judgeChunkFailure(GONE, { online: true, doFetch: reply(200, 'application/javascript') })).toBe('fine')
   })
+  test('with no URL every page module is checked: one gone is stale, one unreachable is offline', async () => {
+    const some = (async (u: string) => (u.endsWith('b.js') ? new Response('x', { status: 404 }) : new Response('x', { headers: { 'content-type': 'text/javascript' } }))) as unknown as typeof fetch
+    const err = new TypeError('Importing a module script failed.')
+    expect(await judgeChunkFailure(err, { online: true, doFetch: some, knownAssets: () => ['https://x/a.js', 'https://x/b.js'] })).toBe('stale')
+    expect(await judgeChunkFailure(err, { online: true, doFetch: some, knownAssets: () => ['https://x/a.js'] })).toBe('fine')
+    const flaky = (async (u: string) => { if (u.endsWith('b.js')) throw new TypeError('Failed to fetch'); return new Response('x', { status: 404 }) }) as unknown as typeof fetch
+    expect(await judgeChunkFailure(err, { online: true, doFetch: flaky, knownAssets: () => ['https://x/a.js', 'https://x/b.js'] })).toBe('offline')
+  })
   test('probes with no-store, and with no URL falls back to a known asset, or does nothing', async () => {
     const seen: Array<[string, RequestInit | undefined]> = []
     const spy = (async (u: string, init?: RequestInit) => { seen.push([u, init]); return new Response('x', { status: 404 }) }) as unknown as typeof fetch
-    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: spy, knownAsset: () => `${ORIGIN}/assets/index-1.js` })).toBe('stale')
+    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: spy, knownAssets: () => [`${ORIGIN}/assets/index-1.js`] })).toBe('stale')
     expect(seen[0]![0]).toBe(`${ORIGIN}/assets/index-1.js`)
     expect(seen[0]![1]?.cache).toBe('no-store')
-    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: never, knownAsset: () => null })).toBe('fine')
+    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: never, knownAssets: () => [] })).toBe('fine')
   })
 })
 

@@ -167,3 +167,37 @@ describe('the worker never mixes deploys on a page load', () => {
     expect(await (await w.navigate(req, true)).text()).toBe(OLD)
   })
 })
+
+describe('the install keeps only pages that match its own file list', () => {
+  const base = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8')
+  const page = (entry: string, css: string) => `<!doctype html><script type="module" src="${entry}"></script><link rel="stylesheet" href="${css}">`
+
+  async function runInstall(pages: Record<string, string>, extra: { cssType?: string } = {}) {
+    const required = ['/assets/index-NEW.js', '/assets/app-NEW.css']
+    const kept = new Map<string, Response>()
+    const caches = {
+      open: async (name: string) => ({ put: async (k: string, r: Response) => { if (name.includes('pages')) kept.set(k, r) }, match: async () => undefined }),
+    }
+    const net = async (u: string) => {
+      if (pages[u]) return new Response(pages[u], { headers: { 'content-type': 'text/html' } })
+      return new Response('x', { headers: { 'content-type': u.endsWith('.css') ? (extra.cssType ?? 'text/css') : 'text/javascript' } })
+    }
+    const source = base.replace('"__DUELWISE_PRECACHE__"', JSON.stringify({ version: 't', required, optional: [], pages: Object.keys(pages) }))
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, Set, indexedDB: {}, caches, fetch: net }
+    vm.createContext(sandbox)
+    vm.runInContext(source + '\nthis.install = install', sandbox)
+    const done = (sandbox.install as () => Promise<void>)().then(() => 'ok', (e: Error) => e.message)
+    return { result: await done, kept: [...kept.keys()] }
+  }
+
+  test('a page that names this version\'s files is kept; one from the previous deploy (an edge that is behind) is skipped', async () => {
+    const r = await runInstall({ '/play': page('/assets/index-NEW.js', '/assets/app-NEW.css'), '/play/chess': page('/assets/index-OLD.js', '/assets/app-OLD.css') })
+    expect(r.result).toBe('ok')
+    expect(r.kept).toEqual(['/play'])
+  })
+
+  test('a stylesheet answered as an HTML page fails the install instead of being kept as the file', async () => {
+    const r = await runInstall({}, { cssType: 'text/html; charset=utf-8' })
+    expect(r.result).toContain('is a page, not a file')
+  })
+})

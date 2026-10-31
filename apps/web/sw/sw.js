@@ -41,6 +41,19 @@ const OFFLINE_HTML =
 async function fetchIntoCache(cache, url, credentials) {
   const res = await fetch(url, { cache: 'reload', credentials: credentials || 'same-origin' })
   if (!res.ok) throw new Error(url + ' ' + res.status)
+  // A script or style answered with an HTML page (a not-found page that says 200) must never be kept as the file.
+  if (/\.(?:js|mjs|css)$/.test(url) && (res.headers.get('content-type') || '').includes('text/html')) throw new Error(url + ' is a page, not a file')
+  await cache.put(url, res)
+}
+
+/** Fetches a page for the install-time page cache, and keeps it only when every script and style it names is in THIS worker's list. */
+async function fetchPageIntoCache(cache, url) {
+  const res = await fetch(url, { cache: 'reload', credentials: 'omit' })
+  if (!res.ok) throw new Error(url + ' ' + res.status)
+  const mine = new Set(PRECACHE.required)
+  const named = assetUrlsIn(await res.clone().text())
+  // An edge that still answers with the previous deploy's page names files this worker never cached: skip it (the page is cached on first use instead).
+  if (named.length === 0 || named.some((u) => !mine.has(u))) throw new Error(url + ' names files that are not in this version')
   await cache.put(url, res)
 }
 
@@ -70,7 +83,7 @@ async function install() {
   if (missing.length) throw new Error('precache failed for ' + missing.length + ' required files: ' + missing[0].message)
   // Best effort from here: a failed model or page is cached on first use instead.
   // Without cookies: the pages kept at install must carry no player's name or email (the page loader puts the signed-in player in the HTML).
-  await pool(PRECACHE.pages, 3, (u) => fetchIntoCache(pages, u, 'omit'))
+  await pool(PRECACHE.pages, 3, (u) => fetchPageIntoCache(pages, u))
   await pool(PRECACHE.optional, 4, (u) => fetchIntoCache(statics, u))
 }
 

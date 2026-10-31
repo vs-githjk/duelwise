@@ -2,6 +2,9 @@
 @import "./tokens.css";
 @import "./play.css";
 
+/* Read by the inline check in lib/css-guard.ts to know this stylesheet applied. */
+:root { --dw-css: 1; }
+
 /* Self-hosted, OFL-licensed (docs/third-party/fonts.md). Latin only; swap keeps text visible while they load. */
 @font-face {
   font-family: "Geist";

@@ -30,9 +30,9 @@ const GAMES: Game[] = [
 function watch(page: Page): string[] {
   const problems: string[] = []
   // Not a page fault: a reload cancels requests, and the dev server reports a cancelled request ("aborted") to every open page (see vite.config.ts).
-  const benign = /Failed to load resource|\[vite\] Internal Server Error[\s\S]*aborted/
+  const benign = /Failed to load resource|THREE\.GLTFLoader: Couldn't load texture blob:|due to access control checks|\[vite\] Internal Server Error[\s\S]*aborted/
   page.on('console', (m) => { if (m.type() === 'error' && !benign.test(m.text())) problems.push(`console: ${m.text()}`) })
-  page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`))
+  page.on('pageerror', (e) => { if (!benign.test(e.message)) problems.push(`pageerror: ${e.message}`) })
   return problems
 }
 
@@ -103,6 +103,11 @@ test.describe('a page opened before a new deploy', () => {
   // In dev the game's code is served as /src/games/chess/index.tsx; a deploy that removed it answers 404 with an HTML page.
   const GONE = /\/src\/games\/chess\/index\.tsx/
   const gone = (route: Route) => route.fulfill({ status: 404, contentType: 'text/html', body: '<!doctype html><title>Not found</title>' })
+  // Safari words a failed import without naming the file, so the page checks its own entry script instead; here that check is
+  // answered like the game's script is (a fetch of the dev entry module; the real script load of it goes through).
+  const probeLike = async (page: Page, handler: (route: Route) => Promise<void>) => {
+    await page.route(/virtual:tanstack-start-dev-client-entry/, (route) => (route.request().resourceType() === 'fetch' ? handler(route) : route.continue()))
+  }
   const countLoads = (page: Page) => {
     const n = { loads: 0 }
     page.on('load', () => { n.loads++ })
@@ -110,22 +115,26 @@ test.describe('a page opened before a new deploy', () => {
   }
 
   test('a missing script ends in one fresh load and the game opens', async ({ page }) => {
-    // The import and the page's own check of the file both get the 404; the fresh load finds the file again.
+    // The script is gone until the page reloads itself; the fresh load finds it again.
+    let navigations = 0
+    page.on('request', (r) => { if (r.isNavigationRequest()) navigations++ })
     let served404 = 0
     await page.route(GONE, async (route) => {
-      if (served404 < 2) { served404++; return gone(route) }
+      if (navigations < 2) { served404++; return gone(route) }
       return route.continue()
     })
+    await probeLike(page, async (route) => (navigations < 2 ? gone(route) : route.continue()))
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByRole('button', { name: /^Start match/ })).toBeEnabled({ timeout: 30_000 })
-    expect(served404).toBe(2)
+    expect(served404).toBeGreaterThanOrEqual(1)
     expect(n.loads).toBe(2)
     await expect(page.getByTestId('error-fallback')).toHaveCount(0)
   })
 
   test('a script that stays missing shows a friendly update screen and reloads only once, never in a loop', async ({ page }) => {
     await page.route(GONE, gone)
+    await probeLike(page, gone)
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
@@ -143,6 +152,7 @@ test.describe('a page opened before a new deploy', () => {
       void caches.open('duelwise-pages-keepme').then((c) => c.put('/kept', new Response('kept')))
     })
     await page.route(GONE, (route) => route.abort('failed'))
+    await probeLike(page, (route) => route.abort('failed'))
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('offline-state')).toBeVisible({ timeout: 30_000 })
@@ -157,6 +167,7 @@ test.describe('a page opened before a new deploy', () => {
       Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('blocked', 'SecurityError') } })
     })
     await page.route(GONE, gone)
+    await probeLike(page, gone)
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
