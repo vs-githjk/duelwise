@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import type { Result } from '@duelwise/core/src/types'
-import { jobLine, lastMatchesLabel, promotionLine, provisionalNote, resultSentence } from './copy'
+import { handsLabel, jobLine, lastMatchesLabel, promotionLine, provisionalNote, resultSentence } from './copy'
 import { inTrainingCopy, levelInfoFromRegistry } from './level-info'
 import type { Registry } from '@duelwise/agents/src/registry'
 
@@ -87,4 +87,30 @@ test('round counts use the singular for one', () => {
   expect(resultSentence({ winner: 0, score: [3, 1], reason: 'rounds' }, 0, 'Tinderbox')).toBe('You won 3 rounds to 1.')
   expect(resultSentence({ winner: null, score: [1, 1], reason: 'draw' }, 0, 'Tinderbox')).toBe('A draw, 1 round each.')
   expect(resultSentence({ winner: null, score: [2, 2], reason: 'draw' }, 0, 'Tinderbox')).toBe('A draw, 2 rounds each.')
+})
+
+test('a bust names the seat that lost, from the player view, and the core reason text is untouched', () => {
+  const lost = 'the other player lost all 100 chips in hand 1'
+  expect(resultSentence(r(1, lost), 0, 'Pip')).toBe('You lost all 100 chips in hand 1.')
+  expect(resultSentence(r(0, lost), 0, 'Pip')).toBe('Pip lost all 100 chips in hand 1.')
+  expect(resultSentence(r(1, lost), 1, 'Pip')).toBe('Pip lost all 100 chips in hand 1.')
+  expect(resultSentence(r(1, lost), 0, 'Pip', true)).toBe('The player lost all 100 chips in hand 1.')
+  expect(resultSentence(r(0, lost), 0, 'Pip', true)).toBe('Pip lost all 100 chips in hand 1.')
+  expect(resultSentence(r(0, lost), 0, 'Pip')).not.toContain('other player')
+})
+
+test('hand and hands are pluralised in every chip sentence', () => {
+  expect(handsLabel(1)).toBe('1 hand')
+  expect(handsLabel(5)).toBe('5 hands')
+  expect(resultSentence(r(1, 'ahead by 100 chips after 1 hands'), 0, 'Pip')).toBe('Pip finished 100 chips ahead after 1 hand.')
+  expect(resultSentence(r(0, 'ahead by 1 chips after 1 hands'), 0, 'Pip')).toBe('You finished 1 chip ahead after 1 hand.')
+  expect(resultSentence(r(null, 'chips level after 1 hands'), 0, 'Pip')).toBe('Chips were level after 1 hand.')
+  expect(resultSentence(r(null, 'chips level after 10 hands'), 0, 'Pip')).toBe('Chips were level after 10 hands.')
+})
+
+test('a practice match with buy-backs says its chips count every stack', () => {
+  expect(resultSentence(r(1, 'ahead by 300 chips after 10 hands'), 0, 'Pip', false, 3)).toBe('Pip finished 300 chips ahead after 10 hands, counting all 4 stacks.')
+  expect(resultSentence(r(0, 'ahead by 4 chips after 10 hands'), 0, 'Pip', false, 1)).toBe('You finished 4 chips ahead after 10 hands, counting all 2 stacks.')
+  expect(resultSentence(r(null, 'chips level after 10 hands'), 0, 'Pip', false, 2)).toBe('Chips were level after 10 hands, counting all 3 stacks.')
+  expect(resultSentence(r(1, 'ahead by 300 chips after 10 hands'), 0, 'Pip')).toBe('Pip finished 300 chips ahead after 10 hands.')
 })

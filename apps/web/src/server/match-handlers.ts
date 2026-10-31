@@ -107,7 +107,7 @@ export function chosenOptions(flags: Record<string, unknown> | null): MatchOptio
 }
 
 function describeChoice(o: MatchOptions | undefined): string {
-  return `${o?.hands ?? 30} hands${o?.untilBust ? ' until a bust' : ''}`
+  return `${o?.hands ?? 30} ${(o?.hands ?? 30) === 1 ? 'hand' : 'hands'}${o?.untilBust ? ' until a bust' : ''}`
 }
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })

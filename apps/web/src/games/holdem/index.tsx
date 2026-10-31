@@ -77,10 +77,10 @@ export default function HoldemPage() {
     if (!over || !rec) return
     let dead = false
     luckOfMatchAsync({ seed: rec.seed, humanSeat: rec.humanSeat, options: rec.options, actions: rec.actions }, { cancelled: () => dead })
-      .then((l) => { if (!dead) setLuck(luckLine(l)) })
+      .then((l) => { if (!dead) setLuck(luckLine(l, match.practice ? match.buyIns : 0)) })
       .catch(() => {})
     return () => { dead = true }
-  }, [over, match.finished])
+  }, [over, match.finished, match.practice, match.buyIns])
   const opponent = nameOf(match.level)
   const turn: TableTurn = over || state?.over ? 'over' : match.reveal ? 'reveal' : match.canAct ? 'you' : 'ai'
   const status = over
@@ -121,6 +121,7 @@ export default function HoldemPage() {
               <ResultPanel
                 result={match.result}
                 leftAfter={match.leftAfter}
+                buyIns={match.practice ? match.buyIns : 0}
                 humanSeat={HUMAN}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
@@ -244,13 +245,13 @@ export default function HoldemPage() {
             </span>
           </p>
           {/* Tapping the table cuts a reading pause short, one stage per tap; the button is the keyboard and screen reader way. */}
-          <div onClick={match.reveal && !state.over ? match.skipReveal : undefined}>
+          <div onClick={match.reveal && !state.over && !match.buyBackOffer ? match.skipReveal : undefined}>
             <Table state={state} reveal={match.reveal} level={match.level} turn={turn} />
           </div>
           <p className="text-center text-sm font-semibold text-muted" role="status" aria-live="polite" data-testid="holdem-status">
             {status}
           </p>
-          {match.reveal && !state.over ? (
+          {match.reveal && !state.over && !match.buyBackOffer ? (
             <button type="button" onClick={match.skipReveal} className="min-h-11 justify-self-center rounded-control border border-line bg-surface px-4 text-sm font-semibold" data-testid="holdem-skip">
               Skip
             </button>

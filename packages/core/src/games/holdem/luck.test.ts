@@ -20,7 +20,7 @@ type Play = [seat: 0 | 1, a: HoldemAction]
 
 function run(opts: { hands?: number; deck: number[] }, plays: Play[], seed = 1): [LuckInput, { deck: number[] }] {
   let s = holdemCore.init(seed, { hands: opts.hands, deck: opts.deck } as never)
-  const actions: LuckInput['actions'] = []
+  const actions: Array<[number, number, number]> = []
   plays.forEach(([seat, a], i) => {
     s = holdemCore.step(s, seat === 0 ? [a, null] : [null, a])
     actions.push([i, seat, holdemCore.encodeAction(a)])
@@ -150,5 +150,37 @@ describe('luckOfMatchAsync', () => {
     expect(await luckOfMatchAsync(input, { deck: hooks.deck, tick: async () => {}, cancelled: () => true })).toBeNull()
     const [none, h2] = run({ hands: 5, deck }, [[0, { type: 'fold' }]])
     expect(await luckOfMatchAsync(none, { deck: h2.deck, tick: async () => {} })).toBeNull()
+  })
+})
+
+describe('practice buy-backs', () => {
+  const mk = (actual: number, adjusted: number) => ({ actual, adjusted, luck: actual - adjusted, allIns: 3 })
+  /** The human shoves every hand and the opponent calls: busts and wins come as the cards fall, and every bust is followed by a fresh stack. */
+  function shoveEveryHand(hands: number, seed: number): LuckInput & { net: number } {
+    let s = holdemCore.init(seed, { hands })
+    const actions: Array<[number, number, number]> = []
+    let t = 0
+    while (!holdemCore.terminal(s)) {
+      const seat = s.actor
+      const a: HoldemAction = seat === 0 ? { type: 'raise', to: 100 } : { type: 'call' }
+      const fallback: HoldemAction = { type: 'call' }
+      let used = a
+      try { s = holdemCore.step(s, seat === 0 ? [a, null] : [null, a]) } catch { used = fallback; s = holdemCore.step(s, seat === 0 ? [fallback, null] : [null, fallback]) }
+      actions.push([t++, seat, holdemCore.encodeAction(used)])
+    }
+    return { seed, humanSeat: 0, options: { hands }, actions, net: s.net[0] }
+  }
+  test('the luck figures count the chips over every stack, not only the last one', () => {
+    const rec = shoveEveryHand(6, 5)
+    const l = luckOfMatch(rec)!
+    expect(l.actual).toBe(rec.net)
+    // Six hands of 100-chip all-ins: one stack could only ever swing by 100, the match swings by more.
+    expect(Math.abs(rec.net)).toBeGreaterThan(100)
+    expect(luckLine(l, 3)).toContain(`${Math.abs(Math.round(l.actual))} chips, counting all 4 stacks.`)
+  })
+  test('the line names the stacks only when there was a buy-back', () => {
+    expect(luckLine(mk(-300, -150), 0)).toBe("You lost 300 chips. With average luck on your all-ins, you'd have lost about 150. You ran unlucky.")
+    expect(luckLine(mk(-300, -150), 2)).toBe("You lost 300 chips, counting all 3 stacks. With average luck on your all-ins, you'd have lost about 150. You ran unlucky.")
+    expect(luckLine(mk(0, 40), 1)).toContain('The match ended level, counting all 2 stacks.')
   })
 })
