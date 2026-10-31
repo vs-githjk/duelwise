@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, gte, notInArray, sql } from 'drizzle-orm'
 import { competitive } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
@@ -87,6 +87,15 @@ export function trainingEligible(m: { filterFlags: unknown; trainingAllowed: boo
   if (!m.trainingAllowed) return false
   const f = m.filterFlags
   return !(isObj(f) && Object.keys(f).some((k) => !INTERNAL_FLAGS.has(k) && f[k] === true))
+}
+
+/** Finished matches since the champion was promoted, and how many of those a training run could use. Test traffic never counts. */
+export async function sinceChampion(db: Db, game: GameId, since: Date): Promise<{ count: number; eligible: number }> {
+  const rows = await db
+    .select({ filterFlags: schema.match.filterFlags, trainingAllowed: schema.match.trainingAllowed })
+    .from(schema.match)
+    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, gt(schema.match.finishedAt, since), notTestMatch()))
+  return { count: rows.length, eligible: rows.filter(trainingEligible).length }
 }
 
 export async function getGameStats(db: Db, game: GameId, now: Date = new Date(), weeks: number = WEEK_COUNT, learns: boolean = true): Promise<GameStats> {
