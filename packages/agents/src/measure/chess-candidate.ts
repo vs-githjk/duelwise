@@ -1,5 +1,5 @@
 // The learn-from-humans gate for a candidate chess Hard (Vesper) policy net, e.g. the b2200 tier. It never reads or writes the registry.
-//   bun /abs/chess-candidate.ts --candidate /abs/policy-b2200.onnx --vs hard|medium|twoply [--games-per-seat 400] [--processes 2] [--seed-base 9000000]
+//   bun /abs/chess-candidate.ts --candidate /abs/policy-b2200.onnx --vs hard|medium|twoply [--games-per-seat 400] [--seed-base 9000000]   (always 2 worker processes)
 // The candidate plays with the shipped Hard settings (CHESS_LEVELS.hard) and the shipped value net; only its policy file differs.
 //   --vs hard    against the Hard that is live: each seat needs a 95 percent Wilson lower bound above 0.5 over 400 games per seat
 //   --vs medium  against Medium: the same rule (Hard must stay clearly above Medium)
@@ -80,11 +80,11 @@ if (import.meta.main) {
   const candidate = flag('--candidate')
   const vs = flag('--vs')
   if (!candidate || !candidate.startsWith('/') || (vs !== 'hard' && vs !== 'medium' && vs !== 'twoply')) {
-    console.error('usage: chess-candidate.ts --candidate <abs onnx> --vs hard|medium|twoply [--games-per-seat 400] [--processes 2] [--seed-base 9000000]')
+    console.error('usage: chess-candidate.ts --candidate <abs onnx> --vs hard|medium|twoply [--games-per-seat 400] [--seed-base 9000000]')
     process.exit(2)
   }
   const out = await playCandidate({
-    candidate, vs, gamesPerSeat: Number(flag('--games-per-seat') ?? CHESS_GAMES_PER_SEAT), processes: Math.min(2, Number(flag('--processes') ?? 2)),
+    candidate, vs, gamesPerSeat: Number(flag('--games-per-seat') ?? CHESS_GAMES_PER_SEAT), processes: 2, // exactly 2: the games run in child processes (a single process would import this entry module from itself and wait on it forever), and the ladder budget allows at most 2
     seedBase: Number(flag('--seed-base') ?? 9_000_000),
   })
   console.log(JSON.stringify(out))
