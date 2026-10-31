@@ -300,10 +300,11 @@ export default function ArenaPage() {
             levels={Object.fromEntries(LEVELS.map((l) => [l, { preview: !published(l), practice: !published(l), strength: published(l) ? 'Strength tested' : undefined }]))}
             descriptions={Object.fromEntries(LEVELS.map((l) => [l, limitsText(l)]))}
             action={
-            <div className="flex flex-wrap gap-2">
-            <button type="button" className={btnPrimary} onClick={() => gate.requestStart(() => void begin())}>
+            <>
+            <button type="button" className={cn(btnPrimary, 'start-match')} onClick={() => gate.requestStart(() => void begin())}>
               Start match vs {personaFor(picked).name}
             </button>
+            <div className="flex flex-wrap gap-2">
             <button type="button" className={btnPlain} onClick={() => setPanel('settings')}>
               Sensitivity and crosshair
             </button>
@@ -311,6 +312,7 @@ export default function ArenaPage() {
               Controls
             </button>
             </div>
+            </>
             } />
           {LEVELS.some((l) => !published(l)) ? (
             <p className="text-sm text-muted" data-testid="practice-note">
