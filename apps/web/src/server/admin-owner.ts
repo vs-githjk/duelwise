@@ -4,6 +4,7 @@ import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
+import { isPractice } from './competitive'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
 import { addTo, classCte, emptySplit, MATCH_CLS, MATCH_PID, type Split } from './traffic-sql'
@@ -72,6 +73,8 @@ export interface FeedRow {
   level: Level
   result: MatchView
   at: string
+  /** Played in Practice mode (picked on the setup screen): played and recorded, but unrated. Not the same as a Practice level. */
+  practiceMode: boolean
 }
 export interface PersonRow {
   ref: string
@@ -103,6 +106,8 @@ export interface HistoryRow {
   /** Counts toward the board: a finished match with a replayed record on a ranked (not Practice) level. */
   counted: boolean
   practice: boolean
+  /** Played in Practice mode (picked on the setup screen): played and recorded, but unrated and never a path clear. Not the same as `practice`, which is a Practice level. */
+  practiceMode: boolean
   /** Null while the match has not been checked (still running or waiting for its check). */
   valid: boolean | null
   invalidReason: string | null
@@ -216,6 +221,7 @@ export async function adminOverviewHandler(
         record: schema.match.record,
         finishedAt: schema.match.finishedAt,
         traffic: schema.match.traffic,
+        flags: schema.match.filterFlags,
       })
       .from(schema.match)
       .where(and(eq(schema.match.status, 'finished'), isNotNull(schema.match.finishedAt)))
@@ -245,7 +251,7 @@ export async function adminOverviewHandler(
     const id = r.userId ?? r.guestId
     if (!id) continue
     const label = labels.get(`${r.userId ? 'u' : 'g'}:${id}`)
-    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: r.traffic ?? (headless.has(r.id) ? 'test' : (classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human')), game: r.game, level: r.level, result, at: r.finishedAt.toISOString() })
+    feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: r.traffic ?? (headless.has(r.id) ? 'test' : (classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human')), game: r.game, level: r.level, result, at: r.finishedAt.toISOString(), practiceMode: isPractice(r.flags) })
   }
   const body: AdminOverview = {
     generatedAt: now.toISOString(),
@@ -448,6 +454,7 @@ export async function adminPlayerHandler(
         record: schema.match.record,
         recordValid: schema.match.recordValid,
         invalidReason: schema.match.invalidReason,
+        flags: schema.match.filterFlags,
         startedAt: schema.match.startedAt,
         finishedAt: schema.match.finishedAt,
       })
@@ -464,20 +471,22 @@ export async function adminPlayerHandler(
   for (const r of rows) {
     if (!isGame(r.game) || !isLevel(r.level)) continue
     const practice = practiceLevels(r.game).has(r.level)
+    const practiceMode = isPractice(r.flags)
     const view = r.status === 'finished' ? viewOf(r.result, r.record) : null
     const result: HistoryResult =
       r.status === 'finished' ? (view ?? 'unknown') : r.status === 'resigned' ? 'resigned' : r.status === 'started' || r.status === 'ticket' ? 'in progress' : 'abandoned'
     const valid = r.status === 'finished' ? r.recordValid : r.status === 'resigned' || r.status === 'abandoned' || r.status === 'expired' ? false : null
     // The same rule as the player's own path: a valid finished win clears the stop, Practice levels included.
-    if (r.status === 'finished' && r.recordValid === true && view === 'won') cleared.get(r.game)![r.level] = true
+    if (r.status === 'finished' && r.recordValid === true && view === 'won' && !practiceMode) cleared.get(r.game)![r.level] = true
     matches.push({
       matchId: r.id,
       game: r.game,
       level: r.level,
       result,
       at: (r.finishedAt ?? r.startedAt).toISOString(),
-      counted: r.status === 'finished' && r.recordValid === true && !practice,
+      counted: r.status === 'finished' && r.recordValid === true && !practice && !practiceMode,
       practice,
+      practiceMode,
       valid,
       invalidReason: r.invalidReason ?? (r.status === 'finished' && r.recordValid === false ? 'record did not replay' : null),
     })

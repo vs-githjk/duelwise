@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
-import { notLeft } from './competitive'
+import { competitive } from './competitive'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
@@ -79,7 +79,7 @@ async function vsRecord(db: Db, row: typeof schema.match.$inferSelect): Promise<
   const rows = await db
     .select({ status: schema.match.status, result: schema.match.result, record: schema.match.record, recordValid: schema.match.recordValid })
     .from(schema.match)
-    .where(and(mine, eq(schema.match.game, row.game), eq(schema.match.level, row.level), inArray(schema.match.status, ['finished', 'resigned', 'abandoned']), notLeft))
+    .where(and(mine, eq(schema.match.game, row.game), eq(schema.match.level, row.level), inArray(schema.match.status, ['finished', 'resigned', 'abandoned']), competitive))
     .orderBy(desc(schema.match.finishedAt), desc(schema.match.startedAt))
     .limit(RECORD_WINDOW)
   const out: VsRecord = { wins: 0, losses: 0, draws: 0, recent: [] }
