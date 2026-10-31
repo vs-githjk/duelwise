@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { PRODUCT } from '@duelwise/core/src/product'
 import { authClient } from '../lib/auth-client'
 import { DEV_PASSWORD, devEmail } from '../lib/dev-login'
+import { isInAppBrowser } from '../lib/in-app-browser'
 import { LEVELS } from '../lib/level-info'
 import { Avatar } from '../personas/Avatar'
 import { getAuthConfig } from '../server/profile-fns'
@@ -33,6 +34,8 @@ function Page() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const none = !cfg.google && !cfg.github && !cfg.dev
+  const [inApp, setInApp] = useState(false)
+  useEffect(() => setInApp(isInAppBrowser(navigator.userAgent)), [])
 
   async function devSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -62,6 +65,11 @@ function Page() {
       </div>
       <p className="text-muted">Sign in to get a rating and keep your name on every device. Playing never needs it.</p>
       <div className="grid gap-3 rounded-card border border-line bg-surface p-5 text-left shadow-card" data-testid="signin-card">
+      {inApp ? (
+        <p className="rounded-control bg-surface-2 p-3 text-sm" data-testid="signin-in-app">
+          Google sign-in does not work inside this app. Open duelwise.app in Safari or Chrome to sign in. You can keep playing here without it.
+        </p>
+      ) : null}
       {cfg.google ? (
         <button type="button" className={button} onClick={() => void authClient.signIn.social({ provider: 'google', callbackURL: '/play' })}>
           <GoogleG />

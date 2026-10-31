@@ -78,7 +78,10 @@ test.describe('coldstore touch play', () => {
     const mb = (await menu.boundingBox())!
     const fire = (await page.getByTestId('arena-touch-controls').getByRole('button', { name: 'fire' }).boundingBox())!
     expect(mb.y + mb.height).toBeLessThanOrEqual(fire.y + 1)
-    const money = () => page.getByTestId('buy-money').textContent()
+    // Every item is on screen without scrolling the menu.
+    const armor = (await page.getByTestId('buy-armor').boundingBox())!
+    expect(armor.y + armor.height).toBeLessThanOrEqual(mb.y + mb.height + 1)
+    const money =() => page.getByTestId('buy-money').textContent()
     expect(await money()).toBe('$800')
     await page.getByTestId('buy-armor').tap()
     await expect.poll(money).not.toBe('$800')

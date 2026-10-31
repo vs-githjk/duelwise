@@ -40,6 +40,12 @@ html:has(.touch-play-stage) { overflow: hidden; overscroll-behavior: none }
 .touch-play-stage .ab-item .bars { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 6px }
 .touch-play-stage .ab-item .bars div { font-size: 9px; letter-spacing: 0; overflow: hidden }
 @media (orientation: portrait) { .touch-play-stage .ab-menu { width: min(320px, 70%); max-height: 45% } }
+/* A landscape phone has room for the three items and no more, so the stat bars and notes give way. */
+@media (orientation: landscape) and (max-height: 430px) {
+  .touch-play-stage .ab-item .bars, .touch-play-stage .ab-item .why, .touch-play-stage .ab-item .nm small, .touch-play-stage .ab-menu .note { display: none }
+  .touch-play-stage .ab-menu { padding: 6px; gap: 3px }
+  .touch-play-stage .ab-item { padding: 3px 8px; min-height: 30px; align-items: center }
+}
 /* Keep the HUD clear of the thumb zones: gauges go under the health bars, vitals and ammo sit between stick and buttons. */
 .touch-play-stage .fh-gauge { bottom: auto; top: 110px; width: 300px }
 .touch-play-stage .fh-gauge .seg6 i { width: 44px }
