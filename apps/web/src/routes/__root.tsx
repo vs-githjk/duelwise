@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { PRODUCT } from '@duelwise/core/src/product'
 import appCss from '../styles/app.css?url'
@@ -8,9 +8,12 @@ import { NotFound } from '../components/NotFound'
 import { UploadQueue } from '../components/UploadQueue'
 import { OfflineChip } from '../components/OfflineChip'
 import { ServiceWorker } from '../components/ServiceWorker'
+import { UpdateNotice } from '../components/UpdateNotice'
 import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
 import { shareMeta } from '../lib/site-meta'
+import { installStaleChunkGuard } from '../lib/stale-chunk'
+import { CSS_GUARD_SCRIPT } from '../lib/css-guard'
 import { getViewer } from '../server/profile-fns'
 
 /** The last signed-in answer this browser tab got, so a page change with no connection keeps the header as it was. Browser only. */
@@ -39,19 +42,28 @@ export const Route = createRootRoute({
       { rel: 'preload', href: '/fonts/geist-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'preload', href: '/fonts/fraunces-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
     ],
+    // Production only: the dev server injects styles from script, so the check would misfire there.
+    scripts: import.meta.env.PROD ? [{ children: CSS_GUARD_SCRIPT }] : [],
   }),
   shellComponent: RootDocument,
-  component: () => (
+  component: RootPage,
+  notFoundComponent: NotFound,
+})
+
+function RootPage() {
+  // After a new deploy an open tab can ask for a script that is gone; one fresh load fixes it (guarded, see lib/stale-chunk.ts).
+  useEffect(() => installStaleChunkGuard(), [])
+  return (
     <ErrorBoundary>
       <UploadQueue />
       <ServiceWorker />
+      <UpdateNotice />
       <OfflineChip />
       <VoiceArm />
       <Outlet />
     </ErrorBoundary>
-  ),
-  notFoundComponent: NotFound,
-})
+  )
+}
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
@@ -84,7 +96,9 @@ function RootDocument({ children }: { children: ReactNode }) {
                   Settings
                 </Link>
               </nav>
-              <UserMenu />
+              <ErrorBoundary fallback={() => null}>
+                <UserMenu />
+              </ErrorBoundary>
             </div>
           </header>
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-content flex-1 px-4 pb-16 outline-none md:px-10">{children}</main>

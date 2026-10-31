@@ -49,9 +49,10 @@ async function tickets(page: Page, game: string, level: string): Promise<number>
 
 async function boardCount(page: Page): Promise<number> {
   await page.goto('/')
-  const live = page.getByTestId('hero-counter-live')
-  await expect(live).toHaveText(/^[\d,]+ (match|matches) played/)
-  return Number(/^([\d,]+)/.exec((await live.textContent()) ?? '')![1]!.replaceAll(',', ''))
+  // The landing strip shows this week's human wins and agent wins or draws (or "Opening week" before the first match); their sum is the matches counted.
+  await expect(page.getByTestId('landing-strip')).toBeVisible()
+  const texts = await page.getByTestId('strip-count').allTextContents()
+  return texts.reduce((sum, t) => sum + (Number(t.replaceAll(',', '')) || 0), 0)
 }
 
 test('installs, plays Four in a Row offline on a ticket, and the match counts once back online', async ({ page, context }) => {

@@ -106,6 +106,12 @@ describe('the worker routes requests', () => {
     for (const p of ['/assets/index-abc.js', '/agents/four/v1/easy.onnx', '/fonts/geist-latin.woff2', '/_resvg/index_bg.wasm', '/personas/pip.svg', '/manifest.webmanifest']) expect(route(p)).toBe('static')
   })
 
+  test('the page\'s own probe of a file goes to the network, never to the cache', () => {
+    expect(route('/assets/index-abc.js')).toBe('static')
+    expect(route('/assets/index-abc.js?dw-probe=1')).toBe('pass')
+    expect(route('/sw.js?dw-probe=1')).toBe('pass')
+  })
+
   test('server calls, uploads, other methods and other origins are left alone', () => {
     expect(route('/_serverFn/abc')).toBe('pass')
     expect(route('/api/finish', 'POST')).toBe('pass')
@@ -113,5 +119,127 @@ describe('the worker routes requests', () => {
     expect(route('/assets/x.js', 'POST')).toBe('pass')
     expect(route('/assets/x.js', 'GET', 'cors', 'https://cdn.example')).toBe('pass')
     expect(route('/sw.js')).toBe('pass')
+  })
+})
+
+describe('the worker never mixes deploys on a page load', () => {
+  const template = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8').replace('"__DUELWISE_PRECACHE__"', '{"version":"t","required":[],"optional":[],"pages":[]}').replace('const NAV_TIMEOUT_MS = 4000', 'const NAV_TIMEOUT_MS = 30')
+  const htmlOf = (entry: string) => `<!doctype html><link rel="modulepreload" href="${entry}"><script type="module" src="${entry}"></script><link rel="stylesheet" href="/assets/app-aaa.css">`
+  const OLD = htmlOf('/assets/index-OLD.js')
+  const NEW = htmlOf('/assets/index-NEW.js')
+
+  /** A worker scope with fake caches. `network` is what fetch does for the page. */
+  function load(opts: { pages: Record<string, string>; statics: string[]; network: () => Promise<Response> }) {
+    const store = (map: Map<string, Response>) => ({
+      match: async (key: string | Request) => map.get(typeof key === 'string' ? key : new URL(key.url).pathname)?.clone(),
+      put: async (key: string | Request, res: Response) => void map.set(typeof key === 'string' ? key : new URL(key.url).pathname, res),
+    })
+    const pagesMap = new Map(Object.entries(opts.pages).map(([k, v]) => [k, new Response(v, { headers: { 'content-type': 'text/html' } })]))
+    const staticMap = new Map(opts.statics.map((k) => [k, new Response('x')]))
+    const sandbox: Record<string, unknown> = {
+      self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, indexedDB: {}, setTimeout, clearTimeout,
+      caches: { open: async (name: string) => store(name.includes('pages') ? pagesMap : staticMap) },
+      fetch: opts.network,
+    }
+    vm.createContext(sandbox)
+    vm.runInContext(template + '\nthis.navigate = navigate; this.assetUrlsIn = assetUrlsIn', sandbox)
+    return sandbox as { navigate: (r: Request | { url: string }, keep: boolean) => Promise<Response>; assetUrlsIn: (h: string) => string[] }
+  }
+  const req = { url: 'https://duelwise.test/play/chess' }
+
+  test('lists the scripts and styles a page names', () => {
+    const w = load({ pages: {}, statics: [], network: async () => new Response('') })
+    expect(w.assetUrlsIn(NEW).sort()).toEqual(['/assets/app-aaa.css', '/assets/index-NEW.js'])
+    expect(w.assetUrlsIn('<p>no files</p>')).toEqual([])
+  })
+
+  test('a slow network with a saved copy from THIS deploy serves the copy', async () => {
+    const w = load({ pages: { '/play/chess': OLD }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: () => new Promise(() => {}) })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+
+  test('a slow network with a saved copy from ANOTHER deploy waits for the real page instead of serving the stale one', async () => {
+    const w = load({ pages: { '/play/chess': NEW }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: () => new Promise((r) => setTimeout(() => r(new Response(OLD)), 80)) })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+
+  test('offline with a stale copy shows the calm offline page, never a page whose files are missing', async () => {
+    const w = load({ pages: { '/play/chess': NEW }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: async () => { throw new TypeError('Failed to fetch') } })
+    expect(await (await w.navigate(req, true)).text()).toContain('You are offline')
+  })
+
+  test('offline with a usable copy still opens the game', async () => {
+    const w = load({ pages: { '/play/chess': OLD }, statics: ['/assets/index-OLD.js', '/assets/app-aaa.css'], network: async () => { throw new TypeError('Failed to fetch') } })
+    expect(await (await w.navigate(req, true)).text()).toBe(OLD)
+  })
+})
+
+describe('the install keeps only pages that match its own file list', () => {
+  const base = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8')
+  const page = (entry: string, css: string) => `<!doctype html><script type="module" src="${entry}"></script><link rel="stylesheet" href="${css}">`
+
+  async function runInstall(pages: Record<string, string>, extra: { cssType?: string } = {}) {
+    const required = ['/assets/index-NEW.js', '/assets/app-NEW.css']
+    const kept = new Map<string, Response>()
+    const caches = {
+      open: async (name: string) => ({ put: async (k: string, r: Response) => { if (name.includes('pages')) kept.set(k, r) }, match: async () => undefined }),
+    }
+    const net = async (u: string) => {
+      if (pages[u]) return new Response(pages[u], { headers: { 'content-type': 'text/html' } })
+      return new Response('x', { headers: { 'content-type': u.endsWith('.css') ? (extra.cssType ?? 'text/css') : 'text/javascript' } })
+    }
+    const source = base.replace('"__DUELWISE_PRECACHE__"', JSON.stringify({ version: 't', required, optional: [], pages: Object.keys(pages) }))
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, Set, indexedDB: {}, caches, fetch: net }
+    vm.createContext(sandbox)
+    vm.runInContext(source + '\nthis.install = install', sandbox)
+    const done = (sandbox.install as () => Promise<void>)().then(() => 'ok', (e: Error) => e.message)
+    return { result: await done, kept: [...kept.keys()] }
+  }
+
+  test('a page that names this version\'s files is kept; one from the previous deploy (an edge that is behind) is skipped', async () => {
+    const r = await runInstall({ '/play': page('/assets/index-NEW.js', '/assets/app-NEW.css'), '/play/chess': page('/assets/index-OLD.js', '/assets/app-OLD.css') })
+    expect(r.result).toBe('ok')
+    expect(r.kept).toEqual(['/play'])
+  })
+
+  test('a stylesheet answered as an HTML page fails the install instead of being kept as the file', async () => {
+    const r = await runInstall({}, { cssType: 'text/html; charset=utf-8' })
+    expect(r.result).toContain('is a page, not a file')
+  })
+})
+
+describe('the static cache never serves a page as a file', () => {
+  const base = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8').replace('"__DUELWISE_PRECACHE__"', '{"version":"t","required":[],"optional":[],"pages":[]}')
+  function load(cached: Response | undefined, net: Response) {
+    const map = new Map<string, Response>()
+    if (cached) map.set('/assets/app-X.css', cached)
+    const written: string[] = []
+    const statics = {
+      match: async (r: { url: string }) => map.get(new URL(r.url).pathname)?.clone(),
+      put: async (r: { url: string }, res: Response) => { written.push(new URL(r.url).pathname); map.set(new URL(r.url).pathname, res) },
+      delete: async (r: { url: string }) => map.delete(new URL(r.url).pathname),
+    }
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, indexedDB: {}, caches: { open: async () => statics }, fetch: async () => net.clone() }
+    vm.createContext(sandbox)
+    vm.runInContext(base + '\nthis.staticFirst = staticFirst', sandbox)
+    return { run: () => (sandbox.staticFirst as (r: { url: string }) => Promise<Response>)({ url: 'https://duelwise.test/assets/app-X.css' }), map, written }
+  }
+  const css = () => new Response('a{}', { headers: { 'content-type': 'text/css' } })
+  const page = () => new Response('<html>', { headers: { 'content-type': 'text/html' } })
+
+  test('a good cached file is served without the network', async () => {
+    const w = load(css(), page())
+    expect(await (await w.run()).text()).toBe('a{}')
+  })
+  test('a cached HTML page under a style name is deleted and replaced from the network', async () => {
+    const w = load(page(), css())
+    expect(await (await w.run()).text()).toBe('a{}')
+    expect(w.written).toEqual(['/assets/app-X.css'])
+  })
+  test('an HTML answer from the network is returned but never kept as the file', async () => {
+    const w = load(undefined, page())
+    expect((await w.run()).headers.get('content-type')).toContain('text/html')
+    expect(w.written).toEqual([])
+    expect(w.map.size).toBe(0)
   })
 })
