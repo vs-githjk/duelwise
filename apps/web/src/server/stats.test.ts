@@ -130,6 +130,17 @@ describe('getGameStats', () => {
     expect(f.reasons).toEqual({ abandoned: 1, 'replay failed': 1, tooShort: 2, duplicate: 1 })
   })
 
+  test('Matches vs humans leaves out practice and left-early matches, which stay in the training funnel', async () => {
+    await put({ outcome: 'human' })
+    await put({ outcome: 'human', flags: { practice: true } })
+    await put({ outcome: 'agent', flags: { leftTable: true } })
+    const s = await getGameStats(db, 'four', NOW)
+    expect(s.counted).toBe(1)
+    expect(s.funnel.played).toBe(3)
+    expect(s.funnel.finished).toBe(3)
+    expect(s.funnel.passedFilters).toBe(3)
+  })
+
   test('the deferred-check bookkeeping flag is never a public filter reason', async () => {
     await put({ allowed: false, flags: { deferredCheckAt: 1, deferredTrainingRevoked: true } })
     await put({ flags: { deferredCheckAt: 1, deferredTrainingRevoked: false } })

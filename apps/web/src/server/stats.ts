@@ -117,7 +117,8 @@ export async function getGameStats(db: Db, game: GameId, now: Date = new Date(),
       continue
     }
     if (isObj(r.filterFlags) && typeof r.filterFlags.deferredCheckAt === 'number') continue
-    counted++
+    // "Matches vs humans" is public: a practice match or one left early is not one, though both stay in the training funnel below.
+    if (!(isObj(r.filterFlags) && (r.filterFlags.practice === true || r.filterFlags.leftTable === true))) counted++
     const flags = isObj(r.filterFlags) ? Object.keys(r.filterFlags).filter((k) => !INTERNAL_FLAGS.has(k) && r.filterFlags![k] === true) : []
     for (const f of flags) bump(f)
     if (!r.trainingAllowed) {
