@@ -67,7 +67,7 @@ for (const vp of VIEWPORTS) {
     test.beforeEach(async ({ context }) => {
       await context.addInitScript(() => {
         Element.prototype.requestFullscreen = () => Promise.resolve()
-        Object.defineProperty(screen.orientation, 'lock', { value: () => Promise.resolve(), configurable: true })
+        if (screen.orientation) Object.defineProperty(screen.orientation, 'lock', { value: () => Promise.resolve(), configurable: true })
       })
     })
     test('site pages', async ({ page }) => {

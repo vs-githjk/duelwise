@@ -74,7 +74,17 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   useEffect(() => {
     headline.current?.focus({ preventScroll: true })
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ref.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: window.innerWidth < 1024 ? 'start' : 'nearest' })
+    const block = window.innerWidth < 1024 ? 'start' : 'nearest'
+    // The panel's arrival changes the page height above and below the board, and WebKit cancels a smooth scroll that starts in the same frame.
+    // So the scroll waits two frames, and a late check puts the verdict on screen if anything moved it since.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block }))
+    })
+    const check = setTimeout(() => {
+      const r = ref.current?.getBoundingClientRect()
+      if (r && (r.top < 0 || r.top > window.innerHeight * 0.6)) ref.current?.scrollIntoView({ behavior: 'auto', block })
+    }, 1000)
+    return () => { cancelAnimationFrame(raf); clearTimeout(check) }
   }, [])
   const opp = persona?.name ?? 'The AI'
   const called = game ? calledFor(game) : null

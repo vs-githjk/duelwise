@@ -114,13 +114,13 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
               </button>
             ))}
           </div>
-          <select aria-label="Game" className={control} value={filters.game ?? ''} onChange={(e) => onFilters({ game: (e.target.value || undefined) as GameId | undefined, page: 0 })}>
+          <select aria-label="Game" className={`${control} h-11`} value={filters.game ?? ''} onChange={(e) => onFilters({ game: (e.target.value || undefined) as GameId | undefined, page: 0 })}>
             <option value="">All games</option>
             {(Object.keys(PRODUCT.games) as GameId[]).map((g) => (
               <option key={g} value={g}>{PRODUCT.games[g].displayName}</option>
             ))}
           </select>
-          <select aria-label="Level" className={control} value={filters.level ?? ''} onChange={(e) => onFilters({ level: (e.target.value || undefined) as Level | undefined, page: 0 })}>
+          <select aria-label="Level" className={`${control} h-11`} value={filters.level ?? ''} onChange={(e) => onFilters({ level: (e.target.value || undefined) as Level | undefined, page: 0 })}>
             <option value="">All levels</option>
             {(['easy', 'medium', 'hard', 'champion'] as Level[]).map((l) => (
               <option key={l} value={l}>{personaFor(l).name}, {LEVEL_NAME[l]}</option>

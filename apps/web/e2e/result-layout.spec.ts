@@ -69,12 +69,16 @@ for (const vp of VIEWPORTS) {
         // The smooth scroll and the result entrance settle: wait until the verdict and Rematch are on screen (or give up after 6 s and let the checks below say what is wrong).
         await expect.poll(async () => { const h = await inView(page, 'result-headline'); const r = await inView(page, 'rematch'); return h.found && r.found && h.top >= 0 && r.bottom <= r.vh }, { timeout: 6000 }).toBe(true).catch(() => undefined)
         await page.waitForTimeout(400)
+        const spots = { 'result-headline': await inView(page, 'result-headline'), rematch: await inView(page, 'rematch'), 'result-back': await inView(page, 'result-back') }
+        const noSideways = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)
+        const focused = await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))
+        // Measured first: a full-page screenshot resizes the viewport and, in WebKit, leaves the page scrolled somewhere else.
         if (process.env.RESULT_SHOTS) {
           await page.screenshot({ path: `${process.env.RESULT_SHOTS}/${game}-${vp.name}-result-${TAG}.png` })
           await page.screenshot({ path: `${process.env.RESULT_SHOTS}/${game}-${vp.name}-result-${TAG}-full.png`, fullPage: true })
         }
         for (const id of ['result-headline', 'rematch', 'result-back']) {
-          const b = await inView(page, id)
+          const b = spots[id as keyof typeof spots]
           expect.soft(b.found, `${id} exists`).toBe(true)
           if (b.found) {
             expect.soft(b.top, `${id} top`).toBeGreaterThanOrEqual(0)
@@ -83,8 +87,8 @@ for (const vp of VIEWPORTS) {
             expect.soft(b.right).toBeLessThanOrEqual(b.vw)
           }
         }
-        expect.soft(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no sideways scroll').toBe(true)
-        expect.soft(await page.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'focus on the verdict heading').toBe('result-headline')
+        expect.soft(noSideways, 'no sideways scroll').toBe(true)
+        expect.soft(focused, 'focus on the verdict heading').toBe('result-headline')
       })
     })
   }

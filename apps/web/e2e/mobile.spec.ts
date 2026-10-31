@@ -50,11 +50,11 @@ for (const p of PHONES) {
           const ww = window as unknown as { __prime: { resume: number; speak: number } }
           ww.__prime = { resume: 0, speak: 0 }
           AudioContext.prototype.resume = function () { ww.__prime.resume++; return Promise.resolve() }
-          speechSynthesis.speak = () => { ww.__prime.speak++ }
+          SpeechSynthesis.prototype.speak = function () { ww.__prime.speak++ }
           Element.prototype.requestFullscreen = () => { w.__fs++; return Promise.resolve() }
           ;(window as unknown as { __unlock: number }).__unlock = 0
-          Object.defineProperty(screen.orientation, 'unlock', { value: () => { (window as unknown as { __unlock: number }).__unlock++ }, configurable: true })
-          Object.defineProperty(screen.orientation, 'lock', { value: (o: string) => { w.__lock.push(o); return Promise.resolve() }, configurable: true })
+          if (screen.orientation) Object.defineProperty(screen.orientation, 'unlock', { value: () => { (window as unknown as { __unlock: number }).__unlock++ }, configurable: true })
+          if (screen.orientation) Object.defineProperty(screen.orientation, 'lock', { value: (o: string) => { w.__lock.push(o); return Promise.resolve() }, configurable: true })
         })
       })
 
@@ -63,7 +63,9 @@ for (const p of PHONES) {
         const overlay = page.getByTestId('rotate-overlay')
         await expect(overlay).toBeVisible()
         await expect(overlay.getByRole('heading', { name: 'Turn your phone sideways' })).toBeVisible()
-        expect(await page.evaluate(() => { const w = window as unknown as { __fs: number; __lock: string[] }; return [w.__fs, w.__lock] }), 'asks for fullscreen and a landscape lock on the Start tap').toEqual([1, ['landscape']])
+        // iOS Safari has neither element fullscreen nor an orientation lock: under the WebKit project the page must simply carry on with the overlay.
+        const webkit = test.info().project.name.startsWith('webkit')
+        if (!webkit) expect(await page.evaluate(() => { const w = window as unknown as { __fs: number; __lock: string[] }; return [w.__fs, w.__lock] }), 'asks for fullscreen and a landscape lock on the Start tap').toEqual([1, ['landscape']])
         expect(await page.evaluate(() => (window as unknown as { __prime: { resume: number; speak: number } }).__prime), 'audio and speech are unlocked inside the Start tap, before the match auto-starts').toEqual({ resume: 1, speak: 1 })
         await shot(page, `${game}-${p.name}-portrait-overlay`)
         await page.waitForTimeout(1200)
@@ -78,7 +80,7 @@ for (const p of PHONES) {
         await pressStart(page, game)
         await page.getByRole('button', { name: 'Cancel' }).click()
         await expect(page.getByTestId('rotate-overlay')).toHaveCount(0)
-        expect(await page.evaluate(() => (window as unknown as { __unlock: number }).__unlock), 'Cancel gives the screen lock back').toBeGreaterThan(0)
+        if (!test.info().project.name.startsWith('webkit')) expect(await page.evaluate(() => (window as unknown as { __unlock: number }).__unlock), 'Cancel gives the screen lock back').toBeGreaterThan(0)
         await page.setViewportSize({ width: p.h, height: p.w })
         await page.waitForTimeout(1500)
         expect(await phase(page, game), 'a cancelled start must not run on rotate').toBe('setup')
