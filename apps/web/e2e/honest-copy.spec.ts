@@ -128,11 +128,10 @@ test.describe('training copy and site Elo', () => {
   })
 
   test('a level that is in training does not also wear a Preview badge', async ({ page }) => {
-    // Every turn-based level is published now; the fighter still has unpublished levels, shown as Practice.
-    await page.goto('/play/tinderbox')
+    // Every turn-based level and every Tinderbox level is published now; Coldstore still has unpublished levels, shown as Practice.
+    await page.goto('/play/coldstore')
     const picker = page.getByTestId('level-picker')
-    // Champion is the only Practice level the Oct 29 publish leaves for Tinderbox (this line still said Easy and failed on the base too).
-    await expect(picker.locator('label[data-persona="champion"]').getByTestId('preview-badge')).toHaveText('In training')
+    await expect(picker.locator('label[data-persona="medium"]').getByTestId('preview-badge')).toHaveText('In training')
     await expect(picker.getByTestId('preview-badge').filter({ hasNotText: 'In training' })).toHaveCount(0)
   })
 })

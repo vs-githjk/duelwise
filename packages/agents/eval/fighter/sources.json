@@ -1,7 +1,22 @@
 {
+  "easy": {
+    "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+    "step": 30015488,
+    "obsFeatures": 162
+  },
+  "medium": {
+    "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+    "step": 30015488,
+    "obsFeatures": 162
+  },
   "hard": {
     "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
     "step": 30015488,
+    "obsFeatures": 162
+  },
+  "champion": {
+    "source": "runs/fighter-league-b6/gated/champion/snap-champion-0196034560.pt",
+    "step": 196034560,
     "obsFeatures": 162
   }
 }
