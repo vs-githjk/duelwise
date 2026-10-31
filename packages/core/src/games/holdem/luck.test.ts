@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { holdemCore } from './core'
 import { parseCards } from './cards'
-import { equity, luckLine, luckOfMatch, type LuckInput } from './luck'
+import { equity, luckLine, luckOfMatch, luckOfMatchAsync, type LuckInput } from './luck'
 import type { HoldemAction } from './match'
 
 /** A 52-card order for hand 0 in which seat 0 and seat 1 get the named hole cards and the board is the named runout. Cards are dealt from the end. */
@@ -121,5 +121,34 @@ describe('luck line copy', () => {
     const t = luckLine(mk(0, 30))!
     expect(t).toContain('level')
     expect(t).not.toMatch(/[\u2013\u2014]/)
+  })
+})
+
+describe('luckOfMatchAsync', () => {
+  const allInPre: Play[] = [[0, { type: 'raise', to: 100 }], [1, { type: 'call' }]]
+  const deck = deckFor('As Ah', 'Ks Kh', 'Kc 2d 7c 9h 4s')
+
+  test('does no work before its first pause, then matches the sync answer', async () => {
+    const [input, hooks] = run({ hands: 5, deck }, allInPre)
+    let ticks = 0
+    let release: () => void = () => {}
+    const first = new Promise<void>((r) => { release = r })
+    let settled = false
+    const p = luckOfMatchAsync(input, { deck: hooks.deck, tick: () => (ticks++ === 0 ? first : Promise.resolve()) }).then((v) => { settled = true; return v })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(ticks).toBe(1)
+    expect(settled).toBe(false)
+    release()
+    const l = await p
+    expect(l).toEqual(luckOfMatch(input, hooks))
+    expect(ticks).toBe(2) // once before the work, once after the single all-in hand
+  })
+
+  test('a cancelled run resolves to null and a match without an all-in to null', async () => {
+    const [input, hooks] = run({ hands: 5, deck }, allInPre)
+    expect(await luckOfMatchAsync(input, { deck: hooks.deck, tick: async () => {}, cancelled: () => true })).toBeNull()
+    const [none, h2] = run({ hands: 5, deck }, [[0, { type: 'fold' }]])
+    expect(await luckOfMatchAsync(none, { deck: h2.deck, tick: async () => {} })).toBeNull()
   })
 })

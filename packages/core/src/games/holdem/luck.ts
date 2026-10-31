@@ -79,12 +79,19 @@ export interface Luck {
   allIns: number
 }
 
-/** Replays the record and returns the luck figures, or null when no hand went all-in before the river to a known showdown. `hooks.deck` is a test hook for hand 0. */
-export function luckOfMatch(input: LuckInput, hooks?: { deck?: number[] }): Luck | null {
+interface Spot {
+  hero: number[]
+  villain: number[]
+  board: number[]
+  pot: number
+  actualDelta: number
+}
+
+/** Replays the record (cheap, no enumeration) and lists the all-in showdowns before the river, with the match's final chips for the human. `hooks.deck` is a test hook for hand 0. */
+function spotsOf(input: LuckInput, hooks?: { deck?: number[] }): { spots: Spot[]; actual: number } {
   let s: HoldemState = holdemCore.init(input.seed, { ...input.options, ...(hooks?.deck ? { deck: hooks.deck } : {}) })
   const me = input.humanSeat
-  let adjust = 0
-  let allIns = 0
+  const spots: Spot[] = []
   for (const [, seat, code] of input.actions) {
     if (holdemCore.terminal(s)) break
     const a = holdemCore.decodeAction(code)
@@ -93,17 +100,43 @@ export function luckOfMatch(input: LuckInput, hooks?: { deck?: number[] }): Luck
     const done = s.last !== before.last ? s.last : null
     // A showdown before the river can only be a run-out after an all-in: both stacks are equal, so betting ends when one side is all-in and called.
     if (done && done.showdown && before.street < 3 && done.hole) {
-      const eq = equity(before.hole[me], before.hole[1 - me], before.board)
-      const stake = done.pot / 2
-      const evDelta = eq * done.pot - stake
-      const actualDelta = me === 0 ? done.delta : -done.delta
-      adjust += actualDelta - evDelta
-      allIns++
+      spots.push({ hero: before.hole[me], villain: before.hole[1 - me], board: before.board, pot: done.pot, actualDelta: me === 0 ? done.delta : -done.delta })
     }
   }
-  if (allIns === 0) return null
-  const actual = s.net[me]
-  return { actual, adjusted: actual - adjust, luck: adjust, allIns }
+  return { spots, actual: s.net[me] }
+}
+
+function total(spots: Spot[], equities: number[], actual: number): Luck | null {
+  if (spots.length === 0) return null
+  let adjust = 0
+  spots.forEach((p, i) => { adjust += p.actualDelta - (equities[i]! * p.pot - p.pot / 2) })
+  return { actual, adjusted: actual - adjust, luck: adjust, allIns: spots.length }
+}
+
+/** Replays the record and returns the luck figures, or null when no hand went all-in before the river to a known showdown. Synchronous; the page uses luckOfMatchAsync. */
+export function luckOfMatch(input: LuckInput, hooks?: { deck?: number[] }): Luck | null {
+  const { spots, actual } = spotsOf(input, hooks)
+  return total(spots, spots.map((p) => equity(p.hero, p.villain, p.board)), actual)
+}
+
+const nextTick = (): Promise<void> => new Promise((r) => setTimeout(r, 0))
+
+/**
+ * Same answer as luckOfMatch, but it hands control back before any work and after every all-in hand (a preflop enumeration is about 85 ms),
+ * so a page that calls it after rendering never freezes. `cancelled()` is checked at each pause; a cancelled run resolves to null.
+ */
+export async function luckOfMatchAsync(input: LuckInput, opts: { tick?: () => Promise<void>; cancelled?: () => boolean; deck?: number[] } = {}): Promise<Luck | null> {
+  const tick = opts.tick ?? nextTick
+  await tick()
+  if (opts.cancelled?.()) return null
+  const { spots, actual } = spotsOf(input, opts.deck ? { deck: opts.deck } : undefined)
+  const equities: number[] = []
+  for (const p of spots) {
+    equities.push(equity(p.hero, p.villain, p.board))
+    await tick()
+    if (opts.cancelled?.()) return null
+  }
+  return total(spots, equities, actual)
 }
 
 const chips = (n: number): string => n + (n === 1 ? ' chip' : ' chips')
