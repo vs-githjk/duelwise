@@ -30,3 +30,21 @@ test('a finished hand is named with its ranks', () => {
   expect(name('As Kd', '2c 7d 9h 4s 3c')).toBe('ace high')
   expect(name('6s 6d', '6c 2h 9d Kc 3s')).toBe('three sixes')
 })
+
+test('shared board cards count toward the label (the play-test case)', () => {
+  // 2d 4c on Ks Ah Ac: the only pair is the board's aces.
+  expect(handStrength(parseCards('2d 4c'), parseCards('Ks Ah Ac'))).toBe('Your hand: a pair')
+  expect(fullHandName(parseCards('2d 4c'), parseCards('Ks Ah Ac'))).toBe('a pair of aces, king kicker')
+  // A 4 on the turn pairs the fours: aces (board) and fours (hand) make two pair.
+  expect(handStrength(parseCards('2d 4c'), parseCards('Ks Ah Ac 4d'))).toBe('Your hand: two pair')
+  expect(fullHandName(parseCards('2d 4c'), parseCards('Ks Ah Ac 4d'))).toBe('two pair, aces and fours')
+  // Board pair only, pocket pair, one card paired with the board, trips, straight, flush.
+  expect(categoryWords(parseCards('2d 7c'), parseCards('Ks Ah Ac'))).toBe('a pair')
+  expect(fullHandName(parseCards('9s 9d'), parseCards('Ks 2h 5c'))).toBe('a pair of nines, king kicker')
+  expect(fullHandName(parseCards('Ks 3d'), parseCards('Kc 8h 5c'))).toBe('a pair of kings, eight kicker')
+  expect(fullHandName(parseCards('4s 4d'), parseCards('Ah Ac Ks'))).toBe('two pair, aces and fours')
+  expect(categoryWords(parseCards('As Ad'), parseCards('Ac 5h 9d'))).toBe('three of a kind')
+  expect(categoryWords(parseCards('2s 3d'), parseCards('Ac Ah Ad 9d'))).toBe('three of a kind')
+  expect(categoryWords(parseCards('As Kd'), parseCards('2c 3h 4d 5s 6c'))).toBe('a straight')
+  expect(categoryWords(parseCards('Ac 4d'), parseCards('2s 7s 9s Ks 3s'))).toBe('a flush')
+})

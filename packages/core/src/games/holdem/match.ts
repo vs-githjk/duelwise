@@ -12,6 +12,47 @@ export const STACK = 100
 export const SMALL_BLIND = 1
 export const BIG_BLIND = 2
 export const MATCH_HANDS = 30
+/** The match lengths a player may pick. The trained agent always sees a 30 hand match (the observation is unchanged), so a shorter match only stops sooner. */
+export const HAND_CHOICES = [5, 10, 15, 30] as const
+
+/**
+ * How long a match runs. Absent fields mean the original match (30 hands, no bust ending), so a state, a record and a hash
+ * made before these options existed are unchanged.
+ */
+export type MatchOptions = {
+  /** Length in hands; one of HAND_CHOICES. Default 30. */
+  hands?: number
+  /** Strict bust rule: the first hand in which a player loses all 100 chips ends the match at once and that player loses, whatever the chip total. Every counted match sets it. Default false (the original rule, kept so older records replay). */
+  untilBust?: boolean
+  /** The player left the table after this many finished hands: the match ends there and is unrated. */
+  leftAfter?: number
+}
+
+/** The hand count a match stops at: the pick, or where the player left. */
+export function handLimit(o?: MatchOptions): number {
+  const hands = o?.hands ?? MATCH_HANDS
+  return o?.leftAfter !== undefined ? Math.min(hands, o.leftAfter) : hands
+}
+
+/** Why options are not allowed, or null. `leftAfter` must come before the chosen end. */
+export function optionsProblem(o: unknown): string | null {
+  if (o === undefined) return null
+  if (typeof o !== 'object' || o === null || Array.isArray(o)) return 'options must be an object'
+  const x = o as Record<string, unknown>
+  for (const k of Object.keys(x)) if (k !== 'hands' && k !== 'untilBust' && k !== 'leftAfter') return 'unknown option ' + k
+  if (x.hands !== undefined && !(HAND_CHOICES as readonly unknown[]).includes(x.hands)) return 'hands must be one of ' + HAND_CHOICES.join(', ')
+  if (x.untilBust !== undefined && typeof x.untilBust !== 'boolean') return 'untilBust must be true or false'
+  if (x.leftAfter !== undefined) {
+    const hands = (x.hands as number | undefined) ?? MATCH_HANDS
+    if (!Number.isInteger(x.leftAfter) || (x.leftAfter as number) < 1 || (x.leftAfter as number) >= hands) return 'leftAfter must be an hand count before the end of the match'
+  }
+  return null
+}
+
+/** Whether two option sets describe the same chosen match (ignoring where a player left). */
+export function sameChoice(a?: MatchOptions, b?: MatchOptions): boolean {
+  return (a?.hands ?? MATCH_HANDS) === (b?.hands ?? MATCH_HANDS) && (a?.untilBust ?? false) === (b?.untilBust ?? false)
+}
 
 export type HoldemAction =
   | { type: 'fold' }
@@ -55,9 +96,13 @@ export interface HoldemState {
   net: [number, number]
   last: HandSummary | null
   over: { winner: Seat | null; reason: string } | null
+  /** Hands in this match when it is not the default 30 (or the hand count where the player left). Absent for a default match. */
+  limit?: number
+  /** True when the strict bust rule applies. Absent for a default match. */
+  untilBust?: true
 }
 
-export interface InitOptions {
+export interface InitOptions extends MatchOptions {
   /** Test hook: the full 52-card order for hand 0 (next card is dealt from the end). */
   deck?: number[]
 }
@@ -66,7 +111,7 @@ function handRng(seed: number, hand: number): Rng {
   return makeRng((Math.imul(seed | 0, 0x9e3779b1) + Math.imul(hand + 1, 0x85ebca6b)) | 0)
 }
 
-function dealHand(seed: number, hand: number, net: [number, number], last: HandSummary | null, deckOverride?: number[]): HoldemState {
+function dealHand(seed: number, hand: number, net: [number, number], last: HandSummary | null, deckOverride?: number[], rules: Pick<HoldemState, 'limit' | 'untilBust'> = {}): HoldemState {
   const deck = deckOverride ? deckOverride.slice() : shuffled(handRng(seed, hand))
   if (deck.length !== 52 || new Set(deck).size !== 52 || deck.some((c) => !Number.isInteger(c) || c < 0 || c > 51)) {
     throw new Error('holdem: deck must be a permutation of 0..51')
@@ -98,11 +143,14 @@ function dealHand(seed: number, hand: number, net: [number, number], last: HandS
     net: [net[0], net[1]],
     last,
     over: null,
+    ...(rules.limit !== undefined ? { limit: rules.limit } : {}),
+    ...(rules.untilBust ? { untilBust: true as const } : {}),
   }
 }
 
 export function initMatch(seed: number, opts?: InitOptions): HoldemState {
-  return dealHand(seed, 0, [0, 0], null, opts?.deck)
+  const limit = handLimit(opts)
+  return dealHand(seed, 0, [0, 0], null, opts?.deck, { ...(limit !== MATCH_HANDS ? { limit } : {}), ...(opts?.untilBust ? { untilBust: true as const } : {}) })
 }
 
 export function legalActions(s: HoldemState, seat: Seat): HoldemAction[] {
@@ -145,10 +193,11 @@ export function isLegal(s: HoldemState, seat: Seat, a: HoldemAction): boolean {
   }
 }
 
-function matchResult(net: [number, number]): { winner: Seat | null; reason: string } {
+function matchResult(net: [number, number], hands: number): { winner: Seat | null; reason: string } {
   const winner: Seat | null = net[0] > net[1] ? 0 : net[1] > net[0] ? 1 : null
   const diff = Math.abs(net[0])
-  return { winner, reason: winner === null ? 'chips level after ' + MATCH_HANDS + ' hands' : 'ahead by ' + diff + ' chips after ' + MATCH_HANDS + ' hands' }
+  const after = hands + ' hands'
+  return { winner, reason: winner === null ? 'chips level after ' + after : 'ahead by ' + diff + ' chips after ' + after }
 }
 
 function finishHand(s: HoldemState, winner: Seat | null, showdown: boolean): HoldemState {
@@ -165,8 +214,11 @@ function finishHand(s: HoldemState, winner: Seat | null, showdown: boolean): Hol
     board: s.board.slice(),
     hole: showdown ? [s.hole[0].slice(), s.hole[1].slice()] : null,
   }
-  if (s.hand + 1 >= MATCH_HANDS) return { ...s, net, last: summary, over: matchResult(net), actor: s.actor }
-  return dealHand(s.seed, s.hand + 1, net, summary)
+  // A bust: one side put in all 100 chips and lost them. Stacks reset every hand, so this is the biggest swing a hand has.
+  const busted = winner !== null && s.total[winner === 0 ? 1 : 0] >= STACK
+  if (s.untilBust && busted) return { ...s, net, last: summary, over: { winner, reason: 'the other player lost all ' + STACK + ' chips in hand ' + (s.hand + 1) }, actor: s.actor }
+  if (s.hand + 1 >= (s.limit ?? MATCH_HANDS)) return { ...s, net, last: summary, over: matchResult(net, s.hand + 1), actor: s.actor }
+  return dealHand(s.seed, s.hand + 1, net, summary, undefined, { limit: s.limit, untilBust: s.untilBust })
 }
 
 function showdown(s: HoldemState): HoldemState {

@@ -75,7 +75,7 @@ export async function checkAgentMoves(rec: MatchRecordV1, opts: AgentCheckOption
     if (agent.preview) return { kind: 'unverified', reason: 'the opponent for this level is a preview with no fixed play' }
     const core = getCore(rec.game)
     agent.reset(rec.seed)
-    let s = core.init(rec.seed)
+    let s = core.init(rec.seed, rec.options)
     let i = 0
     let tick = 0
     while (!core.terminal(s)) {

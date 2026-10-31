@@ -18,7 +18,7 @@ export interface Step<S, A> {
 export function walk<S = any, A = any>(rec: MatchRecordV1): Array<Step<S, A>> {
   const core = getCore(rec.game) as ReturnType<typeof getCore>
   const out: Array<Step<S, A>> = []
-  let s = core.init(rec.seed) as S
+  let s = core.init(rec.seed, rec.options) as S
   let i = 0
   for (let tick = 0; !core.terminal(s as never); tick++) {
     const cur: [A | null, A | null] = [null, null]

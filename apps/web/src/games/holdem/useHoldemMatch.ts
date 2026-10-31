@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { holdemCore, type HoldemAction, type HoldemState } from '@duelwise/core/src/games/holdem/core'
-import { isLegal, type HandSummary } from '@duelwise/core/src/games/holdem/match'
+import { handLimit, isLegal, sameChoice, MATCH_HANDS, type HandSummary, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import type { Result, Seat } from '@duelwise/core/src/types'
 import { createAgent, type RuntimeAgent } from '@duelwise/agents/src/runtime/agent'
@@ -62,10 +62,20 @@ export interface HoldemMatch {
   unratedReason: string | null
   counted: boolean
   failure: string | null
-  start: (level: Level, seed?: number) => Promise<void>
+  /** The match length chosen for this match (the default 30 hands when none was picked). */
+  options: MatchOptions
+  /** Hands in this match; the state counts toward it. */
+  limit: number
+  /** Hands finished so far. */
+  handsDone: number
+  /** Set when the player left the table: the hands played, the match was scored on the chips then and is unrated. */
+  leftAfter: number | null
+  start: (level: Level, seed?: number, options?: MatchOptions) => Promise<void>
   act: (action: HoldemAction) => Promise<void>
   /** Concedes the match: it ends as a loss, with a record that replays. */
   concede: () => Promise<void>
+  /** Leaves the table after the hands finished so far: scored on the chips then, unrated. Needs at least one finished hand. */
+  leave: () => Promise<void>
   backToSetup: () => void
   /** Cuts the current reading pause of a finished hand short (one stage per tap). Does nothing when there is none. */
   skipReveal: () => void
@@ -109,6 +119,13 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
   const [thinking, setThinking] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [conceded, setConceded] = useState(false)
+  const [options, setOptions] = useState<MatchOptions>({})
+  const [handsDone, setHandsDone] = useState(0)
+  const [leftAfter, setLeftAfter] = useState<number | null>(null)
+  /** Every action played, as [seat, code], and where each finished hand ends in the recorder: a leave cuts back to the last boundary. */
+  const played = useRef<Array<[Seat, number]>>([])
+  const boundary = useRef<{ mark: ReturnType<typeof recorder.mark>; plays: number }>({ mark: { actions: 0, times: 0 }, plays: 0 })
+  const optionsRef = useRef<MatchOptions>({})
   const agent = useRef<RuntimeAgent | null>(null)
   const live = useRef<HoldemState | null>(null)
   const busy = useRef(false)
@@ -130,8 +147,10 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
   )
 
   const start = useCallback(
-    async (lvl: Level, forcedSeed?: number) => {
+    async (lvl: Level, forcedSeed?: number, picked?: MatchOptions) => {
       const mine = ++epoch.current
+      // The default match carries no options at all, so its record, ticket and hash are exactly what they always were.
+      const chosen: MatchOptions | undefined = picked && !sameChoice(picked, undefined) ? { ...(picked.hands !== undefined && picked.hands !== MATCH_HANDS ? { hands: picked.hands } : {}), ...(picked.untilBust ? { untilBust: true } : {}) } : undefined
       agent.current?.dispose()
       agent.current = null
       setFailure(null)
@@ -140,7 +159,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
       levelRef.current = lvl
       const opened = await openMatch({
         create: () => createAgent('holdem', lvl, { seat: AGENT }),
-        begin: () => recorder.begin(lvl, forcedSeed),
+        begin: () => recorder.begin(lvl, forcedSeed, chosen),
         isCurrent: () => mine === epoch.current,
       })
       if (opened.kind === 'stale') return
@@ -161,7 +180,12 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
         setPhase('setup')
         return
       }
-      const init = holdemCore.init(s)
+      const init = holdemCore.init(s, chosen)
+      optionsRef.current = chosen ?? {}
+      setOptions(chosen ?? {})
+      setHandsDone(0)
+      setLeftAfter(null)
+      played.current = []
       live.current = init
       busy.current = false
       tick.current = 0
@@ -177,6 +201,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
         agent: { version: agentVersion(lvl), level: lvl },
         // Not trainable while the registry says this agent does not learn from human matches.
         trainingAllowed: learnsFromHumans && PRODUCT.trainingDataBasis === 'legitimate-interest',
+        ...(chosen ? { options: chosen } : {}),
         input: detectDevice() === 'desktop' ? 'mouse' : 'touch',
       })
       moveStart.current = performance.now()
@@ -203,6 +228,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     async (prev: HoldemState, who: Seat, a: HoldemAction, mine: number, humanMs?: number): Promise<HoldemState | null> => {
       const code = holdemCore.encodeAction(a)
       recorder.act(tick.current++, who, code, humanMs)
+      played.current.push([who, code])
       const next = holdemCore.step(prev, who === HUMAN ? [a, null] : [null, a])
       const toCall = Math.max(prev.bet[0], prev.bet[1]) - prev.bet[who]
       const left = 100 - prev.total[who]
@@ -218,6 +244,8 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
       else if (a.type === 'fold') playCue('fold')
       if (next.last !== prev.last && next.last) {
         const summary = next.last
+        boundary.current = { mark: recorder.mark(), plays: played.current.length }
+        setHandsDone(summary.hand + 1)
         const total: [number, number] = summary.showdown ? [summary.pot / 2, summary.pot / 2] : [prev.total[0], prev.total[1]]
         const held = { summary, hole: prev.hole[HUMAN].slice(), total, headline: describeHand(summary, opponentName(levelRef.current)) }
         // An all-in call ends the hand with cards still to come: deal them a street at a time first.
@@ -320,6 +348,39 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     }
   }, [apply, conclude])
 
+  const leave = useCallback(async () => {
+    const cur = live.current
+    const done = boundary.current.plays > 0 ? (cur?.last?.hand ?? -1) + 1 : 0
+    if (!cur || holdemCore.terminal(cur) || done < 1) return
+    // Stop whatever is in flight (a reading pause, the opponent thinking): the hand on the table is dropped.
+    const mine = ++epoch.current
+    busy.current = true
+    skip.current?.()
+    setThinking(false)
+    setReveal(null)
+    try {
+      const opts: MatchOptions = { ...optionsRef.current, leftAfter: done }
+      // Rebuild the match as the core plays it with this leave, from the actions of the finished hands only.
+      let s = holdemCore.init(seed ?? cur.seed, opts)
+      for (const [who, code] of played.current.slice(0, boundary.current.plays)) {
+        const a = holdemCore.decodeAction(code)
+        s = holdemCore.step(s, who === HUMAN ? [a, null] : [null, a])
+      }
+      if (!holdemCore.terminal(s)) throw new Error('The match did not end where you left it.')
+      recorder.truncate(boundary.current.mark)
+      recorder.setOptions(opts)
+      live.current = s
+      setLeftAfter(done)
+      setState(s)
+      setLog('')
+      await conclude(s)
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      if (mine === epoch.current) busy.current = false
+    }
+  }, [conclude, recorder, seed])
+
   const backToSetup = useCallback(() => {
     epoch.current++
     agent.current?.dispose()
@@ -332,6 +393,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     setFailure(null)
     setThinking(false)
     setConceded(false)
+    setLeftAfter(null)
     setPhase('setup')
   }, [])
 
@@ -355,9 +417,14 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     unratedReason: recorder.unratedReason,
     counted: recorder.counted,
     failure,
+    options,
+    limit: handLimit(options),
+    handsDone,
+    leftAfter,
     start,
     act,
     concede,
+    leave,
     backToSetup,
     skipReveal: () => skip.current?.(),
   }

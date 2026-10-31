@@ -10,6 +10,7 @@ const CHECK_GLOW = 'radial-gradient(circle at 50% 50%, var(--bad) 0%, rgba(200,5
 
 const FILES = 'abcdefgh'
 const DRAG_PX = 5
+const CLICK_AFTER_PRESS_MS = 500
 
 interface Piece {
   type: PieceType
@@ -71,8 +72,12 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
   dragRef.current = drag
   const root = useRef<HTMLDivElement>(null)
   const buttons = useRef(new Map<string, HTMLButtonElement>())
-  /** Set when a pointer press already handled the square, so the click that follows is ignored. */
-  const pressed = useRef(false)
+  /**
+   * The press that already handled a square (`*` for a drag, which may end on any square), with when it ended. The click
+   * the browser sends after it must not handle the square a second time. A timer cannot do this job: on a phone the
+   * click can arrive after any short timeout, and a doubled tap on a piece would select it and then put it down again.
+   */
+  const pressed = useRef<{ sq: string; at: number } | null>(null)
 
   const canMove = turn === 'you'
   const mine = (sq: string) => pieces.get(sq)?.color === 'w'
@@ -128,12 +133,17 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
     reject(`${from}${to} is not a legal move.`)
   }
 
-  const squareClick = (sq: string) => {
-    if (pressed.current) return
+  const squareClick = (sq: string, detail: number) => {
+    const p = pressed.current
+    pressed.current = null
+    if (detail > 0 && p && Date.now() - p.at < CLICK_AFTER_PRESS_MS && (p.sq === '*' || p.sq === sq)) return
     if (!canMove) return
     if (selected && targets.has(sq)) return attempt(selected, sq)
     if (mine(sq)) return setSelected(selected === sq ? null : sq)
-    if (selected) return reject(`${selected}${sq} is not a legal move.`)
+    if (selected) {
+      setSelected(null)
+      return reject(`${selected}${sq} is not a legal move.`)
+    }
   }
 
   const squareFromPoint = (x: number, y: number): string | null => {
@@ -142,10 +152,11 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
   }
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // A new press ends any older one: its click (if the browser sent one) is long past.
+    pressed.current = null
     if (!canMove || promo || e.button !== 0) return
     const sq = (e.target as HTMLElement).closest<HTMLElement>('[data-square]')?.getAttribute('data-square')
     if (!sq || !mine(sq)) return
-    pressed.current = true
     setCursor(sq)
     setSelected(sq)
     setDrag({ from: sq, x: e.clientX, y: e.clientY, moved: false, wasSelected: selected === sq })
@@ -165,9 +176,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
     setDrag(null)
     root.current?.releasePointerCapture?.(e.pointerId)
     // The click that follows this press must not handle the square a second time.
-    setTimeout(() => {
-      pressed.current = false
-    }, 0)
+    pressed.current = { sq: d.moved ? '*' : d.from, at: Date.now() }
     if (!d.moved) {
       // A plain tap: a second tap on the selected piece puts it down.
       if (d.wasSelected) setSelected(null)
@@ -225,7 +234,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
           tabIndex={sq === cursor ? 0 : -1}
           onFocus={() => setCursor(sq)}
           onKeyDown={(e) => onKey(e, sq)}
-          onClick={() => squareClick(sq)}
+          onClick={(e) => squareClick(sq, e.detail)}
           className={cn(
             'relative aspect-square min-w-0 select-none p-0 outline-none focus-visible:z-10 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-action',
             dark ? 'bg-board-dark' : 'bg-board-light',
@@ -272,12 +281,16 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
       data-plies={plies}
       role="group"
       aria-label="Chess board, White at the bottom"
+      // The click after a pointer press can land on the board itself (the board holds the pointer); it still ends the press.
+      onClick={() => {
+        pressed.current = null
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={() => {
         setDrag(null)
-        pressed.current = false
+        pressed.current = null
       }}
     >
       <div className="grid grid-cols-8">{squares}</div>

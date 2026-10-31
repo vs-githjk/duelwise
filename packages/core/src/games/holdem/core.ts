@@ -5,6 +5,7 @@ import {
   STACK,
   applyAction,
   initMatch,
+  type InitOptions,
   legalActions,
   raiseRange,
   type HandSummary,
@@ -40,7 +41,7 @@ const RAISE_BASE = 3
 export const holdemCore: GameCore<HoldemState, HoldemAction, HoldemObservation> = {
   id: 'holdem',
   version: 'holdem-1',
-  init: (seed, opts) => initMatch(seed, opts as { deck?: number[] } | undefined),
+  init: (seed, opts) => initMatch(seed, opts as InitOptions | undefined),
   toAct: (s) => (s.over ? [] : [s.actor]),
   legal: (s, seat) => legalActions(s, seat),
   step(s, actions) {

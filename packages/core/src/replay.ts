@@ -42,7 +42,7 @@ export function replay(r: MatchRecordV1, opts: ReplayOptions = {}): ReplayOutcom
       if (acts[k]![0] < acts[k - 1]![0]) return bad(`actions out of order at entry ${k}`)
     }
 
-    let s = core.init(r.seed)
+    let s = core.init(r.seed, r.options)
     const held: [number | null, number | null] = [null, null]
     let i = 0
     let tick = 0
