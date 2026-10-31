@@ -86,12 +86,13 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
               {on && <span className="size-[7px] rounded-full bg-action-ink" />}
             </span>
             <Avatar level={level} size={40} decorative dim={locked} />
-            <span className="grid gap-px">
+            {/* On a phone the description drops under the row and uses the full card width, instead of a narrow column beside the avatar. */}
+            <span className="grid gap-px max-sm:contents">
               <span className="flex flex-wrap items-baseline gap-x-2">
                 <b className={cn('text-base font-semibold text-ink', locked && 'opacity-60')} data-testid={`persona-name-${level}`}>{personaFor(level).name}</b>
                 <span className="text-sm text-muted">{LEVEL_LABEL[level]}</span>
               </span>
-              <span className="text-sm text-muted" data-testid={locked ? `in-training-${level}` : byPath ? `path-locked-${level}` : undefined}>
+              <span className="text-sm text-muted max-sm:order-1 max-sm:col-span-4" data-testid={locked ? `in-training-${level}` : byPath ? `path-locked-${level}` : undefined}>
                 {byPath ? (
                   `Locked. Beat ${personaFor(LEVELS[LEVELS.indexOf(level) - 1] ?? 'easy').name} to unlock ${personaFor(level).name}.`
                 ) : locked ? (

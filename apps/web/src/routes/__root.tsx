@@ -65,20 +65,20 @@ function RootDocument({ children }: { children: ReactNode }) {
         <div className="flex min-h-dvh flex-col bg-canvas text-ink">
           <header className="border-b border-line">
             <div className="group/head mx-auto flex min-h-16 max-w-content flex-wrap items-center gap-x-2 px-4 py-1 sm:flex-nowrap sm:gap-6 md:px-10">
-              <Link to="/" className="font-display text-base sm:text-display-sm" aria-label={`${PRODUCT.name} home`}>
+              <Link to="/" className="inline-flex min-h-11 items-center font-display text-base sm:text-display-sm" aria-label={`${PRODUCT.name} home`}>
                 {PRODUCT.name}
               </Link>
               <nav className="order-last flex w-full items-center justify-between gap-1 text-sm font-medium sm:order-none sm:w-auto sm:justify-start sm:text-base" aria-label="Sections">
-                <Link to="/play" className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" activeProps={{ className: 'text-ink' }}>
+                <Link to="/play" className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" activeProps={{ className: 'text-ink' }}>
                   Games
                 </Link>
-                <Link to="/leaderboard/$game" params={{ game: PRODUCT.games.chess.slug }} className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-leaderboard" activeProps={{ className: 'text-ink' }}>
+                <Link to="/leaderboard/$game" params={{ game: PRODUCT.games.chess.slug }} className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-leaderboard" activeProps={{ className: 'text-ink' }}>
                   Leaderboard
                 </Link>
-                <Link to="/ai" className="inline-flex min-h-11 items-center whitespace-nowrap px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-ai" activeProps={{ className: 'text-ink' }}>
+                <Link to="/ai" className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-ai" activeProps={{ className: 'text-ink' }}>
                   The AI
                 </Link>
-                <Link to="/settings" className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-settings" activeProps={{ className: 'text-ink' }}>
+                <Link to="/settings" className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-settings" activeProps={{ className: 'text-ink' }}>
                   Settings
                 </Link>
               </nav>

@@ -41,7 +41,7 @@ function Leaderboard() {
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6 py-8" data-testid="leaderboard">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <h1 className="min-w-0 font-display text-display-md md:text-display-lg" data-testid="board-title">{PRODUCT.games[id].displayName} board, last {board.windowDays} days</h1>
-        <nav ref={tabs} aria-label="Choose a game" className="-mx-1 flex min-w-0 max-w-full gap-1 overflow-x-auto rounded-full bg-surface-2 p-1" data-testid="leaderboard-switcher">
+        <nav ref={tabs} aria-label="Choose a game" className="-mx-1 flex min-w-0 max-w-full flex-wrap gap-1 rounded-3xl bg-surface-2 p-1" data-testid="leaderboard-switcher">
           {(Object.keys(PRODUCT.games) as GameId[]).map((g) => (
             <Link
               key={g}
