@@ -162,6 +162,7 @@ export class KeyboardInput {
   blurKeys(): void {
     for (const code of this.held) if (!code.startsWith('touch:')) this.held.delete(code)
     this.order = this.order.filter((a) => this.isHeld(a))
+    if (this.order.length === 0) this.latched = BTN.NONE
   }
 
   private isHeld(a: Action): boolean {

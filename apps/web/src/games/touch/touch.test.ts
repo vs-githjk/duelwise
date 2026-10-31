@@ -26,6 +26,22 @@ describe('touch input', () => {
     k.up('touch:right')
     expect(k.sample().dir).toBe(DIR.N)
   })
+  test('a key tap waiting for its sim step is dropped when the window loses focus', () => {
+    const k = new KeyboardInput()
+    k.down('KeyJ')
+    k.blurKeys()
+    expect(k.sample().btn).toBe(BTN.NONE)
+  })
+  test('on a touch screen the window losing focus leaves an arena thumb down', () => {
+    const a = new ArenaInputSampler()
+    a.down('touch:forward'); a.down('KeyW'); a.mouseDown(0)
+    a.blurKeys()
+    a.up('KeyW')
+    const s = a.sample()
+    expect(s.fire).toBe(1)
+    a.up('touch:forward')
+    expect(a.sample().fire).toBe(1)
+  })
   test('arena touch actions and drag use the same sampler as keys and mouse', () => {
     const touch = new ArenaInputSampler(); const desktop = new ArenaInputSampler()
     touch.down('touch:forward'); touch.down('touch:jump'); touch.mouseDown(0); touch.mouseMove(80, -40)

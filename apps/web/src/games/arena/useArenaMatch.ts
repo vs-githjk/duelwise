@@ -315,7 +315,7 @@ export function useArenaMatch(agentVersion: (level: Level) => string, learnsFrom
         l.hadLock = false
       }
     }
-    const blur = () => sampler.current.blur()
+    const blur = () => (window.matchMedia?.('(pointer: coarse)').matches ? sampler.current.blurKeys() : sampler.current.blur())
     const hidden = () => {
       if (document.hidden) setPause(true)
     }

@@ -264,6 +264,11 @@ export class ArenaInputSampler {
     this.accPitch = 0
   }
 
+  /** Releases the keyboard only: on a touch screen the window losing focus says nothing about a finger on the glass, which ends with its own pointer event. */
+  blurKeys(): void {
+    for (const code of this.held) if (!code.startsWith('touch:')) this.held.delete(code)
+  }
+
   /** The input for the next sim step. Reading it consumes a latched tap, the turn it applies and the queued buy. */
   sample(): ArenaInput {
     let f = this.isHeld('forward')
