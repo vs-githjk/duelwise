@@ -140,15 +140,15 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
   const rounds = Math.max(played, you.rows.length + (live ? 1 : 0))
   return (
     <section data-testid="word-ledger" aria-label="Round ledger" data-paper="" className="lane-paper grid gap-2 rounded-card border p-3 sm:p-4">
-      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 font-mono text-xs uppercase tracking-wider text-muted sm:gap-x-3" aria-hidden="true">
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2 text-sm font-semibold text-muted sm:gap-x-3" aria-hidden="true" data-testid="ledger-header">
         <span />
-        <b className="truncate text-ink">You</b>
-        <span className="truncate">{opponentName}, same word</span>
+        <b className="text-base font-bold text-ink">You</b>
+        <span data-testid="ledger-opponent">{opponentName}, same word</span>
       </div>
       <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-3">
         <ol className="grid auto-rows-[2.75rem] content-start gap-y-1.5" aria-hidden="true">
           {Array.from({ length: rounds }, (_, i) => (
-            <li key={i} className="grid place-items-center font-mono text-xs text-muted tabular">{i + 1}</li>
+            <li key={i} className="grid place-items-center font-mono text-base font-semibold text-muted tabular">{i + 1}</li>
           ))}
         </ol>
         <div data-testid="lane-you" role="group" aria-label={`You, ${you.rows.length} of ${maxGuesses} guesses`} className="grid auto-rows-[2.75rem] content-start gap-y-1.5">
@@ -164,6 +164,11 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
         </div>
       </div>
       {played === 0 ? <p className="text-sm text-muted" data-testid="ledger-empty">Type a word below. Your tiles land on the left, {opponentName}'s marks on the right, without letters.</p> : null}
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-sm font-medium text-muted" data-testid="marker-key" aria-label="What the marks mean">
+        {[[2, 'Right spot'], [1, 'Wrong spot'], [0, 'Not in the word']].map(([kind, label]) => (
+          <li key={kind} className="inline-flex items-center gap-1"><Marker kind={kind as number} />{label}</li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -171,13 +176,11 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
 function RoundRow({ testId, name, rows, maxGuesses, fill }: { testId: string; name: string; rows: number[][]; maxGuesses: number; fill: string }) {
   const { placed, solved } = raceProgress(rows)
   return (
-    <div data-testid={testId} data-guesses={rows.length} data-placed={placed} data-solved={String(solved)} className="grid gap-1 text-sm">
-      <div className="flex items-baseline justify-between gap-2">
-        <b className="truncate">{name}</b>
-        <span className="font-mono text-xs text-muted tabular">
-          {solved ? 'Solved' : `${placed} of ${WORD_LENGTH} placed`}, {rows.length} of {maxGuesses} guesses
-        </span>
-      </div>
+    <div data-testid={testId} data-guesses={rows.length} data-placed={placed} data-solved={String(solved)} aria-label={`${rows.length} of ${maxGuesses} guesses`} className="grid min-w-0 content-start gap-1">
+      <b className="truncate text-base font-bold">{name}</b>
+      <span className="font-display text-xl font-bold leading-tight tabular" data-testid={`${testId}-score`}>
+        {solved ? 'Solved' : `${placed} of ${WORD_LENGTH} placed`}
+      </span>
       <div className="race-track" role="meter" aria-label={`${name}: best row has ${placed} of ${WORD_LENGTH} letters in the right spot`} aria-valuemin={0} aria-valuemax={WORD_LENGTH} aria-valuenow={placed}>
         <div className={cn('race-fill', fill)} style={{ width: `${(placed / WORD_LENGTH) * 100}%` }} />
       </div>
@@ -185,14 +188,27 @@ function RoundRow({ testId, name, rows, maxGuesses, fill }: { testId: string; na
   )
 }
 
-/** "Round 3 of 6" and how close each side is, from the markers both sides can see. */
+/** "Round 3 of 6" and how close each side is, from the markers both sides can see. On a phone it stays pinned to the top of the screen while you type. */
 export function RoundCard({ you, opponentName, opponent, maxGuesses, over }: { you: number[][]; opponentName: string; opponent: number[][]; maxGuesses: number; over: boolean }) {
   const round = Math.min(maxGuesses, Math.max(you.length + (over ? 0 : 1), 1))
   return (
-    <section data-testid="race-bar" aria-label="Round" className="grid gap-3 rounded-card border border-line bg-surface p-4">
+    <section data-testid="race-bar" data-over={over ? 'true' : undefined} aria-label="Round" className="word-score grid gap-2 rounded-card border border-line bg-surface px-4 py-3">
       <h2 className="font-display text-display-sm" data-testid="round-title">{over ? 'Match over' : `Round ${round} of ${maxGuesses}`}</h2>
-      <RoundRow testId="race-bar-you" name="You" rows={you} maxGuesses={maxGuesses} fill="bg-game-word" />
-      <RoundRow testId="race-bar-ai" name={opponentName} rows={opponent} maxGuesses={maxGuesses} fill="bg-neutral" />
+      <div className="grid grid-cols-2 gap-4">
+        <RoundRow testId="race-bar-you" name="You" rows={you} maxGuesses={maxGuesses} fill="bg-game-word" />
+        <RoundRow testId="race-bar-ai" name={opponentName} rows={opponent} maxGuesses={maxGuesses} fill="bg-neutral" />
+      </div>
     </section>
+  )
+}
+
+/** The final score for the result panel: how each side finished. */
+export function ResultScore({ you, opponentName, opponent }: { you: number[][]; opponentName: string; opponent: number[][] }) {
+  const line = (rows: number[][]) => { const p = raceProgress(rows); return p.solved ? `Solved in ${rows.length}` : `${p.placed} of ${WORD_LENGTH} placed` }
+  return (
+    <dl className="grid grid-cols-2 gap-3 rounded-control bg-surface-2 px-3 py-2" data-testid="word-result-score">
+      <div className="grid min-w-0"><dt className="truncate text-sm font-semibold text-muted">You</dt><dd className="font-display text-xl font-bold tabular">{line(you)}</dd></div>
+      <div className="grid min-w-0"><dt className="truncate text-sm font-semibold text-muted">{opponentName}</dt><dd className="font-display text-xl font-bold tabular">{line(opponent)}</dd></div>
+    </dl>
   )
 }

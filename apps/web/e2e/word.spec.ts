@@ -235,4 +235,57 @@ test.describe('Word Duel play page', () => {
     await expect(live).toContainText(/(right spot|not in the word|wrong spot)/)
     await expect(live).toContainText(/(letters in the right spot in its best row|solved the word)/)
   })
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 412, height: 839 }, hasTouch: true, isMobile: true })
+
+    test('the score stays in view through a match, with the keyboard open too', async ({ page }) => {
+      await startMatch(page, 2)
+      const seen = (id: string) => page.getByTestId(id).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight })
+      for (const word of ['crane', 'slate', 'pilot']) {
+        await guess(page, word)
+        await page.waitForTimeout(600)
+        expect(await seen('race-bar'), `score after ${word}`).toBe(true)
+        expect(await seen('word-input'), `input after ${word}`).toBe(true)
+      }
+      await page.setViewportSize({ width: 412, height: 500 })
+      await page.getByTestId('word-input').focus()
+      await expect.poll(() => seen('race-bar')).toBe(true)
+      await expect.poll(() => seen('word-input')).toBe(true)
+    })
+
+    test('nothing at the top is under 14 px and the opponent header is not cut off', async ({ page }) => {
+      await page.goto('/play/word-duel?seed=2')
+      await page.getByRole('radio', { name: /^Vesper Hard/ }).check({ force: true }) // the pinned Start bar sits over the row on a phone screen
+      await page.getByRole('button', { name: 'Start match' }).click()
+      await expect(page.getByTestId('word-input')).toBeVisible()
+      await guess(page, 'crane')
+      await expect(page.locator('[data-testid="lane-you"] [data-letter-cell]')).toHaveCount(5)
+      const small = await page.evaluate(() => {
+        const out: string[] = []
+        for (const root of document.querySelectorAll('[data-testid="race-bar"], [data-testid="word-ledger"], [data-testid="letter-tracker"], [data-testid="play-hud"], [data-testid="header-persona"]')) {
+          for (const e of root.querySelectorAll('*')) {
+            if (![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim())) continue
+            if (e.closest('.sr-only')) continue
+            if (parseFloat(getComputedStyle(e).fontSize) < 14) out.push(`${e.textContent} ${getComputedStyle(e).fontSize}`)
+          }
+        }
+        return out
+      })
+      expect(small).toEqual([])
+      const cut = await page.getByTestId('ledger-opponent').evaluate((el) => el.scrollWidth > el.clientWidth)
+      expect(cut).toBe(false)
+      await expect(page.getByTestId('ledger-opponent')).toContainText('Vesper')
+    })
+
+    test('the result panel shows both sides\' final score', async ({ page }) => {
+      const answer2 = wordCore.init(2).answer
+      await startMatch(page, 2)
+      await guess(page, answer2)
+      const score = page.getByTestId('word-result-score')
+      await expect(score).toBeVisible()
+      await expect(score).toContainText('Solved in 1')
+      await expect(page.getByTestId('result-panel').getByTestId('word-result-score')).toHaveCount(1)
+    })
+  })
 })
