@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { getVolume, isMuted, primeAudio, registerSounds, resetAudioForTests, setMuted, setVolume, subscribeAudio } from './audio'
+import { getVolume, isMuted, play, primeAudio, registerSounds, resetAudioForTests, setMuted, setVolume, subscribeAudio } from './audio'
 
 const g = globalThis as unknown as { localStorage?: unknown }
 const original = g.localStorage
@@ -59,10 +59,16 @@ describe('audio preferences', () => {
 })
 
 describe('primeAudio (the Start tap unlocks sound for the auto-start after a rotation)', () => {
-  test('resumes one AudioContext and plays each registered sound once, muted, then restores it', async () => {
-    const calls = { resume: 0, started: 0, played: [] as string[] }
-    const w = globalThis as unknown as Record<string, unknown>
-    const saved = { window: w.window, Audio: w.Audio }
+  const w = globalThis as unknown as Record<string, unknown>
+  const saved = { window: w.window, Audio: w.Audio, localStorage: w.localStorage }
+  afterEach(() => {
+    w.window = saved.window
+    w.Audio = saved.Audio
+    w.localStorage = saved.localStorage
+  })
+
+  test('resumes one AudioContext, starts every pooled element muted, and later cues play through those same elements', async () => {
+    const calls = { resume: 0, started: 0, played: [] as string[], made: [] as unknown[] }
     class FakeCtx {
       destination = {}
       resume() { calls.resume++; return Promise.resolve() }
@@ -70,38 +76,34 @@ describe('primeAudio (the Start tap unlocks sound for the auto-start after a rot
       createBufferSource() { return { buffer: null, connect() {}, start() { calls.started++ } } }
     }
     class FakeAudio {
-      muted = false; currentTime = 1; preload = ''
-      constructor(public src: string) {}
-      play() { calls.played.push(`${this.src}:${this.muted ? 'muted' : 'loud'}`); return Promise.resolve() }
-      pause() {}
-      cloneNode() { return this }
+      muted = false; currentTime = 1; preload = ''; paused = true; ended = false; volume = 1
+      constructor(public src: string) { calls.made.push(this) }
+      play() { calls.played.push(`${this.src}:${this.muted ? 'muted' : 'loud'}`); this.paused = false; return Promise.resolve() }
+      pause() { this.paused = true }
+      cloneNode(): never { throw new Error('a cue must never play through a clone') }
     }
     w.window = { AudioContext: FakeCtx }
     w.Audio = FakeAudio
-    try {
-      registerSounds({ a: '/a.ogg', b: '/b.ogg' })
-      primeAudio()
-      primeAudio()
-      await Promise.resolve()
-      expect(calls.resume).toBe(2)
-      expect(calls.started).toBe(2)
-      expect(calls.played).toEqual(['/a.ogg:muted', '/b.ogg:muted', '/a.ogg:muted', '/b.ogg:muted'])
-    } finally {
-      w.window = saved.window
-      w.Audio = saved.Audio
-    }
+    g.localStorage = fakeStorage()
+    registerSounds({ a: '/a.ogg', b: '/b.ogg' })
+    primeAudio()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(calls.resume).toBe(1)
+    expect(calls.started).toBe(1)
+    expect(calls.made.length).toBe(6) // three elements per sound
+    expect(calls.played.length).toBe(6)
+    expect(calls.played.every((x) => x.endsWith(':muted'))).toBe(true)
+    // A real cue after the unlock: no new element is made, and the one that plays is one that was unlocked.
+    calls.played.length = 0
+    play('a')
+    expect(calls.made.length).toBe(6)
+    expect(calls.played).toEqual(['/a.ogg:loud'])
   })
 
   test('never throws without Web Audio or Audio', () => {
-    const w = globalThis as unknown as Record<string, unknown>
-    const saved = { window: w.window, Audio: w.Audio }
     w.window = {}
     w.Audio = undefined
-    try {
-      expect(() => primeAudio()).not.toThrow()
-    } finally {
-      w.window = saved.window
-      w.Audio = saved.Audio
-    }
+    expect(() => primeAudio()).not.toThrow()
   })
 })

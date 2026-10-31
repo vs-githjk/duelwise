@@ -81,6 +81,16 @@ describe('arena keyboard and mouse', () => {
     expect(DEFAULT_KEYS.back).toContain('KeyS')
   })
 
+  test('a saved map that already uses F for another action does not also fire on F', () => {
+    const { fire: _f, ...old } = DEFAULT_KEYS
+    const m = parseKeyMap(JSON.stringify({ ...old, reload: ['KeyF'], forward: ['KeyW'] }))
+    expect(m.reload).toEqual(['KeyF'])
+    expect(m.fire).toEqual([])
+    const s = new ArenaInputSampler(m)
+    s.down('KeyF')
+    expect(s.sample().fire).toBe(0)
+  })
+
   test('a key map saved before Fire existed keeps its bindings and gets F for fire', () => {
     const { fire: _f, ...old } = DEFAULT_KEYS
     const saved = JSON.stringify({ ...old, forward: ['KeyI'] })

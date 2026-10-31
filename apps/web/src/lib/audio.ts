@@ -11,7 +11,6 @@ interface AudioPrefs {
 
 const listeners = new Set<() => void>()
 const sounds = new Map<string, string>()
-const buffers = new Map<string, HTMLAudioElement>()
 let prefs: AudioPrefs | null = null
 
 function load(): AudioPrefs {
@@ -56,7 +55,7 @@ export function setMuted(m: boolean): void {
 export function resetAudioForTests(): void {
   prefs = null
   sounds.clear()
-  buffers.clear()
+  pools.clear()
 }
 
 /** Subscribe to volume and mute changes (useSyncExternalStore friendly). Returns the unsubscribe. */
@@ -68,7 +67,7 @@ export function subscribeAudio(fn: () => void): () => void {
 export function registerSounds(map: Record<string, string>): void {
   for (const [name, url] of Object.entries(map)) {
     sounds.set(name, url)
-    buffers.delete(name)
+    pools.delete(name)
   }
 }
 
@@ -77,20 +76,35 @@ export interface PlayOpts {
   gain?: number
 }
 
+const POOL_SIZE = 3
+/** Per sound: a few elements that are reused for every cue. iOS ties permission to the element a tap played, so a cue plays through one of these, never a fresh clone. */
+const pools = new Map<string, HTMLAudioElement[]>()
+
+function poolFor(name: string, url: string): HTMLAudioElement[] {
+  let pool = pools.get(name)
+  if (!pool) {
+    pool = Array.from({ length: POOL_SIZE }, () => {
+      const el = new Audio(url)
+      el.preload = 'auto'
+      return el
+    })
+    pools.set(name, pool)
+  }
+  return pool
+}
+
 /** Plays a registered sound. Silent when muted, unregistered, or the browser blocks audio. */
 export function play(name: string, opts: PlayOpts = {}): void {
   const p = load()
   const url = sounds.get(name)
   if (p.muted || !url || typeof Audio === 'undefined') return
   try {
-    let base = buffers.get(name)
-    if (!base) {
-      base = new Audio(url)
-      base.preload = 'auto'
-      buffers.set(name, base)
-    }
-    const el = base.cloneNode(true) as HTMLAudioElement
+    const pool = poolFor(name, url)
+    // A free element if there is one; when every one is busy the oldest restarts (a cue fired three times at once is one burst anyway).
+    const el = pool.find((e) => e.paused || e.ended) ?? pool[0]!
     el.volume = Math.min(1, Math.max(0, p.volume * (opts.gain ?? 1)))
+    el.muted = false
+    try { el.currentTime = 0 } catch { /* not seekable yet */ }
     void el.play().catch(() => {})
   } catch {
     // never let a sound break a game
@@ -122,15 +136,11 @@ export function primeAudio(): void {
   if (typeof Audio === 'undefined') return
   for (const [name, url] of sounds) {
     try {
-      let base = buffers.get(name)
-      if (!base) {
-        base = new Audio(url)
-        base.preload = 'auto'
-        buffers.set(name, base)
+      // Every element a later cue will play through is started once here, muted, inside the tap.
+      for (const el of poolFor(name, url)) {
+        el.muted = true
+        void el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = false }, () => { el.muted = false })
       }
-      const el = base
-      el.muted = true
-      void el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = false }, () => { el.muted = false })
     } catch {
       // a blocked element is simply not unlocked
     }

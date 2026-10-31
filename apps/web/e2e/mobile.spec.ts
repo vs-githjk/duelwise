@@ -52,6 +52,8 @@ for (const p of PHONES) {
           AudioContext.prototype.resume = function () { ww.__prime.resume++; return Promise.resolve() }
           speechSynthesis.speak = () => { ww.__prime.speak++ }
           Element.prototype.requestFullscreen = () => { w.__fs++; return Promise.resolve() }
+          ;(window as unknown as { __unlock: number }).__unlock = 0
+          Object.defineProperty(screen.orientation, 'unlock', { value: () => { (window as unknown as { __unlock: number }).__unlock++ }, configurable: true })
           Object.defineProperty(screen.orientation, 'lock', { value: (o: string) => { w.__lock.push(o); return Promise.resolve() }, configurable: true })
         })
       })
@@ -76,6 +78,7 @@ for (const p of PHONES) {
         await pressStart(page, game)
         await page.getByRole('button', { name: 'Cancel' }).click()
         await expect(page.getByTestId('rotate-overlay')).toHaveCount(0)
+        expect(await page.evaluate(() => (window as unknown as { __unlock: number }).__unlock), 'Cancel gives the screen lock back').toBeGreaterThan(0)
         await page.setViewportSize({ width: p.h, height: p.w })
         await page.waitForTimeout(1500)
         expect(await phase(page, game), 'a cancelled start must not run on rotate').toBe('setup')

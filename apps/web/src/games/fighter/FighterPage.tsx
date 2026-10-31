@@ -221,6 +221,7 @@ export default function FighterPage() {
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [me, setMe] = useState<CharacterChoice>({ character: 0, colorway: 0 })
   const [panel, setPanel] = useState<'controls' | 'moves' | null>(null)
+  const [leaving, setLeaving] = useState(false)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const host = useRef<HTMLDivElement>(null)
   // True once the match has left 'setup' since the player pressed Start, so the first render after the
@@ -284,7 +285,7 @@ export default function FighterPage() {
 
   // A sub-panel belongs to the pause menu: once the match is running again it is gone.
   useEffect(() => {
-    if (inMatch && !match.paused) setPanel(null)
+    if (inMatch && !match.paused) { setPanel(null); setLeaving(false) }
   }, [inMatch, match.paused])
 
   return (
@@ -396,9 +397,19 @@ export default function FighterPage() {
                   <a className={btnPlain} href="/settings" target="_blank" rel="noopener noreferrer">
                     Settings (new tab)
                   </a>
-                  <a className={btnPlain} href="/play" data-testid="pause-back">
-                    <span aria-hidden="true">←</span>&nbsp;All games
-                  </a>
+                  {leaving ? (
+                    <div className="grid gap-2 rounded-control border border-line p-3" data-testid="pause-leave-confirm" role="group" aria-label="Leave this match?">
+                      <p className="text-sm">Leave this match? It is not counted and nothing is saved.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <a className={btnPrimary} href="/play" data-testid="pause-leave">Leave match</a>
+                        <button type="button" className={btnPlain} onClick={() => setLeaving(false)}>Stay</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" className={btnPlain} data-testid="pause-back" onClick={() => setLeaving(true)}>
+                      <span aria-hidden="true">←</span>&nbsp;All games
+                    </button>
+                  )}
                   <button type="button" className={cn(btnPlain, 'text-bad-ink')} onClick={() => { setPanel(null); match.quit() }}>
                     Quit match
                   </button>
@@ -459,7 +470,7 @@ export default function FighterPage() {
             </p>
           ) : null}
         </div>
-        {inMatch && !over ? (
+        {inMatch && !over && !touch ? (
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span>
               <Key>{keyLabel(match.keys.pause[0] ?? 'Esc')}</Key> pause, move list and controls

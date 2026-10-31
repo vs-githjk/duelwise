@@ -66,8 +66,9 @@ export function parseKeyMap(raw: string | null): KeyMap {
     const v = JSON.parse(raw) as Record<string, unknown>
     const out = {} as KeyMap
     for (const a of ACTIONS) {
-      // A map saved before an action existed (Fire) takes that action's default instead of throwing the whole map away.
-      const list = v[a] === undefined ? DEFAULT_KEYS[a] : v[a]
+      // A map saved before Fire existed keeps its bindings; Fire gets its default key only when that key is not already used (a map that bound F
+      // to something else must not fire on F as well). Any other missing action takes its default, as before.
+      const list = v[a] === undefined ? (a === 'fire' ? DEFAULT_KEYS.fire.filter((c) => !Object.entries(v).some(([k, o]) => k !== 'fire' && Array.isArray(o) && o.includes(c))) : DEFAULT_KEYS[a]) : v[a]
       if (!Array.isArray(list) || !list.every((c) => typeof c === 'string')) return DEFAULT_KEYS
       out[a] = list as string[]
     }

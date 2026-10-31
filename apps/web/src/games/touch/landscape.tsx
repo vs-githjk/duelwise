@@ -9,18 +9,39 @@ import { primeSpeech } from '../../lib/speech'
 
 const PORTRAIT_QUERY = '(orientation: portrait)'
 
-/** True while the window is taller than it is wide. */
+/** True while the window is taller than it is wide: the orientation media query, or the window size where matchMedia is missing. */
+export function isPortraitNow(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    if (typeof matchMedia === 'function') return matchMedia(PORTRAIT_QUERY).matches
+  } catch { /* fall through to the size */ }
+  return window.innerHeight > window.innerWidth
+}
+
+/** Follows the orientation. Old Safari only has addListener on a MediaQueryList, and a resize also counts, so a missing or odd matchMedia never freezes the gate. */
 export function useIsPortrait(): boolean {
-  const [portrait, setPortrait] = useState(() => typeof matchMedia === 'function' && matchMedia(PORTRAIT_QUERY).matches)
+  const [portrait, setPortrait] = useState(isPortraitNow)
   useEffect(() => {
-    const mq = matchMedia(PORTRAIT_QUERY)
-    const update = () => setPortrait(mq.matches)
+    const update = () => setPortrait(isPortraitNow())
     update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
+    let mq: MediaQueryList | null = null
+    try { mq = typeof matchMedia === 'function' ? matchMedia(PORTRAIT_QUERY) : null } catch { mq = null }
+    if (mq?.addEventListener) mq.addEventListener('change', update)
+    else mq?.addListener?.(update)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      if (mq?.removeEventListener) mq.removeEventListener('change', update)
+      else mq?.removeListener?.(update)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
   }, [])
   return portrait
 }
+
+/** Counts fullscreen requests, so a late answer to an old one can tell it was cancelled. */
+let session = 0
 
 /**
  * Called from the Start tap (a user gesture): asks for fullscreen and a landscape lock where the browser
@@ -28,7 +49,10 @@ export function useIsPortrait(): boolean {
  * neither for pages, so every call is best effort and a refusal is silent.
  */
 export function enterLandscapePlay(): void {
+  const mine = ++session
+  // A request that resolves after the player cancelled (or left) must not leave the screen locked: it hands the screen back at once.
   const lock = () => {
+    if (mine !== session) { leaveLandscapePlay(); return }
     try {
       const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
       void o?.lock?.('landscape')?.catch(() => undefined)
@@ -46,6 +70,7 @@ export function enterLandscapePlay(): void {
 
 /** Gives the screen back: leaves fullscreen and releases the landscape lock. */
 export function leaveLandscapePlay(): void {
+  session++
   try { if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined) } catch { /* ignore */ }
   try { screen.orientation?.unlock?.() } catch { /* ignore */ }
 }
@@ -65,9 +90,9 @@ export function useLandscapeGate(touch: boolean) {
     primeAudio()
     primeSpeech()
     enterLandscapePlay()
-    if (typeof matchMedia === 'function' && matchMedia(PORTRAIT_QUERY).matches) { held.current = run; setWaiting(true) } else run()
+    if (isPortraitNow()) { held.current = run; setWaiting(true) } else run()
   }, [touch])
-  const cancel = useCallback(() => { held.current = null; setWaiting(false) }, [])
+  const cancel = useCallback(() => { held.current = null; setWaiting(false); leaveLandscapePlay() }, [])
   useEffect(() => {
     if (!waiting || portrait) return
     const run = held.current

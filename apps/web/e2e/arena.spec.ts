@@ -497,3 +497,21 @@ test.describe('arena laptop keys: arrows move, F fires', () => {
     await expect(guide.getByText('Mouse or trackpad', { exact: true })).toBeVisible()
   })
 })
+
+test.describe('leaving a live match from the pause menu', () => {
+  test('All games asks first; Stay keeps the match, Leave match goes to /play', async ({ page }) => {
+    test.setTimeout(90_000)
+    await startMatch(page, 'seed=44&renderer=debug')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Paused' })).toBeVisible()
+    await page.getByTestId('pause-back').click()
+    await expect(page.getByTestId('pause-leave-confirm')).toContainText('Leave this match?')
+    await expect(page).toHaveURL(/\/play\/coldstore/)
+    await page.getByRole('button', { name: 'Stay' }).click()
+    await expect(page.getByTestId('pause-leave-confirm')).toHaveCount(0)
+    await expect(page.getByTestId('arena-stage')).toHaveAttribute('data-paused', 'true')
+    await page.getByTestId('pause-back').click()
+    await page.getByTestId('pause-leave').click()
+    await expect(page).toHaveURL(/\/play$/)
+  })
+})
