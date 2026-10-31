@@ -18,6 +18,12 @@ test('after the push, and with no reveal, the header shows the state', () => {
   expect(progressNumbers(state, null)).toEqual({ hand: 6, net: 12 })
 })
 
+test('while a practice buy-back is offered, the header keeps the bust hand number', () => {
+  const state = { hand: 3, net: [-100, 100] as [number, number] }
+  expect(progressNumbers(state, { stage: 'push', summary: summary(2, -40) }, true)).toEqual({ hand: 3, net: -100 })
+  expect(progressNumbers(state, { stage: 'push', summary: summary(2, -40) }, false)).toEqual({ hand: 4, net: -100 })
+})
+
 test('a loss is added back, not subtracted, before the push', () => {
   expect(progressNumbers({ hand: 1, net: [-6, 6] }, { stage: 'show', summary: summary(0, -6) })).toEqual({ hand: 1, net: 0 })
 })

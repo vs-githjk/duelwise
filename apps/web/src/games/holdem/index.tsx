@@ -101,7 +101,7 @@ export default function HoldemPage() {
     const hidden = el.getBoundingClientRect().bottom - window.innerHeight + 12
     if (hidden > 0) window.scrollBy({ top: hidden, behavior: 'auto' })
   }, [match.canAct, state])
-  const shown = state ? progressNumbers(state, match.reveal) : null
+  const shown = state ? progressNumbers(state, match.reveal, match.buyBackOffer) : null
   const netText = shown ? (shown.net > 0 ? `+${shown.net}` : String(shown.net)) : ''
 
   return (
