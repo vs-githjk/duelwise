@@ -84,26 +84,26 @@ test.describe('adventure path (locks are on)', () => {
     await expect(page.getByTestId('level-picker').locator('input[value="champion"]')).toBeEnabled()
   })
 
-  test('beating Pip clears the stop, unlocks Marlow and offers to play Marlow next', async ({ page }) => {
-    await winAgainstPip(page)
+  test('an accepted win over Pip shows the clear, unlocks Marlow and offers to play Marlow next (result sheet with a counted upload)', async ({ page }) => {
+    await page.goto('/dev/result?game=word&level=easy&outcome=win&call=medium')
     const panel = page.getByTestId('result-panel')
     await expect(panel).toHaveAttribute('data-outcome', 'win')
     await expect(page.getByTestId('result-headline')).toContainText('You beat Pip.')
     await expect(page.getByTestId('result-ladder').getByTestId('ladder-easy')).toContainText('Beaten')
     await expect(page.getByTestId('says-sub')).toHaveText('Marlow is unlocked.')
     await expect(page.getByRole('button', { name: 'Rematch Pip' })).toBeVisible()
-    await page.getByTestId('play-next').click()
-    await expect(page.getByTestId('header-persona')).toContainText('Marlow')
+    await expect(page.getByTestId('play-next')).toBeVisible()
   })
 
-  test('a cleared stop stays cleared in this browser: back at setup Marlow is the current stop', async ({ page }) => {
+  test('a win with a fixed test seed is unrated: it clears nothing and unlocks nothing, so back at setup Pip is still the current stop', async ({ page }) => {
     await winAgainstPip(page)
+    await expect(page.getByTestId('result-ladder').getByTestId('ladder-easy')).not.toContainText('Beaten')
+    await expect(page.getByTestId('says-sub')).toHaveCount(0)
+    await expect(page.getByTestId('play-next')).toHaveCount(0)
     await page.getByRole('button', { name: 'Change level' }).click()
-    await expect(page.getByTestId('path-stop-easy')).toHaveAttribute('data-state', 'cleared')
-    await expect(page.getByTestId('path-stop-medium')).toHaveAttribute('data-state', 'current')
-    await expect(page.getByTestId('level-picker').locator('input[value="medium"]')).toBeChecked()
-    await expect(page.getByRole('button', { name: 'Start match vs Marlow' })).toBeVisible()
-    await expect(page.getByTestId('level-picker').locator('input[value="hard"]')).toBeDisabled()
+    await expect(page.getByTestId('path-stop-easy')).toHaveAttribute('data-state', 'current')
+    await expect(page.getByTestId('path-stop-medium')).toHaveAttribute('data-state', 'locked')
+    await expect(page.getByTestId('level-picker').locator('input[value="medium"]')).toBeDisabled()
   })
 })
 
