@@ -19,10 +19,10 @@ export const HAND_CHOICES = [5, 10, 15, 30] as const
  * How long a match runs. Absent fields mean the original match (30 hands, no bust ending), so a state, a record and a hash
  * made before these options existed are unchanged.
  */
-export interface MatchOptions {
+export type MatchOptions = {
   /** Length in hands; one of HAND_CHOICES. Default 30. */
   hands?: number
-  /** The first hand in which a player loses all 100 chips ends the match (chips still decide the winner). Default false. */
+  /** Strict bust rule: the first hand in which a player loses all 100 chips ends the match at once and that player loses, whatever the chip total. Every counted match sets it. Default false (the original rule, kept so older records replay). */
   untilBust?: boolean
   /** The player left the table after this many finished hands: the match ends there and is unrated. */
   leftAfter?: number
@@ -98,7 +98,7 @@ export interface HoldemState {
   over: { winner: Seat | null; reason: string } | null
   /** Hands in this match when it is not the default 30 (or the hand count where the player left). Absent for a default match. */
   limit?: number
-  /** True when the first bust ends the match. Absent for a default match. */
+  /** True when the strict bust rule applies. Absent for a default match. */
   untilBust?: true
 }
 
@@ -193,10 +193,10 @@ export function isLegal(s: HoldemState, seat: Seat, a: HoldemAction): boolean {
   }
 }
 
-function matchResult(net: [number, number], hands: number, bust: boolean): { winner: Seat | null; reason: string } {
+function matchResult(net: [number, number], hands: number): { winner: Seat | null; reason: string } {
   const winner: Seat | null = net[0] > net[1] ? 0 : net[1] > net[0] ? 1 : null
   const diff = Math.abs(net[0])
-  const after = hands + ' hands' + (bust ? ', ended by a bust' : '')
+  const after = hands + ' hands'
   return { winner, reason: winner === null ? 'chips level after ' + after : 'ahead by ' + diff + ' chips after ' + after }
 }
 
@@ -216,8 +216,8 @@ function finishHand(s: HoldemState, winner: Seat | null, showdown: boolean): Hol
   }
   // A bust: one side put in all 100 chips and lost them. Stacks reset every hand, so this is the biggest swing a hand has.
   const busted = winner !== null && s.total[winner === 0 ? 1 : 0] >= STACK
-  if (s.untilBust && busted) return { ...s, net, last: summary, over: matchResult(net, s.hand + 1, true), actor: s.actor }
-  if (s.hand + 1 >= (s.limit ?? MATCH_HANDS)) return { ...s, net, last: summary, over: matchResult(net, s.hand + 1, false), actor: s.actor }
+  if (s.untilBust && busted) return { ...s, net, last: summary, over: { winner, reason: 'the other player lost all ' + STACK + ' chips in hand ' + (s.hand + 1) }, actor: s.actor }
+  if (s.hand + 1 >= (s.limit ?? MATCH_HANDS)) return { ...s, net, last: summary, over: matchResult(net, s.hand + 1), actor: s.actor }
   return dealHand(s.seed, s.hand + 1, net, summary, undefined, { limit: s.limit, untilBust: s.untilBust })
 }
 

@@ -22,6 +22,8 @@ export interface RecorderInit {
   trainingAllowed: boolean
   device: MatchRecordV1['device']
   input: MatchRecordV1['input']
+  /** Hold'em only: the chosen match length, written into the record. */
+  options?: MatchRecordV1['options']
   /** Test hook for the clock. */
   now?: () => Date
 }
@@ -35,12 +37,23 @@ export interface FinishedMatch {
   error?: string
 }
 
+export interface RecorderMark {
+  actions: number
+  times: number
+}
+
 export interface MatchRecorder {
   /** Turn games: tick is the step index. Realtime: the frame; repeated inputs are dropped. */
   recordAction(tick: number, seat: Seat, action: number, humanInputMs?: number): void
   finish(core: GameCore<any, any, any>, finalState: unknown): Promise<FinishedMatch>
   /** Sets the seed of a sealed match once the server reveals it at the end; call before `finish`. */
   setSeed(seed: number): void
+  /** A place in the action list (a hand boundary), to cut back to when a player leaves mid-hand. */
+  mark(): RecorderMark
+  /** Drops every action recorded after `mark`. */
+  truncate(mark: RecorderMark): void
+  /** Replaces the record's options (a leave adds `leftAfter`). */
+  setOptions(options: MatchRecordV1['options']): void
   readonly actionCount: number
 }
 
@@ -57,11 +70,21 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
   const last: [number | null, number | null] = [null, null]
   let done = false
   let seed = init.seed
+  let options = init.options
 
   return {
     setSeed(next) {
       if (done) throw new Error('recorder: match already finished')
       seed = next
+    },
+    mark: () => ({ actions: actions.length, times: humanTimes.length }),
+    truncate(m) {
+      if (done) throw new Error('recorder: match already finished')
+      actions.length = Math.min(actions.length, m.actions)
+      humanTimes.length = Math.min(humanTimes.length, m.times)
+    },
+    setOptions(next) {
+      options = next
     },
     recordAction(tick, seat, action, humanInputMs) {
       if (done) throw new Error('recorder: match already finished')
@@ -98,6 +121,7 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
         device: init.device,
         input: init.input,
         trainingAllowed: init.trainingAllowed,
+        ...(options ? { options } : {}),
       }
       const check = replay(record, { core })
       return { record, bytes: await encodeRecordAsync(record), ok: check.ok, error: check.error }
@@ -107,7 +131,7 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
 
 /** The two server calls a counted match makes. Injected so tests and other callers need no network. */
 export interface MatchApi {
-  start(input: { game: GameId; level: Level; call?: Level }): Promise<StartBody>
+  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options'] }): Promise<StartBody>
   finish(bytes: Uint8Array): Promise<FinishBody>
   /** Gives up a counted match; the server scores it as a loss. */
   resign?(matchId: string, tick: number): Promise<ResignReply>
@@ -159,17 +183,19 @@ export async function beginSession(
   devSeed?: number,
   takeTicket: (game: GameId, level: Level) => Promise<Ticket | null> = takeLocalTicket,
   call?: Level,
+  options?: MatchRecordV1['options'],
 ): Promise<Session> {
   if (devSeed !== undefined) return { seed: devSeed, rated: false, unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
-    const s = await api.start({ game, level, ...(call ? { call } : {}) })
+    const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
     return { seed: s.seed, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(s.sealed === true ? { sealed: true } : {}) }
   } catch {
     // No server: a ticket issued earlier (while online) keeps the match counted, once its record uploads.
-    const ticket = await takeTicket(game, level).catch(() => null)
+    // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
+    const ticket = options ? null : await takeTicket(game, level).catch(() => null)
     if (ticket) return { seed: ticket.seed, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
-    return { seed: randomLocalSeed(), rated: false, unratedReason: offlineReason(game) }
+    return { seed: randomLocalSeed(), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
   }
 }
 
@@ -290,8 +316,8 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
 
   /** Gets the seed for a new match (from the server unless `devSeed` is given). Call before the game's init. */
   const begin = useCallback(
-    async (level: Level, devSeed?: number): Promise<Session> => {
-      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game))
+    async (level: Level, devSeed?: number, options?: MatchRecordV1['options']): Promise<Session> => {
+      const s = await beginSession(api, game, level, devSeed, undefined, takeCall(game), options)
       session.current = s
       setUnratedReason(s.unratedReason ?? null)
       // Online start: remember the level and top the offline ticket pool up in the background.
@@ -335,6 +361,10 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     recorder.current?.recordAction(tick, seat, action, humanInputMs)
     if (live.current) live.current.tick = Math.max(live.current.tick, tick + 1)
   }, [])
+
+  const mark = useCallback((): RecorderMark => recorder.current?.mark() ?? { actions: 0, times: 0 }, [])
+  const truncate = useCallback((m: RecorderMark) => recorder.current?.truncate(m), [])
+  const setOptions = useCallback((o: MatchRecordV1['options']) => recorder.current?.setOptions(o), [])
 
   const finish = useCallback(async (core: GameCore<any, any, any>, finalState: unknown) => {
     if (!recorder.current) throw new Error('useMatchRecorder: start() was not called')
@@ -399,5 +429,5 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     }
   }, [api])
 
-  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign }
+  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign, mark, truncate, setOptions }
 }

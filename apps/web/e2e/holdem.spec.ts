@@ -14,8 +14,10 @@ function watchConsole(page: Page): string[] {
   return errors
 }
 
-async function start(page: Page, query = '') {
+/** Starts a match against Easy. The suite's long specs were written for the full match, so the length defaults to 30 hands. */
+async function start(page: Page, query = '', length: '5' | '10' | '15' | '30' | 'bust' = '30') {
   await page.goto(URL + query)
+  await page.locator(`[data-length="${length}"]`).click()
   await page.getByRole('radio', { name: /Easy/ }).check()
   await page.getByRole('button', { name: 'Start match' }).click()
   await expect(page.getByTestId('holdem-table')).toBeVisible()
@@ -91,15 +93,18 @@ test.describe("Heads-Up Hold'em play page", () => {
     const record = page.getByTestId('holdem-record')
     await expect(record).toHaveAttribute('data-record-ok', 'true')
     await expect(record).toHaveAttribute('data-final-hash', /^[0-9a-f]{16}$/)
-    await expect(table(page)).toHaveAttribute('data-hand', '30')
-
-    // The hand history sums to the final chip difference, and the result agrees with its sign.
+    // A counted match ends after the chosen 30 hands, or at once when a player loses all 100 chips in a hand.
     const rows = await page.locator('[data-testid="history-row"]').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-delta'))))
-    expect(rows).toHaveLength(30)
+    // The history lists the newest hand first.
+    const last = rows[0]!
+    const busted = rows.length < 30
+    if (busted) expect(Math.abs(last)).toBeGreaterThanOrEqual(98)
+    await expect(table(page)).toHaveAttribute('data-hand', String(rows.length))
     const net = rows.reduce((a, b) => a + b, 0)
     expect(Number(await table(page).getAttribute('data-net'))).toBe(net)
     const outcome = await page.getByTestId('result-panel').getAttribute('data-outcome')
-    expect(outcome).toBe(net > 0 ? 'win' : net < 0 ? 'loss' : 'draw')
+    // A bust decides the match, not the chip total.
+    expect(outcome).toBe(busted ? (last > 0 ? 'win' : 'loss') : net > 0 ? 'win' : net < 0 ? 'loss' : 'draw')
     expect(errors).toEqual([])
   })
 
@@ -307,6 +312,17 @@ test.describe("Heads-Up Hold'em play page", () => {
       const rows = () => page.getByTestId('history-row').count()
       for (let guard = 0; guard < 1500; guard++) {
         const st = await table(page).evaluate((el) => ({ turn: el.getAttribute('data-turn'), stage: el.getAttribute('data-stage') }))
+        if (st.stage === 'runout') {
+          // data-hand already names the next hand, so the live hand is hand - 1 and only hand - 2 are finished.
+          // An all-in that is lost is a bust and ends the match: the state is then over and has not moved on, so one more hand is finished.
+          const hand = Number(await table(page).getAttribute('data-hand'))
+          const finished = st.turn === 'over' ? hand - 1 : hand - 2
+          expect(await rows(), 'the run-out hand is already in the history').toBe(finished)
+          await page.waitForTimeout(300)
+          expect(await rows(), 'a row appeared during the run-out').toBe(finished)
+          await expect(page.getByTestId('history-row')).toHaveCount(finished + 1, { timeout: 15_000 })
+          return
+        }
         if (st.turn === 'over') break
         if (st.turn === 'you') {
           const allin = page.getByTestId('preset-allin')
@@ -314,14 +330,6 @@ test.describe("Heads-Up Hold'em play page", () => {
             await allin.click()
             await page.getByTestId('bet-raise').click()
           } else await page.getByTestId('bet-call').click()
-        } else if (st.stage === 'runout') {
-          // data-hand already names the next hand, so the live hand is hand - 1 and only hand - 2 are finished.
-          const hand = Number(await table(page).getAttribute('data-hand'))
-          expect(await rows(), 'the run-out hand is already in the history').toBe(hand - 2)
-          await page.waitForTimeout(300)
-          expect(await rows(), 'a row appeared during the run-out').toBe(hand - 2)
-          await expect(page.getByTestId('history-row')).toHaveCount(hand - 1, { timeout: 15_000 })
-          return
         }
         await page.waitForTimeout(50)
       }
@@ -338,6 +346,58 @@ test.describe("Heads-Up Hold'em play page", () => {
       await expect(page.getByTestId('holdem-log')).toHaveText(/^You go all in to \d+$/)
     })
 
+    test('picks a 5 hand match, shows its length, leaves early on a phone and is told it is unrated', async ({ page }) => {
+      test.setTimeout(180_000)
+      await page.setViewportSize({ width: 393, height: 852 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.goto(URL + '?seed=7')
+      // The default is 10 hands and the last choice is remembered per device.
+      await expect(page.locator('[data-length="10"]')).toHaveAttribute('data-selected', 'true')
+      await page.locator('[data-length="5"]').click()
+      await page.getByRole('radio', { name: /Easy/ }).check()
+      await page.getByRole('button', { name: 'Start match' }).click()
+      await expect(table(page)).toBeVisible()
+      await expect(page.getByTestId('holdem-progress')).toContainText('Hand 1 of 5')
+      // Leaving is not offered until a hand is finished.
+      await expect(page.getByTestId('leave-table')).toBeDisabled()
+      for (let guard = 0; guard < 60; guard++) {
+        await waitForMe(page)
+        if ((await page.getByTestId('holdem-progress').textContent())?.includes('Hand 2 of 5')) break
+        await page.getByTestId('bet-fold').click().catch(async () => page.getByTestId('bet-call').click())
+      }
+      await expect(page.getByTestId('holdem-progress')).toContainText('Hand 2 of 5')
+      await expect(page.getByTestId('leave-table')).toBeEnabled()
+      await page.getByTestId('leave-table').click()
+      await page.getByTestId('leave-confirm').click()
+      await expect(page.getByTestId('holdem-left-note')).toHaveText(/^Unrated, you left after [1-9]\d* hands?$/)
+      await expect(page.getByTestId('holdem-record')).toHaveAttribute('data-record-ok', 'true')
+      // The choice survives a reload.
+      await page.goto(URL)
+      await expect(page.locator('[data-length="5"]')).toHaveAttribute('data-selected', 'true')
+    })
+
+    test('a counted 5 hand match that is left early is accepted by the server', async ({ page }) => {
+      test.setTimeout(180_000)
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      const finished = page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().headers()['content-type'] ?? '').includes('multipart'), { timeout: 60_000 })
+      await page.goto(URL)
+      await page.locator('[data-length="5"]').click()
+      await page.getByRole('radio', { name: /Easy/ }).check()
+      await page.getByRole('button', { name: 'Start match' }).click()
+      await expect(table(page)).toBeVisible()
+      for (let guard = 0; guard < 60; guard++) {
+        await waitForMe(page)
+        if ((await page.getByTestId('holdem-progress').textContent())?.includes('Hand 2 of 5')) break
+        await page.getByTestId('bet-fold').click().catch(async () => page.getByTestId('bet-call').click())
+      }
+      await page.getByTestId('leave-table').click()
+      await page.getByTestId('leave-confirm').click()
+      await expect(page.getByTestId('holdem-left-note')).toBeVisible()
+      const body = await (await finished).text()
+      expect(body).toContain('valid')
+      expect(body).not.toMatch(/"valid"\s*:\s*false|\\"valid\\"\s*:\s*false/)
+    })
+
     test('an all-in run-out deals the turn and river one at a time', async ({ page }) => {
       test.setTimeout(180_000)
       await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -349,15 +409,15 @@ test.describe("Heads-Up Hold'em play page", () => {
           stage: el.getAttribute('data-stage'),
           boardCount: Number(el.getAttribute('data-board-count')),
         }))
-        if (st.turn === 'over') break
-        if (st.turn === 'you') {
+        // A lost all-in is a bust and ends the match, but its board is still dealt street by street, so look at the run-out first.
+        if (st.stage === 'runout') counts.add(st.boardCount)
+        else if (st.turn === 'over') break
+        else if (st.turn === 'you') {
           const allin = page.getByTestId('preset-allin')
           if (await allin.isVisible()) {
             await allin.click()
             await page.getByTestId('bet-raise').click()
           } else await page.getByTestId('bet-call').click()
-        } else if (st.stage === 'runout') {
-          counts.add(st.boardCount)
         }
         // A run-out shows at least two separate board sizes (flop then turn, or turn then river).
         if (counts.size >= 2) break

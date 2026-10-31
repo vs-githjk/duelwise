@@ -15,10 +15,10 @@ export const guides: Record<GameId, Guide> = {
     win: 'The first player to line up four wins. A full board without four is a draw.', tip: 'Watch for a line your opponent can complete next turn.',
   },
   holdem: {
-    goal: 'Finish 30 hands with more chips won than your opponent.',
-    steps: ['Each hand starts with two private cards and forced bets.', 'Use the shared cards as they appear to make your best five card hand.', 'Choose whether to check, bet, call, raise, or fold when available.', 'A hand ends when someone folds or the remaining hands are compared.'],
+    goal: 'Finish the match with a higher chip total than your opponent.',
+    steps: ['Each hand starts with two private cards and forced bets.', 'Use the shared cards as they appear to make your best five card hand.', 'Choose whether to check, bet, call, raise, or fold when available.', 'A hand ends when someone folds or the remaining hands are compared.', 'Every hand starts with 100 chips each. Choose 5, 10, 15 or 30 hands. If a player loses all 100 chips in one hand, the match ends at once and that player loses.', 'You can leave the table after any finished hand. The match is scored on the chips so far and is unrated.'],
     controls: [{ keys: 'Mouse or touch', action: 'choose an action and bet size' }, { keys: 'Tab', action: 'move between controls' }, { keys: 'Enter or Space', action: 'press a button' }],
-    win: 'The player ahead in total chips after 30 hands wins. Equal totals are a draw.', tip: 'You can fold when the cost of staying in is too high.',
+    win: 'If a player loses all 100 chips in one hand, they lose the match. Otherwise the player ahead in total chips after the last hand wins; equal totals are a draw.', tip: 'You can fold when the cost of staying in is too high.',
   },
   word: {
     goal: 'Solve the same hidden five-letter word before your opponent.',

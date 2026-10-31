@@ -197,8 +197,10 @@ export async function startMatchHandler(
     if (why) return err(400, why)
     if ((options as MatchOptions).leftAfter !== undefined) return err(400, 'leftAfter is set when the match ends, not when it starts')
     const o = options as MatchOptions
-    if (!sameChoice(o, undefined)) chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), ...(o.untilBust ? { untilBust: true } : {}) }
+    chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), untilBust: true }
   }
+  // Every counted Hold'em match uses the strict bust rule, whatever the client asked for: the server stores it and the record must carry it.
+  if (game === 'holdem') chosen = { ...(chosen ?? {}), untilBust: true }
 
   const { trainingAllowed, playerAllowed } = await trainingFor(db, who, game as GameId, opts)
 

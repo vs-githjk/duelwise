@@ -60,30 +60,40 @@ describe("Hold'em match length on the server", () => {
     const r = await begin(GUEST, { hands: 5 })
     const { matchId, seed } = r.body as { matchId: string; seed: number }
     const row = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)))[0]!
-    expect((row.filterFlags as { holdemOptions: unknown }).holdemOptions).toEqual({ hands: 5 })
-    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 5 })), GUEST)
+    expect((row.filterFlags as { holdemOptions: unknown }).holdemOptions).toEqual({ hands: 5, untilBust: true })
+    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 5, untilBust: true })), GUEST)
     expect(out.body).toMatchObject({ valid: true })
   })
 
   test('a record that claims a length the player did not choose is rejected', async () => {
     const r = await begin(GUEST, { hands: 5 })
     const { matchId, seed } = r.body as { matchId: string; seed: number }
-    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 10 })), GUEST)
+    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 10, untilBust: true })), GUEST)
     expect(out.body).toMatchObject({ valid: false })
     expect((out.body as { reason: string }).reason).toMatch(/does not match the one chosen at the start/)
   })
 
-  test('a default 30 hand start rejects a short record, and a short start rejects a default record', async () => {
+  test('a default 30 hand start rejects a short record, and a short start rejects a default or non-strict record', async () => {
     const a = await begin(GUEST)
     const ra = a.body as { matchId: string; seed: number }
-    const bad = await finish(db, encodeRecord(play(ra.matchId, ra.seed, { hands: 5 })), GUEST)
+    const bad = await finish(db, encodeRecord(play(ra.matchId, ra.seed, { hands: 5, untilBust: true })), GUEST)
     expect((bad.body as { valid: boolean }).valid).toBe(false)
-    const b = await begin(GUEST, { hands: 10, untilBust: true })
+    const b = await begin(GUEST, { hands: 10 })
     const rb = b.body as { matchId: string; seed: number }
     const bad2 = await finish(db, encodeRecord(play(rb.matchId, rb.seed, undefined)), GUEST)
     expect((bad2.body as { valid: boolean }).valid).toBe(false)
+    // The strict bust rule is the server's choice, not the client's: a record that leaves it off does not match.
     const bad3 = await finish(db, encodeRecord(play(rb.matchId, rb.seed, { hands: 10 })), GUEST)
     expect((bad3.body as { valid: boolean }).valid).toBe(false)
+  })
+
+  test('every counted Hold\'em match is stored with the strict bust rule, even a default one', async () => {
+    const r = await begin(GUEST)
+    const { matchId, seed } = r.body as { matchId: string; seed: number }
+    const row = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)))[0]!
+    expect((row.filterFlags as { holdemOptions: unknown }).holdemOptions).toEqual({ untilBust: true })
+    const out = await finish(db, encodeRecord(play(matchId, seed, { untilBust: true })), GUEST)
+    expect(out.body).toMatchObject({ valid: true })
   })
 
   test('the start refuses unknown lengths, odd options, options for other games and a leave claimed up front', async () => {
@@ -96,7 +106,7 @@ describe("Hold'em match length on the server", () => {
   test('leaving early is valid and trainable but moves no rating', async () => {
     const r = await begin(USER, { hands: 10 })
     const { matchId, seed } = r.body as { matchId: string; seed: number }
-    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 10, leftAfter: 4 })), USER)
+    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 10, untilBust: true, leftAfter: 4 })), USER)
     expect(out.body).toMatchObject({ valid: true, unranked: true, left: true })
     expect((out.body as { elo?: unknown }).elo).toBeUndefined()
     expect((await db.select().from(schema.rating)).length).toBe(0)
@@ -108,7 +118,7 @@ describe("Hold'em match length on the server", () => {
   test('finishing the chosen length is rated as before', async () => {
     const r = await begin(USER, { hands: 5 })
     const { matchId, seed } = r.body as { matchId: string; seed: number }
-    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 5 })), USER)
+    const out = await finish(db, encodeRecord(play(matchId, seed, { hands: 5, untilBust: true })), USER)
     expect(out.body).toMatchObject({ valid: true })
     expect((out.body as { left?: boolean }).left).toBeUndefined()
     expect((await db.select().from(schema.rating)).length).toBe(1)
@@ -117,7 +127,7 @@ describe("Hold'em match length on the server", () => {
   test('a leave claimed beyond the chosen end is not a record at all', async () => {
     const r = await begin(USER, { hands: 5 })
     const { matchId, seed } = r.body as { matchId: string; seed: number }
-    const rec = play(matchId, seed, { hands: 5 })
-    expect(() => encodeRecord({ ...rec, options: { hands: 5, leftAfter: 5 } })).toThrow(/leftAfter/)
+    const rec = play(matchId, seed, { hands: 5, untilBust: true })
+    expect(() => encodeRecord({ ...rec, options: { hands: 5, untilBust: true, leftAfter: 5 } })).toThrow(/leftAfter/)
   })
 })

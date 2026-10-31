@@ -53,7 +53,7 @@ describe('match length', () => {
   })
 })
 
-describe('until someone busts', () => {
+describe('the strict bust rule', () => {
   test('the first all in that is lost ends the match at once', () => {
     let s = holdemCore.init(11, { untilBust: true })
     s = act(s, fold) // hand 0: a fold is not a bust
@@ -62,8 +62,27 @@ describe('until someone busts', () => {
     s = act(s, shove)
     s = act(s, call)
     expect(s.over).not.toBeNull()
-    expect(s.over!.reason).toMatch(/ended by a bust$/)
+    expect(s.over!.reason).toMatch(/lost all 100 chips in hand 2$/)
+    // The player who busted loses the match, whatever the chip total: the winner is the winner of the bust hand.
+    expect(s.over!.winner).toBe(s.last!.winner)
+    expect(holdemCore.result(s)!.winner).toBe(s.last!.winner)
     expect(Math.abs(s.net[0])).toBeGreaterThanOrEqual(98)
+  })
+
+  test('the bust ends a short match too, and the busted player loses even when the hand was the last one', () => {
+    let s = holdemCore.init(11, { hands: 5, untilBust: true })
+    s = act(s, fold)
+    s = act(s, shove)
+    s = act(s, call)
+    expect(s.over?.reason).toMatch(/hand 2$/)
+  })
+
+  test('without the rule the same all in does not end the match (older records replay unchanged)', () => {
+    let s = holdemCore.init(11)
+    s = act(s, fold)
+    s = act(s, shove)
+    s = act(s, call)
+    expect(s.over).toBeNull()
   })
 
   test('without a bust the 30 hand limit still ends it, and chips decide', () => {

@@ -1,7 +1,6 @@
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { holdemCore } from '@duelwise/core/src/games/holdem/core'
-import { MATCH_HANDS } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -15,6 +14,8 @@ import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { personaFor } from '../../personas'
 import { BetControls } from './BetControls'
 import { HandHistory } from './HandHistory'
+import { optionsFor, readChoice, saveChoice, type LengthChoice } from './length'
+import { MatchLength } from './MatchLength'
 import { progressNumbers } from './progress'
 import { HoldemStyles, Table, type TableTurn } from './Table'
 import { HUMAN, useHoldemMatch } from './useHoldemMatch'
@@ -58,13 +59,17 @@ export default function HoldemPage() {
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [length, setLength] = useState<LengthChoice>(readChoice)
   const controlsRef = useRef<HTMLDivElement>(null)
 
   const begin = (level: Level) => {
     const s = fixedSeed
     setFixedSeed(undefined)
     setConfirming(false)
-    return match.start(level, s)
+    setLeaving(false)
+    saveChoice(length)
+    return match.start(level, s, optionsFor(length))
   }
 
   const measured = registry?.measured[match.level]
@@ -101,14 +106,19 @@ export default function HoldemPage() {
       actions={<MuteToggle />}
       result={over && match.result ? (
             <>
+              {match.leftAfter !== null ? (
+                <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-left-note">
+                  Unrated, you left after {match.leftAfter} {match.leftAfter === 1 ? 'hand' : 'hands'}
+                </p>
+              ) : null}
               <ResultPanel
                 result={match.result}
                 humanSeat={HUMAN}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
                 unratedReason={match.unratedReason}
-                onRematch={() => void match.start(match.level)}
-                onPlayLevel={(l) => void match.start(l)}
+                onRematch={() => void match.start(match.level, undefined, match.options)}
+                onPlayLevel={(l) => void match.start(l, undefined, match.options)}
                 levels={levelInfo}
                 moves={match.finished ? match.finished.record.actions.filter((a) => a[1] === match.finished!.record.humanSeat).length : 0}
                 onChangeLevel={match.backToSetup}
@@ -149,10 +159,33 @@ export default function HoldemPage() {
                     Keep playing
                   </button>
                 </div>
+              ) : leaving ? (
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm leaving the table">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLeaving(false)
+                      void match.leave()
+                    }}
+                    className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white"
+                    data-testid="leave-confirm"
+                  >
+                    Yes, leave (unrated)
+                  </button>
+                  <button type="button" onClick={() => setLeaving(false)} className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold">
+                    Keep playing
+                  </button>
+                </div>
               ) : (
-                <button type="button" onClick={() => setConfirming(true)} disabled={!match.canAct} className="min-h-11 justify-self-start rounded-control border border-line bg-surface px-4 text-sm font-semibold disabled:opacity-50">
-                  Concede
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => setConfirming(true)} disabled={!match.canAct} className="min-h-11 justify-self-start rounded-control border border-line bg-surface px-4 text-sm font-semibold disabled:opacity-50">
+                    Concede
+                  </button>
+                  <button type="button" onClick={() => setLeaving(true)} disabled={match.handsDone < 1} data-testid="leave-table" className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold disabled:opacity-50">
+                    Leave table
+                  </button>
+                  <p className="basis-full text-xs text-muted">{match.handsDone < 1 ? 'You can leave the table after the first hand. A match you leave is scored on the chips so far and is unrated.' : 'Leaving scores the match on the chips so far. It is unrated.'}</p>
+                </div>
               )
             ) : null}
           </div>
@@ -162,8 +195,9 @@ export default function HoldemPage() {
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="holdem-setup">
           <p className="text-muted">
-            Heads-up no-limit Texas Hold&apos;em. Blinds 1 and 2, and both stacks reset to 100 chips every hand. A match is {MATCH_HANDS} hands; whoever has more chips at the end wins.
+            Heads-up no-limit Texas Hold&apos;em. Blinds 1 and 2, and both stacks reset to 100 chips every hand. Pick a match of 5, 10, 15 or 30 hands. If a player loses all 100 chips in one hand, the match ends at once and that player loses. Otherwise whoever has more chips after the last hand wins. You can leave the table after any finished hand: the match is scored on the chips so far, but it is unrated.
           </p>
+          <MatchLength value={length} onChange={setLength} disabled={match.phase === 'starting'} />
           <p className="rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="chips-only-note">
             {CHIPS_ONLY}
           </p>
@@ -193,7 +227,7 @@ export default function HoldemPage() {
           <PlayHud turn={over ? 'over' : match.canAct || match.reveal ? 'you' : 'ai'} swatch="bg-felt" matchKey={match.seed} />
           <p className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm text-muted" data-testid="holdem-progress">
             <span>
-              Hand <b className="font-mono tabular text-ink">{shown!.hand}</b> of {MATCH_HANDS}
+              Hand <b className="font-mono tabular text-ink">{shown!.hand}</b> of {match.limit}
             </span>
             <span>
               Chips <b className="font-mono tabular text-ink" data-testid="net-chips">{netText}</b>
