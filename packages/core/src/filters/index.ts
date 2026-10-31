@@ -4,6 +4,7 @@ import { fourFilter } from './four'
 
 export * from './common'
 export { fourFilter, fourMoves, fourStartPositions } from './four'
+export { chessFilter, holdemFilter, hasHumanFilter, humanFilterMatch, CHESS_MIN_HUMAN_MOVES, HOLDEM_MIN_HANDS, MIN_MEDIAN_INPUT_MS } from './human'
 
 /** Game-specific rules, run after the common ones. A game without an entry has no retrain adapter yet. */
 const GAME_FILTERS: Partial<Record<GameId, (row: FilterRow) => FilterResult>> = {
