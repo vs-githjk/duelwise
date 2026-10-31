@@ -12,6 +12,7 @@ import { sweepOpenOverCap } from './abandon'
 import { type AgentCheck, CHECK_CLAIM_MS, SERVER_CHECKED } from './agent-check'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
+import { LEFT_FLAG } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
 import { takeTicket } from './tickets'
 
@@ -376,6 +377,8 @@ export async function finishMatchHandler(
     }
   }
   const valid = reason === undefined
+  // Left before its chosen end: kept as a result and for training, marked so no competitive read counts it.
+  const left = rec.options?.leftAfter !== undefined
   const trainable = valid && row.trainingAllowed && rec.trainingAllowed && (opts.recordsTrainable ?? (() => true))(row.game as GameId)
 
   const updated = await db
@@ -390,7 +393,7 @@ export async function finishMatchHandler(
       // A deferred match is not trainable until its check passes.
       trainingAllowed: trainable && !deferred,
       // A number (not true) so no filter reader counts it; the report says "being checked" while it is set.
-      ...(deferred ? { filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) || ${JSON.stringify({ deferredCheckAt: Date.now() })}::jsonb || jsonb_build_object('deferredTrainingRevoked', not ${schema.match.trainingAllowed})` } : {}),
+      ...(deferred ? { filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) || ${JSON.stringify({ deferredCheckAt: Date.now(), ...(left ? { [LEFT_FLAG]: true } : {}) })}::jsonb || jsonb_build_object('deferredTrainingRevoked', not ${schema.match.trainingAllowed})` } : left ? { filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) || ${JSON.stringify({ [LEFT_FLAG]: true })}::jsonb` } : {}),
       finishedAt: new Date(),
     })
     .where(and(eq(schema.match.id, row.id), eq(schema.match.status, 'started')))

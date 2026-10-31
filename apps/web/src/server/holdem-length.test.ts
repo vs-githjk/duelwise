@@ -9,6 +9,9 @@ import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { startMatchHandler } from './match-handlers'
 import { finishUnchecked as finish } from './finish-unchecked'
+import { getPath } from './path'
+import { finishedResults } from './results'
+import { getGameStats, trainingEligible } from './stats'
 
 type Db = PgliteDatabase<typeof schema>
 let client: PGlite
@@ -136,4 +139,39 @@ describe("Hold'em match length on the server", () => {
     const rec = play(matchId, seed, { hands: 5, untilBust: true })
     expect(() => encodeRecord({ ...rec, options: { hands: 5, untilBust: true, leftAfter: 5 } })).toThrow(/leftAfter/)
   })
+
+describe('a match left early counts for nothing competitive', () => {
+  /** Finishes a match, then makes its stored result a human win, so only the left marker can keep it off the board. */
+  async function finishedWin(options: MatchOptions & { leftAfter?: number }, who = USER) {
+    const r = await begin(who, { hands: 10 })
+    const { matchId, seed } = r.body as { matchId: string; seed: number }
+    await finish(db, encodeRecord(play(matchId, seed, options)), who)
+    await db.update(schema.match).set({ result: { winner: 0, score: [1, 0], reason: 'ahead' } }).where(eq(schema.match.id, matchId))
+    return matchId
+  }
+  const since = new Date(Date.now() - 86_400_000)
+
+  test('control: a match played to its end is a clear, a board result and a win in the weekly rate', async () => {
+    await finishedWin({ hands: 10, untilBust: true })
+    expect((await getPath(db, USER, 'holdem')).easy).toBe(true)
+    expect(await finishedResults(db, { game: 'holdem', since })).toHaveLength(1)
+    const w = (await getGameStats(db, 'holdem')).weekly.at(-1)!.levels.easy
+    expect(w?.wins).toBe(1)
+  })
+
+  test('a left match is not a path clear, not a board result, not a win in the weekly rate, but is still trainable and played', async () => {
+    const id = await finishedWin({ hands: 10, untilBust: true, leftAfter: 4 })
+    const row = (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
+    expect((row.filterFlags as { leftTable?: boolean }).leftTable).toBe(true)
+    expect(row).toMatchObject({ status: 'finished', recordValid: true, trainingAllowed: true })
+    expect(trainingEligible(row)).toBe(true)
+    expect((await getPath(db, USER, 'holdem')).easy).toBe(false)
+    expect(await finishedResults(db, { game: 'holdem', since })).toHaveLength(0)
+    const stats = await getGameStats(db, 'holdem')
+    expect(stats.weekly.at(-1)!.levels.easy?.wins ?? 0).toBe(0)
+    expect(stats.funnel.played).toBe(1)
+    expect(stats.funnel.allowed).toBe(1)
+    expect((await db.select().from(schema.rating)).length).toBe(0)
+  })
+})
 })
