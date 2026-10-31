@@ -28,7 +28,7 @@ describe('limiter compliance over recorded games', () => {
     await record('easy', await load(HARD_V2), [11, 12])
     await record('medium', await load(HARD_V2), [13, 14])
     await record('hard', await load(HARD_V2), [15, 16])
-    await record('champion', await load(`${V1}/champion.onnx`), [17, 18])
+    await record('champion', await load(`${V1}/champion-b6.onnx`), [17, 18])
     for (const g of games.values()) for (const r of g) expect(r.seats[0]!.decisions.length).toBeGreaterThan(100)
   }, 240_000)
 

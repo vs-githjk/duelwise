@@ -49,7 +49,7 @@ describe('every real registry: measured or Practice per game and level', () => {
     expect(measuredSet(real('holdem'))).toEqual(['easy', 'medium', 'hard'])
   })
   test('fighter and arena on this branch: exact sets', () => {
-    expect(measuredSet(real('fighter'))).toEqual(['easy', 'medium', 'hard'])
+    expect(measuredSet(real('fighter'))).toEqual(['easy', 'medium', 'hard', 'champion'])
     expect(measuredSet(real('arena'))).toEqual(['easy', 'champion'])
   })
   test('Four fails when its gate evidence is weakened', () => {

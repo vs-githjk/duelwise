@@ -36,11 +36,11 @@ export interface FighterTick {
   anchor: number
 }
 
-// R50: all levels use the same network, with publication determined by the registry.
+// R50: Easy, Medium and Hard share the b5 Hard network. Champion serves its own b6 network (Oct 30 training, Champion to clearly beat Hard); the registry decides publication.
 export const PUBLISHED_V1: readonly Level[] = Object.keys(fighterRegistry.levels) as Level[]
 export const PRACTICE_MODELS: Record<Level, string> = {
   easy: 'agents/fighter/v1/hard.onnx', medium: 'agents/fighter/v1/hard.onnx',
-  hard: 'agents/fighter/v1/hard.onnx', champion: 'agents/fighter/v1/hard.onnx',
+  hard: 'agents/fighter/v1/hard.onnx', champion: 'agents/fighter/v1/champion-b6.onnx',
 }
 
 function modelPath(level: Level): string {

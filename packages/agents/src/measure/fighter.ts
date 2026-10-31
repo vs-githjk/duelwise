@@ -11,7 +11,7 @@ import { agentInputLagFor } from '@duelwise/core/src/games/fighter/constants'
 import { N_BUTTONS, N_DIRS, packInput } from '@duelwise/core/src/games/fighter/input'
 import { copyState, createState, PHASE, type FighterState } from '@duelwise/core/src/games/fighter/state'
 import { makeRng } from '@duelwise/core/src/rng'
-import { createGameAgent } from '../fighter/agent'
+import { createGameAgent, PRACTICE_MODELS } from '../fighter/agent'
 import { parseRegistry, writeRegistry, type Registry } from '../registry'
 import { harnessRuntime } from './harness'
 import { separationFailures, wilson } from './ladder'
@@ -436,8 +436,8 @@ export { writeRegistry }
 //   Reports seeded idle, held-input and fresh-attack repetition statistics, with optional frame traces.
 //   bun packages/agents/src/measure/fighter.ts publish --evals <dir> --scratch <dir> [--games 400]
 //   <dir>/{easy,medium,hard,champion}.json  training diagnostics identify levels to measure (a level with no file is not published)
-//   <scratch>/{easy,medium,hard,champion}.onnx  copies of the served Hard model
-// The published models are read from apps/web/public/agents/fighter/v1/. Writes packages/agents/registry/fighter.json.
+//   <scratch>/{easy,medium,hard,champion}.onnx  copies of the model each level serves (PRACTICE_MODELS)
+// The published models are read from apps/web/public/agents/fighter/v1/. Writes packages/agents/registry/fighter.json and the served rows to packages/agents/eval/fighter/.
 
 /** Levels held back at publish: Champion trailing Hard against a loop (KC1), or any upper level whose ladder pair did not separate (95% lower bound above 0.5). */
 export function fighterLevelFailures(trail: string | null, pairs: Array<{ lower: Level; upper: Level; score: number; n: number }>): Partial<Record<Level, string>> | undefined {
@@ -475,7 +475,7 @@ async function publishMain(argv: string[]): Promise<void> {
   const { execSync } = await import('node:child_process')
   const { join, resolve } = await import('node:path')
   const root = resolve(import.meta.dir, '../../../..')
-  const v1 = join(root, 'apps/web/public/agents/fighter/v1')
+  const servedPath = (level: Level) => `apps/web/public/${PRACTICE_MODELS[level]}`
   const read = async (p: string) => new Uint8Array(await Bun.file(p).arrayBuffer())
   const rows: PublishInput['rows'] = {}
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
@@ -487,9 +487,8 @@ async function publishMain(argv: string[]): Promise<void> {
   const failed = readFailedLevels(argv, (path) => JSON.parse(readFileSync(path, 'utf8')) as BotRow[])
   Object.assign(rows, failed)
   // Python rows are training diagnostics only. Gate and published scores must use the served model and action layer.
-  const servedBytes = await read(join(v1, 'hard.onnx'))
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
-    if (rows[level]) rows[level] = await measureServedBots({ level, bytes: servedBytes })
+    if (rows[level]) rows[level] = await measureServedBots({ level, bytes: await read(join(root, servedPath(level))) })
   }
   const games = Number(arg('games') ?? GATE_MATCHES)
   if (arg('reuse-ladder')) throw new Error('R50 requires a fresh ladder for all four levels')
@@ -498,12 +497,11 @@ async function publishMain(argv: string[]): Promise<void> {
   const previous = arg('reuse-ladder') ? parseRegistry(JSON.parse(readFileSync(arg('reuse-ladder')!, 'utf8'))) : null
   const oldGate = previous?.versions[0]?.gate as { ladder?: { pairs: Array<{ lower: Level; upper: Level; score: number; n: number }> } } | undefined
   if (previous && !oldGate?.ladder?.pairs) throw new Error('previous registry has no ladder pairs')
-  if (previous && previous.versions[0]?.sha256['hard.onnx'] !== sha256(join(v1, 'hard.onnx'))) throw new Error('Hard artifact differs from previous registry')
+  if (previous && previous.versions[0]?.sha256['hard.onnx'] !== sha256(join(root, servedPath('hard')))) throw new Error('Hard artifact differs from previous registry')
   if (!previous) {
-    const served = await read(join(v1, 'hard.onnx'))
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const candidate = await read(join(scratch, `${level}.onnx`))
-      if (!Buffer.from(candidate).equals(Buffer.from(served))) throw new Error(`${level} ladder model differs from the served Hard model`)
+      if (!Buffer.from(candidate).equals(Buffer.from(await read(join(root, servedPath(level)))))) throw new Error(`${level} ladder model differs from the model it serves`)
     }
   }
   const { elo, pairs } = previous
@@ -531,7 +529,7 @@ async function publishMain(argv: string[]): Promise<void> {
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
     // A level with no source (no gated snapshot of it) has no model entry, so it is reported as "no snapshot cleared the gate", not "not measured".
     if (!meta[level]) continue
-    models[level] = { artifact: 'apps/web/public/agents/fighter/v1/hard.onnx', absolute: join(v1, 'hard.onnx'), ...meta[level] }
+    models[level] = { artifact: servedPath(level), absolute: join(root, servedPath(level)), ...meta[level] }
   }
   // KC1: Champion must not trail Hard against a loop; a Champion that does is not published even if it clears its bars.
   const trail = rows.hard && rows.champion ? championTrailsHard(rows.hard, rows.champion) : null
@@ -549,13 +547,16 @@ async function publishMain(argv: string[]): Promise<void> {
       ? { pairs: [], note: 'Not measured: no level passed the scripted-bot gate (R30 exploit bars), so no site Elo is published.' }
       : {
       pairs: pairs.map((p) => ({ ...p, lowerBound: round6(wilson(p.score * p.n, p.n)[0]) })),
-      note: previous ? 'Historical ladder results reused from the prior registry, not re-measured. The former Champion pair is omitted because Practice Champion changed.' : 'Seat-swapped head to head, each upper level against the level below. Site Elo is anchored at 1000 on Easy and chained up; all levels use the served Hard network with their own limits.',
+      note: previous ? 'Historical ladder results reused from the prior registry, not re-measured. The former Champion pair is omitted because Practice Champion changed.' : 'Seat-swapped head to head, each upper level against the level below. Site Elo is anchored at 1000 on Easy and chained up; Easy, Medium and Hard use the served Hard network and Champion its own, each with its own limits.',
     },
   })
   if (previous) for (const level of Object.keys(reg.measured) as Level[]) {
     if (previous.measured[level]) reg.measured[level] = previous.measured[level]
   }
   await writeRegistry(join(root, 'packages/agents/registry/fighter.json'), reg)
+  // Keep the served rows next to the registry: registry-rows.test.ts checks every published row against these files.
+  for (const [level, levelRows] of Object.entries(rows)) await Bun.write(join(root, `packages/agents/eval/fighter/${level}.json`), `${JSON.stringify(levelRows, null, 2)}\n`)
+  await Bun.write(join(root, 'packages/agents/eval/fighter/sources.json'), `${JSON.stringify(meta, null, 2)}\n`)
   console.log(JSON.stringify({ pairs, elo, published: Object.keys(reg.levels), unpublished: reg.unpublished }, null, 2))
 }
 

@@ -177,11 +177,13 @@ test.describe('fighter play page', () => {
   })
 
   test('picking a Practice level shows the persona name and the practice line, no strength number', async ({ page }) => {
-    await page.goto(`/play/${SLUG}?level=champion`)
+    const practice = ALL_LEVELS.find((l) => !publishedLevels('fighter').includes(l))
+    test.skip(practice === undefined, 'every Tinderbox level is published')
+    await page.goto(`/play/${SLUG}?level=${practice}`)
     const picker = page.getByTestId('level-picker')
-    await expect(picker.locator('input[value="champion"]')).toBeChecked()
+    await expect(picker.locator(`input[value="${practice}"]`)).toBeChecked()
     await expect(picker.getByText('In training', { exact: true }).first()).toBeVisible()
-    await expect(page.getByTestId('agent-name')).toContainText(/\w+, Champion/)
+    await expect(page.getByTestId('agent-name')).toContainText(new RegExp(`\\w+, ${practice}`, 'i'))
     await expect(page.getByTestId('agent-name')).not.toContainText(PRODUCT.name)
     await expect(page.getByTestId('strength-line')).toContainText('In training: an early version that has not passed our strength test yet.')
     await expect(page.getByTestId('strength-line')).not.toContainText(/of 10|elo/i)
@@ -241,7 +243,9 @@ test.describe('fighter play page', () => {
 
   test('an unpublished level is called Practice in the header badge and the HUD pill', async ({ page }) => {
     test.setTimeout(90_000)
-    await startMatch(page, 'seed=15&level=champion')
+    const practice = ALL_LEVELS.find((l) => !publishedLevels('fighter').includes(l))
+    test.skip(practice === undefined, 'every Tinderbox level is published')
+    await startMatch(page, `seed=15&level=${practice}`)
     await expect(page.getByTestId('preview-badge')).toHaveText('In training')
     await expect(page.getByTestId('ai-pill')).toContainText('In training')
     await expect(page.getByTestId('ai-pill')).not.toContainText('Preview')
