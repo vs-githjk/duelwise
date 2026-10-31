@@ -468,6 +468,41 @@ describe('review fixes', () => {
     await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), holdoutPercent: 100 })).resolves.toBeDefined()
   }, 120000)
 
+  test('profile-holdem end to end on a scratch source: the opted-out player is out, the same match of another player is kept, nothing is left in tmp, and without migration 0007 it refuses', async () => {
+    const base = await out()
+    const dbDir = join(base, 'scratch-pglite')
+    const client = new PGlite(dbDir)
+    const db = drizzle(client, { schema })
+    await migrateDb(db)
+    await db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
+    const insert = (id: string, guestId: string, n: number) => db.insert(schema.match).values({
+      id, game: 'holdem', guestId, agentVersion: 'v1', level: 'champion', seed: 61, status: 'finished', recordValid: true, trainingAllowed: true, traffic: 'human',
+      record: encodeRecord(holdemRecord(id, 61)), startedAt: new Date(Date.parse('2026-10-30T08:00:00Z') + n * 1000), finishedAt: new Date(),
+    })
+    await insert('out-first', 'g-out', 0)
+    await insert('in-second', 'g-in', 1)
+    await client.close()
+
+    const tmp = await out()
+    const run = script('profile-holdem.ts', { TMPDIR: tmp })
+    const ok = run('--out', join(base, 'o'), '--pglite', dbDir)
+    expect(ok.code).toBe(0)
+    const profiles = JSON.parse(await readFile(join(base, 'o', 'holdem-profiles', 'profiles.json'), 'utf8')) as Array<{ player: string }>
+    expect(profiles.map((p) => p.player)).toEqual([playerKey(null, 'g-in')])
+    const summary = JSON.parse(await readFile(join(base, 'o', 'holdem-profiles', 'summary.json'), 'utf8'))
+    expect(summary).toMatchObject({ players: 1, matches: 1, optedOutMatches: 1 })
+    expect((await readdir(tmp)).filter((f) => f.startsWith('duelwise-'))).toEqual([])
+
+    const old = new PGlite(dbDir)
+    await old.exec('alter table guest drop column poker_profile_allowed')
+    await old.close()
+    const refused = run('--out', join(base, 'o2'), '--pglite', dbDir)
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain('migration 0007')
+    expect(await readdir(join(base, 'o2')).catch(() => [])).toEqual([])
+    expect((await readdir(tmp)).filter((f) => f.startsWith('duelwise-'))).toEqual([])
+  }, 120000)
+
   test('a misspelled, stray or repeated argument stops either script instead of leaving the default in place', () => {
     const exportRun = script('export-human.ts')
     for (const tail of [['--cap-per-dya', '5'], ['--cap-per-day=5'], ['--include-practise'], ['5'], ['--cap-per-day', '5', '--cap-per-day', '6']]) {
