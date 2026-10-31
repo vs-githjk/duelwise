@@ -125,3 +125,19 @@ test.describe('sign-in and the training notice', () => {
     await expect(page.getByTestId('four-board')).toBeVisible()
   })
 })
+
+test.describe('sign-in inside a social app', () => {
+  test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [LinkedInApp]/9.31.1' })
+
+  test('the page says Google sign-in needs a real browser and that playing still works', async ({ page }) => {
+    await page.goto('/signin')
+    await expect(page.getByTestId('signin-in-app')).toContainText('Safari or Chrome')
+    await expect(page.getByTestId('signin-in-app')).toContainText('keep playing')
+  })
+})
+
+test('a normal browser sees no in-app notice', async ({ page }) => {
+  await page.goto('/signin')
+  await expect(page.getByTestId('signin')).toBeVisible()
+  await expect(page.getByTestId('signin-in-app')).toHaveCount(0)
+})

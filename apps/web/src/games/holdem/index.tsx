@@ -260,7 +260,7 @@ export default function HoldemPage() {
             {match.log}
           </p>
           <p className="text-center text-sm" data-testid="holdem-log">
-            {match.log}
+            {over ? '' : match.log}
           </p>
           {over ? null : match.buyBackOffer ? (
             <section className="grid justify-items-center gap-2 rounded-card border border-line bg-surface-2 p-4 text-center" data-testid="buyback" aria-label="Buy back in">
