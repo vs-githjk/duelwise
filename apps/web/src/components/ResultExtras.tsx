@@ -10,16 +10,14 @@ import { personaFor } from '../personas'
 /** The opponent's line, in a peach box: portrait, the line, a sub line from the match, and the voice switch. */
 export function SaysBox({ level, text, sub, voice }: { level: Level; text: string; sub?: string | null; voice: { supported: boolean; on: boolean; toggle: () => void } }) {
   return (
-    <div className="grid gap-2 rounded-card bg-peach-soft p-3.5" data-testid="says-box">
-      <div className="flex items-start gap-3">
-        <Avatar level={level} size={44} decorative />
-        <div className="grid min-w-0 flex-1 gap-1">
-          <p className="font-display text-lg font-bold leading-snug" data-testid="says-line">{text}</p>
-          {sub ? <p className="text-xs text-muted" data-testid="says-sub">{sub}</p> : null}
-        </div>
+    <div className="flex items-center gap-3 rounded-card bg-peach-soft p-3" data-testid="says-box">
+      <Avatar level={level} size={40} decorative />
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <p className="font-display text-base font-bold leading-snug" data-testid="says-line">{text}</p>
+        {sub ? <p className="text-xs text-muted" data-testid="says-sub">{sub}</p> : null}
       </div>
       {voice.supported ? (
-        <button type="button" onClick={voice.toggle} aria-pressed={voice.on} className="inline-flex min-h-11 w-fit items-center justify-self-end rounded-full bg-action-soft px-3 text-xs font-semibold text-action" data-testid="voice-toggle">
+        <button type="button" onClick={voice.toggle} aria-pressed={voice.on} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-action-soft px-3 text-xs font-semibold text-action" data-testid="voice-toggle">
           {voice.on ? 'Voice on' : 'Voice off'}
         </button>
       ) : null}
@@ -30,16 +28,16 @@ export function SaysBox({ level, text, sub, voice }: { level: Level; text: strin
 /** Four rungs, Pip to Sable: beaten, your call, or still ahead. State is words as well as colour. */
 export function Ladder({ path, call, played, won, levels }: { path: PathMap; call: Level | null; played: Level; won: boolean; levels?: Partial<Record<Level, LevelInfo>> }) {
   return (
-    <ol className="grid grid-cols-4 gap-2" aria-label="Your path" data-testid="result-ladder">
+    <ol className="grid grid-cols-4 gap-1.5" aria-label="Your path" data-testid="result-ladder">
       {LEVELS.map((l) => {
         const beaten = path[l] || (won && l === played)
         const isCall = call === l && !beaten
         const practice = levels?.[l]?.practice
         return (
-          <li key={l} className={cn('grid justify-items-center gap-1 rounded-control border px-1 py-2.5 text-center', beaten ? 'border-good bg-good-soft' : isCall ? 'border-2 border-dashed border-action bg-surface' : 'border-line bg-surface')} data-testid={`ladder-${l}`}>
-            <Avatar level={l} size={36} decorative dim={!beaten && !isCall && l !== played} />
-            <b className="text-sm">{personaFor(l).name}</b>
-            <span className={cn('text-xs', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'Practice' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
+          <li key={l} className={cn('grid justify-items-center gap-0.5 rounded-control border px-1 py-1.5 text-center', beaten ? 'border-good bg-good-soft' : isCall ? 'border-2 border-dashed border-action bg-surface' : 'border-line bg-surface')} data-testid={`ladder-${l}`}>
+            <Avatar level={l} size={28} decorative dim={!beaten && !isCall && l !== played} />
+            <b className="text-xs">{personaFor(l).name}</b>
+            <span className={cn('text-xs leading-tight', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'Practice' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
           </li>
         )
       })}
@@ -89,10 +87,10 @@ export function ShareBlock({ facts, game }: { facts: ShareFacts; game: GameId })
   }
   const btn = 'inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-semibold'
   return (
-    <section className="grid gap-2 rounded-card border border-dashed border-line p-3.5" aria-label="Share" data-testid="share-block">
-      <b className="text-sm">Share</b>
-      <pre className="whitespace-pre-wrap break-words rounded-control bg-surface-2 p-3 font-mono text-xs leading-relaxed" data-testid="share-text">{text}</pre>
+    <section className="grid gap-2 rounded-card border border-dashed border-line p-3" aria-label="Share" data-testid="share-block">
+      <pre className="line-clamp-3 whitespace-pre-wrap break-words rounded-control bg-surface-2 px-3 py-2 font-mono text-xs leading-snug" data-testid="share-text">{text}</pre>
       <div className="flex flex-wrap items-center gap-2">
+        <b className="mr-1 text-sm">Share</b>
         <button type="button" className={btn} onClick={() => void copy()}>Copy</button>
         <button type="button" className={btn} onClick={() => void save()}>Save card</button>
         {canShare ? <button type="button" className={btn} onClick={() => void share()}>Share</button> : null}

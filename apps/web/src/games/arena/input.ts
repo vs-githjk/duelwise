@@ -10,21 +10,23 @@ import { PITCH_LIMIT } from '@duelwise/core/src/games/arena/core'
 // nothing is ever dropped (R30: the old 255 limit with a 3 frame backlog cut a 90 degree flick to 67).
 // The camera reads pendingTurn() every rendered frame, so the view follows the mouse without waiting for the 60 Hz sim.
 
-export const ACTIONS = ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'walk', 'reload', 'scoreboard', 'pause'] as const
+export const ACTIONS = ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'walk', 'reload', 'scoreboard', 'pause', 'fire'] as const
 export type Action = (typeof ACTIONS)[number]
 export type KeyMap = Record<Action, string[]>
 
 export const DEFAULT_KEYS: KeyMap = {
-  forward: ['KeyW'],
-  back: ['KeyS'],
-  left: ['KeyA'],
-  right: ['KeyD'],
+  forward: ['KeyW', 'ArrowUp'],
+  back: ['KeyS', 'ArrowDown'],
+  left: ['KeyA', 'ArrowLeft'],
+  right: ['KeyD', 'ArrowRight'],
   jump: ['Space'],
   crouch: ['KeyC', 'ControlLeft'],
   walk: ['ShiftLeft'],
   reload: ['KeyR'],
   scoreboard: ['Tab'],
   pause: ['Escape'],
+  // F, under the left hand, so a trackpad player does not have to click while moving. The left mouse button still fires.
+  fire: ['KeyF'],
 }
 
 export const ACTION_LABEL: Record<Action, string> = {
@@ -38,6 +40,7 @@ export const ACTION_LABEL: Record<Action, string> = {
   reload: 'Reload',
   scoreboard: 'Scoreboard (hold)',
   pause: 'Pause',
+  fire: 'Fire (or left click)',
 }
 
 /** Short names for key codes: "KeyW" shows as "W". */
@@ -63,7 +66,9 @@ export function parseKeyMap(raw: string | null): KeyMap {
     const v = JSON.parse(raw) as Record<string, unknown>
     const out = {} as KeyMap
     for (const a of ACTIONS) {
-      const list = v[a]
+      // A map saved before Fire existed keeps its bindings; Fire gets its default key only when that key is not already used (a map that bound F
+      // to something else must not fire on F as well). Any other missing action takes its default, as before.
+      const list = v[a] === undefined ? (a === 'fire' ? DEFAULT_KEYS.fire.filter((c) => !Object.entries(v).some(([k, o]) => k !== 'fire' && Array.isArray(o) && o.includes(c))) : DEFAULT_KEYS[a]) : v[a]
       if (!Array.isArray(list) || !list.every((c) => typeof c === 'string')) return DEFAULT_KEYS
       out[a] = list as string[]
     }
@@ -200,6 +205,8 @@ export class ArenaInputSampler {
   down(code: string): void {
     if (this.byCode.has(code) || (code.startsWith("touch:") && ACTIONS.includes(code.slice(6) as Action))) {
       if (!this.held.has(code) && (code === 'touch:jump' || code === 'touch:reload')) this.touchLatched.add(code.slice(6) as Action)
+      // A tap of the fire key shorter than one sim step still fires once, like a click.
+      if (!this.held.has(code) && this.byCode.get(code) === 'fire') this.fireLatched = true
       this.held.add(code)
     }
   }
@@ -269,7 +276,7 @@ export class ArenaInputSampler {
     const pitch = Math.max(-PITCH_MAX_DELTA, Math.min(PITCH_MAX_DELTA, Math.round(this.accPitch)))
     this.accYaw -= yaw
     this.accPitch -= pitch
-    const fire = this.fireHeld || this.fireLatched ? 1 : 0
+    const fire = this.fireHeld || this.fireLatched || this.isHeld('fire') ? 1 : 0
     this.fireLatched = false
     const buy = this.buy
     this.buy = 0

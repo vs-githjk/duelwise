@@ -1,4 +1,5 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
+import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -220,6 +221,7 @@ export default function FighterPage() {
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [me, setMe] = useState<CharacterChoice>({ character: 0, colorway: 0 })
   const [panel, setPanel] = useState<'controls' | 'moves' | null>(null)
+  const [leaving, setLeaving] = useState(false)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const host = useRef<HTMLDivElement>(null)
   // True once the match has left 'setup' since the player pressed Start, so the first render after the
@@ -259,6 +261,11 @@ export default function FighterPage() {
   const inMatch = screen === 'match'
   const touch = useTouchDevice()
   usePlayViewport(touch && inMatch)
+  const gate = useLandscapeGate(touch)
+  useReleaseLandscape(inMatch, touch)
+  const matchLive = inMatch && (match.phase === 'loading' || match.phase === 'playing')
+  const rotateBlock = (gate.portrait && matchLive) || gate.waiting
+  useRotatePause({ block: gate.portrait && matchLive, playing: match.phase === 'playing', paused: match.paused, pause: match.pause, resume: match.resume })
   const over = match.phase === 'over'
   const result = match.finished?.record.result
   const showMenu = match.paused && panel === null
@@ -278,7 +285,7 @@ export default function FighterPage() {
 
   // A sub-panel belongs to the pause menu: once the match is running again it is gone.
   useEffect(() => {
-    if (inMatch && !match.paused) setPanel(null)
+    if (inMatch && !match.paused) { setPanel(null); setLeaving(false) }
   }, [inMatch, match.paused])
 
   return (
@@ -345,7 +352,7 @@ export default function FighterPage() {
           </div>
           <p className="text-sm text-muted">{SHARED_MOVES_NOTE} The AI picks after you.</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={btnPrimary} onClick={() => void begin()}>
+            <button type="button" className={btnPrimary} onClick={() => gate.requestStart(() => void begin())}>
               Start match vs {personaFor(picked).name}
             </button>
             <button type="button" className={btnPlain} onClick={() => setScreen('prematch')}>
@@ -390,6 +397,19 @@ export default function FighterPage() {
                   <a className={btnPlain} href="/settings" target="_blank" rel="noopener noreferrer">
                     Settings (new tab)
                   </a>
+                  {leaving ? (
+                    <div className="grid gap-2 rounded-control border border-line p-3" data-testid="pause-leave-confirm" role="group" aria-label="Leave this match?">
+                      <p className="text-sm">Leave this match? It is not counted and nothing is saved.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <a className={btnPrimary} href="/play" data-testid="pause-leave">Leave match</a>
+                        <button type="button" className={btnPlain} onClick={() => setLeaving(false)}>Stay</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" className={btnPlain} data-testid="pause-back" onClick={() => setLeaving(true)}>
+                      <span aria-hidden="true">←</span>&nbsp;All games
+                    </button>
+                  )}
                   <button type="button" className={cn(btnPlain, 'text-bad-ink')} onClick={() => { setPanel(null); match.quit() }}>
                     Quit match
                   </button>
@@ -403,12 +423,12 @@ export default function FighterPage() {
           ) : null}
           {over && result ? (
             <div className="fighter-ov">
-              <div className="grid w-full max-w-md gap-3">
+              <div className="grid w-full max-w-md gap-3 [@media(orientation:landscape)_and_(max-height:520px)]:max-w-3xl">
                 <ResultPanel
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}
                   humanSeat={0}
                   onRematch={() => {
-                    void match.start(host.current!, { level: picked, choices: [me, aiChoiceFor(me)] })
+                    gate.requestStart(() => void match.start(host.current!, { level: picked, choices: [me, aiChoiceFor(me)] }))
                   }}
                   onChangeLevel={() => {
                     match.quit()
@@ -416,7 +436,7 @@ export default function FighterPage() {
                   }}
                   onPlayLevel={(l) => {
                     setPicked(l)
-                    void match.start(host.current!, { level: l, choices: [me, aiChoiceFor(me)] })
+                    gate.requestStart(() => void match.start(host.current!, { level: l, choices: [me, aiChoiceFor(me)] }))
                   }}
                   extra={
                     highlights.length > 0 ? (
@@ -450,7 +470,7 @@ export default function FighterPage() {
             </p>
           ) : null}
         </div>
-        {inMatch && !over ? (
+        {inMatch && !over && !touch ? (
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span>
               <Key>{keyLabel(match.keys.pause[0] ?? 'Esc')}</Key> pause, move list and controls
@@ -459,6 +479,7 @@ export default function FighterPage() {
           </p>
         ) : null}
       </div>
+      {rotateBlock ? <RotateOverlay cancelLabel={gate.waiting ? 'Cancel' : 'Quit match'} onCancel={() => { if (gate.waiting) gate.cancel(); else match.quit() }} /> : null}
     </GameShell>
   )
 }

@@ -34,8 +34,8 @@ export const guides: Record<GameId, Guide> = {
   },
   arena: {
     goal: 'Win rounds against your opponent in Coldstore.',
-    steps: ['Buy equipment at the start of each round.', 'Move around the map and aim with your mouse.', 'Fire at your opponent and use cover to stay alive.', 'A round ends when a player is eliminated or time runs out.'],
-    controls: [{ keys: 'Touch', action: 'left stick moves; drag the right side to aim; hold Fire to shoot; tap buttons to jump, crouch, reload, view scores or pause' }, { keys: 'W A S D', action: 'move' }, { keys: 'Mouse', action: 'aim; left button fires' }, { keys: 'Space', action: 'jump' }, { keys: 'C or Ctrl', action: 'crouch' }, { keys: 'Shift', action: 'walk' }, { keys: 'R', action: 'reload' }, { keys: 'Tab', action: 'scores' }, { keys: 'Escape', action: 'pause and release the mouse' }],
+    steps: ['Buy equipment at the start of each round.', 'Move around the map and aim with your mouse or trackpad.', 'Fire at your opponent and use cover to stay alive.', 'A round ends when a player is eliminated or time runs out.'],
+    controls: [{ keys: 'Touch', action: 'left stick moves; drag the right side to aim; hold Fire to shoot; tap buttons to jump, crouch, reload, view scores or pause' }, { keys: 'W A S D or arrows', action: 'move' }, { keys: 'Mouse or trackpad', action: 'aim' }, { keys: 'Left click or F', action: 'fire (hold to keep firing)' }, { keys: 'Space', action: 'jump' }, { keys: 'C or Ctrl', action: 'crouch' }, { keys: 'Shift', action: 'walk' }, { keys: 'R', action: 'reload' }, { keys: 'Tab', action: 'scores' }, { keys: 'Escape', action: 'pause and release the mouse' }],
     win: 'The match ends at seven round wins or after 13 rounds. More round wins takes the match; equal wins are a draw. At time out, more health wins the round.', tip: 'Use cover while you reload.',
   },
 }

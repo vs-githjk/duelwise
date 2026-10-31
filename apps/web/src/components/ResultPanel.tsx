@@ -68,7 +68,24 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const { level, game } = useOpponent()
   const persona = level ? personaFor(level) : null
   const ref = useRef<HTMLElement>(null)
-  useEffect(() => ref.current?.focus({ preventScroll: true }), [])
+  const headline = useRef<HTMLHeadingElement>(null)
+  // On match end the verdict slides into view and a screen reader lands on it. The panel is the page's first thing on a phone (above the
+  // board) and sits beside the board on a wide screen, so both the scroll and the focus go to the same place.
+  useEffect(() => {
+    headline.current?.focus({ preventScroll: true })
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const block = window.innerWidth < 1024 ? 'start' : 'nearest'
+    // The panel's arrival changes the page height above and below the board, and WebKit cancels a smooth scroll that starts in the same frame.
+    // So the scroll waits two frames, and a late check puts the verdict on screen if anything moved it since.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block }))
+    })
+    const check = setTimeout(() => {
+      const r = ref.current?.getBoundingClientRect()
+      if (r && (r.top < 0 || r.top > window.innerHeight * 0.6)) ref.current?.scrollIntoView({ behavior: 'auto', block })
+    }, 1000)
+    return () => { cancelAnimationFrame(raf); clearTimeout(check) }
+  }, [])
   const opp = persona?.name ?? 'The AI'
   const called = game ? calledFor(game) : null
   const pathState = usePath(game)
@@ -162,30 +179,9 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
     frame = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(frame); animation.cancel() }
   }, [delta])
-  return (
-    <section
-      ref={ref}
-      tabIndex={-1}
-      role="region"
-      aria-label="Match result"
-      data-testid="result-panel"
-      data-outcome={outcome}
-      className={cn('result-rise grid gap-4 rounded-card border border-line bg-surface p-5 shadow-card', className)}
-    >
-      {outcome === 'win' ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
-      <div className="result-stripe" data-result-stripe aria-hidden="true" />
-      <span className={cn('inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold', outcome === 'win' ? 'bg-good-soft text-good-ink' : outcome === 'loss' ? 'bg-bad-soft text-bad-ink' : 'bg-neutral-soft text-neutral-ink')} data-testid="result-chip">
-        <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-        {outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
-      </span>
-      <h2 className="font-display text-display-md leading-tight" data-testid="result-headline">
-        {called ? <span className="block text-display-sm text-muted" data-testid="result-call">You called {personaFor(called).name}.</span> : null}
-        <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>
-      </h2>
-      {level && persona ? <span className="sr-only" data-testid="result-persona">{`You played ${persona.name} (${LEVEL_LABEL[level]}).`}</span> : null}
-      {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? `${personaFor(next).name} is unlocked.` : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
-      {game && level ? <Ladder path={pathState.path} call={called} played={level} won={outcome === 'win'} levels={levels} /> : null}
-      <p className="text-sm text-muted" data-testid="result-reason">
+  const resultFacts = (
+    <>
+      <p className="text-sm text-ink" data-testid="result-reason">
         {resultSentence(result, humanSeat, persona?.name ?? 'The AI')}
       </p>
       {reveal}
@@ -196,88 +192,87 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
           {provisional ? <span className="ml-2 font-sans text-sm text-muted" data-testid="result-elo-provisional">{provisionalNote(game)}</span> : null}
         </p>
       ) : null}
-      {upload?.status === 'uploading' ? (
-        <p className="text-sm text-muted" role="status" data-testid="result-upload">
-          {game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}
-        </p>
-      ) : null}
-      {upload?.status === 'counted' && !elo ? (
-        <p className="text-sm text-muted" data-testid="result-upload">
-          {game && PRODUCT.games[game].kind === 'realtime'
-            ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.'
-            : 'Saved. Sign in to get a rating and appear on the leaderboard.'}
-        </p>
-      ) : null}
-      {upload?.status === 'queued' ? (
-        <p className="text-sm text-muted" role="status" data-testid="result-upload">
-          Saved on this device. It will be sent and counted when you are back online.
-        </p>
-      ) : null}
-      {upload?.status === 'synced' ? (
-        <p className="text-sm text-muted" role="status" data-testid="result-upload">
-          Sent. This match now counts.
-        </p>
-      ) : null}
-      {upload?.status === 'not-counted' ? (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink" role="status" data-testid="result-upload">
-          This offline match could not be counted: {upload.reason}.
-        </p>
-      ) : null}
-      {upload?.status === 'rejected' ? (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink" data-testid="result-upload">
-          This match could not be verified, so it was not counted.
-        </p>
-      ) : null}
-      {upload?.status === 'failed' ? (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink" data-testid="result-upload">
-          {upload.kind === 'resign'
-            ? 'We could not tell the server you resigned. The match will still be scored as a loss.'
-            : 'This match could not be saved yet. It will be sent the next time you open a game. If it never arrives, it counts as a loss once the game time limit has passed.'}
-        </p>
-      ) : null}
-      {unratedReason ? (
-        <p className="text-sm text-muted" data-testid="result-unrated">
-          {unratedReason}
-        </p>
-      ) : null}
-      {!recordOk && upload?.status !== 'rejected' ? <p className="rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink">This match could not be verified, so it will not be counted.</p> : null}
-      {note ? <div className="text-sm text-muted">{note}</div> : null}
-      {extra}
-      <div className="flex flex-wrap gap-2" data-testid="result-actions">
-        {nextPlayable && next ? (
-          <button type="button" onClick={() => onPlayLevel!(next)} className="inline-flex min-h-12 items-center rounded-full bg-action px-6 font-semibold text-action-ink" data-testid="play-next">
-            Play {personaFor(next).name} now
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            if (game) keepCall(game)
-            onRematch()
-          }}
-          className={nextPlayable ? 'inline-flex min-h-12 items-center rounded-full border border-line bg-surface px-6 font-semibold text-ink' : 'inline-flex min-h-12 items-center rounded-full bg-action px-6 font-semibold text-action-ink'}
-          data-testid="rematch"
-        >
-          Rematch {opp}
-        </button>
-        {onChangeLevel ? (
-          <button type="button" onClick={onChangeLevel} className="inline-flex min-h-12 items-center rounded-full border border-line bg-surface px-5 font-semibold text-ink">
-            Change level
-          </button>
-        ) : null}
-        {game && leaderboard ? (
-          <a href={`/leaderboard/${PRODUCT.games[game].slug}`} className="inline-flex min-h-11 items-center rounded-control border border-line bg-surface px-5 font-semibold text-ink" data-testid="result-leaderboard-link">
-            View leaderboard
-          </a>
-        ) : null}
-        {game ? <a href="/play" className="inline-flex min-h-12 items-center px-3 text-sm font-semibold text-muted hover:text-ink">All games</a> : null}
-        {(upload?.status === 'counted' || upload?.status === 'uploading' || upload?.status === 'synced') && upload.matchId ? (
-          <a href={`/report/${upload.matchId}`} className="inline-flex min-h-11 items-center rounded-control border border-line bg-surface px-5 font-semibold text-ink" data-testid="result-report-link">
-            View match report
-          </a>
-        ) : null}
+    </>
+  )
+  const warn = 'rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink'
+  const uploadLine =
+    upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
+    : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating and appear on the leaderboard.'}</p>
+    : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
+    : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
+    : upload?.status === 'not-counted' ? <p className={warn} role="status" data-testid="result-upload">This offline match could not be counted: {upload.reason}.</p>
+    : upload?.status === 'rejected' ? <p className={warn} data-testid="result-upload">This match could not be verified, so it was not counted.</p>
+    : upload?.status === 'failed' ? <p className={warn} data-testid="result-upload">{upload.kind === 'resign' ? 'We could not tell the server you resigned. The match will still be scored as a loss.' : 'This match could not be saved yet. It will be sent the next time you open a game. If it never arrives, it counts as a loss once the game time limit has passed.'}</p>
+    : null
+  const primary = 'inline-flex min-h-12 items-center justify-center rounded-full bg-action px-6 font-semibold text-action-ink'
+  const outline = 'inline-flex min-h-12 items-center justify-center rounded-full border border-line bg-surface px-5 font-semibold text-ink'
+  const textLink = 'inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted underline-offset-4 hover:text-ink hover:underline'
+  const hasReport = (upload?.status === 'counted' || upload?.status === 'uploading' || upload?.status === 'synced') && upload.matchId
+  return (
+    <section
+      ref={ref}
+      role="region"
+      aria-label="Match result"
+      data-testid="result-panel"
+      data-outcome={outcome}
+      className={cn('result-rise result-panel relative grid gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5', className)}
+    >
+      {outcome === 'win' ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
+      <div className="result-stripe" data-result-stripe aria-hidden="true" />
+      <div className="result-verdict grid content-start gap-2">
+        <span className={cn('inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', outcome === 'win' ? 'bg-good-soft text-good-ink' : outcome === 'loss' ? 'bg-bad-soft text-bad-ink' : 'bg-neutral-soft text-neutral-ink')} data-testid="result-chip">
+          <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+          {outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
+        </span>
+        <h2 ref={headline} tabIndex={-1} className="result-headline font-display text-display-md leading-tight outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action" data-testid="result-headline">
+          {called ? <span className="block text-sm font-semibold text-muted" data-testid="result-call">You called {personaFor(called).name}.</span> : null}
+          <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>
+        </h2>
+        {level && persona ? <span className="sr-only" data-testid="result-persona">{`You played ${persona.name} (${LEVEL_LABEL[level]}).`}</span> : null}
+        <div className="grid gap-1.5">{resultFacts}</div>
       </div>
-      {facts && game ? <ShareBlock facts={facts} game={game} /> : null}
+      <div className="result-main grid content-start gap-3">
+        <div className="flex flex-wrap items-center gap-2" data-testid="result-actions">
+          {nextPlayable && next ? (
+            <button type="button" onClick={() => onPlayLevel!(next)} className={primary} data-testid="play-next">
+              Play {personaFor(next).name} now
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              if (game) keepCall(game)
+              onRematch()
+            }}
+            className={nextPlayable ? outline : primary}
+            data-testid="rematch"
+          >
+            Rematch {opp}
+          </button>
+          {onChangeLevel ? (
+            <button type="button" onClick={onChangeLevel} className={outline}>
+              Change level
+            </button>
+          ) : null}
+          {game ? <a href="/play" className={cn(textLink, 'gap-1.5 focus-visible:outline-2 focus-visible:outline-action')} data-testid="result-back"><span aria-hidden="true">←</span> All games</a> : null}
+        </div>
+        {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? `${personaFor(next).name} is unlocked.` : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
+        {game && level ? <Ladder path={pathState.path} call={called} played={level} won={outcome === 'win'} levels={levels} /> : null}
+        {extra}
+        {(game && leaderboard) || hasReport ? (
+          <div className="flex flex-wrap items-center gap-x-2" aria-label="More">
+            {game && leaderboard ? <a href={`/leaderboard/${PRODUCT.games[game].slug}`} className={textLink} data-testid="result-leaderboard-link">View leaderboard</a> : null}
+            {hasReport ? <a href={`/report/${upload!.matchId}`} className={textLink} data-testid="result-report-link">View match report</a> : null}
+          </div>
+        ) : null}
+        {facts && game ? <ShareBlock facts={facts} game={game} /> : null}
+        <div className="grid gap-1.5">
+          {uploadLine}
+          {unratedReason ? <p className="text-xs text-muted" data-testid="result-unrated">{unratedReason}</p> : null}
+          {!recordOk && upload?.status !== 'rejected' ? <p className={warn}>This match could not be verified, so it will not be counted.</p> : null}
+          {note ? <div className="text-xs text-muted">{note}</div> : null}
+        </div>
+      </div>
     </section>
   )
 }

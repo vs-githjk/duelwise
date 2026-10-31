@@ -92,3 +92,14 @@ export function speakLine(text: string, opts: { force?: boolean } = {}): boolean
   } else say()
   return true
 }
+
+/** Unlocks speech from a tap (iOS blocks it otherwise): a silent, empty utterance. Never throws, never audible. */
+export function primeSpeech(): void {
+  const s = synth()
+  if (!s) return
+  try {
+    const u = new SpeechSynthesisUtterance('')
+    u.volume = 0
+    s.speak(u)
+  } catch {}
+}

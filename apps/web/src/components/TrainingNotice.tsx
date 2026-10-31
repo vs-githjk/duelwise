@@ -70,7 +70,7 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
         <button type="button" onClick={() => setDetail(true)} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-action underline">
           Details
         </button>
-        <button type="button" onClick={() => (copy.trainable ? void dismiss() : setHiddenHere(true))} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold">
+        <button type="button" onClick={() => (copy.trainable ? void dismiss() : setHiddenHere(true))} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-1 text-sm font-semibold">
           Got it
         </button>
       </section>

@@ -31,7 +31,7 @@ export const Route = createRootRoute({
     }
   },
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: PRODUCT.name }, { name: 'theme-color', content: '#2b6fe6' }, { name: 'apple-mobile-web-app-capable', content: 'yes' }, { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }, { name: 'apple-mobile-web-app-title', content: 'Duelwise' }, ...shareMeta()],
+    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }, { title: PRODUCT.name }, { name: 'theme-color', content: '#2b6fe6' }, { name: 'apple-mobile-web-app-capable', content: 'yes' }, { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }, { name: 'apple-mobile-web-app-title', content: 'Duelwise' }, ...shareMeta()],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
@@ -83,16 +83,16 @@ function RootDocument({ children }: { children: ReactNode }) {
                 {PRODUCT.name}
               </Link>
               <nav className="order-last flex w-full items-center justify-between gap-1 text-sm font-medium sm:order-none sm:w-auto sm:justify-start sm:text-base" aria-label="Sections">
-                <Link to="/play" className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" activeProps={{ className: 'text-ink' }}>
+                <Link to="/play" className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" activeProps={{ className: 'text-ink' }}>
                   Games
                 </Link>
-                <Link to="/leaderboard/$game" params={{ game: PRODUCT.games.chess.slug }} className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-leaderboard" activeProps={{ className: 'text-ink' }}>
+                <Link to="/leaderboard/$game" params={{ game: PRODUCT.games.chess.slug }} className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-leaderboard" activeProps={{ className: 'text-ink' }}>
                   Leaderboard
                 </Link>
-                <Link to="/ai" className="inline-flex min-h-11 items-center whitespace-nowrap px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-ai" activeProps={{ className: 'text-ink' }}>
+                <Link to="/ai" className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-ai" activeProps={{ className: 'text-ink' }}>
                   The AI
                 </Link>
-                <Link to="/settings" className="inline-flex min-h-11 items-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-settings" activeProps={{ className: 'text-ink' }}>
+                <Link to="/settings" className="inline-flex min-h-11 min-w-11 items-center justify-center px-0.5 text-muted hover:text-ink sm:px-3" data-testid="nav-settings" activeProps={{ className: 'text-ink' }}>
                   Settings
                 </Link>
               </nav>

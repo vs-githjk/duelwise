@@ -318,3 +318,20 @@ test.describe('fighter play page on a touch phone', () => {
     await expect(page.getByTestId('fighter-stage')).toBeHidden()
   })
 })
+
+test.describe('leaving a live match from the pause menu', () => {
+  test('All games asks first; Stay keeps the match, Leave match goes to /play', async ({ page }) => {
+    test.setTimeout(90_000)
+    await startMatch(page, 'seed=44')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Paused' })).toBeVisible()
+    await page.getByTestId('pause-back').click()
+    await expect(page.getByTestId('pause-leave-confirm')).toContainText('Leave this match?')
+    await page.getByRole('button', { name: 'Stay' }).click()
+    await expect(page.getByTestId('pause-leave-confirm')).toHaveCount(0)
+    await expect(page.getByTestId('fighter-stage')).toHaveAttribute('data-paused', 'true')
+    await page.getByTestId('pause-back').click()
+    await page.getByTestId('pause-leave').click()
+    await expect(page).toHaveURL(/\/play$/)
+  })
+})

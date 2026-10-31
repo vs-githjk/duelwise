@@ -46,7 +46,6 @@ export function TouchControls({ game, action, aim, pause }: Props) {
   const names = game === 'fighter' ? ['light', 'medium', 'heavy', 'special', 'surge', 'throw'] : ['fire', 'jump', 'crouch', 'reload', 'scoreboard']
   return <div className="touch-controls" data-testid={`${game}-touch-controls`} data-no-capture>
     {game === 'arena' && <div className="touch-aim" aria-label="Drag to aim" onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); e.currentTarget.dataset.x = String(e.clientX); e.currentTarget.dataset.y = String(e.clientY) }} onPointerMove={e => { if (!e.currentTarget.hasPointerCapture(e.pointerId)) return; const x = Number(e.currentTarget.dataset.x); const y = Number(e.currentTarget.dataset.y); aim?.(e.clientX - x, e.clientY - y); e.currentTarget.dataset.x = String(e.clientX); e.currentTarget.dataset.y = String(e.clientY) }} />}
-    <div className="touch-rotate">Rotate for the best view</div>
     <button className="touch-pause" type="button" onClick={pause}>Pause</button>
     <div className="touch-stick" aria-label="Movement stick" onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); updateStick(e) }} onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) updateStick(e) }} onPointerUp={releaseStick} onPointerCancel={releaseStick} onLostPointerCapture={releaseStick}>
       <span style={{ transform: `translate(${stick.x * 25}px, ${stick.y * 25}px)` }} />

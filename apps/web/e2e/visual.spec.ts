@@ -112,6 +112,9 @@ test.describe('Design v2 play surfaces', () => {
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('win-line')).toHaveCount(1)
     await page.mouse.move(0, 0)
+    // The page scrolls the result into view when the match ends: bring the board back before probing its discs.
+    await page.waitForTimeout(900)
+    await board.scrollIntoViewIfNeeded()
     // Guard: no frame layer may cover a stone. With the column overlay out of the way, the topmost
     // element at each disc centre must be inside a disc.
     await page.addStyleTag({ content: '[data-testid="four-board"] > div { pointer-events: none !important; }' })

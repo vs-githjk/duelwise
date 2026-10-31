@@ -1,4 +1,5 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
+import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -97,7 +98,7 @@ function ControlsPanel({ keys, onChange, onClose }: { keys: KeyMap; onChange: (k
   return (
     <section className="grid w-full max-w-lg gap-4 rounded-card border border-line bg-surface p-6 text-ink shadow-card" aria-label="Controls" role="dialog" data-no-capture>
       <h2 className="font-display text-display-md">Controls</h2>
-      <p className="text-sm text-muted">Mouse aims and the left button fires. Keyboard and mouse only for now; gamepad comes later. Select a key to change it, then press the new key.</p>
+      <p className="text-sm text-muted">A mouse or trackpad aims. Left click or F fires, and the arrow keys move as well as W A S D. Keyboard and mouse only for now; gamepad comes later. Select a key to change it, then press the new key.</p>
       <ul className="grid gap-1.5">
         {ACTIONS.map((a) => (
           <li key={a} className="flex items-center justify-between gap-3 text-sm">
@@ -221,6 +222,7 @@ export default function ArenaPage() {
   const [screen, setScreen] = useState<'prematch' | 'match'>('prematch')
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [panel, setPanel] = useState<'controls' | 'settings' | null>(null)
+  const [leaving, setLeaving] = useState(false)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const host = useRef<HTMLDivElement>(null)
   // True once the match has left 'setup' since the player pressed Start, so the first render after the
@@ -278,6 +280,11 @@ export default function ArenaPage() {
   const inMatch = screen === 'match'
   const touch = useTouchDevice()
   usePlayViewport(touch && inMatch)
+  const gate = useLandscapeGate(touch)
+  useReleaseLandscape(inMatch, touch)
+  const matchLive = inMatch && (match.phase === 'loading' || match.phase === 'playing')
+  const rotateBlock = (gate.portrait && matchLive) || gate.waiting
+  useRotatePause({ block: gate.portrait && matchLive, playing: match.phase === 'playing', paused: match.paused, pause: match.pause, resume: match.resume })
   const over = match.phase === 'over'
   const result = match.finished?.record.result
   const playing = match.phase === 'playing'
@@ -288,7 +295,7 @@ export default function ArenaPage() {
   const secondsLeft = hud ? Math.max(0, Math.ceil((hud.buyFrames - hud.phaseFrame) / 60)) : 0
 
   useEffect(() => {
-    if (inMatch && !match.paused) setPanel(null)
+    if (inMatch && !match.paused) { setPanel(null); setLeaving(false) }
   }, [inMatch, match.paused])
 
   return (
@@ -296,14 +303,14 @@ export default function ArenaPage() {
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">
-            First person, first to 7 rounds on Coldstore. You buy at the start of every round and so does the opponent, with the same rules and the same money. Mouse aims, left button fires.
+            First person, first to 7 rounds on Coldstore. You buy at the start of every round and so does the opponent, with the same rules and the same money. A mouse or trackpad aims; left click or F fires.
           </p>
           <LevelPicker value={picked} onChange={setPicked}
             levels={Object.fromEntries(LEVELS.map((l) => [l, { preview: !published(l), practice: !published(l), strength: published(l) ? 'Strength tested' : undefined }]))}
             descriptions={Object.fromEntries(LEVELS.map((l) => [l, limitsText(l)]))}
             action={
             <div className="flex flex-wrap gap-2">
-            <button type="button" className={btnPrimary} onClick={() => void begin()}>
+            <button type="button" className={btnPrimary} onClick={() => gate.requestStart(() => void begin())}>
               Start match vs {personaFor(picked).name}
             </button>
             <button type="button" className={btnPlain} onClick={() => setPanel('settings')}>
@@ -400,6 +407,19 @@ export default function ArenaPage() {
                   <a className={btnPlain} href="/settings" target="_blank" rel="noopener noreferrer">
                     Account settings (new tab)
                   </a>
+                  {leaving ? (
+                    <div className="grid gap-2 rounded-control border border-line p-3" data-testid="pause-leave-confirm" role="group" aria-label="Leave this match?">
+                      <p className="text-sm">Leave this match? It is not counted and nothing is saved.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <a className={btnPrimary} href="/play" data-testid="pause-leave">Leave match</a>
+                        <button type="button" className={btnPlain} onClick={() => setLeaving(false)}>Stay</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" className={btnPlain} data-testid="pause-back" onClick={() => setLeaving(true)}>
+                      <span aria-hidden="true">←</span>&nbsp;All games
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={cn(btnPlain, 'text-bad-ink')}
@@ -422,19 +442,19 @@ export default function ArenaPage() {
           ) : null}
           {over && result ? (
             <div className="arena-ov" data-no-capture>
-              <div className="grid w-full max-w-md gap-3">
+              <div className="grid w-full max-w-md gap-3 [@media(orientation:landscape)_and_(max-height:520px)]:max-w-3xl">
                 <ResultPanel
                   leaderboard={false}
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}
                   humanSeat={0}
-                  onRematch={() => void begin(picked)}
+                  onRematch={() => gate.requestStart(() => void begin(picked))}
                   onChangeLevel={() => {
                     match.quit()
                     setScreen('prematch')
                   }}
                   onPlayLevel={(l) => {
                     setPicked(l)
-                    void begin(l)
+                    gate.requestStart(() => void begin(l))
                   }}
                   extra={
                     hud ? (
@@ -461,7 +481,7 @@ export default function ArenaPage() {
           ) : null}
         </div>
         </div>
-        {inMatch && !over ? (
+        {inMatch && !over && !touch ? (
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span>
               <Key>{keyLabel(match.keys.pause[0] ?? 'Esc')}</Key> pause, settings and controls
@@ -476,6 +496,7 @@ export default function ArenaPage() {
           </p>
         ) : null}
       </div>
+      {rotateBlock ? <RotateOverlay cancelLabel={gate.waiting ? 'Cancel' : 'Quit match'} onCancel={() => { if (gate.waiting) gate.cancel(); else match.quit() }} /> : null}
     </GameShell>
   )
 }

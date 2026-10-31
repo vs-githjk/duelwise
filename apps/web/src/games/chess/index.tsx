@@ -54,17 +54,20 @@ function MuteToggle() {
 
 /** Moves in pairs ("1. e4 e5"), newest last, scrolled to the end. */
 function MoveList({ sans }: { sans: string[] }) {
-  const end = useRef<HTMLLIElement>(null)
+  const list = useRef<HTMLOListElement>(null)
+  // Scroll the list itself, never the page: scrollIntoView on the newest row also scrolled the window down to this list (below the board on a
+  // phone) after every move, and the player had to scroll back up to the board each time.
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: 'nearest' })
+    const el = list.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [sans.length])
   const rows: Array<[string, string | undefined]> = []
   for (let i = 0; i < sans.length; i += 2) rows.push([sans[i]!, sans[i + 1]])
   return (
-    <ol className="max-h-40 overflow-y-auto font-mono text-sm leading-5 tabular" data-testid="move-list" aria-label="Moves">
+    <ol ref={list} className="max-h-40 overflow-y-auto font-mono text-sm leading-5 tabular" data-testid="move-list" aria-label="Moves">
       {rows.length === 0 ? <li className="text-muted">No moves yet.</li> : null}
       {rows.map(([w, b], i) => (
-        <li key={i} ref={i === rows.length - 1 ? end : undefined} className="grid grid-cols-[2.5rem_1fr_1fr] gap-2">
+        <li key={i} className="grid grid-cols-[2.5rem_1fr_1fr] gap-2">
           <span className="text-muted">{i + 1}.</span>
           <span>{w}</span>
           <span>{b ?? ''}</span>
