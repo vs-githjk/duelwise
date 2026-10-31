@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isChunkError, judgeChunkFailure, recoverFromChunkError, reloadForStaleChunk, CHUNK_RELOAD_KEY, CHUNK_RELOAD_WINDOW_MS } from './stale-chunk'
+import { PROBE_PARAM, isChunkError, judgeChunkFailure, recoverFromChunkError, reloadForStaleChunk, CHUNK_RELOAD_KEY, CHUNK_RELOAD_WINDOW_MS } from './stale-chunk'
 import { isMatchActive, setMatchActive, subscribeMatchActive } from './match-active'
 
 const ORIGIN = 'https://duelwise.app'
@@ -49,21 +49,21 @@ describe('judgeChunkFailure', () => {
   test('a file that is there is not ours to fix', async () => {
     expect(await judgeChunkFailure(GONE, { online: true, doFetch: reply(200, 'application/javascript') })).toBe('fine')
   })
-  test('with no URL every page module is checked: one gone is stale, one unreachable is offline', async () => {
-    const some = (async (u: string) => (u.endsWith('b.js') ? new Response('x', { status: 404 }) : new Response('x', { headers: { 'content-type': 'text/javascript' } }))) as unknown as typeof fetch
-    const err = new TypeError('Importing a module script failed.')
-    expect(await judgeChunkFailure(err, { online: true, doFetch: some, knownAssets: () => ['https://x/a.js', 'https://x/b.js'] })).toBe('stale')
-    expect(await judgeChunkFailure(err, { online: true, doFetch: some, knownAssets: () => ['https://x/a.js'] })).toBe('fine')
-    const flaky = (async (u: string) => { if (u.endsWith('b.js')) throw new TypeError('Failed to fetch'); return new Response('x', { status: 404 }) }) as unknown as typeof fetch
-    expect(await judgeChunkFailure(err, { online: true, doFetch: flaky, knownAssets: () => ['https://x/a.js', 'https://x/b.js'] })).toBe('offline')
-  })
-  test('probes with no-store, and with no URL falls back to a known asset, or does nothing', async () => {
+  test('a named file is probed with no-store and the network-only marker (the worker must not answer from its cache)', async () => {
     const seen: Array<[string, RequestInit | undefined]> = []
     const spy = (async (u: string, init?: RequestInit) => { seen.push([u, init]); return new Response('x', { status: 404 }) }) as unknown as typeof fetch
-    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: spy, knownAssets: () => [`${ORIGIN}/assets/index-1.js`] })).toBe('stale')
-    expect(seen[0]![0]).toBe(`${ORIGIN}/assets/index-1.js`)
+    expect(await judgeChunkFailure(GONE, { online: true, doFetch: spy })).toBe('stale')
+    expect(seen[0]![0]).toContain(`${ORIGIN}/assets/chess-abc.js?${PROBE_PARAM}=`)
     expect(seen[0]![1]?.cache).toBe('no-store')
-    expect(await judgeChunkFailure(new TypeError('Importing a module script failed.'), { online: true, doFetch: never, knownAssets: () => [] })).toBe('fine')
+  })
+  test('Safari names no file: the page build id is compared with the one /sw.js reports now', async () => {
+    const err = new TypeError('Importing a module script failed.')
+    const sw = (build: string) => (async () => new Response(`const PRECACHE = {"version":"v","build":"${build}","required":[]}`, { headers: { 'content-type': 'text/javascript' } })) as unknown as typeof fetch
+    expect(await judgeChunkFailure(err, { online: true, buildId: 'old', doFetch: sw('new') })).toBe('stale')
+    expect(await judgeChunkFailure(err, { online: true, buildId: 'same', doFetch: sw('same') })).toBe('fine')
+    expect(await judgeChunkFailure(err, { online: true, buildId: '', doFetch: never })).toBe('fine')
+    expect(await judgeChunkFailure(err, { online: true, buildId: 'x', doFetch: (async () => new Response('<html>', { status: 404 })) as unknown as typeof fetch })).toBe('fine')
+    expect(await judgeChunkFailure(err, { online: true, buildId: 'x', doFetch: (async () => { throw new TypeError('Failed to fetch') }) as unknown as typeof fetch })).toBe('offline')
   })
 })
 
@@ -101,6 +101,29 @@ describe('reloadForStaleChunk', () => {
     let reloaded = false
     expect(await reloadForStaleChunk({ store: fakeStore(), now: () => 5, forget: async () => { throw new Error('no caches') }, reload: () => { reloaded = true } })).toBe(true)
     expect(reloaded).toBe(true)
+  })
+})
+
+describe('reloadForStaleChunk and a match', () => {
+  test('a match already running: no reload, no caches touched, the player is told', async () => {
+    let reloads = 0, forgot = 0, told = 0
+    const store = fakeStore()
+    expect(await reloadForStaleChunk({ store, matchActive: () => true, announce: () => { told++ }, forget: async () => { forgot++ }, reload: () => { reloads++ } })).toBe(false)
+    expect(reloads + forgot).toBe(0)
+    expect(told).toBe(1)
+    expect(store.getItem(CHUNK_RELOAD_KEY)).toBeNull()
+  })
+  test('a match that begins while the caches are being deleted stops the reload, and the reload allowance is given back', async () => {
+    let active = false, reloads = 0, told = 0
+    const store = fakeStore()
+    expect(await reloadForStaleChunk({ store, now: () => 9, matchActive: () => active, announce: () => { told++ }, forget: async () => { active = true }, reload: () => { reloads++ } })).toBe(false)
+    expect(reloads).toBe(0)
+    expect(told).toBe(1)
+    expect(store.getItem(CHUNK_RELOAD_KEY)).toBeNull()
+    // The match ends: the same call now goes through.
+    active = false
+    expect(await reloadForStaleChunk({ store, now: () => 10, matchActive: () => active, forget: async () => {}, reload: () => { reloads++ } })).toBe(true)
+    expect(reloads).toBe(1)
   })
 })
 

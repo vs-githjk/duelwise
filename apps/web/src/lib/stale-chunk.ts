@@ -59,50 +59,63 @@ export function isChunkError(error: unknown, origin: string | undefined = typeof
 
 export type ChunkVerdict = 'stale' | 'offline' | 'fine'
 
+/** Added to every probe so the service worker sends it straight to the network (sw.js strategyFor): a cached copy must never answer it. */
+export const PROBE_PARAM = 'dw-probe'
+
+/** The id of the build this page's scripts came from (compiled in by vite.config.ts). Empty where there is none (tests, dev tooling). */
+export function pageBuildId(): string {
+  try {
+    return typeof __DUELWISE_BUILD__ === 'string' ? __DUELWISE_BUILD__ : ''
+  } catch {
+    return ''
+  }
+}
+
+function probeUrl(raw: string): string {
+  try {
+    const u = new URL(raw, typeof location === 'undefined' ? undefined : location.href)
+    u.searchParams.set(PROBE_PARAM, String(Date.now()))
+    return u.href
+  } catch {
+    return raw
+  }
+}
+
 /**
- * Tells a deleted asset from a bad connection by asking the network for the failing file. No connection or no answer is
- * "offline" (touch nothing). A 404 or an HTML page where a script should be is "stale". Anything else (the file is fine) is not ours.
- * With no URL in the error (Safari), the page's own module scripts stand in; with none of those either, do nothing.
+ * Tells a deleted asset from a bad connection by asking the NETWORK (never the worker's cache) about it. No connection or no answer
+ * is "offline" (touch nothing). A 404 or an HTML page where a script should be is "stale". Anything else is not ours.
+ * Safari does not say which file failed; then the page compares its own build id with the one /sw.js reports now: different means a new
+ * deploy went live since this page loaded (stale), the same means the failure is something else (fine).
  */
 export async function judgeChunkFailure(
   error: unknown,
-  o: { online?: boolean; doFetch?: typeof fetch; knownAssets?: () => string[] } = {},
+  o: { online?: boolean; doFetch?: typeof fetch; buildId?: string } = {},
 ): Promise<ChunkVerdict> {
   const online = o.online ?? (typeof navigator === 'undefined' ? true : navigator.onLine)
   if (!online) return 'offline'
-  const named = urlIn(error)
-  const urls = named ? [named] : (o.knownAssets ?? pageModuleUrls)()
-  if (urls.length === 0) return 'fine'
   const doFetch = o.doFetch ?? fetch
-  let stale = false
-  for (const url of urls) {
-    try {
-      const res = await doFetch(url, { cache: 'no-store' })
-      const type = res.headers.get('content-type') ?? ''
-      if (res.status === 404 || type.includes('text/html')) stale = true
-    } catch {
-      return 'offline'
-    }
-  }
-  return stale ? 'stale' : 'fine'
-}
-
-/** The page's own module scripts and preloads (at most 6): safari words a failed import without saying which file, so these stand in. */
-function pageModuleUrls(): string[] {
+  const named = urlIn(error)
   try {
-    if (typeof document === 'undefined') return []
-    const found = [...document.querySelectorAll('script[type="module"][src], link[rel="modulepreload"][href]')]
-      .map((el) => (el as HTMLScriptElement).src || (el as HTMLLinkElement).href)
-      .filter(Boolean)
-    return [...new Set(found)].slice(0, 6)
+    if (named) {
+      const res = await doFetch(probeUrl(named), { cache: 'no-store' })
+      const type = res.headers.get('content-type') ?? ''
+      return res.status === 404 || type.includes('text/html') ? 'stale' : 'fine'
+    }
+    const mine = o.buildId ?? pageBuildId()
+    if (!mine) return 'fine'
+    const res = await doFetch(probeUrl('/sw.js'), { cache: 'no-store' })
+    if (!res.ok) return 'fine'
+    const live = /"build"\s*:\s*"([^"]+)"/.exec(await res.text())?.[1]
+    return live && live !== mine ? 'stale' : 'fine'
   } catch {
-    return []
+    return 'offline'
   }
 }
 
 interface StoreLike {
   getItem(k: string): string | null
   setItem(k: string, v: string): void
+  removeItem?(k: string): void
 }
 
 function sessionStore(): StoreLike | undefined {
@@ -128,10 +141,17 @@ export async function forgetKeptPages(): Promise<void> {
  * remember that it did (unreadable or unwritable storage, e.g. Safari private mode): then a reload could loop, so the player is asked instead.
  */
 export async function reloadForStaleChunk(
-  o: { store?: StoreLike; now?: () => number; forget?: () => Promise<void>; reload?: () => void } = {},
+  o: { store?: StoreLike; now?: () => number; forget?: () => Promise<void>; reload?: () => void; matchActive?: () => boolean; announce?: () => void } = {},
 ): Promise<boolean> {
   const store = o.store ?? sessionStore()
   const now = (o.now ?? Date.now)()
+  const active = o.matchActive ?? isMatchActive
+  const announce = o.announce ?? announceUpdate
+  // A match is running: never touch the page. The notice tells the player and the end of the match calls this again.
+  if (active()) {
+    announce()
+    return false
+  }
   try {
     if (!store) return false
     const last = Number(store.getItem(CHUNK_RELOAD_KEY))
@@ -141,8 +161,18 @@ export async function reloadForStaleChunk(
     return false
   }
   await (o.forget ?? forgetKeptPages)().catch(() => {})
+  // The cache deletes took time: a match may have begun meanwhile. Look again right before the reload, and give the turn back.
+  if (active()) {
+    try { store.removeItem?.(CHUNK_RELOAD_KEY) } catch { /* the window simply applies */ }
+    announce()
+    return false
+  }
   ;(o.reload ?? (() => window.location.reload()))()
   return true
+}
+
+function announceUpdate(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(UPDATE_READY_EVENT))
 }
 
 export type Recovery = 'ignored' | 'offline' | 'fine' | 'reloaded' | 'deferred' | 'ask'
@@ -159,7 +189,7 @@ export async function recoverFromChunkError(
   const verdict = await (o.judge ?? judgeChunkFailure)(error)
   if (verdict !== 'stale') return verdict
   if ((o.matchActive ?? isMatchActive)()) {
-    ;(o.announce ?? (() => typeof window !== 'undefined' && window.dispatchEvent(new Event(UPDATE_READY_EVENT))))()
+    ;(o.announce ?? announceUpdate)()
     return 'deferred'
   }
   return (await (o.reload ?? reloadForStaleChunk)()) ? 'reloaded' : 'ask'

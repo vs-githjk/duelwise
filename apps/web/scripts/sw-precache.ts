@@ -65,9 +65,9 @@ export function buildPrecacheList(publicDirs: string | readonly string[], pages:
 const PLACEHOLDER = '"__DUELWISE_PRECACHE__"'
 
 /** Fills the worker template with the list. Throws if the template has no placeholder, so a broken template fails the build. */
-export function renderServiceWorker(template: string, list: PrecacheList): string {
+export function renderServiceWorker(template: string, list: PrecacheList, build = ''): string {
   if (!template.includes(PLACEHOLDER)) throw new Error('sw template has no precache placeholder')
-  return template.replace(PLACEHOLDER, JSON.stringify(withWorkerVersion(template, list)))
+  return template.replace(PLACEHOLDER, JSON.stringify({ ...withWorkerVersion(template, list), build }))
 }
 
 /** The cache version also covers the worker's own code, so changing only the worker still replaces the caches. */
@@ -79,10 +79,10 @@ export function withWorkerVersion(template: string, list: PrecacheList): Precach
  * Reads sw/sw.js, fills it from the site and writes `<publicDir>/sw.js`. `extraDirs` are further folders served at the site root
  * (the project's public folder). Returns the list.
  */
-export function writeServiceWorker(publicDir: string, templatePath: string, pages: readonly string[], extraDirs: readonly string[] = []): PrecacheList {
+export function writeServiceWorker(publicDir: string, templatePath: string, pages: readonly string[], extraDirs: readonly string[] = [], build = ''): PrecacheList {
   statSync(publicDir)
   const list = buildPrecacheList([publicDir, ...extraDirs], pages)
   const template = readFileSync(templatePath, 'utf8')
-  writeFileSync(join(publicDir, 'sw.js'), renderServiceWorker(template, list))
+  writeFileSync(join(publicDir, 'sw.js'), renderServiceWorker(template, list, build))
   return withWorkerVersion(template, list)
 }

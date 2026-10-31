@@ -9,6 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import { devModelFiles } from './dev-static.ts'
 import { webPort } from './port.ts'
 import { PRODUCT } from '@duelwise/core/src/product'
+import { randomBytes } from 'node:crypto'
 import { writeServiceWorker } from './scripts/sw-precache.ts'
 
 // /agents/<game>/<version> for every folder under public/agents. Nitro allows one wildcard per pattern, so a
@@ -39,6 +40,10 @@ function copyOrtFiles(serverDir: string): void {
   for (const f of ORT_FILES) copyFileSync(join(dist, f), join(to, f))
 }
 
+// One id per build, compiled into the page's scripts (as __DUELWISE_BUILD__) and written into /sw.js. A page whose id differs from the one
+// /sw.js now reports was opened before a deploy (lib/stale-chunk.ts uses this when a browser does not name the file that failed to load).
+const BUILD_ID = randomBytes(8).toString('hex')
+
 // Server rendered pages the service worker caches at install so the first offline open works: home, the games list and each game.
 const SHELL_PAGES = ['/', '/play', ...Object.values(PRODUCT.games).map((g) => `/play/${g.slug}`)]
 
@@ -51,7 +56,7 @@ function serviceWorker(): Plugin {
     applyToEnvironment: (env) => env.name === 'client',
     closeBundle() {
       const outDir = resolve(this.environment.config.root, this.environment.config.build.outDir)
-      writeServiceWorker(outDir, join(import.meta.dirname, 'sw', 'sw.js'), SHELL_PAGES, [join(import.meta.dirname, 'public')])
+      writeServiceWorker(outDir, join(import.meta.dirname, 'sw', 'sw.js'), SHELL_PAGES, [join(import.meta.dirname, 'public')], BUILD_ID)
     },
   }
 }
@@ -65,6 +70,7 @@ const SECURITY_HEADERS = {
 }
 
 export default defineConfig({
+  define: { __DUELWISE_BUILD__: JSON.stringify(BUILD_ID) },
   // The dev error overlay is off: a request a page cancels while navigating makes Vite report "aborted" to every open page, and the full-screen
   // overlay then blocks clicks (it failed unrelated e2e specs at random). Compile errors still print in the terminal and the browser console.
   server: { port: webPort(), strictPort: true, hmr: { overlay: false } },

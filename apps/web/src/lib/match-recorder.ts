@@ -250,11 +250,8 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   /** A finished offline match waiting in the upload queue; the page tells the player when the server has settled it. */
   const queuedId = useRef<string | null>(null)
 
-  // Tell the page a match is running, so an update waits for the end of it (lib/stale-chunk.ts). Cleared on finish and on leaving.
-  useEffect(() => {
-    setMatchActive(status === 'playing')
-    return () => setMatchActive(false)
-  }, [status])
+  // The flag is set and cleared synchronously where the match starts and ends (below); this only clears it when the page is left mid-match.
+  useEffect(() => () => setMatchActive(false), [])
 
   // A counted match that is still running when the tab is hidden for good or the page unmounts is
   // resigned by beacon: closing the tab must not dodge a loss. pagehide also fires on a bfcache
@@ -325,6 +322,8 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
       // An offline ticket cannot be resigned (the server is out of reach and the ticket is not a match yet), so it is never "live".
       live.current = issued?.rated && issued.matchId && !issued.offline ? { matchId: issued.matchId, tick: 0 } : null
       setCounted(live.current !== null)
+      // Synchronously, not from an effect: a reload decision made a moment from now must already see the match.
+      setMatchActive(true)
       setStatus('playing')
     },
     [game],
@@ -350,6 +349,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     const out = await recorder.current.finish(core, finalState)
     recorder.current = null
     setFinished(out)
+    setMatchActive(false)
     setStatus('finished')
     const issued = session.current
     session.current = null
@@ -395,6 +395,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     setCounted(false)
     recorder.current = null
     session.current = null
+    setMatchActive(false)
     setStatus('finished')
     if (!m) return
     setUpload({ status: 'uploading' })

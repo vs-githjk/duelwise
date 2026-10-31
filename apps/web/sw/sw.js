@@ -26,6 +26,8 @@ function strategyFor(url, method, mode, origin) {
   if (url.origin !== origin) return 'pass'
   const path = url.pathname
   if (path === '/sw.js' || path.startsWith('/_serverFn') || path.startsWith('/api/')) return 'pass'
+  // The page's own check of whether a file is still on the server (lib/stale-chunk.ts): always the network, never a cached copy.
+  if (url.searchParams.has('dw-probe')) return 'pass'
   if (mode === 'navigate') return PRIVATE_PREFIXES.some((p) => path.startsWith(p)) ? 'navigate-private' : 'navigate'
   if (path === '/manifest.webmanifest' || STATIC_PREFIXES.some((p) => path.startsWith(p))) return 'static'
   return 'pass'
@@ -38,11 +40,16 @@ const OFFLINE_HTML =
   '<body><main><h1>You are offline</h1><p>This page is not saved on this device yet. Games you have opened before still work, and finished matches are kept and sent when you are back online.</p>' +
   '<a href="/play">Back to games</a></main></body></html>'
 
+/** True when a script or style URL was answered with an HTML page (a not-found or error page): never a valid file. Pure, so it can be tested. */
+function isPageForFile(url, res) {
+  return /\.(?:js|mjs|css)(?:$|\?)/.test(url) && (res.headers.get('content-type') || '').includes('text/html')
+}
+
 async function fetchIntoCache(cache, url, credentials) {
   const res = await fetch(url, { cache: 'reload', credentials: credentials || 'same-origin' })
   if (!res.ok) throw new Error(url + ' ' + res.status)
   // A script or style answered with an HTML page (a not-found page that says 200) must never be kept as the file.
-  if (/\.(?:js|mjs|css)$/.test(url) && (res.headers.get('content-type') || '').includes('text/html')) throw new Error(url + ' is a page, not a file')
+  if (isPageForFile(url, res)) throw new Error(url + ' is a page, not a file')
   await cache.put(url, res)
 }
 
@@ -156,9 +163,10 @@ async function staticFirst(request) {
   const statics = await caches.open(STATIC)
   // ignoreVary: files cached at install were fetched with other request headers than the page sends.
   const hit = await statics.match(request, { ignoreVary: true })
-  if (hit) return hit
+  if (hit && !isPageForFile(request.url, hit)) return hit
+  if (hit) await statics.delete(request, { ignoreVary: true }) // a page kept as a file: never serve it again
   const res = await fetch(request)
-  if (res.ok && res.status === 200) statics.put(request, res.clone()).catch(() => {})
+  if (res.ok && res.status === 200 && !isPageForFile(request.url, res)) statics.put(request, res.clone()).catch(() => {})
   return res
 }
 

@@ -106,6 +106,12 @@ describe('the worker routes requests', () => {
     for (const p of ['/assets/index-abc.js', '/agents/four/v1/easy.onnx', '/fonts/geist-latin.woff2', '/_resvg/index_bg.wasm', '/personas/pip.svg', '/manifest.webmanifest']) expect(route(p)).toBe('static')
   })
 
+  test('the page\'s own probe of a file goes to the network, never to the cache', () => {
+    expect(route('/assets/index-abc.js')).toBe('static')
+    expect(route('/assets/index-abc.js?dw-probe=1')).toBe('pass')
+    expect(route('/sw.js?dw-probe=1')).toBe('pass')
+  })
+
   test('server calls, uploads, other methods and other origins are left alone', () => {
     expect(route('/_serverFn/abc')).toBe('pass')
     expect(route('/api/finish', 'POST')).toBe('pass')
@@ -199,5 +205,41 @@ describe('the install keeps only pages that match its own file list', () => {
   test('a stylesheet answered as an HTML page fails the install instead of being kept as the file', async () => {
     const r = await runInstall({}, { cssType: 'text/html; charset=utf-8' })
     expect(r.result).toContain('is a page, not a file')
+  })
+})
+
+describe('the static cache never serves a page as a file', () => {
+  const base = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8').replace('"__DUELWISE_PRECACHE__"', '{"version":"t","required":[],"optional":[],"pages":[]}')
+  function load(cached: Response | undefined, net: Response) {
+    const map = new Map<string, Response>()
+    if (cached) map.set('/assets/app-X.css', cached)
+    const written: string[] = []
+    const statics = {
+      match: async (r: { url: string }) => map.get(new URL(r.url).pathname)?.clone(),
+      put: async (r: { url: string }, res: Response) => { written.push(new URL(r.url).pathname); map.set(new URL(r.url).pathname, res) },
+      delete: async (r: { url: string }) => map.delete(new URL(r.url).pathname),
+    }
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, indexedDB: {}, caches: { open: async () => statics }, fetch: async () => net.clone() }
+    vm.createContext(sandbox)
+    vm.runInContext(base + '\nthis.staticFirst = staticFirst', sandbox)
+    return { run: () => (sandbox.staticFirst as (r: { url: string }) => Promise<Response>)({ url: 'https://duelwise.test/assets/app-X.css' }), map, written }
+  }
+  const css = () => new Response('a{}', { headers: { 'content-type': 'text/css' } })
+  const page = () => new Response('<html>', { headers: { 'content-type': 'text/html' } })
+
+  test('a good cached file is served without the network', async () => {
+    const w = load(css(), page())
+    expect(await (await w.run()).text()).toBe('a{}')
+  })
+  test('a cached HTML page under a style name is deleted and replaced from the network', async () => {
+    const w = load(page(), css())
+    expect(await (await w.run()).text()).toBe('a{}')
+    expect(w.written).toEqual(['/assets/app-X.css'])
+  })
+  test('an HTML answer from the network is returned but never kept as the file', async () => {
+    const w = load(undefined, page())
+    expect((await w.run()).headers.get('content-type')).toContain('text/html')
+    expect(w.written).toEqual([])
+    expect(w.map.size).toBe(0)
   })
 })

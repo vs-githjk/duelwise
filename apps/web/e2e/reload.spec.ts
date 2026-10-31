@@ -103,11 +103,12 @@ test.describe('a page opened before a new deploy', () => {
   // In dev the game's code is served as /src/games/chess/index.tsx; a deploy that removed it answers 404 with an HTML page.
   const GONE = /\/src\/games\/chess\/index\.tsx/
   const gone = (route: Route) => route.fulfill({ status: 404, contentType: 'text/html', body: '<!doctype html><title>Not found</title>' })
-  // Safari words a failed import without naming the file, so the page checks its own entry script instead; here that check is
-  // answered like the game's script is (a fetch of the dev entry module; the real script load of it goes through).
+  // Safari words a failed import without naming the file, so the page compares its build id with the one /sw.js reports; here that
+  // check is answered as a new deploy would (the dev server has no /sw.js of its own).
   const probeLike = async (page: Page, handler: (route: Route) => Promise<void>) => {
-    await page.route(/virtual:tanstack-start-dev-client-entry/, (route) => (route.request().resourceType() === 'fetch' ? handler(route) : route.continue()))
+    await page.route(/\/sw\.js/, (route) => (route.request().resourceType() === 'fetch' ? handler(route) : route.continue()))
   }
+  const otherDeploy = (route: Route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: 'const PRECACHE = {"version":"v","build":"a-newer-deploy","required":[]}' })
   const countLoads = (page: Page) => {
     const n = { loads: 0 }
     page.on('load', () => { n.loads++ })
@@ -123,7 +124,7 @@ test.describe('a page opened before a new deploy', () => {
       if (navigations < 2) { served404++; return gone(route) }
       return route.continue()
     })
-    await probeLike(page, async (route) => (navigations < 2 ? gone(route) : route.continue()))
+    await probeLike(page, async (route) => (navigations < 2 ? otherDeploy(route) : route.continue()))
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByRole('button', { name: /^Start match/ })).toBeEnabled({ timeout: 30_000 })
@@ -134,7 +135,7 @@ test.describe('a page opened before a new deploy', () => {
 
   test('a script that stays missing shows a friendly update screen and reloads only once, never in a loop', async ({ page }) => {
     await page.route(GONE, gone)
-    await probeLike(page, gone)
+    await probeLike(page, otherDeploy)
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
@@ -167,7 +168,7 @@ test.describe('a page opened before a new deploy', () => {
       Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('blocked', 'SecurityError') } })
     })
     await page.route(GONE, gone)
-    await probeLike(page, gone)
+    await probeLike(page, otherDeploy)
     const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
