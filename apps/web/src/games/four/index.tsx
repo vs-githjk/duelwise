@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useState, useSyncExternalStore } from 'react'
+import { useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -7,7 +7,6 @@ import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { ResultPanel } from '../../components/ResultPanel'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { personaFor } from '../../personas'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
@@ -36,16 +35,6 @@ function seedFromUrl(): number | undefined {
   return q !== null && /^\d{1,10}$/.test(q) && Number(q) < 2 ** 32 ? Number(q) : undefined
 }
 
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
-}
-
 export default function FourPage() {
   const match = useFourMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', sourceRegistry?.learnsFromHumans === true)
   const [picked, setPicked] = useState<Level>(firstSelectable)
@@ -72,7 +61,6 @@ export default function FourPage() {
       preview={showPracticeBadge(match.phase, match.preview, levelInfo[match.level].preview)}
       previewLabel="In training"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={over && match.result ? (
             <>
               <ResultPanel

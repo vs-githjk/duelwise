@@ -20,7 +20,7 @@ const SKIP = (url: string) => url === '/sw.js' || url.endsWith('.map') || url.en
 
 /** What the app cannot start without. Everything else (models, 3D art, audio) is optional at install and cached on first use. */
 const REQUIRED_EXT = new Set(['.js', '.mjs', '.css', '.woff2', '.ttf', '.webmanifest', '.svg', '.png', '.wasm'])
-const OPTIONAL_UNDER = ['/agents/', '/assets/arena/', '/assets/fighter/']
+const OPTIONAL_UNDER = ['/agents/', '/assets/arena/', '/assets/fighter/', '/assets/audio/']
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

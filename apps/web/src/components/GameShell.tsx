@@ -13,6 +13,8 @@ import { setPractice, usePractice } from '../lib/practice'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
 import { HowToPlay } from './HowToPlay'
+import { GameSoundControl } from './GameSoundControl'
+import { matchMusicWanted, moodForGame, setMatchMusic } from '../lib/music'
 import { hasSeenGuide, markGuideSeen } from './how-to-play-data'
 
 const DESKTOP_QUERY = '(min-width: 900px) and (pointer: fine)'
@@ -45,6 +47,8 @@ export interface GameShellProps {
   result?: ReactNode
   /** Extra header content, such as a mute toggle. */
   actions?: ReactNode
+  /** The page's own word on whether a match is running (loading or playing). Games that show the result without a `result` slot (Tinderbox, Coldstore) pass it so the music stops at the result. */
+  matchActive?: boolean
   onOpenGuide?: () => void
   children: ReactNode
   className?: string
@@ -55,7 +59,7 @@ export interface GameShellProps {
  * thinking indicator; the board area; an aside that stacks under the board on a phone. Desktop-only
  * games show the notice on small or touch screens instead of mounting.
  */
-export function GameShell({ game, level, preview, previewLabel, thinking = false, aside, result, actions, onOpenGuide, children, className }: GameShellProps) {
+export function GameShell({ game, level, preview, previewLabel, thinking = false, aside, result, actions, matchActive, onOpenGuide, children, className }: GameShellProps) {
   const [guideOpen, setGuideOpen] = useState(false)
   useEffect(() => { if (!hasSeenGuide(game)) { markGuideSeen(game); setGuideOpen(true) } }, [game])
   // Every game page opens as Rated; a Practice pick lasts only as long as the page.
@@ -67,6 +71,12 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
   const closeGuide = useCallback(() => setGuideOpen(false), [])
   const openGuide = () => { onOpenGuide?.(); setGuideOpen(true) }
   const cfg = PRODUCT.games[game]
+  // Music lives only inside a match: on from Start (a level is picked) until the result shows, silent on the setup screen and everywhere else.
+  const matchOn = matchMusicWanted({ level, result, matchActive })
+  useEffect(() => {
+    setMatchMusic(matchOn ? moodForGame(game) : null)
+    return () => setMatchMusic(null)
+  }, [matchOn, game])
   const isDesktop = useIsDesktop()
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (
@@ -92,6 +102,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
             Leaderboard
           </Link> : null}
           <button type="button" onClick={openGuide} aria-label={level ? "How to play" : undefined} className="min-h-11 min-w-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">{level ? "?" : "How to play"}</button>
+          <GameSoundControl />
           {actions}
         </div>
       </header>

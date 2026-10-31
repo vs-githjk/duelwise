@@ -101,6 +101,15 @@ All three faces are licensed under the SIL Open Font License 1.1, self-hosted fr
 
 Lining numerals are set once on `body` (`font-variant-numeric: lining-nums`), and the `.tabular` class adds tabular-nums on top of it.
 
+## Music and stingers
+
+### OpenGameArt cc0-music
+
+- Source: https://opengameart.org (one page per track, listed in `apps/web/public/assets/audio/opengameart/cc0-music/CREDITS.md`), downloaded 2026-10-30.
+- Licence: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. No attribution is required; we credit anyway. The licence text is saved as `LICENSE.txt` next to the files.
+- Tracks (title, author): relax_background1 (joaquinton), jazz improvisation looped (Pro Sensory), Determined Pursuit (Emma_MA), Win Jingle (Fupi), Game over short jingle (Kosmo The Cat). Re-encoded to MP3 and trimmed; total about 4.4 MB.
+- Used by: `apps/web/src/lib/music.ts` (three match loops and the win and loss stingers).
+
 ## Quaternius paid animation clips (P2, Oct 23)
 
 Decision: paid Quaternius clips stay out of the public repository and are hosted separately (plan/decisions.md, Oct 23 10:23). The pack licence is CC0, so this protects the purchase, not a legal need.

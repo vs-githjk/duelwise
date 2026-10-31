@@ -1,5 +1,6 @@
 import { VOICE_KEY } from './progress'
-import { isMuted } from './audio'
+import { isMuted, subscribeAudio } from './audio'
+import { duckMusic } from './music'
 
 /**
  * The opponent's line, spoken with the browser's own speech (Web Speech API). No keys, no network, no files.
@@ -62,6 +63,9 @@ export function cancelSpeech(): void {
   } catch {}
 }
 
+// Turning Sound effects off silences a line that is already being spoken.
+if (typeof window !== 'undefined') subscribeAudio(() => { if (isMuted()) cancelSpeech() })
+
 /** Speaks one line once. Voices load late in some browsers, so an empty list waits for `voiceschanged` one time. */
 export function speakLine(text: string, opts: { force?: boolean } = {}): boolean {
   const s = synth()
@@ -72,6 +76,7 @@ export function speakLine(text: string, opts: { force?: boolean } = {}): boolean
   const say = () => {
     if (done) return
     done = true
+    if (isMuted()) return // muted while the voices were loading
     try {
       s.cancel()
       const u = new SpeechSynthesisUtterance(text)
@@ -82,6 +87,10 @@ export function speakLine(text: string, opts: { force?: boolean } = {}): boolean
       }
       u.rate = 1
       u.pitch = 1
+      // The music sits lower while the line is spoken and comes back when it ends, fails or is cancelled.
+      let release: (() => void) | null = null
+      u.onstart = () => { release ??= duckMusic() }
+      u.onend = u.onerror = () => { release?.(); release = null }
       s.speak(u)
     } catch {}
   }
