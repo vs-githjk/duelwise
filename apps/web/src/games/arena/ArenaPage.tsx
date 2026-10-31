@@ -406,6 +406,9 @@ export default function ArenaPage() {
                   <a className={btnPlain} href="/settings" target="_blank" rel="noopener noreferrer">
                     Account settings (new tab)
                   </a>
+                  <a className={btnPlain} href="/play" data-testid="pause-back">
+                    <span aria-hidden="true">←</span>&nbsp;All games
+                  </a>
                   <button
                     type="button"
                     className={cn(btnPlain, 'text-bad-ink')}
@@ -428,7 +431,7 @@ export default function ArenaPage() {
           ) : null}
           {over && result ? (
             <div className="arena-ov" data-no-capture>
-              <div className="grid w-full max-w-md gap-3">
+              <div className="grid w-full max-w-md gap-3 [@media(orientation:landscape)_and_(max-height:520px)]:max-w-3xl">
                 <ResultPanel
                   leaderboard={false}
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}

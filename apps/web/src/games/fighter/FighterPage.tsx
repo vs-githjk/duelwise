@@ -396,6 +396,9 @@ export default function FighterPage() {
                   <a className={btnPlain} href="/settings" target="_blank" rel="noopener noreferrer">
                     Settings (new tab)
                   </a>
+                  <a className={btnPlain} href="/play" data-testid="pause-back">
+                    <span aria-hidden="true">←</span>&nbsp;All games
+                  </a>
                   <button type="button" className={cn(btnPlain, 'text-bad-ink')} onClick={() => { setPanel(null); match.quit() }}>
                     Quit match
                   </button>
@@ -409,7 +412,7 @@ export default function FighterPage() {
           ) : null}
           {over && result ? (
             <div className="fighter-ov">
-              <div className="grid w-full max-w-md gap-3">
+              <div className="grid w-full max-w-md gap-3 [@media(orientation:landscape)_and_(max-height:520px)]:max-w-3xl">
                 <ResultPanel
                   result={{ ...result, reason: `Rounds ${result.score[0]} to ${result.score[1]}` }}
                   humanSeat={0}

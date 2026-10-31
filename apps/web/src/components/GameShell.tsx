@@ -65,7 +65,8 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
     <OpponentContext.Provider value={{ game, level }}>
     <div className={cn('mx-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-4 py-4 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-2', className)} data-testid="game-shell" data-game={game}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Link to="/play" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-ink">
+        <Link to="/play" data-testid="game-back" className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-line bg-surface px-3 text-sm font-semibold text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           All games
         </Link>
         <h1 className="font-display text-display-md [@media(max-height:700px)]:text-2xl">{cfg.displayName}</h1>
@@ -89,7 +90,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
       {blocked ? (
         <DesktopOnlyNotice game={game} />
       ) : (
-        <div className={cn('game-shell-content grid gap-4', Boolean(aside || result) && 'game-shell-content-with-aside')}>
+        <div className={cn('game-shell-content grid gap-4', Boolean(aside || result) && 'game-shell-content-with-aside')} data-has-result={result ? 'true' : undefined}>
           <div className="game-shell-main min-w-0">{children}</div>
           {result ? <div className="game-shell-result min-w-0">{result}</div> : null}
           {aside ? <aside className="game-shell-aside grid content-start gap-3">{aside}</aside> : null}
