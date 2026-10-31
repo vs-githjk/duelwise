@@ -90,7 +90,6 @@ export function ShareBlock({ facts, game }: { facts: ShareFacts; game: GameId })
     <section className="grid gap-2 rounded-card border border-dashed border-line p-3" aria-label="Share" data-testid="share-block">
       <pre className="line-clamp-3 whitespace-pre-wrap break-words rounded-control bg-surface-2 px-3 py-2 font-mono text-xs leading-snug" data-testid="share-text">{text}</pre>
       <div className="flex flex-wrap items-center gap-2">
-        <b className="mr-1 text-sm">Share</b>
         <button type="button" className={btn} onClick={() => void copy()}>Copy</button>
         <button type="button" className={btn} onClick={() => void save()}>Save card</button>
         {canShare ? <button type="button" className={btn} onClick={() => void share()}>Share</button> : null}
