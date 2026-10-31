@@ -29,33 +29,50 @@ async function pick(page: Page, url: string) {
 }
 
 test.describe('music', () => {
-  test('nothing plays before the first tap; the tap starts the lobby loop', async ({ page }) => {
-    await ready(page, '/play')
+  test('the landing, the game list and a setup screen stay silent, even after a tap', async ({ page }) => {
+    await ready(page, '/')
     let s = await state(page)
-    expect(s).toMatchObject({ mood: 'lobby', gestured: false, musicOn: true, sfxOn: true })
+    expect(s).toMatchObject({ mood: null, gestured: false, musicOn: true, sfxOn: true })
     expect(s.playing).toEqual({})
     await page.getByRole('heading').first().click()
     await expect.poll(async () => (await state(page)).gestured).toBe(true)
-    await expect.poll(async () => Object.keys((await state(page)).playing)).toEqual(['lobby'])
+    await page.goto('/play')
+    await page.getByRole('heading').first().click()
+    await page.goto('/play/chess')
+    await page.getByRole('heading', { name: 'Chess' }).click()
+    await page.goto('/leaderboard/chess')
+    await page.getByRole('heading').first().click()
+    await page.waitForTimeout(1500)
     s = await state(page)
-    expect(s.duck).toBe(1)
+    expect(s.mood).toBeNull()
+    expect(s.playing).toEqual({})
   })
 
-  test('the loop follows the page: board for chess, poker for hold\'em, action for the real-time games, the lobby after', async ({ page }) => {
-    await ready(page, '/play')
-    await page.getByRole('heading').first().click()
-    const mood = async () => (await state(page)).mood
-    await page.getByTestId('nav-settings').click()
-    expect(await mood()).toBe('lobby')
-    for (const [path, want] of [['/play/chess', 'board'], ['/play/heads-up-holdem', 'poker'], ['/play/word-duel', 'board'], ['/play/tinderbox', 'action'], ['/play/coldstore', 'action']] as const) {
-      // A client side move, so the page (and its music) is the same one the whole time.
-      await page.evaluate((p) => { history.pushState({}, '', p); window.dispatchEvent(new PopStateEvent('popstate')) }, path)
-      await expect.poll(mood).toBe(want)
-    }
+  test('the loop fades in on Start, plays through the match and fades out at the result under the stinger', async ({ page }) => {
+    await pick(page, `/play/chess?seed=3&fen=${encodeURIComponent('6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1')}`)
+    await expect.poll(async () => (await state(page)).mood).toBe('board')
+    await expect.poll(async () => Object.keys((await state(page)).playing)).toEqual(['board'])
+    await expect.poll(async () => (await state(page)).playing.board, { timeout: 5000 }).toBeGreaterThan(0.5)
+    await page.getByTestId('sq-a1').click()
+    await page.getByTestId('sq-a8').click()
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 60_000 })
+    await expect.poll(async () => (await stingers(page)).map((e) => e.outcome)).toEqual(['win'])
+    await expect.poll(async () => (await state(page)).mood).toBeNull()
+    await expect.poll(async () => (await state(page)).playing, { timeout: 8000 }).toEqual({})
+  })
+
+  test('hold\'em plays the poker loop and leaving the match goes silent', async ({ page }) => {
+    await pick(page, '/play/heads-up-holdem?seed=3')
+    await expect.poll(async () => (await state(page)).mood).toBe('poker')
+    await expect.poll(async () => Object.keys((await state(page)).playing)).toEqual(['poker'])
     await page.getByTestId('home-link').click()
-    await expect.poll(mood).toBe('lobby')
-    // The crossfade ends with one loop playing.
-    await expect.poll(async () => Object.keys((await state(page)).playing), { timeout: 8000 }).toEqual(['lobby'])
+    await expect.poll(async () => (await state(page)).mood).toBeNull()
+    await expect.poll(async () => (await state(page)).playing, { timeout: 8000 }).toEqual({})
+  })
+
+  test('word duel plays the board loop', async ({ page }) => {
+    await pick(page, '/play/word-duel?seed=7')
+    await expect.poll(async () => (await state(page)).mood).toBe('board')
   })
 
   test('the Settings switches are separate, default on and survive a reload', async ({ page }) => {
@@ -95,11 +112,11 @@ test.describe('music', () => {
     await expect(page.getByTestId('sfx-switch')).toBeChecked()
   })
 
-  test('with music off a tap starts no loop', async ({ page }) => {
+  test('with music off a match starts no loop', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('duelwise.audio', JSON.stringify({ volume: 0.7, muted: false, music: false })))
-    await ready(page, '/play')
-    await page.getByRole('heading').first().click()
-    await expect.poll(async () => (await state(page)).gestured).toBe(true)
+    await pick(page, '/play/four-in-a-row?seed=3')
+    await expect.poll(async () => (await state(page)).mood).toBe('board')
+    await page.waitForTimeout(800)
     expect((await state(page)).playing).toEqual({})
   })
 })

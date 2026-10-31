@@ -1,23 +1,22 @@
 // Background music and the win and loss stingers. The files are CC0 (see public/assets/audio/.../CREDITS.md).
 //
 // Rules this module keeps:
-//   - Nothing plays before the player's first tap (iOS and Chrome block it). The first tap, click or key press starts the loop for the current page.
-//   - One loop per mood: the lobby for every page outside a match, then board (chess, four, word), poker (hold'em) and action (Tinderbox, Coldstore).
-//     Moving between pages crossfades. A tab that is hidden is paused.
+//   - Music plays only during a match, from Start to the result (decisions.md: match-only). The lobby, landing, setup, leaderboard and every
+//     other page are silent. GameShell reports the match on and off (setMatchMusic); the loop fades in on Start and out when the result shows.
+//   - Nothing plays before the player's first tap (iOS and Chrome block it); a match that started before the tap begins on the first tap.
+//   - One loop per mood: board (chess, four, word), poker (hold'em) and action (Tinderbox, Coldstore). A tab that is hidden is paused.
 //   - Music is its own switch (isMusicOn); the stingers and every other cue follow the sound effects switch (isMuted).
 //   - A stinger or a spoken line ducks the music and lets it back up after.
 //   - iOS ignores an element's volume, so the music goes through a GainNode on the shared AudioContext when there is one.
 // Nothing here may throw into a game: every browser call is guarded.
 
-import { PRODUCT } from '@duelwise/core/src/product'
 import { getVolume, isMusicOn, isMuted, play, registerSounds, resumeAudioContext, sharedAudioContext, subscribeAudio } from './audio'
 
-export type Mood = 'lobby' | 'board' | 'poker' | 'action'
+export type Mood = 'board' | 'poker' | 'action'
 export type StingerOutcome = 'win' | 'loss'
 
 const ROOT = '/assets/audio/opengameart/cc0-music'
 export const TRACKS: Record<Mood, string> = {
-  lobby: `${ROOT}/music/lobby.mp3`,
   board: `${ROOT}/music/board.mp3`,
   poker: `${ROOT}/music/poker.mp3`,
   action: `${ROOT}/music/action.mp3`,
@@ -38,12 +37,9 @@ const DUCK_UP_MS = 900
 /** A hold that is never released (a speech that never ends) lets go on its own after this long. */
 const MAX_HOLD_MS = 20000
 
-/** The mood for a page path: a game's page gets its game's mood, everything else the lobby. */
-export function moodForPath(pathname: string): Mood {
-  const m = /^\/play\/([^/?#]+)/.exec(pathname)
-  if (!m) return 'lobby'
-  const id = (Object.keys(PRODUCT.games) as Array<keyof typeof PRODUCT.games>).find((g) => PRODUCT.games[g].slug === m[1])
-  return (id && MOOD_BY_GAME[id]) || 'lobby'
+/** The loop for a game (by id), or null for a game without one. */
+export function moodForGame(game: string): Mood | null {
+  return MOOD_BY_GAME[game] ?? null
 }
 
 interface Voice {
@@ -54,7 +50,8 @@ interface Voice {
 }
 
 const voices = new Map<Mood, Voice>()
-let mood: Mood = 'lobby'
+/** The loop wanted now: set while a match is on, null everywhere else (silence). */
+let mood: Mood | null = null
 let gestured = false
 let hidden = false
 /** 1 normal, DUCK_LEVEL while a stinger or a line is on; eased toward duckTarget. */
@@ -80,11 +77,11 @@ export interface AudioEvent {
   outcome?: StingerOutcome
   /** Stinger: whether it was actually played (false when sound effects are off). */
   played?: boolean
-  mood?: Mood
+  mood?: Mood | null
   on?: boolean
 }
 export interface MusicState {
-  mood: Mood
+  mood: Mood | null
   gestured: boolean
   hidden: boolean
   musicOn: boolean
@@ -237,8 +234,8 @@ function sync(): void {
 
 // ---- public: mood, gesture, hidden -----------------------------------------------------------------------------------
 
-/** Sets the page's mood; the old track fades out while the new one fades in. */
-export function setMood(next: Mood): void {
+/** A match started (a mood) or ended or left (null): that loop fades in, or the playing one fades out. Everything outside a match is silent. */
+export function setMatchMusic(next: Mood | null): void {
   if (next === mood) return
   mood = next
   record({ type: 'mood', mood: next })
@@ -369,7 +366,7 @@ export function resetMusicForTests(): void {
     }
   }
   voices.clear()
-  mood = 'lobby'
+  mood = null
   gestured = false
   hidden = false
   duck = 1

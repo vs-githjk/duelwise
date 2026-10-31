@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { isMusicOn, isMuted, resetAudioForTests, setMusicOn, setMuted, setVolume, getVolume } from './audio'
-import { DUCK_LEVEL, MUSIC_LEVEL, TRACKS, duckMusic, moodForPath, musicState, playStinger, resetMusicForTests, setMood, startMusic, tickMusic, unlockMusic } from './music'
+import { DUCK_LEVEL, MUSIC_LEVEL, TRACKS, duckMusic, moodForGame, musicState, playStinger, resetMusicForTests, setMatchMusic, startMusic, tickMusic, unlockMusic } from './music'
 
 const g = globalThis as unknown as Record<string, unknown>
 const saved = { window: g.window, document: g.document, Audio: g.Audio, localStorage: g.localStorage }
@@ -63,12 +63,13 @@ afterEach(() => {
   g.localStorage = saved.localStorage
 })
 
-describe('mood for a page', () => {
-  test('the lobby everywhere outside a match, the game mood on a game page', () => {
-    for (const p of ['/', '/play', '/leaderboard/chess', '/ai', '/settings', '/play/not-a-game']) expect(moodForPath(p)).toBe('lobby')
-    for (const p of ['/play/chess', '/play/four-in-a-row', '/play/word-duel']) expect(moodForPath(p)).toBe('board')
-    expect(moodForPath('/play/heads-up-holdem')).toBe('poker')
-    for (const p of ['/play/tinderbox', '/play/coldstore']) expect(moodForPath(p)).toBe('action')
+describe('mood for a game', () => {
+  test('each game has its loop; there is no lobby loop', () => {
+    for (const g of ['chess', 'four', 'word']) expect(moodForGame(g)).toBe('board')
+    expect(moodForGame('holdem')).toBe('poker')
+    for (const g of ['fighter', 'arena']) expect(moodForGame(g)).toBe('action')
+    expect(moodForGame('nope')).toBeNull()
+    expect(Object.keys(TRACKS).sort()).toEqual(['action', 'board', 'poker'])
   })
 })
 
@@ -107,7 +108,7 @@ describe('gestures', () => {
   test('nothing is created or played before the first tap; the tap starts the loop for the current mood at the low level', () => {
     fakeBrowser()
     const stop = startMusic()
-    setMood('board')
+    setMatchMusic('board')
     expect(els.length).toBe(0)
     expect(musicState().gestured).toBe(false)
     unlockMusic()
@@ -123,6 +124,7 @@ describe('gestures', () => {
   test('the first tap, click or key press unlocks it through the listeners, then they are removed', () => {
     const b = fakeBrowser()
     const stop = startMusic()
+    setMatchMusic('board')
     expect(b.count('pointerup')).toBe(1)
     b.fire('keydown')
     expect(els.length).toBe(1)
@@ -134,6 +136,7 @@ describe('gestures', () => {
     const b = fakeBrowser()
     refuse = 'NotAllowedError'
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     await Promise.resolve(); await Promise.resolve()
     expect(musicState().gestured).toBe(false)
@@ -150,6 +153,7 @@ describe('gestures', () => {
     const b = fakeBrowser()
     setMusicOn(false)
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     expect(els.length).toBe(0)
     setMusicOn(true)
@@ -161,9 +165,10 @@ describe('gestures', () => {
   test('switching music off fades the loop out and pauses it', () => {
     const b = fakeBrowser()
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     tickMusic(2000)
-    expect(musicState().playing.lobby).toBe(1)
+    expect(musicState().playing.board).toBe(1)
     setMusicOn(false)
     tickMusic(400)
     expect(els[0]!.paused).toBe(false) // still fading
@@ -175,6 +180,7 @@ describe('gestures', () => {
   test('a hidden tab pauses at once and the loop returns when the tab is back', () => {
     const b = fakeBrowser()
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     tickMusic(2000)
     b.doc.visibilityState = 'hidden'
@@ -184,32 +190,71 @@ describe('gestures', () => {
     b.doc.visibilityState = 'visible'
     b.fire('visibilitychange')
     expect(els[0]!.paused).toBe(false)
-    expect(musicState().playing.lobby).toBe(0)
+    expect(musicState().playing.board).toBe(0)
     tickMusic(2000)
-    expect(musicState().playing.lobby).toBe(1)
+    expect(musicState().playing.board).toBe(1)
     stop()
   })
 })
 
-describe('crossfade', () => {
-  test('moving to a game fades the lobby out while the game loop fades in, then the lobby is paused', () => {
+describe('match-only music', () => {
+  test('a tap on the landing, setup or any page with no match starts nothing', () => {
     const b = fakeBrowser()
     const stop = startMusic()
     b.fire('pointerup')
-    tickMusic(2000)
-    setMood('action')
-    expect(els.map((e) => e.src)).toEqual([TRACKS.lobby, TRACKS.action])
+    expect(musicState().gestured).toBe(true)
+    expect(els.length).toBe(0)
+    expect(musicState().playing).toEqual({})
+    stop()
+  })
+
+  test('the loop fades in when the match starts and out, then pauses, when the result shows', () => {
+    const b = fakeBrowser()
+    const stop = startMusic()
+    b.fire('pointerup') // a tap before Start
+    setMatchMusic('poker') // Start
+    expect(els.map((e) => e.src)).toEqual([TRACKS.poker])
+    expect(els[0]!.paused).toBe(false)
+    expect(els[0]!.volume).toBe(0)
     tickMusic(750)
-    const mid = musicState().playing
-    expect(mid.lobby).toBeCloseTo(0.5, 2)
-    expect(mid.action).toBeCloseTo(0.5, 2)
-    expect(els[0]!.volume).toBeCloseTo(0.5 * getVolume() * MUSIC_LEVEL, 5)
+    expect(musicState().playing.poker).toBeCloseTo(0.5, 2)
+    tickMusic(1000)
+    expect(els[0]!.volume).toBeCloseTo(getVolume() * MUSIC_LEVEL, 5)
+    setMatchMusic(null) // the result
+    tickMusic(750)
+    expect(musicState().playing.poker).toBeCloseTo(0.5, 2)
     tickMusic(1000)
     expect(els[0]!.paused).toBe(true)
-    expect(els[1]!.volume).toBeCloseTo(getVolume() * MUSIC_LEVEL, 5)
-    // And back: the lobby element is reused, not made again.
-    setMood('lobby')
-    expect(els.length).toBe(2)
+    // The next match reuses the element.
+    setMatchMusic('poker')
+    expect(els.length).toBe(1)
+    expect(els[0]!.paused).toBe(false)
+    stop()
+  })
+
+  test('a match that began before any tap starts on the first tap', () => {
+    const b = fakeBrowser()
+    const stop = startMusic()
+    setMatchMusic('action')
+    expect(els.length).toBe(0)
+    b.fire('click')
+    expect(els.map((e) => e.src)).toEqual([TRACKS.action])
+    stop()
+  })
+
+  test('the stinger ducks the loop while it fades out at the result', () => {
+    const b = fakeBrowser()
+    const stop = startMusic()
+    setMatchMusic('board')
+    b.fire('pointerup')
+    tickMusic(2000)
+    setMatchMusic(null)
+    playStinger('win')
+    tickMusic(200)
+    expect(musicState().duck).toBeLessThan(1)
+    expect(els[0]!.volume).toBeLessThan(getVolume() * MUSIC_LEVEL)
+    tickMusic(3000)
+    expect(els[0]!.paused).toBe(true)
     stop()
   })
 })
@@ -218,6 +263,7 @@ describe('ducking', () => {
   test('a hold lowers the music and releasing brings it back; holds stack', () => {
     const b = fakeBrowser()
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     tickMusic(2000)
     const full = getVolume() * MUSIC_LEVEL
@@ -241,6 +287,7 @@ describe('ducking', () => {
     const b = fakeBrowser()
     setVolume(0.5)
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('pointerup')
     tickMusic(2000)
     playStinger('win')
@@ -298,6 +345,7 @@ describe('the Start tap', () => {
     const b = fakeBrowser()
     ;(g.window as Record<string, unknown>).AudioContext = FakeCtx
     const stop = startMusic()
+    setMatchMusic('board')
     b.fire('click') // the capture handler: music unlock
     primeAudio() // then the game's own Start handler
     expect(resumes).toBe(1)

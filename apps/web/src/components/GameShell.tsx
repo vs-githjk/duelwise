@@ -12,6 +12,7 @@ import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
 import { HowToPlay } from './HowToPlay'
 import { GameSoundControl } from './GameSoundControl'
+import { moodForGame, setMatchMusic } from '../lib/music'
 import { hasSeenGuide, markGuideSeen } from './how-to-play-data'
 
 const DESKTOP_QUERY = '(min-width: 900px) and (pointer: fine)'
@@ -60,6 +61,12 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
   const closeGuide = useCallback(() => setGuideOpen(false), [])
   const openGuide = () => { onOpenGuide?.(); setGuideOpen(true) }
   const cfg = PRODUCT.games[game]
+  // Music lives only inside a match: on from Start (a level is picked) until the result shows, silent on the setup screen and everywhere else.
+  const matchOn = level !== undefined && !result
+  useEffect(() => {
+    setMatchMusic(matchOn ? moodForGame(game) : null)
+    return () => setMatchMusic(null)
+  }, [matchOn, game])
   const isDesktop = useIsDesktop()
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (

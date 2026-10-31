@@ -6,11 +6,10 @@ The files were re-encoded for the web (MP3, stereo, 44.1 kHz, 80 kbps for loops 
 
 | File here | Title | Author | Source page | Original file | Licence |
 |---|---|---|---|---|---|
-| `music/lobby.mp3` | Slow Stride | isaiah658 | https://opengameart.org/content/slow-stride | `Slow Stride Loop.ogg` | CC0 1.0 |
 | `music/board.mp3` | relax_background1 | joaquinton | https://opengameart.org/content/relaxbackground1 | `relax_background1.ogg` | CC0 1.0 |
 | `music/poker.mp3` | jazz improvisation looped | Pro Sensory | https://opengameart.org/content/jazz-improvisation-looped | `jazz_improv_looped_1.mp3` | CC0 1.0 |
 | `music/action.mp3` | Determined Pursuit (epic orchestra loop) | Emma_MA | https://opengameart.org/content/determined-pursuit-epic-orchestra-loop | `determined_pursuit_loop.wav` | CC0 1.0 |
 | `stingers/win.mp3` | Win Jingle | Fupi | https://opengameart.org/content/win-jingle | `winfretless.ogg`, first 2.3 s | CC0 1.0 |
 | `stingers/loss.mp3` | Game over short jingle | Kosmo The Cat | https://opengameart.org/content/game-over-short-jingle | `Game over jingle.mp3`, first 3 s | CC0 1.0 |
 
-Where each plays: lobby on every page outside a match; board on Chess, Four in a Row and Word Duel; poker on Hold'em; action on Tinderbox and Coldstore; win and loss stingers on the result of all six games.
+Music plays only during a match (from Start to the result); every other page is silent. Where each plays: board on Chess, Four in a Row and Word Duel; poker on Hold'em; action on Tinderbox and Coldstore; win and loss stingers on the result of all six games.
