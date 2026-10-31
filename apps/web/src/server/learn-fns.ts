@@ -1,10 +1,8 @@
-import { and, eq, gt, sql } from 'drizzle-orm'
 import { createServerFn } from '@tanstack/react-start'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
-import * as schema from '../db/schema'
 import { getServerDb } from './server-db'
 import { gameRecordsTrainable, registryFor } from './stats-fns'
-import { getGameStats, trainingEligible, withRegistryRuns } from './stats'
+import { getGameStats, sinceChampion, withRegistryRuns } from './stats'
 import type { ChampionFacts } from '../lib/learn-copy'
 
 export interface LearnVersion {
@@ -69,13 +67,9 @@ export const getLearnView = createServerFn({ method: 'GET' })
     let sinceCount = 0
     let sinceEligible = 0
     if (championRow?.promotedAt && learns) {
-      const since = new Date(championRow.promotedAt)
-      const rows = await db
-        .select({ filterFlags: schema.match.filterFlags, trainingAllowed: schema.match.trainingAllowed })
-        .from(schema.match)
-        .where(and(eq(schema.match.game, data.game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, gt(schema.match.finishedAt, since)))
-      sinceCount = rows.length
-      sinceEligible = rows.filter(trainingEligible).length
+      const counts = await sinceChampion(db, data.game, new Date(championRow.promotedAt))
+      sinceCount = counts.count
+      sinceEligible = counts.eligible
     }
     return {
       game: data.game,

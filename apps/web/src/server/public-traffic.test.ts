@@ -7,7 +7,7 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { getBoard } from './landing'
-import { getGameStats } from './stats'
+import { getGameStats, sinceChampion } from './stats'
 import { finishedResults } from './results'
 import { getLevelBoard, getOpponentRecords } from './board'
 import { getLeaderboard, MIN_GAMES } from './leaderboard'
@@ -69,6 +69,14 @@ describe('public numbers leave Test traffic out and keep owner games in', () => 
     expect(stats.counted).toBe(3)
     const rec = (await getOpponentRecords(db, NOW)).find((r) => r.level === 'hard')!
     expect([rec.wins, rec.losses]).toEqual([1, 2])
+  })
+
+  test('the since-this-version counts on the learn panel ignore a test-tagged match', async () => {
+    await put({ id: 'real-1', win: true })
+    await put({ id: 'owner-1', guestId: 'g-owner', traffic: 'owner', win: true })
+    await put({ id: 'test-1', guestId: 'g-test', traffic: 'test', win: true })
+    const counts = await sinceChampion(db, 'four', new Date(NOW.getTime() - 86_400_000))
+    expect(counts).toEqual({ count: 2, eligible: 2 })
   })
 
   test('a test-tagged match never appears, even when its player has no guest row, and a real player keeps the rest of their games', async () => {
