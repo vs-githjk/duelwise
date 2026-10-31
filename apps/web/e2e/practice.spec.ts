@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { webPort } from '../port.ts'
 
 // Practice: the same game, unrated. A Rated / Practice pick on each setup screen (Rated by default). A practice Hold'em player who busts is
 // offered a free "Buy back in" and the match goes on. A practice chess match moves no rating. Run on the phone profile too:
@@ -225,5 +226,40 @@ test.describe('chess practice', () => {
 
     await page.goto('/leaderboard/chess')
     await expect(page.getByTestId('leaderboard-me')).toContainText(`Your rating: ${after} after 1 counted match`)
+  })
+})
+
+test.describe('a fresh player (path locked)', () => {
+  const origin = `http://localhost:${webPort()}`
+  test.use({
+    storageState: {
+      cookies: [],
+      origins: [{ origin, localStorage: [...['holdem'].map((g) => ({ name: `duelwise.how-to-play.${g}`, value: 'seen' })), { name: 'duelwise.welcomed', value: '1' }] }],
+    },
+  })
+
+  test('Rated keeps the path lock, Practice opens every opponent, and Practice can start against the Champion', async ({ page }) => {
+    await page.goto(HOLDEM)
+    const sable = page.locator('[data-persona="champion"] input')
+    await expect(page.getByTestId('path-locked-champion')).toBeVisible()
+    await expect(sable).toBeDisabled()
+    await page.locator('[data-mode-option="practice"]').click()
+    await expect(page.getByTestId('path-locked-champion')).toHaveCount(0)
+    await expect(sable).toBeEnabled()
+    await page.locator('[data-persona="champion"]').click()
+    await expect(sable).toBeChecked()
+    await page.getByRole('button', { name: /Start match vs Sable/ }).click()
+    await expect(page.getByTestId('holdem-table')).toBeVisible()
+    await expect(page.getByTestId('practice-badge')).toHaveText('Practice, unrated')
+    await expect(page.getByTestId('header-persona')).toContainText('Sable')
+  })
+
+  test('going back to Rated puts a locked pick back on the current stop', async ({ page }) => {
+    await page.goto(HOLDEM)
+    await page.locator('[data-mode-option="practice"]').click()
+    await page.locator('[data-persona="champion"]').click()
+    await page.locator('[data-mode-option="rated"]').click()
+    await expect(page.locator('[data-persona="easy"] input')).toBeChecked()
+    await expect(page.locator('[data-persona="champion"] input')).toBeDisabled()
   })
 })

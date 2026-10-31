@@ -9,6 +9,7 @@ import { personaFor, styleLine } from '../personas'
 import { showsPreviewBadge } from '../lib/honest-copy'
 import { EloExplainer } from './SiteElo'
 import { usePath } from '../lib/progress'
+import { usePractice } from '../lib/practice'
 import { CallPicker } from './IdentityCard'
 import { PathCard } from './PathCard'
 import { LearnGraph } from './LearnGraph'
@@ -46,7 +47,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   const state = usePath(game)
   const { path, current, open } = state
   // A stop is locked until the one before it is cleared; `?any=1` opens them all. Outside a game page (no game in context) nothing is gated.
-  const gated = game !== undefined && state.hydrated && !open
+  // Practice opens every opponent: it never clears the path, so there is nothing to farm. Rated keeps the lock.
+  const practiceMode = usePractice()
+  const gated = game !== undefined && state.hydrated && !open && !practiceMode
   const pathLocked = (level: Level) => gated && !path[level] && current !== level
   const touched = useRef(false)
   useEffect(() => {
