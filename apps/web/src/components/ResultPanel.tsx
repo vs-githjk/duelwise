@@ -84,7 +84,11 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       const r = ref.current?.getBoundingClientRect()
       if (r && (r.top < 0 || r.top > window.innerHeight * 0.6)) ref.current?.scrollIntoView({ behavior: 'auto', block })
     }, 1000)
-    return () => { cancelAnimationFrame(raf); clearTimeout(check) }
+    // The correction is for a page that moved on its own; the moment the player scrolls, types or taps it is theirs to keep.
+    const giveUp = () => { cancelAnimationFrame(raf); clearTimeout(check) }
+    const events = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+    for (const e of events) window.addEventListener(e, giveUp, { passive: true, once: true })
+    return () => { giveUp(); for (const e of events) window.removeEventListener(e, giveUp) }
   }, [])
   const opp = persona?.name ?? 'The AI'
   const called = game ? calledFor(game) : null

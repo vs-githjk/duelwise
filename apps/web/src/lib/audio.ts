@@ -77,6 +77,10 @@ export interface PlayOpts {
 }
 
 const POOL_SIZE = 3
+/** Elements a tap has already started once (unlocked), and each element's latest prime or cue number, so an old prime callback can tell a later cue took over. */
+const unlocked = new WeakSet<HTMLAudioElement>()
+const stamp = new WeakMap<HTMLAudioElement, number>()
+let stampCounter = 0
 /** Per sound: a few elements that are reused for every cue. iOS ties permission to the element a tap played, so a cue plays through one of these, never a fresh clone. */
 const pools = new Map<string, HTMLAudioElement[]>()
 
@@ -103,6 +107,7 @@ export function play(name: string, opts: PlayOpts = {}): void {
     // A free element if there is one; when every one is busy the oldest restarts (a cue fired three times at once is one burst anyway).
     const el = pool.find((e) => e.paused || e.ended) ?? pool[0]!
     el.volume = Math.min(1, Math.max(0, p.volume * (opts.gain ?? 1)))
+    stamp.set(el, ++stampCounter) // a prime still waiting on this element must not pause this cue
     el.muted = false
     try { el.currentTime = 0 } catch { /* not seekable yet */ }
     void el.play().catch(() => {})
@@ -136,10 +141,23 @@ export function primeAudio(): void {
   if (typeof Audio === 'undefined') return
   for (const [name, url] of sounds) {
     try {
-      // Every element a later cue will play through is started once here, muted, inside the tap.
+      // Every element a later cue will play through is started once here, muted, inside the tap. One already unlocked, or still playing a cue
+      // (a rematch tap can land while the last sound rings), is left alone; a late answer from a prime never touches an element a cue has since used.
       for (const el of poolFor(name, url)) {
+        if (unlocked.has(el) || !el.paused) continue
+        const mine = ++stampCounter
+        stamp.set(el, mine)
         el.muted = true
-        void el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = false }, () => { el.muted = false })
+        void el.play().then(
+          () => {
+            if (stamp.get(el) !== mine) return
+            unlocked.add(el)
+            el.pause()
+            el.currentTime = 0
+            el.muted = false
+          },
+          () => { if (stamp.get(el) === mine) el.muted = false },
+        )
       }
     } catch {
       // a blocked element is simply not unlocked

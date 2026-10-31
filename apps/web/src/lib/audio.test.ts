@@ -101,6 +101,38 @@ describe('primeAudio (the Start tap unlocks sound for the auto-start after a rot
     expect(calls.played).toEqual(['/a.ogg:loud'])
   })
 
+  test('a second prime leaves playing and already unlocked elements alone, and a late prime answer never pauses a later cue', async () => {
+    const resolvers: Array<() => void> = []
+    const els: Array<{ src: string; muted: boolean; paused: boolean; currentTime: number; pauses: number; volume: number; plays: number }> = []
+    class FakeAudio {
+      muted = false; currentTime = 0; preload = ''; paused = true; ended = false; volume = 1; pauses = 0; plays = 0
+      constructor(public src: string) { els.push(this) }
+      play() { this.plays++; this.paused = false; return new Promise<void>((r) => resolvers.push(r)) }
+      pause() { this.paused = true; this.pauses++ }
+    }
+    w.window = {}
+    w.Audio = FakeAudio
+    g.localStorage = fakeStorage()
+    registerSounds({ a: '/a.ogg' })
+    primeAudio() // three pooled elements start, muted, answers still pending
+    expect(els.length).toBe(3)
+    expect(els.every((e) => e.muted && e.plays === 1)).toBe(true)
+    // A real cue lands on the first element before its prime answers: it takes the element over.
+    play('a')
+    expect(els[0]!.muted).toBe(false)
+    resolvers.forEach((r) => r())
+    await Promise.resolve(); await Promise.resolve()
+    expect(els[0]!.pauses, 'the late prime answer must not pause the cue').toBe(0)
+    expect(els[0]!.paused).toBe(false)
+    expect(els[1]!.paused && els[2]!.paused).toBe(true) // the other two were unlocked and put back
+    // A second prime (a rematch tap): the ringing cue is not muted or restarted, the unlocked ones are not played again.
+    primeAudio()
+    expect(els[0]!.muted).toBe(false)
+    expect(els[0]!.plays).toBe(2) // 1 prime + 1 cue, nothing more
+    expect(els[1]!.plays).toBe(1)
+    expect(els[2]!.plays).toBe(1)
+  })
+
   test('never throws without Web Audio or Audio', () => {
     w.window = {}
     w.Audio = undefined

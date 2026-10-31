@@ -146,3 +146,22 @@ for (const vp of VIEWPORTS) {
     }
   })
 }
+
+test.describe('the correction after the result appears never undoes the player', () => {
+  test.use(phone(devices['iPhone 15']))
+  test('a scroll the player makes in the first second stays', async ({ page }) => {
+    test.setTimeout(90_000)
+    await pick(page, `/play/chess?seed=3&fen=${encodeURIComponent('6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1')}`)
+    await page.getByTestId('sq-a1').click()
+    await page.getByTestId('sq-a8').click()
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 60_000 })
+    // The player takes over soon after the result appears, well before the 1 s correction would look: a real wheel
+    // far enough that the verdict is off the top, which is what the late correction would undo.
+    await page.waitForTimeout(150)
+    await page.mouse.move(200, 400)
+    await page.mouse.wheel(0, 1200)
+    await page.waitForTimeout(2200)
+    const top = await page.getByTestId('result-panel').evaluate((el) => el.getBoundingClientRect().top)
+    expect(top, 'the late correction pulled the page back to the verdict').toBeLessThan(-100)
+  })
+})
