@@ -142,7 +142,7 @@ describe('luckOfMatchAsync', () => {
     release()
     const l = await p
     expect(l).toEqual(luckOfMatch(input, hooks))
-    expect(ticks).toBe(2) // once before the work, once after the single all-in hand
+    expect(ticks).toBe(1 + 48) // once before the work, then once per first board card of the preflop all-in
   })
 
   test('a cancelled run resolves to null and a match without an all-in to null', async () => {

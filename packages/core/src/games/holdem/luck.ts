@@ -9,42 +9,41 @@ import type { HoldemState, MatchOptions } from './match'
  * (exact enumeration of the cards still to come) instead of by how the cards fell. Every other hand counts as played.
  */
 
-/** Share of the pot `hero` wins on average (a tie counts one half) over every way the board can finish. Exact; `board` holds 0, 3, 4 or 5 cards. */
-export function equity(hero: readonly number[], villain: readonly number[], board: readonly number[]): number {
+/** The enumeration of one spot cut into bounded batches (one per first card still to come, about 2 ms each preflop). `run(i)` returns that batch's score and board count. */
+export function equityBatches(hero: readonly number[], villain: readonly number[], board: readonly number[]): { count: number; run: (i: number) => { score: number; total: number } } {
   const dead = new Set<number>([...hero, ...villain, ...board])
   const left: number[] = []
   for (let c = 0; c < 52; c++) if (!dead.has(c)) left.push(c)
   const need = 5 - board.length
+  if (need !== 0 && need !== 1 && need !== 2 && need !== 5) {
+    throw new Error('holdem luck: the board must have 0, 3, 4 or 5 cards, not ' + board.length)
+  }
   const h = [...hero, ...board, 0, 0, 0, 0, 0].slice(0, 7)
   const v = [...villain, ...board, 0, 0, 0, 0, 0].slice(0, 7)
   const at = 2 + board.length
+  const n = left.length
   let score = 0
   let total = 0
   const tally = (): void => {
-    const a = rank7(h)
-    const b = rank7(v)
-    score += a > b ? 1 : a === b ? 0.5 : 0
+    const x = rank7(h)
+    const y = rank7(v)
+    score += x > y ? 1 : x === y ? 0.5 : 0
     total++
   }
   const put = (i: number, c: number): void => {
     h[at + i] = c
     v[at + i] = c
   }
-  const n = left.length
-  if (need === 0) {
-    tally()
-  } else if (need === 1) {
-    for (let a = 0; a < n; a++) { put(0, left[a]!); tally() }
-  } else if (need === 2) {
-    for (let a = 0; a < n; a++) {
-      put(0, left[a]!)
-      for (let b = a + 1; b < n; b++) { put(1, left[b]!); tally() }
-    }
-  } else if (need === 5) {
-    for (let a = 0; a < n; a++) {
+  const run = (a: number): { score: number; total: number } => {
+    score = 0
+    total = 0
+    if (need === 0) tally()
+    else if (need === 1) { put(0, left[a]!); tally() }
+    else {
       put(0, left[a]!)
       for (let b = a + 1; b < n; b++) {
         put(1, left[b]!)
+        if (need === 2) { tally(); continue }
         for (let c = b + 1; c < n; c++) {
           put(2, left[c]!)
           for (let d = c + 1; d < n; d++) {
@@ -54,8 +53,20 @@ export function equity(hero: readonly number[], villain: readonly number[], boar
         }
       }
     }
-  } else {
-    throw new Error('holdem luck: the board must have 0, 3, 4 or 5 cards, not ' + board.length)
+    return { score, total }
+  }
+  return { count: need === 0 ? 1 : n, run }
+}
+
+/** Share of the pot `hero` wins on average (a tie counts one half) over every way the board can finish. Exact; `board` holds 0, 3, 4 or 5 cards. */
+export function equity(hero: readonly number[], villain: readonly number[], board: readonly number[]): number {
+  const { count, run } = equityBatches(hero, villain, board)
+  let score = 0
+  let total = 0
+  for (let i = 0; i < count; i++) {
+    const r = run(i)
+    score += r.score
+    total += r.total
   }
   return score / total
 }
@@ -132,9 +143,17 @@ export async function luckOfMatchAsync(input: LuckInput, opts: { tick?: () => Pr
   const { spots, actual } = spotsOf(input, opts.deck ? { deck: opts.deck } : undefined)
   const equities: number[] = []
   for (const p of spots) {
-    equities.push(equity(p.hero, p.villain, p.board))
-    await tick()
-    if (opts.cancelled?.()) return null
+    const { count, run } = equityBatches(p.hero, p.villain, p.board)
+    let score = 0
+    let total = 0
+    for (let i = 0; i < count; i++) {
+      const r = run(i)
+      score += r.score
+      total += r.total
+      await tick()
+      if (opts.cancelled?.()) return null
+    }
+    equities.push(score / total)
   }
   return total(spots, equities, actual)
 }
