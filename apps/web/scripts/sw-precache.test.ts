@@ -243,3 +243,48 @@ describe('the static cache never serves a page as a file', () => {
     expect(w.map.size).toBe(0)
   })
 })
+
+describe('the music is optional', () => {
+  test('files under /assets/audio/ are listed as optional, never required', () => {
+    const list = buildPrecacheList(site({ ...BUILD, 'assets/audio/opengameart/cc0-music/music/lobby.mp3': 'm', 'assets/audio/opengameart/cc0-music/stingers/win.mp3': 'w', 'assets/audio/clip.ogg': 'o' }))
+    expect(list.optional).toContain('/assets/audio/opengameart/cc0-music/music/lobby.mp3')
+    expect(list.optional).toContain('/assets/audio/opengameart/cc0-music/stingers/win.mp3')
+    expect(list.optional).toContain('/assets/audio/clip.ogg')
+    expect(list.required.some((u) => u.startsWith('/assets/audio/'))).toBe(false)
+  })
+
+  const source = readFileSync(join(import.meta.dirname, '..', 'sw', 'sw.js'), 'utf8')
+
+  test('the install still succeeds when every music file fails to download', async () => {
+    const src = source.replace('"__DUELWISE_PRECACHE__"', JSON.stringify({ version: 't', required: ['/assets/a.js'], optional: ['/assets/audio/m/lobby.mp3'], pages: [] }))
+    const put: string[] = []
+    const caches = { open: async () => ({ put: async (k: string) => void put.push(k), match: async () => undefined }) }
+    const net = async (u: string) => (u.includes('/audio/') ? new Response('nope', { status: 404 }) : new Response('x', { headers: { 'content-type': 'text/javascript' } }))
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, Set, indexedDB: {}, caches, fetch: net }
+    vm.createContext(sandbox)
+    vm.runInContext(src + '\nthis.install = install', sandbox)
+    await (sandbox.install as () => Promise<void>)()
+    expect(put).toEqual(['/assets/a.js'])
+  })
+
+  test('a Range request for a kept file is answered 206 with the right bytes (Safari needs this)', async () => {
+    const src = source.replace('"__DUELWISE_PRECACHE__"', '{"version":"t","required":[],"optional":[],"pages":[]}')
+    const sandbox: Record<string, unknown> = { self: { addEventListener() {}, location: { origin: 'https://duelwise.test' } }, URL, Response, Set, indexedDB: {}, caches: {}, fetch: () => {} }
+    vm.createContext(sandbox)
+    vm.runInContext(src + '\nthis.parseRange = parseRange; this.rangeFromCache = rangeFromCache', sandbox)
+    const parse = sandbox.parseRange as (h: string | null, n: number) => number[] | null
+    expect(parse('bytes=0-3', 10)).toEqual([0, 3])
+    expect(parse('bytes=4-', 10)).toEqual([4, 9])
+    expect(parse('bytes=-3', 10)).toEqual([7, 9])
+    expect(parse('bytes=2-99', 10)).toEqual([2, 9])
+    expect(parse('bytes=20-30', 10)).toBeNull()
+    expect(parse('bytes=0-1,4-5', 10)).toBeNull()
+    expect(parse(null, 10)).toBeNull()
+    const hit = new Response('0123456789', { headers: { 'content-type': 'audio/mpeg' } })
+    const req = { headers: new Headers({ range: 'bytes=2-5' }) }
+    const res = await (sandbox.rangeFromCache as (r: unknown, h: Response) => Promise<Response>)(req, hit)
+    expect(res.status).toBe(206)
+    expect(res.headers.get('content-range')).toBe('bytes 2-5/10')
+    expect(await res.text()).toBe('2345')
+  })
+})
