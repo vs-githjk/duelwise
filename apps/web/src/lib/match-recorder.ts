@@ -11,6 +11,7 @@ import { recordOffline, tallyLine } from './offline-record'
 import { requestWakeDrain } from './pwa'
 import { takeCall } from './progress'
 import { isOffline, subscribeConnection } from './connection'
+import { setMatchActive } from './match-active'
 import { beaconFinish, beaconResign, clearPending, postResign, retryPending, savePending, type ResignReply } from './integrity'
 
 export interface RecorderInit {
@@ -248,6 +249,12 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
   const pending = useRef<{ matchId: string; bytes: Uint8Array } | null>(null)
   /** A finished offline match waiting in the upload queue; the page tells the player when the server has settled it. */
   const queuedId = useRef<string | null>(null)
+
+  // Tell the page a match is running, so an update waits for the end of it (lib/stale-chunk.ts). Cleared on finish and on leaving.
+  useEffect(() => {
+    setMatchActive(status === 'playing')
+    return () => setMatchActive(false)
+  }, [status])
 
   // A counted match that is still running when the tab is hidden for good or the page unmounts is
   // resigned by beacon: closing the tab must not dodge a loss. pagehide also fires on a bfcache

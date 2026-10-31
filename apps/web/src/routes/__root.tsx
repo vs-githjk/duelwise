@@ -8,6 +8,7 @@ import { NotFound } from '../components/NotFound'
 import { UploadQueue } from '../components/UploadQueue'
 import { OfflineChip } from '../components/OfflineChip'
 import { ServiceWorker } from '../components/ServiceWorker'
+import { UpdateNotice } from '../components/UpdateNotice'
 import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
 import { shareMeta } from '../lib/site-meta'
@@ -53,6 +54,7 @@ function RootPage() {
     <ErrorBoundary>
       <UploadQueue />
       <ServiceWorker />
+      <UpdateNotice />
       <OfflineChip />
       <VoiceArm />
       <Outlet />

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Route } from '@playwright/test'
 import { PRODUCT } from '@duelwise/core/src/product.ts'
 
 /**
@@ -102,35 +102,96 @@ test.describe('a page opened before a new deploy', () => {
   const slug = PRODUCT.games.chess.slug
   // In dev the game's code is served as /src/games/chess/index.tsx; a deploy that removed it answers 404 with an HTML page.
   const GONE = /\/src\/games\/chess\/index\.tsx/
-  const gone = (route: import('@playwright/test').Route) => route.fulfill({ status: 404, contentType: 'text/html', body: '<!doctype html><title>Not found</title>' })
+  const gone = (route: Route) => route.fulfill({ status: 404, contentType: 'text/html', body: '<!doctype html><title>Not found</title>' })
+  const countLoads = (page: Page) => {
+    const n = { loads: 0 }
+    page.on('load', () => { n.loads++ })
+    return n
+  }
 
   test('a missing script ends in one fresh load and the game opens', async ({ page }) => {
+    // The import and the page's own check of the file both get the 404; the fresh load finds the file again.
     let served404 = 0
     await page.route(GONE, async (route) => {
-      if (served404 === 0) { served404++; return gone(route) }
+      if (served404 < 2) { served404++; return gone(route) }
       return route.continue()
     })
-    let loads = 0
-    page.on('load', () => { loads++ })
+    const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByRole('button', { name: /^Start match/ })).toBeEnabled({ timeout: 30_000 })
-    expect(served404).toBe(1)
-    expect(loads).toBe(2)
+    expect(served404).toBe(2)
+    expect(n.loads).toBe(2)
     await expect(page.getByTestId('error-fallback')).toHaveCount(0)
   })
 
   test('a script that stays missing shows a friendly update screen and reloads only once, never in a loop', async ({ page }) => {
     await page.route(GONE, gone)
-    let loads = 0
-    page.on('load', () => { loads++ })
+    const n = countLoads(page)
     await page.goto(`/play/${slug}`)
     await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('heading', { name: 'Duelwise just updated' })).toBeVisible()
     await page.waitForTimeout(3000)
-    expect(loads).toBe(2)
+    expect(n.loads).toBe(2)
     // The button asks for another fresh load, and when the script is back the game opens.
     await page.unroute(GONE)
     await page.getByRole('button', { name: 'Reload' }).click()
+    await expect(page.getByRole('button', { name: /^Start match/ })).toBeEnabled({ timeout: 30_000 })
+  })
+
+  test('offline (the network refuses the script and the check of it): no reload, the offline message, every cache kept', async ({ page }) => {
+    await page.addInitScript(() => {
+      void caches.open('duelwise-pages-keepme').then((c) => c.put('/kept', new Response('kept')))
+    })
+    await page.route(GONE, (route) => route.abort('failed'))
+    const n = countLoads(page)
+    await page.goto(`/play/${slug}`)
+    await expect(page.getByTestId('offline-state')).toBeVisible({ timeout: 30_000 })
+    await page.waitForTimeout(2000)
+    expect(n.loads).toBe(1)
+    expect(await page.evaluate(() => caches.keys())).toContain('duelwise-pages-keepme')
+    await expect(page.getByTestId('new-version-fallback')).toHaveCount(0)
+  })
+
+  test('storage blocked (Safari private mode): no automatic reload, the update screen with its Reload button', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('blocked', 'SecurityError') } })
+    })
+    await page.route(GONE, gone)
+    const n = countLoads(page)
+    await page.goto(`/play/${slug}`)
+    await expect(page.getByTestId('new-version-fallback')).toBeVisible({ timeout: 30_000 })
+    await page.waitForTimeout(2500)
+    expect(n.loads).toBe(1)
+    await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible()
+  })
+
+  test('a bug inside a script that did load goes to the error screen, with no reload', async ({ page }) => {
+    await page.route(GONE, (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: 'throw new ReferenceError("boom is not defined")' }))
+    const n = countLoads(page)
+    await page.goto(`/play/${slug}`)
+    await expect(page.getByTestId('error-fallback')).toBeVisible({ timeout: 30_000 })
+    await page.waitForTimeout(2000)
+    expect(n.loads).toBe(1)
+    await expect(page.getByTestId('new-version-fallback')).toHaveCount(0)
+  })
+
+  test('a new deploy found in the middle of a match is announced, not applied: no reload until the match ends', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.goto('/play/four-in-a-row')
+    await startMatch(page)
+    await expect(page.getByTestId('four-board')).toBeVisible({ timeout: 60_000 })
+    const n = countLoads(page)
+    await page.route(/\/assets\/gone-chunk\.js/, gone)
+    // What a failed import of a removed chunk looks like to the page.
+    await page.evaluate(() => { void Promise.reject(new TypeError(`Failed to fetch dynamically imported module: ${location.origin}/assets/gone-chunk.js`)) })
+    await expect(page.getByTestId('update-ready-notice')).toContainText('Reload after this match')
+    await page.waitForTimeout(2500)
+    expect(n.loads).toBe(0)
+    await expect(page.getByTestId('four-board')).toBeVisible()
+    // The match ends (resign): now the update loads, once.
+    await page.getByRole('button', { name: 'Resign' }).click()
+    await page.getByRole('button', { name: 'Yes, resign' }).click()
+    await expect.poll(() => n.loads, { timeout: 30_000 }).toBe(1)
     await expect(page.getByRole('button', { name: /^Start match/ })).toBeEnabled({ timeout: 30_000 })
   })
 })

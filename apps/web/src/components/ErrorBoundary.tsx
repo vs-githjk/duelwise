@@ -1,6 +1,6 @@
-import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react'
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react'
 import { captureError } from '../lib/sentry'
-import { isChunkError, reloadForStaleChunk } from '../lib/stale-chunk'
+import { isChunkError, recoverFromChunkError, type Recovery } from '../lib/stale-chunk'
 
 /** True when a failure is the connection, not a bug: the browser says it is offline, or a request failed to reach the server. */
 export function looksOffline(error?: unknown, nav: { onLine?: boolean } | undefined = typeof navigator === 'undefined' ? undefined : navigator): boolean {
@@ -48,8 +48,29 @@ export function NewVersionState() {
 
 /** What a visitor sees when a page breaks: plain words and two ways forward. */
 export function ErrorFallback({ reset, error }: { reset?: () => void; error?: unknown }) {
-  if (isChunkError(error)) return <NewVersionState />
+  if (isChunkError(error)) return <ChunkFallback reset={reset} error={error} />
   if (looksOffline(error)) return <OfflineState reset={reset} />
+  return <GenericError reset={reset} />
+}
+
+/**
+ * A script of the site could not be loaded. Ask the network why before doing anything: no connection means the offline screen and
+ * nothing is touched; a deleted file (new deploy) reloads once, or, if it may not, shows the update screen with its Reload button;
+ * a file that is there means the failure is not ours and gets the ordinary error screen.
+ */
+function ChunkFallback({ reset, error }: { reset?: () => void; error: unknown }) {
+  const [outcome, setOutcome] = useState<Recovery | 'checking'>('checking')
+  useEffect(() => {
+    let live = true
+    void recoverFromChunkError(error).then((r) => { if (live) setOutcome(r) })
+    return () => { live = false }
+  }, [error])
+  if (outcome === 'offline') return <OfflineState reset={reset} />
+  if (outcome === 'fine' || outcome === 'ignored') return <GenericError reset={reset} />
+  return <NewVersionState />
+}
+
+function GenericError({ reset }: { reset?: () => void }) {
   return (
     <section role="alert" className="grid max-w-md gap-3 py-10" data-testid="error-fallback">
       <h1 className="font-display text-display-md">Something went wrong</h1>
@@ -81,9 +102,8 @@ export class ErrorBoundary extends Component<Props, { failed: boolean; error: un
   }
 
   componentDidCatch(error: unknown, _info: ErrorInfo) {
-    // A stale chunk is fixed by one fresh load; try it before bothering the player (guarded, never a loop).
-    if (isChunkError(error)) void reloadForStaleChunk()
-    else captureError(error)
+    // A failed script fetch is the connection or a new deploy (ChunkFallback sorts it out); anything else is a bug worth reporting.
+    if (!isChunkError(error)) captureError(error)
   }
 
   reset = () => this.setState({ failed: false, error: undefined })
@@ -97,8 +117,7 @@ export class ErrorBoundary extends Component<Props, { failed: boolean; error: un
 /** For the router's defaultErrorComponent: errors from loaders and routes. */
 export function RouteError({ error, reset }: { error: unknown; reset: () => void }) {
   useEffect(() => {
-    if (isChunkError(error)) void reloadForStaleChunk()
-    else if (!looksOffline(error)) captureError(error)
+    if (!isChunkError(error) && !looksOffline(error)) captureError(error)
   }, [error])
   return <ErrorFallback reset={reset} error={error} />
 }
