@@ -10,6 +10,7 @@ import { personaFor } from '../personas'
 import { GameTile } from './GameTile'
 import { MATCH_NOUN } from '../lib/tile-copy'
 import { promotionLine } from '../lib/copy'
+import { nextUp, usePath } from '../lib/progress'
 import { PreviewBadge } from './PreviewBadge'
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -46,6 +47,9 @@ export function GameCard({ card, week, playable }: GameCardProps) {
   const published = publishedLevels(id)
   const firstLevel = LEVELS.find((l) => published.has(l)) ?? 'easy'
   const first = personaFor(firstLevel)
+  const pathState = usePath(id)
+  // A returning player sees the opponent they will actually face, the same stop the game page opens on.
+  const upNext = pathState.hydrated ? nextUp(pathState.path) : null
   return (
     <li
       ref={ref}
@@ -77,7 +81,8 @@ export function GameCard({ card, week, playable }: GameCardProps) {
         </div>
         <div className="flex items-center gap-3 text-sm text-muted" data-testid={`card-cast-${id}`}>
           <span>
-            Start with <b className="font-semibold text-ink">{first.name}</b>
+            {upNext ? 'Up next: ' : 'Start with '}
+            <b className="font-semibold text-ink">{(upNext ? personaFor(upNext) : first).name}</b>
           </span>
           <span className="av-stack ml-auto" role="img" aria-label={`${LEVELS.map((l) => `${personaFor(l).name} (${LEVEL_LABEL[l]})${published.has(l) ? '' : ', Practice'}`).join(', ')}`}>
             {LEVELS.map((l) => (
@@ -101,8 +106,8 @@ export function GameCard({ card, week, playable }: GameCardProps) {
         </dl>
         <div className="flex items-center gap-2 pt-1">
           {playable ? (
-            <Link to="/play/$game" params={{ game: cfg.slug }} className="inline-flex min-h-11 items-center rounded-control bg-action px-4 font-semibold text-action-ink">
-              Play {first.name}
+            <Link to="/play/$game" params={{ game: cfg.slug }} aria-label={`Play ${cfg.displayName}`} className="inline-flex min-h-11 items-center rounded-control bg-action px-4 font-semibold text-action-ink">
+              Play
             </Link>
           ) : (
             <span className="inline-flex min-h-11 items-center text-sm text-muted">In development</span>

@@ -27,3 +27,12 @@ test('a tapped call is used for the match, shown afterwards, and used up for the
   expect(takeCall('word')).toBeNull()
   expect(calledFor('word')).toBeNull()
 })
+
+import { nextUp } from './progress'
+test('nextUp names the next opponent only for a player who has cleared something', () => {
+  const none = { easy: false, medium: false, hard: false, champion: false }
+  expect(nextUp(none)).toBeNull()
+  expect(nextUp({ ...none, easy: true })).toBe('medium')
+  expect(nextUp({ easy: true, medium: true, hard: false, champion: false })).toBe('hard')
+  expect(nextUp({ easy: true, medium: true, hard: true, champion: true })).toBeNull()
+})
