@@ -285,11 +285,50 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   return summary
 }
 
-/** Removes the connection string, and anything shaped like one, from an error message. */
+function passwordsIn(url: string | null | undefined): string[] {
+  const raw = /^[a-z][a-z0-9+.-]*:\/\/[^:@/]*:(.+)@/i.exec(url ?? '')?.[1]
+  if (!raw) return []
+  try {
+    return [raw, decodeURIComponent(raw)]
+  } catch {
+    return [raw]
+  }
+}
+
+/** Removes the connection string, its password, and anything shaped like one, from an error message. One or more slashes: path.join collapses them. */
 export function redact(message: string, secret: string | null | undefined): string {
   let m = secret ? message.replaceAll(secret, '[database url]') : message
-  m = m.replace(/postgres(?:ql)?:\/\/\S+/gi, '[database url]')
-  return m
+  for (const password of passwordsIn(secret)) m = m.replaceAll(password, '[password]')
+  return m.replace(/postgres(?:ql)?:\/+\S+/gi, '[database url]')
+}
+
+export type Defer = (cleanup: () => unknown) => void
+
+/**
+ * Runs a script's body so that every failure reaches the terminal redacted: the body, a cleanup registered with `defer` (last in, first out,
+ * and all of them run even when one fails), and a throw or rejection nothing awaited. Nothing the scripts do may run outside this.
+ */
+export async function runScript(name: string, body: (defer: Defer) => Promise<void>): Promise<void> {
+  const secret = process.env.DATABASE_URL ?? null // captured before anything can throw
+  const fail = (e: unknown) => {
+    console.error(`${name} failed:`, e instanceof Error ? redact(e.message, secret) : 'unknown error')
+    process.exitCode = 1
+  }
+  process.on('uncaughtException', fail)
+  process.on('unhandledRejection', fail)
+  const cleanups: Array<() => unknown> = []
+  try {
+    await body((cleanup) => void cleanups.unshift(cleanup))
+  } catch (e) {
+    fail(e)
+  }
+  for (const cleanup of cleanups) {
+    try {
+      await cleanup()
+    } catch (e) {
+      fail(e)
+    }
+  }
 }
 
 /** One statement, and it is a select. (Neon also runs it in a READ ONLY transaction; this is the second lock.) */
@@ -315,40 +354,46 @@ export async function neonReadOnly(url: string): Promise<Query> {
 export async function pgliteCopyQuery(dir: string): Promise<{ query: Query; close: () => Promise<void> }> {
   const { PGlite } = await import('@electric-sql/pglite')
   const scratch = await mkdtemp(join(tmpdir(), 'duelwise-human-'))
-  const copy = join(scratch, 'pglite')
-  await cp(dir, copy, { recursive: true })
-  await rm(join(copy, 'postmaster.pid'), { force: true })
-  const client = new PGlite(copy)
-  await client.waitReady
-  return {
-    query: async (text, params = []) => {
-      assertSelectOnly(text)
-      return (await client.query<Record<string, unknown>>(text, params as never)).rows
-    },
-    close: async () => {
-      await client.close()
-      await rm(scratch, { recursive: true, force: true })
-    },
+  const dropCopy = () => rm(scratch, { recursive: true, force: true })
+  try {
+    const copy = join(scratch, 'pglite')
+    await cp(dir, copy, { recursive: true })
+    await rm(join(copy, 'postmaster.pid'), { force: true })
+    const client = new PGlite(copy)
+    await client.waitReady
+    return {
+      query: async (text, params = []) => {
+        assertSelectOnly(text)
+        return (await client.query<Record<string, unknown>>(text, params as never)).rows
+      },
+      close: async () => {
+        try {
+          await client.close()
+        } finally {
+          await dropCopy()
+        }
+      },
+    }
+  } catch (e) {
+    await dropCopy()
+    throw e
   }
 }
 
-/** The query for a run: --pglite <dir> (a copy of a scratch database) or DATABASE_URL (Neon, read only). Exits with a usage error otherwise. */
-export async function sourceFromArgs(args: string[]): Promise<{ query: Query; close: () => Promise<void>; secret: string | null }> {
+/** The query for a run: --pglite <dir> (a copy of a scratch database) or DATABASE_URL (Neon, read only). Throws when there is neither. */
+export async function sourceFromArgs(args: string[]): Promise<{ query: Query; close: () => Promise<void> }> {
   const i = args.indexOf('--pglite')
   if (i >= 0) {
     const dir = args[i + 1]
     if (!dir || !dir.startsWith('/')) throw new Error('--pglite needs an absolute directory')
-    return { ...(await pgliteCopyQuery(dir)), secret: null }
+    return pgliteCopyQuery(dir)
   }
   const url = process.env.DATABASE_URL
-  if (!url) {
-    console.error('DATABASE_URL is not set. Nothing was read.')
-    process.exit(1)
-  }
-  return { query: await neonReadOnly(url), close: async () => {}, secret: url }
+  if (!url) throw new Error('DATABASE_URL is not set. Nothing was read.')
+  return { query: await neonReadOnly(url), close: async () => {} }
 }
 
-async function main() {
+async function main(defer: Defer) {
   const args = process.argv.slice(2)
   const flag = (name: string): string | undefined => {
     const i = args.indexOf(name)
@@ -359,26 +404,19 @@ async function main() {
   const out = flag('--out')
   if (!game || !out || !out.startsWith('/') || !(game in PRODUCT.games)) {
     console.error('usage: DATABASE_URL=... bun export-human.ts --game four|chess|holdem --out <absolute dir> [--pglite <absolute scratch db dir>] [--since <iso>] [--cap-per-day 20] [--include-practice] [--include-left] [--include-untagged] [--holdout-percent 10]')
-    process.exit(2)
+    process.exitCode = 2
+    return
   }
-  let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
-  const secret = process.env.DATABASE_URL ?? null // captured before anything can throw, so every error path can redact it
   const capFlag = flag('--cap-per-day')
-  try {
-    if (capFlag !== undefined && !/^\d+$/.test(capFlag)) throw new Error(`--cap-per-day must be an integer from 1 to ${DAILY_CAP}`)
-    src = await sourceFromArgs(args)
-    const summary = await exportHuman({
-      game, query: src.query, outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
-      capPerDay: capFlag !== undefined ? Number(capFlag) : undefined, includePractice: has('--include-practice'),
-      includeLeft: has('--include-left'), includeUntagged: has('--include-untagged'), holdoutPercent: flag('--holdout-percent') ? Number(flag('--holdout-percent')) : undefined,
-    })
-    console.log(JSON.stringify(summary))
-  } catch (e) {
-    console.error('export-human failed:', e instanceof Error ? redact(e.message, secret) : 'unknown error')
-    process.exitCode = 1
-  } finally {
-    await src?.close()
-  }
+  if (capFlag !== undefined && !/^\d+$/.test(capFlag)) throw new Error(`--cap-per-day must be an integer from 1 to ${DAILY_CAP}`)
+  const src = await sourceFromArgs(args)
+  defer(() => src.close())
+  const summary = await exportHuman({
+    game, query: src.query, outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
+    capPerDay: capFlag !== undefined ? Number(capFlag) : undefined, includePractice: has('--include-practice'),
+    includeLeft: has('--include-left'), includeUntagged: has('--include-untagged'), holdoutPercent: flag('--holdout-percent') ? Number(flag('--holdout-percent')) : undefined,
+  })
+  console.log(JSON.stringify(summary))
 }
 
-if (import.meta.main) await main()
+if (import.meta.main) await runScript('export-human', main)

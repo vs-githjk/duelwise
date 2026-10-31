@@ -11,7 +11,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { countMatch, emptyCounts, profileOf, type PlayerProfile, type ProfileCounts } from '@duelwise/core/src/games/holdem/profile'
-import { exportHuman, redact, sourceFromArgs, type HumanRow } from './export-human'
+import { exportHuman, runScript, sourceFromArgs, type Defer, type HumanRow } from './export-human'
 
 export interface ProfileEntry {
   player: string
@@ -52,7 +52,7 @@ export function buildProfiles(rows: readonly HumanRow[], alreadyDropped = 0): { 
   }
 }
 
-async function main() {
+async function main(defer: Defer) {
   const args = process.argv.slice(2)
   const out = args[args.indexOf('--out') + 1]
   if (args.indexOf('--out') < 0 || !out || !out.startsWith('/')) {
@@ -60,26 +60,18 @@ async function main() {
     process.exitCode = 2
     return
   }
-  const secret = process.env.DATABASE_URL ?? null
+  const src = await sourceFromArgs(args)
+  defer(() => src.close())
   const scratch = await mkdtemp(join(tmpdir(), 'duelwise-profile-'))
-  let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
-  try {
-    src = await sourceFromArgs(args)
-    const exported = await exportHuman({ game: 'holdem', query: src.query, outDir: scratch, holdoutPercent: 0, uncapped: true, shareCap: false, includeLeft: true, excludePokerOptOut: true })
-    const rows = (await readFile(join(scratch, 'holdem', 'matches.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l) as HumanRow)
-    const { profiles, summary } = buildProfiles(rows, exported.rejected.poker_opt_out ?? 0)
-    const dir = join(resolve(out), 'holdem-profiles')
-    await mkdir(dir, { recursive: true })
-    await writeFile(join(dir, 'profiles.json'), JSON.stringify(profiles, null, 1) + '\n')
-    await writeFile(join(dir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
-    console.log(JSON.stringify(summary))
-  } catch (e) {
-    console.error('profile-holdem failed:', e instanceof Error ? redact(e.message, secret) : 'unknown error')
-    process.exitCode = 1
-  } finally {
-    await src?.close()
-    await rm(scratch, { recursive: true, force: true })
-  }
+  defer(() => rm(scratch, { recursive: true, force: true }))
+  const exported = await exportHuman({ game: 'holdem', query: src.query, outDir: scratch, holdoutPercent: 0, uncapped: true, shareCap: false, includeLeft: true, excludePokerOptOut: true })
+  const rows = (await readFile(join(scratch, 'holdem', 'matches.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l) as HumanRow)
+  const { profiles, summary } = buildProfiles(rows, exported.rejected.poker_opt_out ?? 0)
+  const dir = join(resolve(out), 'holdem-profiles')
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, 'profiles.json'), JSON.stringify(profiles, null, 1) + '\n')
+  await writeFile(join(dir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
+  console.log(JSON.stringify(summary))
 }
 
-if (import.meta.main) await main()
+if (import.meta.main) await runScript('profile-holdem', main)

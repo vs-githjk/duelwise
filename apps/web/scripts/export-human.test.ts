@@ -1,5 +1,5 @@
 import { afterAll, afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
@@ -332,6 +332,73 @@ describe('review fixes', () => {
       expect(text).not.toContain('secretpw')
       expect(p.exitCode).toBe(1)
     }
+  }, 120000)
+
+  test('a filesystem failure before the source opens never shows the connection string, in either script', async () => {
+    // mkdtemp puts TMPDIR in its error, so this makes the connection string part of a real filesystem error. Port 1: nothing is ever reached.
+    const url = 'postgres://user:secretpw@127.0.0.1:1/db'
+    const never = await out()
+    for (const [script, extra] of [['profile-holdem.ts', []], ['profile-holdem.ts', ['--pglite', never]], ['export-human.ts', ['--game', 'four', '--pglite', never]]] as const) {
+      const p = Bun.spawnSync(['bun', join(import.meta.dir, script), ...extra, '--out', join(never, 'o')], { env: { ...process.env, DATABASE_URL: url, TMPDIR: `/nonexistent/${url}` }, stdout: 'pipe', stderr: 'pipe' })
+      const text = p.stdout.toString() + p.stderr.toString()
+      expect(text).not.toContain('secretpw')
+      expect(text).toContain(`${script.replace('.ts', '')} failed:`)
+      expect(p.exitCode).toBe(1)
+    }
+  }, 120000)
+
+  test('every way a script can fail goes through redaction: the body, a cleanup, a stray rejection and a stray throw', async () => {
+    const url = 'postgres://user:secretpw@127.0.0.1:1/db'
+    const dir = await out()
+    const fixture = join(dir, 'fixture.ts')
+    await writeFile(fixture, `
+      import { runScript } from ${JSON.stringify(join(import.meta.dir, 'export-human.ts'))}
+      const url = process.env.DATABASE_URL!
+      await runScript('fixture', async (defer) => {
+        const mode = process.argv[2]
+        defer(() => console.log('first cleanup ran'))
+        if (mode === 'cleanup') defer(async () => { throw new Error('close failed: ' + url) })
+        if (mode === 'body') throw new Error('bad url ' + url)
+        if (mode === 'text') throw 'bad url ' + url
+        if (mode === 'rejection') { void Promise.reject(new Error('late ' + url)); await Bun.sleep(30) }
+        if (mode === 'timer') { setTimeout(() => { throw new Error('late ' + url) }, 0); await Bun.sleep(30) }
+      })
+    `)
+    for (const mode of ['body', 'text', 'cleanup', 'rejection', 'timer']) {
+      const p = Bun.spawnSync(['bun', fixture, mode], { env: { ...process.env, DATABASE_URL: url }, stdout: 'pipe', stderr: 'pipe' })
+      const text = p.stdout.toString() + p.stderr.toString()
+      expect(text).not.toContain('secretpw')
+      expect(text).toContain('fixture failed:')
+      expect(text).toContain('first cleanup ran')
+      expect(p.exitCode).toBe(1)
+    }
+    const fine = Bun.spawnSync(['bun', fixture, 'none'], { env: { ...process.env, DATABASE_URL: url }, stdout: 'pipe', stderr: 'pipe' })
+    expect(fine.exitCode).toBe(0)
+    expect(fine.stdout.toString()).toContain('first cleanup ran')
+  }, 120000)
+
+  test('redact also removes the password on its own, raw or percent-decoded', () => {
+    const url = 'postgres://user:p%40ss-word@host.example/db'
+    expect(redact('auth failed with p%40ss-word', url)).not.toContain('p%40ss-word')
+    expect(redact('auth failed with p@ss-word', url)).not.toContain('p@ss-word')
+    expect(redact('auth failed for user', 'not a url at all')).toBe('auth failed for user')
+    // path.join collapses the two slashes, so a path built from the url matches neither the exact string nor the usual shape
+    expect(redact("mkdtemp '/x/postgres:/u:collapsed@h/db/duelwise'", null)).not.toContain('collapsed')
+  })
+
+  test('a failed run leaves no scratch copy behind', async () => {
+    const tmp = await out()
+    const left = async () => (await readdir(tmp)).filter((f) => f.startsWith('duelwise-'))
+    const env = { ...process.env, TMPDIR: tmp }
+    const noSource: Record<string, string | undefined> = { ...env }
+    delete noSource.DATABASE_URL
+    const unset = Bun.spawnSync(['bun', join(import.meta.dir, 'profile-holdem.ts'), '--out', join(tmp, 'o')], { env: noSource as Record<string, string>, stdout: 'pipe', stderr: 'pipe' })
+    expect(unset.exitCode).toBe(1)
+    expect(unset.stderr.toString()).toContain('DATABASE_URL is not set')
+    expect(await left()).toEqual([])
+    const missing = Bun.spawnSync(['bun', join(import.meta.dir, 'export-human.ts'), '--game', 'four', '--pglite', join(tmp, 'no-such-folder'), '--out', join(tmp, 'o')], { env, stdout: 'pipe', stderr: 'pipe' })
+    expect(missing.exitCode).toBe(1)
+    expect(await left()).toEqual([])
   }, 120000)
 
   test('--cap-per-day must be an integer from 1 to 20, on the command line and inside exportHuman', async () => {
