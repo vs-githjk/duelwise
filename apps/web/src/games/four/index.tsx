@@ -4,6 +4,7 @@ import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
 import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { ResultPanel } from '../../components/ResultPanel'
 import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
@@ -139,6 +140,7 @@ export default function FourPage() {
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="four-setup">
           <p className="text-muted">Drop stones into the columns. The first to line up four, across, down or diagonally, wins. You move first.</p>
+          <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.four.slug} disabled={match.phase === 'starting'}
             action={
               <>

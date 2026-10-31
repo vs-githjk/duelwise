@@ -1,6 +1,7 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
 import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
@@ -293,6 +294,7 @@ export default function FighterPage() {
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
           <p className="max-w-prose text-muted">2.5D, best of 3 rounds, 99 seconds each. One control scheme for you and the AI, so neither side gets an input edge.</p>
+          <PlayMode />
           <LevelPicker value={picked} onChange={setPicked}
             levels={Object.fromEntries(LEVELS.map((l) => [l, { preview: !published(l), practice: !published(l), strength: published(l) ? 'Strength tested' : undefined }]))}
             descriptions={Object.fromEntries(LEVELS.map((l) => [l, limitsText(l)]))}

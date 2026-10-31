@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { holdemCore, type HoldemAction, type HoldemState } from '@duelwise/core/src/games/holdem/core'
-import { handLimit, isLegal, sameChoice, MATCH_HANDS, type HandSummary, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
+import { handLimit, isLegal, sameChoice, MATCH_HANDS, STACK, type HandSummary, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import type { Result, Seat } from '@duelwise/core/src/types'
 import { createAgent, type RuntimeAgent } from '@duelwise/agents/src/runtime/agent'
 import { openMatch } from '../../lib/open-match'
+import { getPractice } from '../../lib/practice'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
 import { playCue } from './sounds'
 import { describeAction, describeHand } from './describe'
@@ -14,6 +15,15 @@ export { AGENT, HUMAN }
 export { describeAction, describeHand }
 
 export type Phase = 'setup' | 'starting' | 'playing' | 'over'
+
+/**
+ * Whether a hand that just ended took all of the human's chips: the bust that ends a rated match. `delta` is what seat 0 gained, so the
+ * human's gain is its negation when the human sits in seat 1.
+ */
+export function humanBusted(summary: HandSummary, humanSeat: Seat): boolean {
+  const gain = humanSeat === 0 ? summary.delta : -summary.delta
+  return gain <= -STACK
+}
 
 /** The code the core uses for "concede": the agent never gives up a match, so its code 2 becomes a call. */
 const CONCEDE_CODE = 2
@@ -68,6 +78,12 @@ export interface HoldemMatch {
   limit: number
   /** Hands finished so far. */
   handsDone: number
+  /** True for a Practice match: unrated, no bust ending, free buy-backs. */
+  practice: boolean
+  /** Practice only: the human just lost every chip and the match waits for "Buy back in" (or leaving). */
+  buyBackOffer: boolean
+  /** Practice only: how many times the human bought back in during this match. */
+  buyIns: number
   /** Set when the player left the table: the hands played, the match was scored on the chips then and is unrated. */
   leftAfter: number | null
   start: (level: Level, seed?: number, options?: MatchOptions) => Promise<void>
@@ -76,6 +92,8 @@ export interface HoldemMatch {
   concede: () => Promise<void>
   /** Leaves the table after the hands finished so far: scored on the chips then, unrated. Needs at least one finished hand. */
   leave: () => Promise<void>
+  /** Practice only: takes the free buy-back; the match goes on with fresh chips and the next hand is dealt. */
+  buyBackIn: () => void
   backToSetup: () => void
   /** Cuts the current reading pause of a finished hand short (one stage per tap). Does nothing when there is none. */
   skipReveal: () => void
@@ -122,6 +140,12 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
   const [options, setOptions] = useState<MatchOptions>({})
   const [handsDone, setHandsDone] = useState(0)
   const [leftAfter, setLeftAfter] = useState<number | null>(null)
+  const [practice, setPracticeMatch] = useState(false)
+  const [buyBackOffer, setBuyBackOffer] = useState(false)
+  const [buyIns, setBuyIns] = useState(0)
+  /** Resolves the wait for a buy-back decision; set only while the offer is showing. */
+  const buyBackWait = useRef<(() => void) | null>(null)
+  const practiceRef = useRef(false)
   /** Every action played, as [seat, code], and where each finished hand ends in the recorder: a leave cuts back to the last boundary. */
   const played = useRef<Array<[Seat, number]>>([])
   const boundary = useRef<{ mark: ReturnType<typeof recorder.mark>; plays: number }>({ mark: { actions: 0, times: 0 }, plays: 0 })
@@ -149,6 +173,12 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
   const start = useCallback(
     async (lvl: Level, forcedSeed?: number, picked?: MatchOptions) => {
       const mine = ++epoch.current
+      const isPractice = getPractice()
+      practiceRef.current = isPractice
+      setPracticeMatch(isPractice)
+      setBuyBackOffer(false)
+      setBuyIns(0)
+      buyBackWait.current?.()
       // The default match carries no options at all, so its record, ticket and hash are exactly what they always were.
       const chosen: MatchOptions | undefined = picked && !sameChoice(picked, undefined) ? { ...(picked.hands !== undefined && picked.hands !== MATCH_HANDS ? { hands: picked.hands } : {}), ...(picked.untilBust ? { untilBust: true } : {}) } : undefined
       agent.current?.dispose()
@@ -159,7 +189,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
       levelRef.current = lvl
       const opened = await openMatch({
         create: () => createAgent('holdem', lvl, { seat: AGENT }),
-        begin: () => recorder.begin(lvl, forcedSeed, chosen),
+        begin: () => recorder.begin(lvl, forcedSeed, chosen, isPractice),
         isCurrent: () => mine === epoch.current,
       })
       if (opened.kind === 'stale') return
@@ -269,6 +299,18 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
         // The last hand stays on the table behind the result.
         if (!next.over) {
           setReveal(null)
+          // Practice: a busted human is offered a free buy-back before the next hand is dealt. The match is not over and not shortened.
+          if (practiceRef.current && humanBusted(summary, HUMAN)) {
+            await new Promise<void>((resolve) => {
+              buyBackWait.current = () => {
+                buyBackWait.current = null
+                resolve()
+              }
+              setBuyBackOffer(true)
+              playCue('lose', 0)
+            })
+            if (mine !== epoch.current) return null
+          }
           playCue('deal')
         }
       } else if (next.board.length !== prev.board.length) {
@@ -356,6 +398,8 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     const mine = ++epoch.current
     busy.current = true
     skip.current?.()
+    buyBackWait.current?.()
+    setBuyBackOffer(false)
     setThinking(false)
     setReveal(null)
     try {
@@ -381,8 +425,18 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     }
   }, [conclude, recorder, seed])
 
+  const buyBackIn = useCallback(() => {
+    if (!buyBackWait.current) return
+    setBuyIns((n) => n + 1)
+    setBuyBackOffer(false)
+    playCue('chip')
+    buyBackWait.current()
+  }, [])
+
   const backToSetup = useCallback(() => {
     epoch.current++
+    buyBackWait.current?.()
+    setBuyBackOffer(false)
     agent.current?.dispose()
     agent.current = null
     live.current = null
@@ -398,7 +452,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
   }, [])
 
   const canAct =
-    phase === 'playing' && !thinking && !reveal && !failure && state !== null && !holdemCore.terminal(state) && state.actor === HUMAN && !conceded
+    phase === 'playing' && !thinking && !reveal && !failure && state !== null && !holdemCore.terminal(state) && state.actor === HUMAN && !conceded && !buyBackOffer
 
   return {
     phase,
@@ -420,11 +474,15 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
     options,
     limit: handLimit(options),
     handsDone,
+    practice,
+    buyBackOffer,
+    buyIns,
     leftAfter,
     start,
     act,
     concede,
     leave,
+    buyBackIn,
     backToSetup,
     skipReveal: () => skip.current?.(),
   }

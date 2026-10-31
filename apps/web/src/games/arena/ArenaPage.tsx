@@ -1,6 +1,7 @@
 import { TouchControls, usePlayViewport, useTouchDevice } from '../touch/TouchControls'
 import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } from '../touch/landscape'
 import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
@@ -305,6 +306,7 @@ export default function ArenaPage() {
           <p className="max-w-prose text-muted">
             First person, first to 7 rounds on Coldstore. You buy at the start of every round and so does the opponent, with the same rules and the same money. A mouse or trackpad aims; left click or F fires.
           </p>
+          <PlayMode />
           <LevelPicker value={picked} onChange={setPicked}
             levels={Object.fromEntries(LEVELS.map((l) => [l, { preview: !published(l), practice: !published(l), strength: published(l) ? 'Strength tested' : undefined }]))}
             descriptions={Object.fromEntries(LEVELS.map((l) => [l, limitsText(l)]))}

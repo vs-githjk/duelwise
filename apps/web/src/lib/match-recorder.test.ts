@@ -114,9 +114,9 @@ describe('createMatchRecorder', () => {
   })
 })
 
-function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string }> } {
+function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean }> } {
   const sent: Uint8Array[] = []
-  const started: Array<{ game: string; level: string }> = []
+  const started: Array<{ game: string; level: string; practice?: boolean }> = []
   return {
     sent,
     started,
@@ -148,6 +148,26 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
       expect(up).toEqual({ status: 'counted', matchId: done.record.matchId, elo: { before: 1000, after: 1020 }, provisional: true })
     })
   }
+
+  test('a practice start tells the server, and the session is marked practice', async () => {
+    const api = fakeApi()
+    const s = await beginSession(api, 'chess', 'hard', undefined, undefined, undefined, undefined, true)
+    expect(api.started).toEqual([{ game: 'chess', level: 'hard', practice: true }])
+    expect(s).toMatchObject({ matchId: 'srv-1', rated: true, practice: true })
+    const rated = await beginSession(fakeApi(), 'chess', 'hard')
+    expect(rated.practice).toBeUndefined()
+  })
+
+  test('a practice match never takes an offline ticket (a ticket is issued as a rated match); it plays here, unsaved', async () => {
+    const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
+    let asked = false
+    const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'four' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
+    const s = await beginSession(down, 'four', 'easy', undefined, async () => { asked = true; return ticket }, undefined, undefined, true)
+    expect(asked).toBe(false)
+    expect(s).toMatchObject({ rated: false, practice: true })
+    expect(s.matchId).toBeUndefined()
+    expect(s.unratedReason).toMatch(/Practice, not rated/)
+  })
 
   test('a ?seed makes an unrated match and never calls the server', async () => {
     const api = fakeApi()

@@ -12,7 +12,7 @@ import { sweepOpenOverCap } from './abandon'
 import { type AgentCheck, CHECK_CLAIM_MS, SERVER_CHECKED } from './agent-check'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
-import { LEFT_FLAG } from './competitive'
+import { isPractice, LEFT_FLAG, PRACTICE_FLAG } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
 import { takeTicket } from './tickets'
 import type { Traffic } from './traffic'
@@ -59,6 +59,8 @@ export interface FinishBody {
   unranked?: boolean
   /** True when the player left a Hold'em match before its chosen end: counted as a result on the chips so far, but unrated. */
   left?: boolean
+  /** True for a match started as practice: valid and kept (it may be trained on), but it moves no rating and counts nowhere competitive. */
+  practice?: boolean
 }
 
 export interface FinishOptions {
@@ -189,10 +191,13 @@ export async function startMatchHandler(
   opts: StartOptions = {},
 ): Promise<HandlerResponse<StartBody | { error: string }>> {
   if (typeof input !== 'object' || input === null) return err(400, 'expected { game, level }')
-  const { game, level, call, options } = input as { game?: unknown; level?: unknown; call?: unknown; options?: unknown }
+  const { game, level, call, options, practice } = input as { game?: unknown; level?: unknown; call?: unknown; options?: unknown; practice?: unknown }
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
   if (!who.userId && !who.guestId) return err(401, 'no player')
+  // Practice is chosen here, once, and stored with the match; the finish step reads the stored flag and never anything the upload says.
+  if (practice !== undefined && typeof practice !== 'boolean') return err(400, 'practice must be true or false')
+  const isPracticeMatch = practice === true
 
   // Hold'em's match length is chosen here and stored with the match, so the finish step can reject a record that claims another.
   let chosen: MatchOptions | undefined
@@ -202,7 +207,8 @@ export async function startMatchHandler(
     if (why) return err(400, why)
     if ((options as MatchOptions).leftAfter !== undefined) return err(400, 'leftAfter is set when the match ends, not when it starts')
     const o = options as MatchOptions
-    chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), untilBust: true }
+    // A practice match has no bust ending: a busted player is offered a free buy-back and the match runs its chosen length.
+    chosen = { ...(o.hands !== undefined ? { hands: o.hands } : {}), ...(isPracticeMatch ? {} : { untilBust: true }) }
   }
   // A start with no options is the legacy format (30 hands, no bust rule), so a client from before the length pick still counts as it did. A start with options always gets the strict bust rule.
 
@@ -213,7 +219,7 @@ export async function startMatchHandler(
 
   // The call ("How far do you think you get?") is optional and only a level name; anything else is ignored.
   const calledLevel = typeof call === 'string' && LEVELS.includes(call) ? (call as Level) : null
-  const { matchId, seed, agentVersion } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel, ...(chosen ? { filterFlags: { holdemOptions: chosen } } : {}) })
+  const { matchId, seed, agentVersion } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel, ...(chosen || isPracticeMatch ? { filterFlags: { ...(chosen ? { holdemOptions: chosen } : {}), ...(isPracticeMatch ? { [PRACTICE_FLAG]: true } : {}) } } : {}) })
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
@@ -422,6 +428,8 @@ export async function finishMatchHandler(
   } else await finishedEvent(reason)
 
   if (!valid) return { status: 200, body: { valid, reason, result: null } }
+  // Read from the row the server wrote at the start, never from the upload.
+  if (isPractice(row.filterFlags)) return { status: 200, body: { valid, result, unranked: true, practice: true } }
   if (PRODUCT.games[row.game as GameId].kind === 'realtime') return { status: 200, body: { valid, result, unranked: true } }
   if (!row.userId || !result) return { status: 200, body: { valid, result } }
   const siteElo = opts.siteElo?.(row.game as GameId, row.level as Level, row.agentVersion) ?? null

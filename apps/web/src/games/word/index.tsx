@@ -5,6 +5,7 @@ import { parseRegistry } from '@duelwise/agents/src/registry'
 import registryJson from '@duelwise/agents/registry/word.json'
 import { GameShell } from '../../components/GameShell'
 import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
 import { personaFor, styleLine } from '../../personas'
 import { calledFor } from '../../lib/progress'
 import { ResultPanel } from '../../components/ResultPanel'
@@ -136,6 +137,7 @@ export default function WordDuelPage() {
         <section className="grid gap-4" data-testid="word-setup">
           <p className="text-muted">You and the opponent guess the same hidden five-letter word at the same time. Each round you both see how close the other got, but never their letters. First to solve it wins.</p>
           <p className="text-sm text-muted">In counted matches, the server keeps the answer and the opponent's words hidden until the match ends.</p>
+          <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.word.slug} disabled={match.phase === 'starting'}
             action={
               <>

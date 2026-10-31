@@ -5,6 +5,8 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 export interface OpponentContextValue {
   game?: GameId
   level?: Level
+  /** True while the match on screen is Practice (unrated). Set by GameShell from the setup pick. */
+  practice?: boolean
 }
 
 export const OpponentContext = createContext<OpponentContextValue>({})
