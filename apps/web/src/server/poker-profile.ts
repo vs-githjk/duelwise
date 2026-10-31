@@ -15,9 +15,13 @@ type Db = PgDatabase<any, typeof schema>
 export async function getPokerProfileAllowed(db: Db, who: Caller): Promise<boolean> {
   if (who.userId) {
     const row = (await db.select({ v: schema.profile.pokerProfileAllowed }).from(schema.profile).where(eq(schema.profile.userId, who.userId)).limit(1))[0]
-    if (row) return row.v
-    // No account row yet: an opt-out made as a guest on this browser carries over.
-    return !(await guestPokerOptedOut(db, who.guestId))
+    const guestOut = await guestPokerOptedOut(db, who.guestId)
+    // Opt-out wins: a guest opt-out on a browser the account signs in from is carried into the account row, even when that row already exists.
+    if (row?.v && guestOut) {
+      await db.update(schema.profile).set({ pokerProfileAllowed: false }).where(eq(schema.profile.userId, who.userId))
+      return false
+    }
+    return row ? row.v : !guestOut
   }
   if (who.guestId) {
     const g = (await db.select({ v: schema.guest.pokerProfileAllowed }).from(schema.guest).where(eq(schema.guest.id, who.guestId)).limit(1))[0]
@@ -41,7 +45,8 @@ export async function setPokerProfileAllowed(db: Db, who: Caller, allowed: boole
       // A new row must not undo a training opt-out carried from the guest on this browser.
       .values({ userId: who.userId, pokerProfileAllowed: allowed, trainingAllowed: (await guestOptedOut(db, who.guestId)) ? false : defaultTrainingAllowed() })
       .onConflictDoUpdate({ target: schema.profile.userId, set: { pokerProfileAllowed: allowed } })
-    if (!allowed && who.guestId) await db.update(schema.guest).set({ pokerProfileAllowed: false }).where(eq(schema.guest.id, who.guestId))
+    // The account and this browser's guest row move together, so an opt-in is not undone by a stale guest opt-out and an opt-out is not lost.
+    if (who.guestId) await db.update(schema.guest).set({ pokerProfileAllowed: allowed }).where(eq(schema.guest.id, who.guestId))
     return
   }
   if (who.guestId) await db.update(schema.guest).set({ pokerProfileAllowed: allowed }).where(and(eq(schema.guest.id, who.guestId)))

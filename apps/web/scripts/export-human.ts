@@ -46,6 +46,10 @@ export interface ExportOptions {
   holdoutPercent?: number
   /** Apply the 2 percent per-player share cap (default true). Profiles are not training data and turn it off. */
   shareCap?: boolean
+  /** Profiles are not training data: no daily cap. Only profile-holdem.ts sets this. */
+  uncapped?: boolean
+  /** Leave out matches of players who switched poker profiles off, before anything is written. Needs the opt-out column. */
+  excludePokerOptOut?: boolean
 }
 
 export interface ExportSummary {
@@ -139,9 +143,11 @@ async function hasPokerOptOut(q: Query): Promise<boolean> {
 /** Reads, filters, caps, weights and writes. Pure over `query`, so it is tested on PGlite. */
 export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   if (!hasHumanFilter(o.game)) throw new Error(`no human-data filters for ${o.game}: only four, chess and holdem can be exported`)
-  const capPerDay = o.capPerDay ?? DAILY_CAP
+  const capPerDay = o.uncapped ? Number.MAX_SAFE_INTEGER : o.capPerDay ?? DAILY_CAP
+  if (!o.uncapped && !(Number.isInteger(capPerDay) && capPerDay >= 1 && capPerDay <= DAILY_CAP)) throw new Error(`export-human: capPerDay must be an integer from 1 to ${DAILY_CAP}`)
   const holdoutPercent = o.holdoutPercent ?? 10
   const poker = await hasPokerOptOut(o.query)
+  if (o.excludePokerOptOut && !poker) throw new Error('export-human: the database has no poker profile switch (migration 0007); refusing to export for profiles')
   const sql = SELECT(poker)
 
   const rejected: Record<string, number> = {}
@@ -196,6 +202,7 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
       }
       if (o.game === 'four') out.moves = fourMoves(rec)
       if (o.game === 'chess') out.moves = [...rec.actions].sort((a, b) => a[0] - b[0]).map((a) => decodeAbs(a[2]))
+      if (o.excludePokerOptOut && out.profileOk === false) { reject('poker_opt_out'); continue }
       candidates.push(out)
     }
     const last = page[page.length - 1]!
@@ -221,26 +228,31 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   for (const id of dropped) { void id; reject('daily_cap') }
   let kept = candidates.filter((c) => !dropped.has(c.id))
 
-  // Share cap, only when there are enough players for it to mean something.
-  const players = new Set(kept.map((c) => c.player))
-  if ((o.shareCap ?? true) && players.size >= SHARE_CAP_MIN_PLAYERS) {
-    const limit = Math.max(1, Math.floor(kept.length * SHARE_CAP))
-    const per = new Map<string, HumanRow[]>()
-    for (const c of kept) per.set(c.player, [...(per.get(c.player) ?? []), c])
-    const over = new Set<string>()
-    for (const list of per.values()) {
-      if (list.length <= limit) continue
-      const ranked = [...list].sort((a, b) => b.weight - a.weight || a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
-      for (const c of ranked.slice(limit)) over.add(c.id)
-    }
-    for (const id of over) { void id; reject('share_cap') }
-    kept = kept.filter((c) => !over.has(c.id))
-  }
-
-  // Holdout: a fixed 10 percent by id hash. Never trained on, used by the gate.
+  // Holdout: a fixed share by id hash. Never trained on, used by the gate.
   const isHoldout = (id: string) => Number.parseInt(sha256(id).slice(0, 8), 16) % 100 < holdoutPercent
-  const training = kept.filter((c) => !isHoldout(c.id))
   const holdout = kept.filter((c) => isHoldout(c.id))
+  let training = kept.filter((c) => !isHoldout(c.id))
+
+  // Share cap against the FINAL training population, to a fixed point: removing a player's excess shrinks the population and so the limit.
+  // Only when there are enough players for it to mean something.
+  if (o.shareCap ?? true) {
+    for (;;) {
+      if (new Set(training.map((c) => c.player)).size < SHARE_CAP_MIN_PLAYERS) break
+      const limit = Math.max(1, Math.floor(training.length * SHARE_CAP))
+      const per = new Map<string, HumanRow[]>()
+      for (const c of training) per.set(c.player, [...(per.get(c.player) ?? []), c])
+      const over = new Set<string>()
+      for (const list of per.values()) {
+        if (list.length <= limit) continue
+        const ranked = [...list].sort((a, b) => b.weight - a.weight || a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
+        for (const c of ranked.slice(limit)) over.add(c.id)
+      }
+      if (over.size === 0) break
+      for (const id of over) { void id; reject('share_cap') }
+      training = training.filter((c) => !over.has(c.id))
+    }
+  }
+  kept = [...training, ...holdout]
 
   const dir = join(o.outDir, o.game)
   await mkdir(dir, { recursive: true })
@@ -271,6 +283,13 @@ export async function exportHuman(o: ExportOptions): Promise<ExportSummary> {
   }
   await writeFile(join(dir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
   return summary
+}
+
+/** Removes the connection string, and anything shaped like one, from an error message. */
+export function redact(message: string, secret: string | null | undefined): string {
+  let m = secret ? message.replaceAll(secret, '[database url]') : message
+  m = m.replace(/postgres(?:ql)?:\/\/\S+/gi, '[database url]')
+  return m
 }
 
 /** One statement, and it is a select. (Neon also runs it in a READ ONLY transaction; this is the second lock.) */
@@ -343,18 +362,20 @@ async function main() {
     process.exit(2)
   }
   let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
+  const secret = process.env.DATABASE_URL ?? null // captured before anything can throw, so every error path can redact it
+  const capFlag = flag('--cap-per-day')
   try {
+    if (capFlag !== undefined && !/^\d+$/.test(capFlag)) throw new Error(`--cap-per-day must be an integer from 1 to ${DAILY_CAP}`)
     src = await sourceFromArgs(args)
     const summary = await exportHuman({
       game, query: src.query, outDir: resolve(out), since: flag('--since') ? new Date(flag('--since')!) : undefined,
-      capPerDay: flag('--cap-per-day') ? Number(flag('--cap-per-day')) : undefined, includePractice: has('--include-practice'),
+      capPerDay: capFlag !== undefined ? Number(capFlag) : undefined, includePractice: has('--include-practice'),
       includeLeft: has('--include-left'), includeUntagged: has('--include-untagged'), holdoutPercent: flag('--holdout-percent') ? Number(flag('--holdout-percent')) : undefined,
     })
     console.log(JSON.stringify(summary))
   } catch (e) {
-    // Never echo the connection string: print the message only.
-    console.error('export-human failed:', e instanceof Error ? (src?.secret ? e.message.replaceAll(src.secret, '[database url]') : e.message) : 'unknown error')
-    process.exit(1)
+    console.error('export-human failed:', e instanceof Error ? redact(e.message, secret) : 'unknown error')
+    process.exitCode = 1
   } finally {
     await src?.close()
   }

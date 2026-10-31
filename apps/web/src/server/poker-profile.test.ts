@@ -64,4 +64,15 @@ describe('Hold\'em play profile switch', () => {
     expect(await db.select().from(schema.guest)).toHaveLength(0)
     expect(await getPokerProfileAllowed(db, { guestId: 'nobody' })).toBe(true)
   })
+
+  test('a guest opt-out is carried into an account row that already exists, and opting back in clears both', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { userId: 'u-9' }, true) // the account row exists and says on
+    await setPokerProfileAllowed(db, { guestId: g.id }, false) // then this browser, as a guest, opts out
+    expect(await getPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id })).toBe(false)
+    expect((await db.select().from(schema.profile).where(eq(schema.profile.userId, 'u-9')))[0]!.pokerProfileAllowed).toBe(false)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-9' })).toBe(false) // stays off without the guest too
+    await setPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id }, true)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id })).toBe(true)
+  })
 })

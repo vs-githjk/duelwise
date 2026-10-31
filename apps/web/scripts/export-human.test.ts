@@ -9,7 +9,7 @@ import { encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-recor
 import type { Seat } from '@duelwise/core/src/types'
 import { migrateDb } from '../src/db/migrate'
 import * as schema from '../src/db/schema'
-import { assertSelectOnly, exportHuman, matchWeight, pgliteCopyQuery, playerKey, type HumanRow, type Query } from './export-human'
+import { assertSelectOnly, exportHuman, redact, matchWeight, pgliteCopyQuery, playerKey, type HumanRow, type Query } from './export-human'
 
 const dirs: string[] = []
 afterAll(async () => {
@@ -308,4 +308,63 @@ describe('assertSelectOnly', () => {
       expect(() => assertSelectOnly(bad)).toThrow()
     }
   })
+})
+
+describe('review fixes', () => {
+  test('redact removes the connection string and anything shaped like one', () => {
+    const url = 'postgres://user:secretpw@host.example/db?sslmode=require'
+    expect(redact(`bad url ${url} here`, url)).not.toContain('secretpw')
+    expect(redact('Invalid postgresql://u:pw2@h/db thing', null)).not.toContain('pw2')
+    expect(redact('plain message', url)).toBe('plain message')
+  })
+
+  test('an invalid DATABASE_URL never reaches the output of either script', async () => {
+    const bad = 'postgres://user:secretpw@not a host/db'
+    for (const [script, extra] of [['export-human.ts', ['--game', 'four']], ['profile-holdem.ts', []]] as const) {
+      const p = Bun.spawnSync(['bun', join(import.meta.dir, script), ...extra, '--out', '/tmp/duelwise-never-written'], { env: { ...process.env, DATABASE_URL: bad }, stdout: 'pipe', stderr: 'pipe' })
+      const text = p.stdout.toString() + p.stderr.toString()
+      expect(text).not.toContain('secretpw')
+      expect(p.exitCode).toBe(1)
+    }
+  }, 120000)
+
+  test('--cap-per-day must be an integer from 1 to 20, on the command line and inside exportHuman', async () => {
+    const t = await freshDb()
+    for (const bad of [21, 0, -1, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), capPerDay: bad })).rejects.toThrow(/capPerDay/)
+    }
+    await expect(exportHuman({ game: 'four', query: t.query, outDir: await out(), capPerDay: 20 })).resolves.toBeDefined()
+    for (const bad of ['21', 'abc', '']) {
+      const p = Bun.spawnSync(['bun', join(import.meta.dir, 'export-human.ts'), '--game', 'four', '--out', '/tmp/duelwise-never-written', '--cap-per-day', bad], { env: { ...process.env, DATABASE_URL: 'postgres://x' }, stdout: 'pipe', stderr: 'pipe' })
+      expect(p.exitCode).toBe(1)
+    }
+  }, 120000)
+
+  test('the share cap holds against the final training population, holdout included', async () => {
+    const t = await freshDb()
+    for (let i = 0; i < 120; i++) await t.add(`o${i}`, fourRecord(`o${i}`, 700 + i), { guestId: `g-o${i}` })
+    for (let i = 0; i < 40; i++) await t.add(`h${i}`, fourRecord(`h${i}`, 800 + i), { guestId: 'g-heavy', startedAt: new Date(Date.parse(i < 20 ? '2026-10-29T08:00:00Z' : '2026-10-30T08:00:00Z') + i * 1000) })
+    const dir = await out()
+    const s = await exportHuman({ game: 'four', query: t.query, outDir: dir, holdoutPercent: 30 })
+    const train = await readRows(dir, 'four')
+    const limit = Math.max(1, Math.floor(train.length * 0.02))
+    const per = new Map<string, number>()
+    for (const r of train) per.set(r.player, (per.get(r.player) ?? 0) + 1)
+    expect(Math.max(...per.values())).toBeLessThanOrEqual(limit)
+    expect(s.training).toBe(train.length)
+  }, 120000)
+
+  test('opted-out poker players are dropped before anything is written', async () => {
+    const t = await freshDb()
+    await t.db.insert(schema.guest).values({ id: 'g-out', pokerProfileAllowed: false })
+    await t.add('x1', holdemRecord('x1', 41), { guestId: 'g-out' })
+    await t.add('x2', holdemRecord('x2', 42), { guestId: 'g-in' })
+    const dir = await out()
+    const s = await exportHuman({ game: 'holdem', query: t.query, outDir: dir, holdoutPercent: 0, uncapped: true, shareCap: false, excludePokerOptOut: true })
+    expect(s.rejected.poker_opt_out).toBe(1)
+    const text = await readFile(join(dir, 'holdem', 'matches.jsonl'), 'utf8')
+    expect(text.includes(playerKey(null, 'g-out'))).toBe(false)
+    expect(text.includes('"x1"')).toBe(false)
+    expect(text.includes('"x2"')).toBe(true)
+  }, 120000)
 })

@@ -11,7 +11,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { countMatch, emptyCounts, profileOf, type PlayerProfile, type ProfileCounts } from '@duelwise/core/src/games/holdem/profile'
-import { exportHuman, sourceFromArgs, type HumanRow } from './export-human'
+import { exportHuman, redact, sourceFromArgs, type HumanRow } from './export-human'
 
 export interface ProfileEntry {
   player: string
@@ -28,9 +28,9 @@ export interface ProfileSummary {
 }
 
 /** Pure: counts each player's behaviour over their rows and drops opted-out players. */
-export function buildProfiles(rows: readonly HumanRow[]): { profiles: ProfileEntry[]; summary: ProfileSummary } {
+export function buildProfiles(rows: readonly HumanRow[], alreadyDropped = 0): { profiles: ProfileEntry[]; summary: ProfileSummary } {
   const counts = new Map<string, ProfileCounts>()
-  let optedOut = 0
+  let optedOut = alreadyDropped
   for (const r of rows) {
     if (r.profileOk === false) { optedOut++; continue }
     if (r.profileOk === null) throw new Error('profile-holdem: the database has no poker profile switch (migration 0007); refusing to profile without the opt-out')
@@ -57,23 +57,25 @@ async function main() {
   const out = args[args.indexOf('--out') + 1]
   if (args.indexOf('--out') < 0 || !out || !out.startsWith('/')) {
     console.error('usage: DATABASE_URL=... bun profile-holdem.ts --out <absolute dir> [--pglite <absolute scratch db dir>]')
-    process.exit(2)
+    process.exitCode = 2
+    return
   }
+  const secret = process.env.DATABASE_URL ?? null
   const scratch = await mkdtemp(join(tmpdir(), 'duelwise-profile-'))
   let src: Awaited<ReturnType<typeof sourceFromArgs>> | null = null
   try {
     src = await sourceFromArgs(args)
-    await exportHuman({ game: 'holdem', query: src.query, outDir: scratch, holdoutPercent: 0, capPerDay: Number.MAX_SAFE_INTEGER, shareCap: false, includeLeft: true })
+    const exported = await exportHuman({ game: 'holdem', query: src.query, outDir: scratch, holdoutPercent: 0, uncapped: true, shareCap: false, includeLeft: true, excludePokerOptOut: true })
     const rows = (await readFile(join(scratch, 'holdem', 'matches.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l) as HumanRow)
-    const { profiles, summary } = buildProfiles(rows)
+    const { profiles, summary } = buildProfiles(rows, exported.rejected.poker_opt_out ?? 0)
     const dir = join(resolve(out), 'holdem-profiles')
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, 'profiles.json'), JSON.stringify(profiles, null, 1) + '\n')
     await writeFile(join(dir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
     console.log(JSON.stringify(summary))
   } catch (e) {
-    console.error('profile-holdem failed:', e instanceof Error ? (src?.secret ? e.message.replaceAll(src.secret, '[database url]') : e.message) : 'unknown error')
-    process.exit(1)
+    console.error('profile-holdem failed:', e instanceof Error ? redact(e.message, secret) : 'unknown error')
+    process.exitCode = 1
   } finally {
     await src?.close()
     await rm(scratch, { recursive: true, force: true })
