@@ -1,7 +1,7 @@
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter.ts'
 import type { Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
-import { PRACTICE_COPY, agentVersionFor, isPublished } from '../fighter/strength'
+import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fighter/strength'
 
 // What the Coldstore page says about an agent's strength (R30). It used to print "site Elo 1091", a number with no unit
 // a player can read, resting on a gate whose bots could not aim. Now it says what was measured, in plain words, and only
@@ -49,5 +49,5 @@ export function limitsText(level: Level): string {
   const c = LEVEL_LIMITS.arena[level]
   const ms = Math.round((c.delayFrames * 1000) / 60)
   const aim = c.aimRateDegPerSec === null || c.aimRateDegPerSec === undefined ? 'no aim limit' : `turns at most ${c.aimRateDegPerSec} degrees a second`
-  return `Reacts in ${ms} ms, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}, ${aim}`
+  return `${reactionText(ms)}, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}, ${aim}`
 }

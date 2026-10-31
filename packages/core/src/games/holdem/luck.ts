@@ -161,11 +161,13 @@ export async function luckOfMatchAsync(input: LuckInput, opts: { tick?: () => Pr
 const chips = (n: number): string => n + (n === 1 ? ' chip' : ' chips')
 
 /** One plain line for the result panel, or null when there is nothing to say (no all-in). */
-export function luckLine(l: Luck | null): string | null {
+export function luckLine(l: Luck | null, buyIns = 0): string | null {
   if (!l) return null
+  // Practice buy-backs start a fresh stack each time; `actual` is the running total over all of them, and the line says so.
+  const stacks = buyIns > 0 ? `, counting all ${buyIns + 1} stacks` : ''
   const actual = Math.round(l.actual)
   const adjusted = Math.round(l.adjusted)
-  const first = actual === 0 ? 'The match ended level.' : `You ${actual > 0 ? 'won' : 'lost'} ${chips(Math.abs(actual))}.`
+  const first = actual === 0 ? `The match ended level${stacks}.` : `You ${actual > 0 ? 'won' : 'lost'} ${chips(Math.abs(actual))}${stacks}.`
   if (Math.abs(l.luck) < 1) return first + ' Your all-ins ran about even with the odds.'
   const then = adjusted === 0 ? "you'd have finished about level" : `you'd have ${adjusted > 0 ? 'won' : 'lost'} about ${Math.abs(adjusted)}`
   return `${first} With average luck on your all-ins, ${then}. You ran ${l.luck > 0 ? 'lucky' : 'unlucky'}.`

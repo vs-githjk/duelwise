@@ -175,7 +175,7 @@ function Page() {
         Wins at each level, last 30 days, for everybody. Switch this off to stay off every board; your own path and report stay yours.
       </Row>
       <Row title="Sound" testId="sound-settings" control={<SoundRow />}>
-        Music plays softly in the lobby and during games, and starts after your first tap. Sound effects cover the game cues and the win and loss sounds. The opponent's line after a match is spoken by your browser's own voice, never over the network.
+        Music plays softly during matches only, never in the lobby or on the other pages, and starts after your first tap. Sound effects cover the game cues and the win and loss sounds. The opponent's line after a match is spoken by your browser's own voice, never over the network.
       </Row>
       {user ? null : (
         <Row

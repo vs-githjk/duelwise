@@ -38,7 +38,7 @@ export interface HudNames {
   youCharacter: string
   aiCharacter: string
   level: string
-  /** "Reacts in 200 ms, at most 240 actions a minute" style text, from the level's limits. */
+  /** "Waits 200 ms before reacting, like a sharp human, at most 240 actions a minute" style text, from the level's limits. */
   limits: string
   preview: boolean
 }

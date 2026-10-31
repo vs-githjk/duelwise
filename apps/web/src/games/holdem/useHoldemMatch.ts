@@ -298,8 +298,9 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
         if (mine !== epoch.current) return null
         // The last hand stays on the table behind the result.
         if (!next.over) {
-          setReveal(null)
           // Practice: a busted human is offered a free buy-back before the next hand is dealt. The match is not over and not shortened.
+          // The bust hand stays on the table (its cards turned over, the pot pushed) until the player chooses, so the offer never sits
+          // over a hand that has already been dealt. No loss sound here: the stinger plays once, at the match result.
           if (practiceRef.current && humanBusted(summary, HUMAN)) {
             await new Promise<void>((resolve) => {
               buyBackWait.current = () => {
@@ -307,10 +308,10 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
                 resolve()
               }
               setBuyBackOffer(true)
-              playCue('lose', 0)
             })
             if (mine !== epoch.current) return null
           }
+          setReveal(null)
           playCue('deal')
         }
       } else if (next.board.length !== prev.board.length) {

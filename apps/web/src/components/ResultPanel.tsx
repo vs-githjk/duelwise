@@ -69,6 +69,8 @@ export interface ResultPanelProps {
   leaderboard?: boolean
   /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
   leftAfter?: number | null
+  /** Practice Hold'em: how many times the player bought back in; the chip lines then say they count every stack. */
+  buyIns?: number
   className?: string
 }
 
@@ -76,7 +78,7 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
@@ -208,7 +210,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const resultFacts = (
     <>
       <p className="text-sm text-ink" data-testid="result-reason">
-        {resultSentence(result, humanSeat, persona?.name ?? 'The AI')}
+        {resultSentence(result, humanSeat, persona?.name ?? 'The AI', false, buyIns)}
       </p>
       {reveal}
       {elo && delta !== null ? (
