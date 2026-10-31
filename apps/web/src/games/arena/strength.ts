@@ -1,7 +1,7 @@
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter.ts'
 import type { Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
-import { PRACTICE_COPY, agentVersionFor, isPublished } from '../fighter/strength'
+import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fighter/strength'
 
 // What the Coldstore page says about an agent's strength (R30). It used to print "site Elo 1091", a number with no unit
 // a player can read, resting on a gate whose bots could not aim. Now it says what was measured, in plain words, and only
@@ -16,9 +16,9 @@ export { PRACTICE_COPY, agentVersionFor, isPublished }
 export function strengthLine(reg: Registry | null, level: Level): string {
   const m = reg?.measured[level]
   if (!reg?.levels[level] || !m) {
-    if (level === 'easy') return 'Practice: not yet measured. Easy reacts slower.'
-    if (level === 'medium') return 'Practice: not yet measured. Plays stronger than Easy.'
-    if (level === 'hard') return 'Practice: not yet measured. Plays at Hard difficulty.'
+    if (level === 'easy') return 'In training: not yet measured. Easy reacts slower.'
+    if (level === 'medium') return 'In training: not yet measured. Plays stronger than Easy.'
+    if (level === 'hard') return 'In training: not yet measured. Plays at Hard difficulty.'
     return PRACTICE_COPY
   }
   const atLeast = Math.max(0, Math.min(10, Math.floor(m.ci95[0] * 10 + 1e-9)))
@@ -26,7 +26,7 @@ export function strengthLine(reg: Registry | null, level: Level): string {
 }
 
 /** Shown under the level picker whenever a Practice level is listed: the ladder above Easy is not measured. */
-export const PRACTICE_PICKER_NOTE = 'Practice levels have not passed our strength test.'
+export const PRACTICE_PICKER_NOTE = 'Levels in training have not passed our strength test.'
 
 /** "1 headshot", "0 headshots". */
 export const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`
@@ -49,5 +49,5 @@ export function limitsText(level: Level): string {
   const c = LEVEL_LIMITS.arena[level]
   const ms = Math.round((c.delayFrames * 1000) / 60)
   const aim = c.aimRateDegPerSec === null || c.aimRateDegPerSec === undefined ? 'no aim limit' : `turns at most ${c.aimRateDegPerSec} degrees a second`
-  return `Reacts in ${ms} ms, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}, ${aim}`
+  return `${reactionText(ms)}, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}, ${aim}`
 }

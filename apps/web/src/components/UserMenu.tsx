@@ -24,8 +24,8 @@ export function UserMenu() {
     return (
       <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
         {guestName ? (
-          <Link to="/settings" className="inline-flex min-h-11 min-w-0 items-center truncate px-2 text-sm font-semibold max-sm:max-w-24 sm:max-w-40" aria-label={`Playing as ${guestName}. Change your name in Settings`} data-testid="header-name">
-            {guestName}
+          <Link to="/settings" title={guestName} className="inline-flex min-h-11 min-w-0 items-center px-2 text-sm font-semibold max-sm:max-w-24 sm:max-w-72" aria-label={`Playing as ${guestName}. Change your name in Settings`} data-testid="header-name">
+            <span className="min-w-0 truncate">{guestName}</span>
           </Link>
         ) : null}
         <Link to="/signin" className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border border-line bg-surface px-2 text-sm font-semibold sm:px-4">
@@ -41,8 +41,8 @@ export function UserMenu() {
           Owner
         </Link>
       ) : null}
-      <Link to="/settings" className="inline-flex min-h-11 min-w-0 items-center truncate px-2 text-sm font-semibold max-sm:sr-only sm:max-w-40" aria-label={`Signed in as ${user.name}`}>
-        {user.name}
+      <Link to="/settings" title={user.name} className="inline-flex min-h-11 min-w-0 items-center px-2 text-sm font-semibold max-sm:sr-only sm:max-w-72" aria-label={`Signed in as ${user.name}`}>
+        <span className="min-w-0 truncate">{user.name}</span>
       </Link>
       <button
         type="button"

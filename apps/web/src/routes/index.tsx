@@ -52,7 +52,7 @@ function Landing() {
             </li>
           ))}
         </ol>
-        <p className="text-sm text-muted">Every game has its own path. Clear a stop to open the next one. Practice matches count on your own path, never on the leaderboard.</p>
+        <p className="text-sm text-muted">Every game has its own path. Clear a stop to open the next one. Practice matches never count, so you can try any opponent.</p>
       </section>
       <section className="grid gap-2 rounded-card border border-line bg-surface p-5 shadow-card md:p-6" aria-labelledby="board-h" data-testid="landing-board">
         <h2 id="board-h" className="font-display text-display-md">

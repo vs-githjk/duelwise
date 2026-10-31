@@ -8,8 +8,11 @@ import type { HandSummary } from '@duelwise/core/src/games/holdem/match'
 export function progressNumbers(
   state: { hand: number; net: [number, number] },
   reveal: { stage: 'runout' | 'show' | 'push'; summary: Pick<HandSummary, 'hand' | 'delta'> } | null,
+  held = false,
 ): { hand: number; net: number } {
   if (reveal && reveal.stage !== 'push') return { hand: reveal.summary.hand + 1, net: state.net[0] - reveal.summary.delta }
+  // Practice buy-back: the bust hand stays on the table until the player chooses, so the header keeps its number.
+  if (reveal && held) return { hand: reveal.summary.hand + 1, net: state.net[0] }
   return { hand: state.hand + 1, net: state.net[0] }
 }
 

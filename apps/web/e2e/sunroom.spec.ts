@@ -73,8 +73,8 @@ test.describe('adventure path (locks are on)', () => {
     expect(geo.dy).toBeLessThan(0.5)
     expect(geo.pad).toBeGreaterThanOrEqual(6)
     expect(geo.shadow).toContain('6px')
-    // The call defaults to the stop after the current one.
-    await expect(page.getByTestId('call-picker').locator('input[value="medium"]')).toBeChecked()
+    // No call is made for the player: nothing is checked until they tap one.
+    await expect(page.getByTestId('call-picker').locator('input:checked')).toHaveCount(0)
   })
 
   test('?any=1 opens every stop for testing and is never linked from the page', async ({ page }) => {
@@ -84,26 +84,26 @@ test.describe('adventure path (locks are on)', () => {
     await expect(page.getByTestId('level-picker').locator('input[value="champion"]')).toBeEnabled()
   })
 
-  test('beating Pip clears the stop, unlocks Marlow and offers to play Marlow next', async ({ page }) => {
-    await winAgainstPip(page)
+  test('an accepted win over Pip shows the clear, unlocks Marlow and offers to play Marlow next (result sheet with a counted upload)', async ({ page }) => {
+    await page.goto('/dev/result?game=word&level=easy&outcome=win&call=medium')
     const panel = page.getByTestId('result-panel')
     await expect(panel).toHaveAttribute('data-outcome', 'win')
     await expect(page.getByTestId('result-headline')).toContainText('You beat Pip.')
     await expect(page.getByTestId('result-ladder').getByTestId('ladder-easy')).toContainText('Beaten')
     await expect(page.getByTestId('says-sub')).toHaveText('Marlow is unlocked.')
     await expect(page.getByRole('button', { name: 'Rematch Pip' })).toBeVisible()
-    await page.getByTestId('play-next').click()
-    await expect(page.getByTestId('header-persona')).toContainText('Marlow')
+    await expect(page.getByTestId('play-next')).toBeVisible()
   })
 
-  test('a cleared stop stays cleared in this browser: back at setup Marlow is the current stop', async ({ page }) => {
+  test('a win with a fixed test seed is unrated: it clears nothing and unlocks nothing, so back at setup Pip is still the current stop', async ({ page }) => {
     await winAgainstPip(page)
+    await expect(page.getByTestId('result-ladder').getByTestId('ladder-easy')).not.toContainText('Beaten')
+    await expect(page.getByTestId('says-sub')).toHaveCount(0)
+    await expect(page.getByTestId('play-next')).toHaveCount(0)
     await page.getByRole('button', { name: 'Change level' }).click()
-    await expect(page.getByTestId('path-stop-easy')).toHaveAttribute('data-state', 'cleared')
-    await expect(page.getByTestId('path-stop-medium')).toHaveAttribute('data-state', 'current')
-    await expect(page.getByTestId('level-picker').locator('input[value="medium"]')).toBeChecked()
-    await expect(page.getByRole('button', { name: 'Start match vs Marlow' })).toBeVisible()
-    await expect(page.getByTestId('level-picker').locator('input[value="hard"]')).toBeDisabled()
+    await expect(page.getByTestId('path-stop-easy')).toHaveAttribute('data-state', 'current')
+    await expect(page.getByTestId('path-stop-medium')).toHaveAttribute('data-state', 'locked')
+    await expect(page.getByTestId('level-picker').locator('input[value="medium"]')).toBeDisabled()
   })
 })
 
@@ -211,6 +211,18 @@ test.describe('name, call, result sheet, voice and share', () => {
     await expect(page.getByTestId('name-field')).toHaveCount(0)
   })
 
+  test('an unknown share link answers a real 404 and still shows the friendly page', async ({ page, request }) => {
+    for (const path of ['/c/nope/vesper', '/c/word-duel/nobody']) {
+      expect((await request.get(path)).status(), path).toBe(404)
+    }
+    const res = await page.goto('/c/nope/vesper')
+    expect(res!.status()).toBe(404)
+    await expect(page.getByText('Page not found')).toBeVisible()
+    expect((await request.get('/c/word-duel/vesper')).status()).toBe(200)
+    expect((await request.get('/play/nope')).status()).toBe(404)
+    expect((await request.get('/play/word-duel')).status()).toBe(200)
+  })
+
   test.describe('a first-time visitor (not yet welcomed)', () => {
     test.use({ storageState: guidesSeen })
     test('a shared link asks for the name once, framed as the challenge, then opens that game at that level', async ({ page }) => {
@@ -237,7 +249,7 @@ test.describe('board, learn graph and settings', () => {
     await expect(page.getByTestId('board-title')).toHaveText('Word Duel board, last 30 days')
     for (const level of ['easy', 'medium', 'hard', 'champion']) await expect(page.getByTestId(`board-col-${level}`)).toBeVisible()
     // Earlier specs in the same run may have left matches in the in-memory store, so the numbers are not fixed: an empty column says so, a full one lists rows.
-    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ players?$/)
+    await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ played, [\d,]+ won$/)
     await expect(page.getByTestId('board-rows-easy').or(page.getByTestId('board-empty-easy'))).toBeVisible()
     if (await page.getByTestId('board-empty-easy').count()) await expect(page.getByTestId('board-empty-easy')).toHaveText('No wins at Easy yet. Be the first.')
     await expect(page.getByTestId('leaderboard-switcher').getByRole('link')).toHaveCount(6)

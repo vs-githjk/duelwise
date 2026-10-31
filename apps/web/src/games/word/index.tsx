@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry } from '@duelwise/agents/src/registry'
 import registryJson from '@duelwise/agents/registry/word.json'
@@ -9,7 +9,6 @@ import { PlayMode } from '../../components/PlayModeToggle'
 import { personaFor, styleLine } from '../../personas'
 import { calledFor } from '../../lib/progress'
 import { ResultPanel } from '../../components/ResultPanel'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
@@ -36,16 +35,6 @@ function seedFromUrl(): number | undefined {
   return raw !== null && /^\d{1,10}$/.test(raw) && Number(raw) < 2 ** 32 ? Number(raw) : undefined
 }
 
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
-}
-
 export default function WordDuelPage() {
   const match = useWordMatch((level) => sourceRegistry.levels[level]?.version ?? 'preview', undefined, sourceRegistry.learnsFromHumans === true)
   const [picked, setPicked] = useState<Level>(firstSelectable)
@@ -69,9 +58,8 @@ export default function WordDuelPage() {
       game="word"
       level={level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={
         over && match.finished && state ? (
             <div className="grid gap-3">

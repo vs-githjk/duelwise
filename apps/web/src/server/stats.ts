@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, notInArray, sql } from 'drizzle-orm'
 import { competitive } from './competitive'
+import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import { decodeRecord } from '@duelwise/core/src/match-record'
@@ -99,7 +100,7 @@ export async function getGameStats(db: Db, game: GameId, now: Date = new Date(),
     })
     .from(schema.match)
     // Unused offline tickets and expired ones are slots, not matches: nobody played them.
-    .where(and(eq(schema.match.game, game), notInArray(schema.match.status, ['ticket', 'expired'])))
+    .where(and(eq(schema.match.game, game), notInArray(schema.match.status, ['ticket', 'expired']), notTestMatch()))
 
   const funnel: Funnel = { played: rows.length, finished: 0, passedFilters: 0, allowed: 0, optedOut: 0, notLearning: 0, used: 0, reasons: {} }
   const bump = (reason: string) => {
@@ -116,7 +117,8 @@ export async function getGameStats(db: Db, game: GameId, now: Date = new Date(),
       continue
     }
     if (isObj(r.filterFlags) && typeof r.filterFlags.deferredCheckAt === 'number') continue
-    counted++
+    // "Matches vs humans" is public: a practice match or one left early is not one, though both stay in the training funnel below.
+    if (!(isObj(r.filterFlags) && (r.filterFlags.practice === true || r.filterFlags.leftTable === true))) counted++
     const flags = isObj(r.filterFlags) ? Object.keys(r.filterFlags).filter((k) => !INTERNAL_FLAGS.has(k) && r.filterFlags![k] === true) : []
     for (const f of flags) bump(f)
     if (!r.trainingAllowed) {
@@ -138,7 +140,7 @@ export async function getGameStats(db: Db, game: GameId, now: Date = new Date(),
   const recent = await db
     .select({ level: schema.match.level, result: schema.match.result, record: schema.match.record, finishedAt: schema.match.finishedAt })
     .from(schema.match)
-    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), gte(schema.match.finishedAt, windowStart), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive))
+    .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), gte(schema.match.finishedAt, windowStart), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive, notTestMatch()))
   for (const m of recent) {
     if (!m.record || !m.result || !m.finishedAt || !(LEVELS as readonly string[]).includes(m.level)) continue
     let humanSeat: 0 | 1
@@ -314,7 +316,7 @@ export function summariseRegistry(reg: Registry | null): RegistrySummary {
     const entry = reg?.levels[level]
     const m = reg?.measured[level]
     const limits = realtimeLimits(reg?.game, level, entry?.config)
-    if (!reg || !entry || !m) return { level, state: 'in-training', practice: true, reason: reg?.game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'Practice', ...limits }
+    if (!reg || !entry || !m) return { level, state: 'in-training', practice: true, reason: reg?.game === 'arena' ? arenaStrengthLine(reg, level) : reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : 'In training', ...limits }
     const realtime = PRODUCT.games[reg.game].kind === 'realtime'
     return {
       level,

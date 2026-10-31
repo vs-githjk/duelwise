@@ -145,9 +145,9 @@ test.describe('fighter play page', () => {
     await page.goto(`/play/${SLUG}`)
     const picker = page.getByTestId('level-picker')
     await expect(picker).toBeVisible()
-    await expect(picker.getByText('Reacts in 300 ms, at most 100 actions a minute')).toBeVisible()
-    await expect(picker.getByText('Reacts in 200 ms, at most 240 actions a minute')).toBeVisible()
-    await expect(picker.getByText('Reacts in 50 ms, no action cap')).toBeVisible()
+    await expect(picker.getByText('Waits 300 ms before reacting, like an average person, at most 100 actions a minute')).toBeVisible()
+    await expect(picker.getByText('Waits 200 ms before reacting, like a sharp human, at most 240 actions a minute')).toBeVisible()
+    await expect(picker.getByText('Waits 50 ms before reacting, faster than a person can react, no action cap')).toBeVisible()
     await expect(page.getByText(PRODUCT.games.fighter.displayName, { exact: false }).first()).toBeVisible()
   })
 
@@ -158,7 +158,7 @@ test.describe('fighter play page', () => {
     for (const level of ALL_LEVELS) {
       const row = picker.locator(`label[data-persona="${level}"]`)
       if (published.includes(level)) await expect(row.getByTestId('preview-badge')).toHaveCount(0)
-      else await expect(row.getByTestId('preview-badge')).toHaveText('Practice')
+      else await expect(row.getByTestId('preview-badge')).toHaveText('In training')
       await expect(picker.locator(`input[value="${level}"]`)).toBeEnabled()
     }
     await expect(page.getByTestId('none-playable')).toHaveCount(0)
@@ -178,10 +178,10 @@ test.describe('fighter play page', () => {
     await page.goto(`/play/${SLUG}?level=champion`)
     const picker = page.getByTestId('level-picker')
     await expect(picker.locator('input[value="champion"]')).toBeChecked()
-    await expect(picker.getByText('Practice', { exact: true }).first()).toBeVisible()
+    await expect(picker.getByText('In training', { exact: true }).first()).toBeVisible()
     await expect(page.getByTestId('agent-name')).toContainText(/\w+, Champion/)
     await expect(page.getByTestId('agent-name')).not.toContainText(PRODUCT.name)
-    await expect(page.getByTestId('strength-line')).toContainText('Practice: an early version that has not passed our strength test yet.')
+    await expect(page.getByTestId('strength-line')).toContainText('In training: an early version that has not passed our strength test yet.')
     await expect(page.getByTestId('strength-line')).not.toContainText(/of 10|elo/i)
   })
 
@@ -240,8 +240,8 @@ test.describe('fighter play page', () => {
   test('an unpublished level is called Practice in the header badge and the HUD pill', async ({ page }) => {
     test.setTimeout(90_000)
     await startMatch(page, 'seed=15&level=champion')
-    await expect(page.getByTestId('preview-badge')).toHaveText('Practice')
-    await expect(page.getByTestId('ai-pill')).toContainText('Practice')
+    await expect(page.getByTestId('preview-badge')).toHaveText('In training')
+    await expect(page.getByTestId('ai-pill')).toContainText('In training')
     await expect(page.getByTestId('ai-pill')).not.toContainText('Preview')
   })
 

@@ -4,7 +4,7 @@ import { allRegistries } from '../lib/registries'
 const STEPS = [
   {
     title: 'You play a full match',
-    body: 'Guests play too. Sign in to keep an Elo per game and a place on the leaderboard.',
+    body: 'Guests play too and are on the wins board. Sign in to get an Elo per game and keep your name on other devices.',
   },
   {
     title: 'The match is replayed and checked',

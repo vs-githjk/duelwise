@@ -6,7 +6,16 @@ import type { Registry } from '@duelwise/agents/src/registry'
 // and only for a level the registry publishes.
 
 /** R32: shown for every level the registry does not publish. The level stays playable; it carries no Elo or strength number. */
-export const PRACTICE_COPY = 'Practice: an early version that has not passed our strength test yet.'
+export const PRACTICE_COPY = 'In training: an early version that has not passed our strength test yet.'
+
+/**
+ * How a reaction delay compares to a person, in words a player can check: the AI is made to wait before it reacts, a handicap, not a head start.
+ * A simple reaction takes most people about 200 to 300 ms, so 200 is a sharp human and under 150 is faster than a person can react.
+ */
+export function reactionText(ms: number): string {
+  const how = ms >= 250 ? 'like an average person' : ms >= 200 ? 'like a sharp human' : ms >= 150 ? 'quicker than most people' : 'faster than a person can react'
+  return `Waits ${ms} ms before reacting, ${how}`
+}
 
 export function isPublished(reg: Registry | null, level: Level): boolean {
   return Boolean(reg?.levels[level]) && Boolean(reg?.measured[level])

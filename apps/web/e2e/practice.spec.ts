@@ -120,6 +120,19 @@ test.describe("Hold'em practice", () => {
     const offer = page.getByTestId('buyback')
     await expect(offer).toBeVisible()
     await expect(page.getByTestId('holdem-status')).toHaveText('Out of chips')
+    // The bust hand stays on the table until the player chooses: its cards are turned over and the pot is pushed, and no next hand is
+    // dealt behind the offer. (It used to show hand 2 already dealt, with the offer sitting over it.)
+    await expect(table(page)).toHaveAttribute('data-stage', 'push')
+    await expect(page.getByTestId('hand-banner')).toBeVisible()
+    await expect(table(page)).toHaveAttribute('data-street', 'showdown')
+    await expect(table(page)).toHaveAttribute('data-my-stack', '0')
+    await expect(page.getByTestId('holdem-skip')).toHaveCount(0)
+    // It does not go away on its own while the offer waits.
+    await page.waitForTimeout(2500)
+    await expect(table(page)).toHaveAttribute('data-stage', 'push')
+    await expect(offer).toBeVisible()
+    // The loss sound plays once, at the match result: nothing has played for the bust.
+    expect(await page.evaluate(() => (window as unknown as { __duelwiseAudio: { events: Array<{ type: string }> } }).__duelwiseAudio.events.filter((e) => e.type === 'stinger').length)).toBe(0)
     // Nothing to act on until the choice is made, and the match has not ended.
     await expect(page.getByTestId('bet-controls')).toHaveCount(0)
     await expect(page.getByTestId('result-panel')).toHaveCount(0)
@@ -135,6 +148,7 @@ test.describe("Hold'em practice", () => {
 
     await page.getByTestId('buy-back').click()
     await expect(offer).toHaveCount(0)
+    await expect(table(page)).toHaveAttribute('data-stage', 'live')
     // The next hand was already dealt behind the offer: it is the one that plays on, with fresh stacks. The chip tally carries on.
     await expect(table(page)).toHaveAttribute('data-hand', String(handBefore))
     await expect(table(page)).toHaveAttribute('data-turn', /you|ai/)
@@ -153,6 +167,9 @@ test.describe("Hold'em practice", () => {
     expect(rows).toBeGreaterThanOrEqual(10)
     await expect(page.getByTestId('holdem-record')).toHaveAttribute('data-record-ok', 'true')
     expect(await overflow(page)).toBeLessThanOrEqual(0)
+    // Exactly one result stinger for the whole match, however many busts there were.
+    const stingers = await page.evaluate(() => (window as unknown as { __duelwiseAudio: { events: Array<{ type: string; outcome?: string }> } }).__duelwiseAudio.events.filter((e) => e.type === 'stinger').map((e) => e.outcome))
+    expect(stingers.length).toBe(1)
     await shot(page, 'holdem-practice-result', 'result-panel')
   })
 
@@ -180,6 +197,10 @@ test.describe("Hold'em practice", () => {
     await expect(page.getByTestId('buyback')).toHaveCount(0)
     await expect(page.getByTestId('result-practice')).toHaveCount(0)
     expect(await page.getByTestId('history-row').count()).toBeLessThan(10)
+    // A bust names the seat that lost from the player's view, never "the other player".
+    const said = await page.getByTestId('result-panel').innerText()
+    expect(said).toMatch(/(You|Pip) lost all 100 chips in hand \d+\./)
+    expect(said).not.toMatch(/other player/i)
   })
 })
 

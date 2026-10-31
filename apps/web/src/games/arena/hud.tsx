@@ -85,7 +85,7 @@ export interface HudNames {
   you: string
   ai: string
   level: string
-  /** "Reacts in 200 ms, at most 240 actions a minute" style text, from the level's limits. */
+  /** "Waits 200 ms before reacting, like a sharp human, at most 240 actions a minute" style text, from the level's limits. */
   limits: string
   preview: boolean
   matchId: string
@@ -396,7 +396,7 @@ export function ArenaHud({ view, names, settings, scale, showBoard }: HudProps) 
       <div className="ah-pill" data-testid="ai-pill">
         <b>{names.ai}</b>
         <span>{names.limits}</span>
-        {names.preview ? <em>Practice</em> : null}
+        {names.preview ? <em>In training</em> : null}
       </div>
       {view.alive ? (
         <div className="ah-xh">

@@ -26,7 +26,7 @@ describe('Coldstore strength copy', () => {
     expect(line).not.toMatch(/elo/i)
   })
   test('a level that is not published is a Practice level, and a record carries the registry version or preview', () => {
-    expect(strengthLine(reg, 'easy')).toBe('Practice: not yet measured. Easy reacts slower.')
+    expect(strengthLine(reg, 'easy')).toBe('In training: not yet measured. Easy reacts slower.')
     expect(strengthLine(null, 'medium')).toContain('Plays stronger than Easy')
     expect(strengthLine(null, 'hard')).toContain('not yet measured')
     expect(agentVersionFor(reg, 'hard')).toBe('v1')
@@ -44,11 +44,11 @@ describe('Coldstore strength copy', () => {
       expect(/cannot turn/.test(limitsSentence(l))).toBe(c.aimRateDegPerSec !== null)
     }
   })
-  test('counts are pluralised and the picker says Practice levels have not passed the strength test', () => {
+  test('counts are pluralised and the picker says levels in training have not passed the strength test', () => {
     expect(count(1, 'headshot')).toBe('1 headshot')
     expect(count(0, 'headshot')).toBe('0 headshots')
     expect(count(3, 'kill')).toBe('3 kills')
-    expect(PRACTICE_PICKER_NOTE).toMatch(/Practice levels have not passed our strength test/)
+    expect(PRACTICE_PICKER_NOTE).toMatch(/Levels in training have not passed our strength test/)
     expect(PRACTICE_PICKER_NOTE).not.toMatch(/weaker than Easy/)
     expect(PRACTICE_PICKER_NOTE).not.toContain('tighter')
     // The note says Practice levels are looser than Easy, so tie that to the limiter config.

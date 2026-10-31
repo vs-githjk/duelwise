@@ -53,6 +53,8 @@ async function playFourToEnd(page: Page) {
 }
 
 test.describe('agent stats', () => {
+  // These specs read the public numbers, which leave Test traffic out (server/public-traffic.ts), so they play as an ordinary visitor: no test marker header.
+  test.use({ extraHTTPHeaders: { 'x-dw-test': '0' } })
   test('every game page shows registry numbers as measured and unmeasured levels as in training', async ({ page }) => {
     for (const game of GAMES) {
       const reg = registryOf(game)
@@ -65,8 +67,8 @@ test.describe('agent stats', () => {
           else await expect(page.getByTestId(`site-elo-${level}`)).toHaveText(String(Math.round(reg.measured[level].siteElo)))
           await expect(page.getByTestId(`in-training-${level}`)).toHaveCount(0)
         } else {
-          if (PRODUCT.games[game].kind === 'realtime') await expect(page.getByTestId(`in-training-${level}`)).toContainText('Practice')
-          else await expect(page.getByTestId(`in-training-${level}`)).toContainText('Practice')
+          if (PRODUCT.games[game].kind === 'realtime') await expect(page.getByTestId(`in-training-${level}`)).toContainText('In training')
+          else await expect(page.getByTestId(`in-training-${level}`)).toContainText('In training')
           await expect(page.getByTestId(`site-elo-${level}`)).toHaveCount(0)
         }
       }
@@ -77,10 +79,10 @@ test.describe('agent stats', () => {
       } else if (PRODUCT.games[game].kind === 'realtime') {
         // The reaction limit is a product constant, so the tile shows it whether or not the Champion is published.
         await expect(page.getByTestId('tile-champion')).toContainText(`${PRODUCT.championMinDelayFrames} frames`)
-        if (champion) await expect(page.getByTestId('tile-champion')).not.toContainText('Practice')
-        else await expect(page.getByTestId('tile-champion')).toContainText('Practice')
+        if (champion) await expect(page.getByTestId('tile-champion')).not.toContainText('In training')
+        else await expect(page.getByTestId('tile-champion')).toContainText('In training')
       } else if (!champion) {
-        await expect(page.getByTestId('tile-champion')).toContainText('Practice')
+        await expect(page.getByTestId('tile-champion')).toContainText('In training')
       }
       await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : 'Does not learn from site matches yet')
       if (game === 'word') await expect(page.getByTestId('learns-note')).not.toContainText(/self-play/i)
@@ -115,7 +117,7 @@ test.describe('agent stats', () => {
       await expect(page.getByTestId(`strip-version-${game}`)).toContainText(reg?.champion ?? 'none')
       const published = LEVELS.filter((l) => reg?.levels?.[l] && reg?.measured?.[l]).length
       const text = await page.getByTestId(`strip-levels-${game}`).innerText()
-      expect(text).toContain(published === 4 ? 'all four' : published === 0 ? 'Practice' : `${published} of 4`)
+      expect(text).toContain(published === 4 ? 'all four' : published === 0 ? 'In training' : `${published} of 4`)
       await expect(page.getByTestId(`strip-learns-${game}`)).toHaveText(learnsOf(game) ? 'Trains on site matches' : 'Not yet')
     }
   })

@@ -163,7 +163,7 @@ export function ReportPageView({ page }: { page: Page }) {
               <p className="font-semibold">{persona.name}, {LEVEL_LABEL[view.level]}</p>
             </div>
             <p className="text-base text-muted">{persona.bio}</p>
-            <p className="text-base">{verifiedStrength(registryFor(view.game), view.level) ? styleLine(view.level, view.game) : 'Practice opponent. Its strength is still being checked.'}</p>
+            <p className="text-base">{verifiedStrength(registryFor(view.game), view.level) ? styleLine(view.level, view.game) : 'In training: this opponent\'s strength is still being checked.'}</p>
           </Card>
         </aside>
       </div>

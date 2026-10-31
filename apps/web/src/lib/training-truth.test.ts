@@ -103,7 +103,7 @@ test('a registry that learns from no game never claims training on the home page
 
 test('the hero says nothing a Practice level would make false', () => {
   expect(HERO_SUBLINE).not.toMatch(/every level|every finished match|measured strength, and/i)
-  expect(HERO_SUBLINE).toMatch(/Practice/)
+  expect(HERO_SUBLINE).toMatch(/in training/)
 })
 
 // Source scan: no page or component hard-codes a training claim; they all come from honest-copy.ts.

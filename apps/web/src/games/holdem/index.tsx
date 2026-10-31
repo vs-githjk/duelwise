@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { holdemCore } from '@duelwise/core/src/games/holdem/core'
 import { luckLine, luckOfMatchAsync } from '@duelwise/core/src/games/holdem/luck'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
@@ -12,7 +12,6 @@ import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { usePractice } from '../../lib/practice'
-import { getVolume, isMuted, setMuted, subscribeAudio } from '../../lib/audio'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { personaFor } from '../../personas'
 import { BetControls } from './BetControls'
@@ -47,16 +46,6 @@ function seedFromUrl(): number | undefined {
 
 const nameOf = (level: Level) => personaFor(level).name
 
-function MuteToggle() {
-  useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, () => false)
-  return (
-    <button type="button" aria-pressed={muted} onClick={() => setMuted(!muted)} className="min-h-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">
-      {muted ? 'Sound off' : 'Sound on'}
-    </button>
-  )
-}
-
 export default function HoldemPage() {
   const match = useHoldemMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', nameOf, sourceRegistry?.learnsFromHumans === true)
   const [picked, setPicked] = useState<Level>(firstSelectable)
@@ -88,10 +77,10 @@ export default function HoldemPage() {
     if (!over || !rec) return
     let dead = false
     luckOfMatchAsync({ seed: rec.seed, humanSeat: rec.humanSeat, options: rec.options, actions: rec.actions }, { cancelled: () => dead })
-      .then((l) => { if (!dead) setLuck(luckLine(l)) })
+      .then((l) => { if (!dead) setLuck(luckLine(l, match.practice ? match.buyIns : 0)) })
       .catch(() => {})
     return () => { dead = true }
-  }, [over, match.finished])
+  }, [over, match.finished, match.practice, match.buyIns])
   const opponent = nameOf(match.level)
   const turn: TableTurn = over || state?.over ? 'over' : match.reveal ? 'reveal' : match.canAct ? 'you' : 'ai'
   const status = over
@@ -112,7 +101,7 @@ export default function HoldemPage() {
     const hidden = el.getBoundingClientRect().bottom - window.innerHeight + 12
     if (hidden > 0) window.scrollBy({ top: hidden, behavior: 'auto' })
   }, [match.canAct, state])
-  const shown = state ? progressNumbers(state, match.reveal) : null
+  const shown = state ? progressNumbers(state, match.reveal, match.buyBackOffer) : null
   const netText = shown ? (shown.net > 0 ? `+${shown.net}` : String(shown.net)) : ''
 
   return (
@@ -120,16 +109,10 @@ export default function HoldemPage() {
       game="holdem"
       level={match.phase === 'setup' ? undefined : match.level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
-      previewLabel="Practice"
+      previewLabel="In training"
       thinking={match.thinking}
-      actions={<MuteToggle />}
       result={over && match.result ? (
             <>
-              {match.leftAfter !== null ? (
-                <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-left-note">
-                  Unrated, you left after {match.leftAfter} {match.leftAfter === 1 ? 'hand' : 'hands'}
-                </p>
-              ) : null}
               {match.practice && match.buyIns > 0 ? (
                 <p className="mb-3 rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="holdem-buyins">
                   You bought back in {match.buyIns} {match.buyIns === 1 ? 'time' : 'times'}
@@ -137,6 +120,8 @@ export default function HoldemPage() {
               ) : null}
               <ResultPanel
                 result={match.result}
+                leftAfter={match.leftAfter}
+                buyIns={match.practice ? match.buyIns : 0}
                 humanSeat={HUMAN}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
@@ -260,13 +245,13 @@ export default function HoldemPage() {
             </span>
           </p>
           {/* Tapping the table cuts a reading pause short, one stage per tap; the button is the keyboard and screen reader way. */}
-          <div onClick={match.reveal && !state.over ? match.skipReveal : undefined}>
+          <div onClick={match.reveal && !state.over && !match.buyBackOffer ? match.skipReveal : undefined}>
             <Table state={state} reveal={match.reveal} level={match.level} turn={turn} />
           </div>
           <p className="text-center text-sm font-semibold text-muted" role="status" aria-live="polite" data-testid="holdem-status">
             {status}
           </p>
-          {match.reveal && !state.over ? (
+          {match.reveal && !state.over && !match.buyBackOffer ? (
             <button type="button" onClick={match.skipReveal} className="min-h-11 justify-self-center rounded-control border border-line bg-surface px-4 text-sm font-semibold" data-testid="holdem-skip">
               Skip
             </button>

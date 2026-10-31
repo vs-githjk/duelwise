@@ -27,7 +27,10 @@ html:has(.touch-play-stage) { overflow: hidden; overscroll-behavior: none }
 .touch-play-stage .fh-gauge .seg6 i { width: 44px }
 .touch-play-stage .fh-gauge .sup i { width: 56px }
 .touch-play-stage .ah-vitals { left: calc(150px / var(--s, 1)); bottom: 20px }
-.touch-play-stage .ah-ammo { right: 540px; bottom: 20px }
+/* 48 screen px of clearance from the Reload and Fire buttons whatever the HUD scale (the HUD is fitted by height, so a narrow phone leaves little room). */
+.touch-play-stage .ah-ammo { right: calc(540px + 48px / var(--s, 1)); bottom: 20px }
+.touch-play-stage .ah-ammo .n { font-size: 40px }
+.touch-play-stage .ah-ammo .n small { font-size: 18px; margin-left: 4px }
 .touch-play-stage .ah-pill { display: none }
 
 /* "Turn your phone sideways" overlay (landscape.tsx), Sunroom: warm canvas, ink text, blue action. */

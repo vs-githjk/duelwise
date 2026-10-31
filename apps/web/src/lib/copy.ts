@@ -26,8 +26,13 @@ export function promotionLine(card: PromotionFacts | undefined): string | null {
 
 const sentence = (s: string) => (s ? `${s[0]!.toUpperCase()}${s.slice(1)}${/[.!?]$/.test(s) ? '' : '.'}` : '')
 
+/** "1 hand", "2 hands". The core's reason text says "1 hands"; every sentence a player reads goes through this. */
+export function handsLabel(n: number): string {
+  return `${n} ${n === 1 ? 'hand' : 'hands'}`
+}
+
 /** A game's terse result reason as a sentence with a subject. Unknown reasons are only capitalised and ended. */
-export function resultSentence(result: Result, humanSeat: Seat, opponent: string, third = false): string {
+export function resultSentence(result: Result, humanSeat: Seat, opponent: string, third = false, buyIns = 0): string {
   const reason = result.reason.trim()
   const humanWon = result.winner === humanSeat
   // `third` words the sentence about "the player" for a stranger reading a shared report, not to "you".
@@ -35,9 +40,17 @@ export function resultSentence(result: Result, humanSeat: Seat, opponent: string
   const you = third ? 'the player' : 'you'
   const who = humanWon ? You : opponent
   const chips = /^ahead by (\d+) chips after (\d+) hands$/.exec(reason)
-  if (chips) return `${who} finished ${chips[1]} chips ahead after ${chips[2]} hands.`
+  // A Practice match with buy-backs plays on fresh stacks; the chips are the running total over every one of them, and the line says so.
+  const stacks = buyIns > 0 ? `, counting all ${buyIns + 1} stacks` : ''
+  if (chips) return `${who} finished ${chips[1]} ${Number(chips[1]) === 1 ? 'chip' : 'chips'} ahead after ${handsLabel(Number(chips[2]))}${stacks}.`
   const level = /^chips level after (\d+) hands$/.exec(reason)
-  if (level) return `Chips were level after ${level[1]} hands.`
+  if (level) return `Chips were level after ${handsLabel(Number(level[1]))}${stacks}.`
+  // The core writes a bust from the winner's side ("the other player lost..."); the panel names the seat that lost, from the player's view.
+  const bust = /^the other player lost all (\d+) chips in hand (\d+)$/.exec(reason)
+  if (bust) {
+    const loser = humanWon ? opponent : third ? 'The player' : 'You'
+    return `${loser} lost all ${bust[1]} chips in hand ${bust[2]}.`
+  }
   switch (reason) {
     case 'rounds': {
       const hi = Math.max(result.score[0], result.score[1])
@@ -109,7 +122,7 @@ export function lastMatchesLabel(count: number): string {
  */
 export function provisionalNote(game: GameId | null | undefined): string {
   if (game && PRODUCT.games[game]?.kind === 'realtime') return 'provisional: this level is measured against test bots, not on the rating scale'
-  return 'provisional, the opponent is Practice'
+  return 'provisional, the opponent is in training'
 }
 
 /** "last match" or "last 5 matches", never "last 1 matches". */

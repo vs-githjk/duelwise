@@ -37,7 +37,7 @@ export function Ladder({ path, call, played, won, levels }: { path: PathMap; cal
           <li key={l} className={cn('grid justify-items-center gap-0.5 rounded-control border px-1 py-1.5 text-center', beaten ? 'border-good bg-good-soft' : isCall ? 'border-2 border-dashed border-action bg-surface' : 'border-line bg-surface')} data-testid={`ladder-${l}`}>
             <Avatar level={l} size={28} decorative dim={!beaten && !isCall && l !== played} />
             <b className="text-xs">{personaFor(l).name}</b>
-            <span className={cn('text-xs leading-tight', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'Practice' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
+            <span className={cn('text-xs leading-tight', beaten ? 'font-semibold text-good-ink' : isCall ? 'font-semibold text-ink' : 'text-muted')}>{beaten ? 'Beaten' : isCall ? 'Your call' : l === played ? 'Try again' : practice ? 'In training' : LEVELS.indexOf(l) < LEVELS.indexOf(played) ? 'Not beaten' : 'Ahead'}</span>
           </li>
         )
       })}
@@ -90,7 +90,6 @@ export function ShareBlock({ facts, game }: { facts: ShareFacts; game: GameId })
     <section className="grid gap-2 rounded-card border border-dashed border-line p-3" aria-label="Share" data-testid="share-block">
       <pre className="line-clamp-3 whitespace-pre-wrap break-words rounded-control bg-surface-2 px-3 py-2 font-mono text-xs leading-snug" data-testid="share-text">{text}</pre>
       <div className="flex flex-wrap items-center gap-2">
-        <b className="mr-1 text-sm">Share</b>
         <button type="button" className={btn} onClick={() => void copy()}>Copy</button>
         <button type="button" className={btn} onClick={() => void save()}>Save card</button>
         {canShare ? <button type="button" className={btn} onClick={() => void share()}>Share</button> : null}

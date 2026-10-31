@@ -11,6 +11,7 @@ import { ServiceWorker } from '../components/ServiceWorker'
 import { UpdateNotice } from '../components/UpdateNotice'
 import { UserMenu } from '../components/UserMenu'
 import { VoiceArm } from '../components/VoiceArm'
+import { MusicHost } from '../components/MusicHost'
 import { shareMeta } from '../lib/site-meta'
 import { installStaleChunkGuard } from '../lib/stale-chunk'
 import { CSS_GUARD_SCRIPT } from '../lib/css-guard'
@@ -60,6 +61,7 @@ function RootPage() {
       <UpdateNotice />
       <OfflineChip />
       <VoiceArm />
+      <MusicHost />
       <Outlet />
     </ErrorBoundary>
   )

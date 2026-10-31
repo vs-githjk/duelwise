@@ -44,9 +44,9 @@
   .stage .board-frame { padding: 4px; margin-inline: -4px; max-width: none; }
 }
 
-/* Start match stays on screen on a phone while the level list scrolls under it. The selector out-ranks app.css `:is(button, a).bg-action { position: relative }`, which otherwise cancels the sticky. */
-@media (max-width: 767px) {
-  button.start-match.bg-action { position: sticky; bottom: 0; z-index: 20; justify-self: stretch; width: 100%; box-shadow: 0 -12px 0 0 var(--canvas), 0 12px 0 0 var(--canvas), 0 -14px 18px -4px var(--canvas); }
+/* Start match stays on screen below the lg breakpoint (where the picker is one column) while the setup scrolls under it. The picker's root is `display: contents` there, so the button's containing block is the whole setup column and it is pinned from the first paint, not only once the picker has scrolled into view. The selector out-ranks app.css `:is(button, a).bg-action { position: relative }`, which otherwise cancels the sticky. The bar sits above the home indicator (safe-area inset) and its canvas-coloured shadow hides what scrolls beneath it, including the strip under the button. */
+@media (max-width: 1023px) {
+  button.start-match.bg-action { position: sticky; bottom: max(0px, env(safe-area-inset-bottom, 0px)); z-index: 20; justify-self: stretch; width: 100%; box-shadow: 0 -12px 0 0 var(--canvas), 0 calc(12px + env(safe-area-inset-bottom, 0px)) 0 0 var(--canvas), 0 -14px 18px -4px var(--canvas); }
 }
 
 /* Chess: a wooden frame round lit squares. */

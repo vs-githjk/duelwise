@@ -52,6 +52,22 @@ for (const [name, profile] of [['iPhone 13 landscape', devices['iPhone 13 landsc
   }
 }
 
+for (const [name, profile] of [['iPhone SE landscape', devices['iPhone SE landscape']], ['iPhone 13 landscape', devices['iPhone 13 landscape']]] as const) {
+  test.describe(`coldstore ammo counter on ${name}`, () => {
+    test.use(phone(profile))
+    test('keeps 12 px clear of the Fire and Reload buttons', async ({ page }) => {
+      await begin(page, 'arena')
+      const gap = await page.evaluate(() => {
+        const ammo = document.querySelector('[data-testid="ammo"]')!.getBoundingClientRect()
+        const lefts = [...document.querySelectorAll('[data-testid="arena-touch-controls"] .touch-buttons button')].map((b) => b.getBoundingClientRect()).filter((r) => r.bottom > ammo.top && r.top < ammo.bottom).map((r) => r.left)
+        return { clear: Math.min(...lefts) - ammo.right, n: lefts.length }
+      })
+      expect(gap.n).toBeGreaterThan(0)
+      expect(gap.clear).toBeGreaterThanOrEqual(12)
+    })
+  })
+}
+
 test.describe('coldstore touch play', () => {
   test.use(phone(devices['iPhone 13 landscape']))
 

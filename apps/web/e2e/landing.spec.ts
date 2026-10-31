@@ -101,6 +101,12 @@ test.describe('landing', () => {
     await expect(page.getByTestId('strip-learning')).toContainText('self-play')
   })
 
+  test('/leaderboard opens the first game\'s board instead of a 404', async ({ page }) => {
+    await page.goto('/leaderboard')
+    await expect(page).toHaveURL(new RegExp(`/leaderboard/${PRODUCT.games.chess.slug}$`))
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  })
+
   for (const route of ['/play']) {
     test(`${route} shows six cards with status and numbers from config and registry`, async ({ page }) => {
       await page.goto(route)
@@ -118,7 +124,7 @@ test.describe('landing', () => {
         await expect(card.getByTestId(`card-levels-${game}`)).toHaveText(`${measuredCount(game)} of 4 levels measured`)
         await expect(card.getByTestId('preview-badge')).toHaveCount(measuredCount(game) === 0 ? 1 : 0)
         if (playable(game)) {
-          await expect(card.getByRole('link', { name: `Play ${firstName(game)}` })).toHaveAttribute('href', `/play/${PRODUCT.games[game].slug}`)
+          await expect(card.getByRole('link', { name: `Play ${PRODUCT.games[game].displayName}` })).toHaveAttribute('href', `/play/${PRODUCT.games[game].slug}`)
         } else {
           await expect(card.getByRole('link', { name: 'Play' })).toHaveCount(0)
           await expect(card).toContainText('In development')

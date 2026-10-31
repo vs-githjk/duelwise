@@ -14,6 +14,7 @@ import { CallPicker } from './IdentityCard'
 import { PathCard } from './PathCard'
 import { LearnGraph } from './LearnGraph'
 import { PreviewBadge } from './PreviewBadge'
+import { ResignedNotice } from './ResignedNotice'
 
 const BLURB: Record<Level, string> = {
   easy: 'Relaxed play with human-like slips.',
@@ -60,8 +61,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   }, [gated, current, value])
   const practice = new Set(LEVELS.filter((l) => levels[l]?.practice || (levels[l]?.preview && !levels[l]?.inTraining)))
   return (
-    <div className={cn('grid gap-4', game && 'lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start')} data-testid="setup-picker">
+    <div className={cn('grid gap-4', game && 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start')} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
+    {game ? <ResignedNotice game={game} /> : null}
     {game ? <PathCard game={game} state={state} practice={practice} /> : null}
     <fieldset className={cn('grid gap-2 lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
       <legend className="sr-only">Opponent level</legend>
@@ -118,7 +120,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
               </span>
             </span>
             <span className="grid justify-items-end gap-1 text-right font-mono text-xs text-muted tabular">
-              {practice ? <PreviewBadge label="Practice" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
+              {practice ? <PreviewBadge label="In training" /> : showsPreviewBadge(info) ? <PreviewBadge /> : null}
               {info.strength}
             </span>
           </label>
@@ -128,7 +130,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
     </fieldset>
     </div>
     {game ? (
-      // On a phone this wrapper disappears so the Start button can stay stuck to the bottom of the whole setup; on a wide screen it is the side column.
+      // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column.
       <div className="contents lg:sticky lg:top-4 lg:grid lg:gap-4">
         <section className="grid gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5" aria-label="Before you play" data-testid="identity-card">
           <CallPicker game={game} path={path} />

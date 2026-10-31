@@ -38,3 +38,18 @@ test('the unit and the called name are filled in, the record line needs real num
   expect(sayLine({ ...base, level: 'champion', result: { winner: 1, score: [0, 1], reason: 'x' }, record: { wins: 400, losses: 12 } }).text).toContain('400 and 12 against people')
   expect(sayLine({ ...base, level: 'medium', call: 'champion', result: { winner: 1, score: [0, 1], reason: 'x' } }).text).toBe('You called Sable. Marlow would like a word first.')
 })
+
+test('an uncounted or practice win never promises the next opponent', () => {
+  for (const level of ['easy', 'medium', 'hard']) {
+    for (const call of [null, level] as (string | null)[]) {
+      for (const progress of ['plain', 'practice'] as const) {
+        const t = sayLine({ ...base, level: level as SaysInput['level'], call: call as SaysInput['call'], progress }).text
+        expect(t, `${level} ${call} ${progress}`).not.toMatch(/up next|is up\b|unlocked|told|notices|bites|Sable has/i)
+      }
+    }
+  }
+  expect(sayLine({ ...base, level: 'easy', progress: 'plain' }).text).toBe('Clean win over Pip. Well done.')
+  expect(sayLine({ ...base, level: 'easy', progress: 'practice' }).text).toBe('Clean win over Pip. Win it again in a rated match to open Marlow.')
+  expect(sayLine({ ...base, level: 'easy', progress: 'counted' }).text).toContain('Marlow is up next')
+  expect(sayLine({ ...base, level: 'easy' }).text).toContain('Marlow is up next')
+})

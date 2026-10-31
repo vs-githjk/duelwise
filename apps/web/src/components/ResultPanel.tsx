@@ -21,6 +21,16 @@ const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem']
 
 export type Outcome = 'win' | 'loss' | 'draw'
 
+/** Whether a result may clear a stop on the path: a played-out, rated win, and only after the server has accepted it (counted, or a queued match now synced). */
+export function mayClear(i: { left: boolean; practice: boolean; outcome: Outcome; status: string | undefined }): boolean {
+  return !i.left && !i.practice && i.outcome === 'win' && (i.status === 'counted' || i.status === 'synced')
+}
+
+/** Whether switching the voice to `next` speaks the line at once: only when turning it on and the line is final (not while a rated win is still settling). */
+export function toggleSpeaksNow(next: 'on' | 'off', settling: boolean): boolean {
+  return next === 'on' && !settling
+}
+
 export function outcomeFor(result: Result, humanSeat: Seat): Outcome {
   if (result.winner === null) return 'draw'
   return result.winner === humanSeat ? 'win' : 'loss'
@@ -57,6 +67,10 @@ export interface ResultPanelProps {
   moves?: number
   /** False for a game whose matches never reach a leaderboard (the real-time games): the panel then offers no leaderboard link. Default true. */
   leaderboard?: boolean
+  /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
+  leftAfter?: number | null
+  /** Practice Hold'em: how many times the player bought back in; the chip lines then say they count every stack. */
+  buyIns?: number
   className?: string
 }
 
@@ -64,7 +78,8 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
+  const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
   const persona = level ? personaFor(level) : null
@@ -92,15 +107,19 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
     return () => { giveUp(); for (const e of events) window.removeEventListener(e, giveUp) }
   }, [])
   const opp = persona?.name ?? 'The AI'
-  const called = game ? calledFor(game) : null
+  const called = game && !left ? calledFor(game) : null
   const pathState = usePath(game)
   // Whether this stop was already cleared before this match, read once, so "unlocked" is only said for a new clear.
-  const [firstClear] = useState(() => !practice && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  const [firstClear] = useState(() => !left && !practice && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  // A clear is recorded, and announced, only once the server has accepted the result: not for a practice win, a left match, a fixed-seed or
+  // otherwise unrated win, nor one the server rejects. A queued offline win waits here and settles when its final status arrives.
+  const clearable = !left && !practice && outcome === 'win' && game !== undefined && level !== undefined
+  const accepted = upload?.status === 'counted' || upload?.status === 'synced'
+  const checking = clearable && (upload?.status === 'uploading' || upload?.status === 'queued')
   useEffect(() => {
-    // A practice win is not a clear: the path moves only for a rated match.
-    if (!practice && outcome === 'win' && game && level && upload?.status !== 'rejected') noteCleared(game, level)
+    if (mayClear({ left, practice, outcome, status: upload?.status }) && game && level) noteCleared(game, level)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [clearable, accepted])
   // Only the Champion's loss line quotes its record against people, so only that loss asks the server for it. 'wait' lasts until the answer or a short timeout, so the spoken line and the written one match.
   const wantsRecord = outcome === 'loss' && level === 'champion'
   const [oppRecord, setOppRecord] = useState<{ wins: number; losses: number } | null>(null)
@@ -122,8 +141,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord }) : null), [game, level, result, humanSeat, called, moves, oppRecord])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord, practice, accepted])
   const spoke = useRef(false)
+  // A rated win is spoken once the server has answered, so the voice never says the plain line and then the promising one.
+  const settling = clearable && upload?.status === 'uploading'
   const [voiceSupported, setVoiceSupported] = useState(false)
   const [voiceOn, setVoiceOn] = useState(false)
   useEffect(() => {
@@ -133,17 +154,18 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }, [])
   useEffect(() => {
     // Once per match, even when React runs this effect twice in development; after the record answer when the line quotes it.
-    if (says && !recordWait && !spoke.current) {
+    if (says && !recordWait && !settling && !spoke.current) {
       spoke.current = true
       speakLine(says.text)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordWait])
+  }, [recordWait, settling])
   const toggleVoice = () => {
     const next = readVoicePref() === 'on' ? 'off' : 'on'
     writeVoicePref(next)
     setVoiceOn(next === 'on' && !isMuted())
-    if (next === 'on' && says) speakLine(says.text, { force: true })
+    // While a rated win is still uploading the effect above speaks the final line once it settles, so the toggle stays quiet.
+    if (toggleSpeaksNow(next, settling) && says) speakLine(says.text, { force: true })
     else cancelSpeech()
   }
   // The player's place at this level, once the server has counted the win. Practice levels are never ranked.
@@ -163,10 +185,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       alive = false
     }
   }, [counted, outcome, game, level])
-  const facts: ShareFacts | null = game && level ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
+  const facts: ShareFacts | null = game && level && !left ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
   const margin = facts ? marginOf(facts) : null
-  const next = outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
-  const nextPlayable = !practice && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
+  const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
+  const nextPlayable = !practice && (!firstClear || accepted) && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
   const elo = eloProp ?? (upload?.status === 'counted' ? upload.elo : undefined)
   const provisional = provProp ?? (upload?.status === 'counted' ? upload.provisional : undefined)
   const delta = elo ? elo.after - elo.before : null
@@ -188,7 +210,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const resultFacts = (
     <>
       <p className="text-sm text-ink" data-testid="result-reason">
-        {resultSentence(result, humanSeat, persona?.name ?? 'The AI')}
+        {resultSentence(result, humanSeat, persona?.name ?? 'The AI', false, buyIns)}
       </p>
       {reveal}
       {elo && delta !== null ? (
@@ -204,7 +226,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const uploadLine =
     practice && (upload?.status === 'uploading' || upload?.status === 'counted' || upload?.status === 'synced' || upload?.status === 'queued') ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{upload.status === 'uploading' ? 'Saving this practice match' : 'Saved to your history. It changes no rating, path or leaderboard.'}</p>
     : upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
-    : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating and appear on the leaderboard.'}</p>
+    : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating.'}</p>
     : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
     : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
     : upload?.status === 'not-counted' ? <p className={warn} role="status" data-testid="result-upload">This offline match could not be counted: {upload.reason}.</p>
@@ -221,20 +243,23 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       role="region"
       aria-label="Match result"
       data-testid="result-panel"
-      data-outcome={outcome}
+      data-outcome={left ? 'draw' : outcome}
       className={cn('result-rise result-panel relative grid gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5', className)}
     >
-      {outcome === 'win' ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
+      {outcome === 'win' && !left ? <span className="result-chips" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ '--chip-index': i } as CSSProperties} />)}</span> : null}
       <div className="result-stripe" data-result-stripe aria-hidden="true" />
       <div className="result-verdict grid content-start gap-2">
         <span className={cn('inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', outcome === 'win' ? 'bg-good-soft text-good-ink' : outcome === 'loss' ? 'bg-bad-soft text-bad-ink' : 'bg-neutral-soft text-neutral-ink')} data-testid="result-chip">
           <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-          {outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
+          {left ? 'Left early' : outcome === 'win' ? `Win${margin ? ` in ${margin}` : ''}` : outcome === 'loss' ? 'Loss' : 'Draw'}
         </span>
         {practice ? <span className="inline-flex w-fit items-center rounded-full bg-action-soft px-3 py-1 text-xs font-semibold text-ink" data-testid="result-practice">{PRACTICE_RESULT}</span> : null}
         <h2 ref={headline} tabIndex={-1} className="result-headline font-display text-display-md leading-tight outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action" data-testid="result-headline">
           {called ? <span className="block text-sm font-semibold text-muted" data-testid="result-call">You called {personaFor(called).name}.</span> : null}
-          <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>
+          {left ? (
+            <span className="block text-neutral-ink" data-testid="holdem-left-note">Unrated, you left after {leftAfter} {leftAfter === 1 ? 'hand' : 'hands'}</span>
+          ) : null}
+          {left ? null : <span className={cn('block', TONE[outcome])}>{outcome === 'win' ? `You beat ${opp}.` : outcome === 'loss' ? `${opp} took it.` : `A draw with ${opp}.`}</span>}
         </h2>
         {level && persona ? <span className="sr-only" data-testid="result-persona">{`You played ${persona.name} (${LEVEL_LABEL[level]}).`}</span> : null}
         <div className="grid gap-1.5">{resultFacts}</div>
@@ -264,8 +289,8 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
           ) : null}
           {game ? <a href="/play" className={cn(textLink, 'gap-1.5 focus-visible:outline-2 focus-visible:outline-action')} data-testid="result-back"><span aria-hidden="true">←</span> All games</a> : null}
         </div>
-        {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? `${personaFor(next).name} is unlocked.` : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
-        {game && level && !practice ? <Ladder path={pathState.path} call={called} played={level} won={outcome === 'win'} levels={levels} /> : null}
+        {says && level ? <SaysBox level={level} text={says.text} sub={firstClear && next ? (accepted ? `${personaFor(next).name} is unlocked.` : checking ? 'Checking your result...' : null) : null} voice={{ supported: voiceSupported, on: voiceOn, toggle: toggleVoice }} /> : null}
+        {game && level && !practice ? <Ladder path={pathState.path} call={called} played={level} won={clearable && accepted} levels={levels} /> : null}
         {extra}
         {(game && leaderboard && !practice) || hasReport ? (
           <div className="flex flex-wrap items-center gap-x-2" aria-label="More">

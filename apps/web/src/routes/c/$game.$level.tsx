@@ -17,7 +17,8 @@ function levelFromParam(raw: string): Level | null {
 // one-time name welcome first, framed as the challenge, and then lands in that game rather than the picker.
 // No match data is in the link, so nothing about the sender can leak through it.
 export const Route = createFileRoute('/c/$game/$level')({
-  ssr: false,
+  // 'data-only': the link check runs on the server so an unknown game or level gets a real 404 status; the page itself renders in the browser.
+  ssr: 'data-only',
   beforeLoad: ({ params }) => {
     if (!gameBySlug(params.game) || !levelFromParam(params.level)) throw notFound()
   },
