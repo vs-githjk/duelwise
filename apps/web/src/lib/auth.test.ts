@@ -2,8 +2,11 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { betterAuth } from 'better-auth'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
+import { eq } from 'drizzle-orm'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
+import { getPokerProfileAllowed, setPokerProfileAllowed } from '../server/poker-profile'
+import { GUEST_COOKIE, resolveGuest } from '../server/guest'
 import { authConfig, buildAuthOptions, createAuth, devLoginEnabled, DEV_PASSWORD, devEmail } from './auth'
 
 const GOOGLE = { GOOGLE_CLIENT_ID: 'g-id', GOOGLE_CLIENT_SECRET: 'g-secret' }
@@ -111,6 +114,98 @@ describe('Better Auth on the app schema (PGlite)', () => {
       codes.push(res.status)
     }
     expect(codes[3]).toBe(429)
+  })
+})
+
+describe('a guest poker opt-out at sign-in (PGlite, the real Better Auth flow)', () => {
+  const env = { DEV_LOGIN: '1', BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-1234' }
+  let client: PGlite
+  let db: PgliteDatabase<typeof schema>
+  beforeAll(async () => {
+    client = new PGlite()
+    db = drizzle(client, { schema })
+    await migrateDb(db)
+  })
+  afterAll(() => client.close())
+
+  const post = (auth: ReturnType<typeof createAuth>, path: string, body: unknown, cookie: string) =>
+    auth.handler(new Request(`http://localhost:3000/api/auth/${path}`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:3000', cookie }, body: JSON.stringify(body) }))
+  const optedOutGuest = async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { guestId: g.id }, false)
+    return { id: g.id, cookie: `${GUEST_COOKIE}=${g.id}` }
+  }
+  const userId = async (auth: ReturnType<typeof createAuth>, res: Response) => {
+    const cookie = res.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ')
+    return (await auth.api.getSession({ headers: new Headers({ cookie }) }))!.user.id
+  }
+
+  test('signing up with an opted-out guest cookie writes the account row, so an account-only read says off', async () => {
+    const auth = createAuth(db, env)
+    const g = await optedOutGuest()
+    const res = await post(auth, 'sign-up/email', { email: devEmail('new'), password: DEV_PASSWORD, name: 'new' }, g.cookie)
+    expect(res.status).toBe(200)
+    expect(await getPokerProfileAllowed(db, { userId: await userId(auth, res) })).toBe(false)
+  })
+
+  test('signing in to an existing account with no profile row carries it too', async () => {
+    const auth = createAuth(db, env)
+    const email = devEmail('rowless')
+    await auth.api.signUpEmail({ body: { email, password: DEV_PASSWORD, name: 'rowless' } })
+    const g = await optedOutGuest()
+    const res = await post(auth, 'sign-in/email', { email, password: DEV_PASSWORD }, g.cookie)
+    expect(res.status).toBe(200)
+    const id = await userId(auth, res)
+    expect((await db.select().from(schema.profile).where(eq(schema.profile.userId, id)))[0]?.pokerProfileAllowed).toBe(false)
+  })
+
+  test('signing in to an account whose row says on switches it off', async () => {
+    const auth = createAuth(db, env)
+    const email = devEmail('rowed')
+    const first = await post(auth, 'sign-up/email', { email, password: DEV_PASSWORD, name: 'rowed' }, '')
+    const id = await userId(auth, first)
+    await setPokerProfileAllowed(db, { userId: id }, true)
+    const g = await optedOutGuest()
+    await post(auth, 'sign-in/email', { email, password: DEV_PASSWORD }, g.cookie)
+    expect(await getPokerProfileAllowed(db, { userId: id })).toBe(false)
+  })
+
+  test('the OAuth callback, the only sign-in production has, carries it too (no network: the token call is stubbed and anything else throws)', async () => {
+    const google = {
+      clientId: 'g-id', clientSecret: 'g-secret',
+      getUserInfo: async () => ({ user: { id: 'google-1', email: 'oauth@example.com', name: 'Oauth', emailVerified: true }, data: { sub: 'google-1' } }) as never,
+    }
+    const auth = betterAuth({ ...buildAuthOptions({ ...env, BETTER_AUTH_URL: 'http://localhost:3000' }, db), socialProviders: { google } })
+    const g = await optedOutGuest()
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (url: Parameters<typeof fetch>[0]) => {
+      if (!String(url).startsWith('https://oauth2.googleapis.com/token')) throw new Error(`unexpected network call: ${String(url)}`)
+      return Response.json({ access_token: 'token', token_type: 'bearer', expires_in: 3600 })
+    }) as typeof fetch
+    try {
+      const start = await post(auth as never, 'sign-in/social', { provider: 'google', callbackURL: '/' }, g.cookie)
+      const state = new URL(((await start.json()) as { url: string }).url).searchParams.get('state')
+      const cookie = [g.cookie, ...start.headers.getSetCookie().map((c) => c.split(';')[0])].join('; ')
+      const res = await auth.handler(new Request(`http://localhost:3000/api/auth/callback/google?code=c&state=${state}`, { headers: { cookie } }))
+      expect(res.status).toBe(302)
+      expect(res.headers.get('location')).not.toContain('error')
+      const id = await userId(auth as never, res)
+      expect((await db.select().from(schema.profile).where(eq(schema.profile.userId, id)))[0]?.pokerProfileAllowed).toBe(false)
+      expect(await getPokerProfileAllowed(db, { userId: id })).toBe(false)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  test('a forged guest cookie changes nothing, and a sign-in that cannot carry the opt-out gets no session', async () => {
+    const auth = createAuth(db, env)
+    const res = await post(auth, 'sign-up/email', { email: devEmail('forged'), password: DEV_PASSWORD, name: 'forged' }, `${GUEST_COOKIE}=00000000-0000-0000-0000-000000000000`)
+    expect(res.status).toBe(200)
+    expect(await db.select().from(schema.profile).where(eq(schema.profile.userId, await userId(auth, res)))).toHaveLength(0)
+
+    const g = await optedOutGuest()
+    const hook = buildAuthOptions(env, { select: () => { throw new Error('database down') } }).databaseHooks.session.create.before as (s: Record<string, unknown>, ctx: unknown) => Promise<unknown>
+    await expect(hook({ userId: 'u-x' }, { headers: new Headers({ cookie: g.cookie }) })).rejects.toThrow('database down')
   })
 })
 

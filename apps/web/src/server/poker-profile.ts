@@ -15,19 +15,33 @@ type Db = PgDatabase<any, typeof schema>
 export async function getPokerProfileAllowed(db: Db, who: Caller): Promise<boolean> {
   if (who.userId) {
     const row = (await db.select({ v: schema.profile.pokerProfileAllowed }).from(schema.profile).where(eq(schema.profile.userId, who.userId)).limit(1))[0]
-    const guestOut = await guestPokerOptedOut(db, who.guestId)
-    // Opt-out wins: a guest opt-out on a browser the account signs in from is carried into the account row, even when that row already exists.
-    if (row?.v && guestOut) {
-      await db.update(schema.profile).set({ pokerProfileAllowed: false }).where(eq(schema.profile.userId, who.userId))
-      return false
-    }
-    return row ? row.v : !guestOut
+    // Opt-out wins: off on the account or on this browser reads as off. This is a read and never writes; sign-in stores the opt-out.
+    return (row?.v ?? true) && !(await guestPokerOptedOut(db, who.guestId))
   }
   if (who.guestId) {
     const g = (await db.select({ v: schema.guest.pokerProfileAllowed }).from(schema.guest).where(eq(schema.guest.id, who.guestId)).limit(1))[0]
     return g ? g.v : true
   }
   return true
+}
+
+/**
+ * Runs at every sign-in and sign-up, before the session exists (lib/auth.ts), in any order of events: an opt-out on either side of the sign-in
+ * is stored on both. The export reads the account row for a signed-in player's matches and the guest row for what this browser played as a
+ * guest, and a match row never holds both ids, so both rows must say off. An opt-in is never carried; it only happens on the switch itself.
+ */
+export async function carryPokerOptOutAtSignIn(db: Db, userId: string, guestId: string | undefined): Promise<void> {
+  if (!guestId) return
+  if (await guestPokerOptedOut(db, guestId)) {
+    await db
+      .insert(schema.profile)
+      // A new row must not undo a training opt-out carried from the guest on this browser.
+      .values({ userId, pokerProfileAllowed: false, trainingAllowed: (await guestOptedOut(db, guestId)) ? false : defaultTrainingAllowed() })
+      .onConflictDoUpdate({ target: schema.profile.userId, set: { pokerProfileAllowed: false } })
+    return
+  }
+  const account = (await db.select({ v: schema.profile.pokerProfileAllowed }).from(schema.profile).where(eq(schema.profile.userId, userId)).limit(1))[0]
+  if (account?.v === false) await db.update(schema.guest).set({ pokerProfileAllowed: false }).where(eq(schema.guest.id, guestId))
 }
 
 /** True when this browser's guest row exists and has switched profiles off. Only opt-outs are carried to a signed-in user. */

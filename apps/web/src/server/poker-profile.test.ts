@@ -6,7 +6,7 @@ import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { resolveGuest } from './guest'
 import { getSettings, setTrainingAllowed } from './profile'
-import { getPokerProfileAllowed, setPokerProfileAllowed } from './poker-profile'
+import { carryPokerOptOutAtSignIn, getPokerProfileAllowed, setPokerProfileAllowed } from './poker-profile'
 
 let client: PGlite
 let db: PgliteDatabase<typeof schema>
@@ -69,10 +69,68 @@ describe('Hold\'em play profile switch', () => {
     const g = await resolveGuest(db, null)
     await setPokerProfileAllowed(db, { userId: 'u-9' }, true) // the account row exists and says on
     await setPokerProfileAllowed(db, { guestId: g.id }, false) // then this browser, as a guest, opts out
+    await carryPokerOptOutAtSignIn(db, 'u-9', g.id) // and signs in
     expect(await getPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id })).toBe(false)
     expect((await db.select().from(schema.profile).where(eq(schema.profile.userId, 'u-9')))[0]!.pokerProfileAllowed).toBe(false)
     expect(await getPokerProfileAllowed(db, { userId: 'u-9' })).toBe(false) // stays off without the guest too
     await setPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id }, true)
     expect(await getPokerProfileAllowed(db, { userId: 'u-9', guestId: g.id })).toBe(true)
+  })
+
+  const accountRow = async (userId: string) => (await db.select().from(schema.profile).where(eq(schema.profile.userId, userId)))[0]
+  const guestRow = async (id: string) => (await db.select().from(schema.guest).where(eq(schema.guest.id, id)))[0]!
+
+  test('a guest opt-out is written to an account with no profile row at sign-in, so an account-only read says off', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { guestId: g.id }, false)
+    await carryPokerOptOutAtSignIn(db, 'u-10', g.id)
+    expect((await accountRow('u-10'))?.pokerProfileAllowed).toBe(false)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-10' })).toBe(false)
+  })
+
+  test('the new row keeps a training opt-out carried from the guest, and carrying twice changes nothing', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { guestId: g.id }, false)
+    await setTrainingAllowed(db, { guestId: g.id }, false)
+    await carryPokerOptOutAtSignIn(db, 'u-11', g.id)
+    await carryPokerOptOutAtSignIn(db, 'u-11', g.id)
+    expect(await accountRow('u-11')).toMatchObject({ pokerProfileAllowed: false, trainingAllowed: false })
+    expect(await db.select().from(schema.profile).where(eq(schema.profile.userId, 'u-11'))).toHaveLength(1)
+  })
+
+  test('an account already off switches off the guest row at sign-in, so the matches this browser played as a guest are out too', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { userId: 'u-12' }, false) // off from another device
+    await carryPokerOptOutAtSignIn(db, 'u-12', g.id)
+    expect((await guestRow(g.id)).pokerProfileAllowed).toBe(false)
+    expect((await accountRow('u-12'))?.pokerProfileAllowed).toBe(false)
+  })
+
+  test('with no opt-out on either side, sign-in writes nothing', async () => {
+    const g = await resolveGuest(db, null)
+    await carryPokerOptOutAtSignIn(db, 'u-13', g.id)
+    await carryPokerOptOutAtSignIn(db, 'u-13', undefined)
+    await carryPokerOptOutAtSignIn(db, 'u-13', 'no-such-guest')
+    expect(await accountRow('u-13')).toBeUndefined()
+    expect((await guestRow(g.id)).pokerProfileAllowed).toBe(true)
+  })
+
+  test('an account that opted back in on this browser stays on across the next sign-in', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { guestId: g.id }, false)
+    await carryPokerOptOutAtSignIn(db, 'u-14', g.id)
+    await setPokerProfileAllowed(db, { userId: 'u-14', guestId: g.id }, true)
+    await carryPokerOptOutAtSignIn(db, 'u-14', g.id)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-14' })).toBe(true)
+  })
+
+  test('reading the switch never writes: not a row, not a change, and the opt-out still wins in the answer', async () => {
+    const g = await resolveGuest(db, null)
+    await setPokerProfileAllowed(db, { guestId: g.id }, false)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-15', guestId: g.id })).toBe(false)
+    expect(await accountRow('u-15')).toBeUndefined()
+    await setPokerProfileAllowed(db, { userId: 'u-16' }, true)
+    expect(await getPokerProfileAllowed(db, { userId: 'u-16', guestId: g.id })).toBe(false)
+    expect((await accountRow('u-16'))?.pokerProfileAllowed).toBe(true)
   })
 })
