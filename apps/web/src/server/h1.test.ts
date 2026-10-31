@@ -35,15 +35,13 @@ async function begin(game: GameId, who: { userId?: string; guestId?: string } = 
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }
-/** Every counted Hold'em match is stored with the strict bust rule, and its record must carry it. */
-const STRICT = (game: GameId) => (game === 'holdem' ? { untilBust: true } : undefined)
 const ratingOf = async (game: GameId) => (await db.select().from(schema.rating).where(and(eq(schema.rating.userId, 'u-1'), eq(schema.rating.game, game))))[0]
 
 for (const game of ['chess', 'four', 'holdem'] as const) {
   describe(`${game}: finishing a counted match (H1)`, () => {
     test('an honest record is valid, rates the player, stays trainable and is stored', async () => {
       const m = await begin(game)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, STRICT(game))
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       const r = await finishMatchHandler(db, encodeRecord(rec), USER, CHECKED)
       expect(r.body).toMatchObject({ valid: true })
       expect((r.body as { elo?: unknown }).elo).toBeDefined()
@@ -55,7 +53,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('a forged record (the agent plays a legal blunder) is rejected: no rating, not trainable, no stored bytes', async () => {
       const m = await begin(game)
-      const rec = await play(game, m.seed, 1, 'hard', m.matchId, STRICT(game))
+      const rec = await play(game, m.seed, 1, 'hard', m.matchId)
       const r = await finishMatchHandler(db, encodeRecord(rec), USER, CHECKED)
       expect(r.status).toBe(200)
       expect(r.body).toMatchObject({ valid: false })
@@ -69,7 +67,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('with no server check configured the match is not counted (fail closed)', async () => {
       const m = await begin(game)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, STRICT(game))
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       const r = await finishMatchHandler(db, encodeRecord(rec), USER)
       expect(r.body).toMatchObject({ valid: false })
       expect((r.body as { reason: string }).reason).toContain('could not be checked')
@@ -78,7 +76,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('a check that ran out of time leaves the match unrated, never valid', async () => {
       const m = await begin(game)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, STRICT(game))
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       let t = 0
       const slow: FinishOptions = { verifyAgent: (r) => checkAgentMoves(r, { makeAgent: async (g) => fakeAgent(g), budgetMs: 10, now: () => (t += 50) }) }
       const r = await finishMatchHandler(db, encodeRecord(rec), USER, slow)

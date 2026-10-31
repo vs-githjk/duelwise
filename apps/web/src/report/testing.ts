@@ -5,10 +5,10 @@ import type { GameId } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 
 /** Plays a whole turn-based game on the real core with random legal actions (tests only). */
-export function playRandom(game: GameId, seed: number, humanSeat: Seat = 0, level: MatchRecordV1['agent']['level'] = 'medium', options?: MatchRecordV1['options']): MatchRecordV1 {
+export function playRandom(game: GameId, seed: number, humanSeat: Seat = 0, level: MatchRecordV1['agent']['level'] = 'medium'): MatchRecordV1 {
   const core = getCore(game)
   const rng = makeRng(seed ^ 0x51ed)
-  let s = core.init(seed, options)
+  let s = core.init(seed)
   const actions: MatchRecordV1['actions'] = []
   for (let tick = 0; !core.terminal(s); tick++) {
     const step: [unknown, unknown] = [null, null]
@@ -20,7 +20,7 @@ export function playRandom(game: GameId, seed: number, humanSeat: Seat = 0, leve
     }
     s = core.step(s, step as never)
   }
-  return { ...record(game, seed, humanSeat, level, actions, core.result(s)!, core.hash(s)), ...(options ? { options } : {}) }
+  return record(game, seed, humanSeat, level, actions, core.result(s)!, core.hash(s))
 }
 
 /** Plays the given moves (in the game's own action type) in order, from seat 0 on. Turn-based single-mover games only. */

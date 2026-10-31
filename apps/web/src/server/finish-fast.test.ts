@@ -53,7 +53,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
   describe(`${game}: a guest's finish answers before the agent check`, () => {
     test('the response comes back while the check is still running, the report is ready, nothing is trainable yet', async () => {
       const m = await begin(game, GUEST)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       const g = gatedCheck({ kind: 'verified' })
       const r = await finishMatchHandler(db, encodeRecord(rec), GUEST, { verifyAgent: g.verifyAgent, deferCheck: g.deferCheck })
       expect(r.status).toBe(200)
@@ -75,7 +75,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
     test('opting out during a deferred check keeps this match out of training even after opting back in', async () => {
       await db.insert(schema.guest).values({ id: GUEST.guestId })
       const m = await begin(game, GUEST)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       const g = gatedCheck({ kind: 'verified' })
       await finishMatchHandler(db, encodeRecord(rec), GUEST, { verifyAgent: g.verifyAgent, deferCheck: g.deferCheck })
       await setTrainingAllowed(db, GUEST, false)
@@ -87,7 +87,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('a forged guest record is rejected after the response: no stored bytes, not trainable, reason kept', async () => {
       const m = await begin(game, GUEST)
-      const rec = await play(game, m.seed, 1, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, 1, 'hard', m.matchId)
       const check = (r: typeof rec) => checkAgentMoves(r, { makeAgent: async (g) => fakeAgent(g) })
       let release!: () => void
       const gate = new Promise<void>((x) => (release = x))
@@ -103,7 +103,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('a check that throws rejects the match instead of leaving it valid', async () => {
       const m = await begin(game, GUEST)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       const g = gatedCheck(new Error('function killed'))
       await finishMatchHandler(db, encodeRecord(rec), GUEST, { verifyAgent: g.verifyAgent, deferCheck: g.deferCheck })
       g.open()
@@ -113,7 +113,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('a signed-in match still waits for its check (it moves a rating)', async () => {
       const m = await begin(game, USER)
-      const rec = await play(game, m.seed, undefined, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, undefined, 'hard', m.matchId)
       let finished = false
       const g = gatedCheck({ kind: 'verified' })
       const call = finishMatchHandler(db, encodeRecord(rec), USER, { verifyAgent: g.verifyAgent, deferCheck: g.deferCheck }).then((r) => ((finished = true), r))
@@ -127,7 +127,7 @@ for (const game of ['chess', 'four', 'holdem'] as const) {
 
     test('with no way to defer, a guest match is checked before the answer, as before', async () => {
       const m = await begin(game, GUEST)
-      const rec = await play(game, m.seed, 1, 'hard', m.matchId, game === 'holdem' ? { untilBust: true } : undefined)
+      const rec = await play(game, m.seed, 1, 'hard', m.matchId)
       const r = await finishMatchHandler(db, encodeRecord(rec), GUEST, { verifyAgent: (x) => checkAgentMoves(x, { makeAgent: async (g) => fakeAgent(g) }) })
       expect(r.body).toMatchObject({ valid: false })
     })

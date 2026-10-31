@@ -45,7 +45,7 @@ async function play(who: { userId?: string; guestId?: string }, game: 'four' | '
   const { matchId, seed: issued, sealed } = s.body as { matchId: string; seed: number; sealed?: boolean }
   // A sealed match (Word Duel) withholds its seed from the browser; the test reads the server's row instead.
   const seed = sealed ? (await db.select().from(schema.match).where(eq(schema.match.id, matchId)))[0]!.seed : issued
-  const rec: MatchRecordV1 = { ...(game === 'fighter' || game === 'arena' ? playRealtime(game, seed, 0) : playRandom(game, seed, 0, 'medium', game === 'holdem' ? { untilBust: true } : undefined)), matchId }
+  const rec: MatchRecordV1 = { ...(game === 'fighter' || game === 'arena' ? playRealtime(game, seed, 0) : playRandom(game, seed, 0)), matchId }
   if (sealed) {
     // The browser's marks calls store the rounds as they are played; stand in for them with the record's own guesses.
     const core = getCore('word')
