@@ -42,7 +42,7 @@ async function put(f: Put) {
   const game = f.game ?? 'four'
   const level = f.level ?? 'hard'
   const when = new Date(NOW.getTime() - 3_600_000)
-  const result = { winner: f.win === false ? 1 : 0, score: [1, 0] as [number, number], reason: 'fixture' }
+  const result = { winner: (f.win === false ? 1 : 0) as 0 | 1, score: [1, 0] as [number, number], reason: 'fixture' }
   const record = encodeRecord({
     schema: 1, matchId: f.id, game, coreVersion: '1', agent: { version: 'v1', level }, seed: ++n, humanSeat: 0, actions: [],
     result, finalHash: '0123456789abcdef', startedAt: when.toISOString(), endedAt: when.toISOString(), device: 'desktop', input: 'mouse', trainingAllowed: true,
