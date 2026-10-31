@@ -83,3 +83,34 @@ test('a rated result is unchanged: no practice chip, next stop and leaderboard o
   expect(html).toContain('data-testid="play-next"')
   expect(html).toContain('data-testid="result-leaderboard-link"')
 })
+
+import { LevelPicker } from './LevelPicker'
+
+const levels = {
+  easy: { preview: false },
+  medium: { preview: false },
+  hard: { preview: true, inTraining: 'Hard has not yet proven it beats Medium.', loadable: true },
+  champion: { preview: true, inTraining: 'Champion has not been measured yet.', loadable: false },
+}
+const picker = () =>
+  renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'chess' }}>
+      <LevelPicker value="easy" onChange={() => {}} levels={levels} />
+    </OpponentContext.Provider>,
+  )
+const radio = (html: string, level: string) => html.match(new RegExp(`<input[^>]*value="${level}"[^>]*>`))![0]
+
+test('Rated: a level in training stays shut', () => {
+  const html = picker()
+  expect(radio(html, 'hard')).toContain('disabled')
+  expect(radio(html, 'champion')).toContain('disabled')
+})
+
+test('Practice: a level in training with a shipped model opens; one with nothing to load stays shut and says Still training', () => {
+  setPractice(true)
+  const html = picker()
+  expect(radio(html, 'hard')).not.toContain('disabled')
+  expect(html).toContain('only playable as practice')
+  expect(radio(html, 'champion')).toContain('disabled')
+  expect(html).toContain('Still training. Champion has not been measured yet.')
+})

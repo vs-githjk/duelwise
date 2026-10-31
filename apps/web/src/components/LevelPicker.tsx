@@ -68,7 +68,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
       {LEVELS.map((level) => {
         const info = levels[level] ?? { preview: true }
         const practice = info.practice || (info.preview && !info.inTraining)
-        const locked = Boolean(info.inTraining) && !practice
+        // In Practice a level in training is playable when a model for it ships; with nothing to load it stays shut.
+        const openInPractice = practiceMode && info.loadable === true
+        const locked = Boolean(info.inTraining) && !practice && !openInPractice
         const byPath = pathLocked(level)
         const on = level === value
         return (
@@ -100,7 +102,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
                   `Locked. Beat ${personaFor(LEVELS[LEVELS.indexOf(level) - 1] ?? 'easy').name} to unlock ${personaFor(level).name}.`
                 ) : locked ? (
                   <>
-                    <span className="opacity-80">Not available yet. {info.inTraining}</span>
+                    <span className="opacity-80">{practiceMode ? 'Still training.' : 'Not available yet.'} {info.inTraining}</span>
                     {statsSlug ? (
                       <>
                         {' '}
@@ -111,7 +113,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
                     ) : null}
                   </>
                 ) : (
-                  descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])
+                  (openInPractice && info.inTraining ? `Still training, so only playable as practice. ${info.inTraining}` : undefined) ?? descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])
                 )}
               </span>
             </span>
