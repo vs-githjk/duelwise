@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Result } from '@duelwise/core/src/types'
 import { OpponentContext } from '../personas/context'
-import { mayClear, ResultPanel } from './ResultPanel'
+import { mayClear, ResultPanel, toggleSpeaksNow } from './ResultPanel'
 import type { Upload } from '../lib/match-recorder'
 
 const won: Result = { winner: 0, score: [1, 0], reason: 'ahead by 300 chips after 4 hands' }
@@ -97,4 +97,10 @@ test('a practice win offers a rated match, not progression', () => {
   )
   expect(html).toContain('Win it again in a rated match to open Marlow')
   expect(html).not.toMatch(/up next|unlocked/i)
+})
+
+test('turning the voice on while a rated win is settling does not speak the provisional line', () => {
+  expect(toggleSpeaksNow('on', true)).toBe(false)
+  expect(toggleSpeaksNow('on', false)).toBe(true)
+  expect(toggleSpeaksNow('off', false)).toBe(false)
 })

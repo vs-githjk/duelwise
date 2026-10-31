@@ -26,6 +26,11 @@ export function mayClear(i: { left: boolean; practice: boolean; outcome: Outcome
   return !i.left && !i.practice && i.outcome === 'win' && (i.status === 'counted' || i.status === 'synced')
 }
 
+/** Whether switching the voice to `next` speaks the line at once: only when turning it on and the line is final (not while a rated win is still settling). */
+export function toggleSpeaksNow(next: 'on' | 'off', settling: boolean): boolean {
+  return next === 'on' && !settling
+}
+
 export function outcomeFor(result: Result, humanSeat: Seat): Outcome {
   if (result.winner === null) return 'draw'
   return result.winner === humanSeat ? 'win' : 'loss'
@@ -157,7 +162,8 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
     const next = readVoicePref() === 'on' ? 'off' : 'on'
     writeVoicePref(next)
     setVoiceOn(next === 'on' && !isMuted())
-    if (next === 'on' && says) speakLine(says.text, { force: true })
+    // While a rated win is still uploading the effect above speaks the final line once it settles, so the toggle stays quiet.
+    if (toggleSpeaksNow(next, settling) && says) speakLine(says.text, { force: true })
     else cancelSpeech()
   }
   // The player's place at this level, once the server has counted the win. Practice levels are never ranked.

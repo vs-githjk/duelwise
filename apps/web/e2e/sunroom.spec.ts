@@ -219,6 +219,8 @@ test.describe('name, call, result sheet, voice and share', () => {
     expect(res!.status()).toBe(404)
     await expect(page.getByText('Page not found')).toBeVisible()
     expect((await request.get('/c/word-duel/vesper')).status()).toBe(200)
+    expect((await request.get('/play/nope')).status()).toBe(404)
+    expect((await request.get('/play/word-duel')).status()).toBe(200)
   })
 
   test.describe('a first-time visitor (not yet welcomed)', () => {
