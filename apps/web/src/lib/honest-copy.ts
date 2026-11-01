@@ -1,4 +1,4 @@
-import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord, type GameId, type Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { personaFor } from '../personas'
 import { LEVEL_LABEL, type LevelInfo } from './level-info'
@@ -154,12 +154,12 @@ export function reportLearnsCard(game: GameId, registry: LearnsReg): { title: st
   if (!matchesTrainAgent(game, ANY_LEVEL, registry)) {
     return {
       title: 'How the AI improves',
-      text: `${PRODUCT.name} has six games and four levels. This game's agent does not learn from human matches yet, so matches like this one are not used to train it. A new version is published only if it beats the champion.`,
+      text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. This game's agent does not learn from human matches yet, so matches like this one are not used to train it. A new version is published only if it beats the champion.`,
     }
   }
   return {
     title: 'One AI that learns from the matches people play',
-    text: `${PRODUCT.name} has six games and four levels. Matches like this one can feed the next challenger, which is published only if it beats the champion.`,
+    text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. Matches like this one can feed the next challenger, which is published only if it beats the champion.`,
   }
 }
 

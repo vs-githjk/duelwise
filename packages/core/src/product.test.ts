@@ -1,8 +1,20 @@
 import { expect, test } from 'bun:test'
-import { PRODUCT } from './product'
+import { PRODUCT, gameCountWord } from './product'
 
 test('tagline is exact', () => {
   expect(PRODUCT.tagline).toBe('Six games. Learning from you, starting with Four in a Row. Beat them if you can.')
+})
+
+test('tagline count word follows the game count', () => {
+  const n = Object.keys(PRODUCT.games).length
+  expect(PRODUCT.tagline).toBe(`${gameCountWord()} games. Learning from you, starting with Four in a Row. Beat them if you can.`)
+  expect(gameCountWord()).toBe(['Six', 'Seven', 'Eight', 'Nine', 'Ten'][n - 6])
+  expect(gameCountWord(6)).toBe('Six')
+  expect(gameCountWord(7)).toBe('Seven')
+  expect(gameCountWord(9)).toBe('Nine')
+  expect(gameCountWord(10)).toBe('Ten')
+  expect(() => gameCountWord(5)).toThrow()
+  expect(() => gameCountWord(11)).toThrow()
 })
 
 test('six games with display name and slug, no enabled flag', () => {

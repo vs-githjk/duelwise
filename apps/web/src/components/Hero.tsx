@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import type { Level } from '@duelwise/core/src/product'
+import { gameCountWord, type Level } from '@duelwise/core/src/product'
 import { LEVELS, LEVEL_LABEL } from '../lib/level-info'
 import { cn } from '../lib/cn'
 import { Avatar } from '../personas/Avatar'
@@ -39,7 +39,7 @@ export function Hero({ records }: { records: OpponentRecord[] }) {
   const first = personaFor('easy').name
   return (
     <section className="hero-scene -mx-4 px-4 pb-10 pt-10 text-center md:-mx-10 md:px-10 md:pb-16 md:pt-14" aria-label="Introduction">
-      <p className="hero-kicker font-mono text-xs uppercase tracking-[.16em] text-peach-deep">Six games. Four opponents. No account.</p>
+      <p className="hero-kicker font-mono text-xs uppercase tracking-[.16em] text-peach-deep">{gameCountWord()} games. Four opponents. No account.</p>
       <h1 className="hero-title mx-auto mt-4 max-w-[16ch] font-display text-[clamp(44px,8.6vw,118px)] font-bold leading-[.94] tracking-[-.03em] [font-variation-settings:'opsz'_144] sm:max-w-none">
         Can you beat <em className="font-black italic text-action">my agents?</em>
       </h1>

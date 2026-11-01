@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { gameCountWord } from '@duelwise/core/src/product'
 import { GameInfoCard } from '../components/GameInfoCard'
 import { Hero } from '../components/Hero'
 import { LEVELS } from '../lib/level-info'
@@ -30,7 +31,7 @@ function Landing() {
       <Hero records={data.records} />
       <section className="grid gap-4" aria-labelledby="six-games-h" data-testid="landing-games">
         <h2 id="six-games-h" className="font-display text-display-md">
-          Six games waiting
+          {gameCountWord()} games waiting
         </h2>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.cards.map((c) => (
