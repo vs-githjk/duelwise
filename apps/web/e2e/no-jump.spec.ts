@@ -13,6 +13,23 @@ async function bringIntoView(page: Page, board: Locator) {
   await page.waitForTimeout(400)
   return spot(page, board)
 }
+/** Records the element's position on every frame, so a shift that undoes itself between two checks (a line that appears while the AI thinks) still counts. */
+async function watchFrames(locator: Locator) {
+  await locator.evaluate((el) => {
+    const w = window as unknown as { __tops: number[] }
+    w.__tops = []
+    const tick = () => {
+      w.__tops.push(el.getBoundingClientRect().top + window.scrollY)
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+}
+async function expectNoFrameShift(page: Page, label: string) {
+  const tops = await page.evaluate(() => (window as unknown as { __tops: number[] }).__tops)
+  expect(tops.length, `${label}: frames were recorded`).toBeGreaterThan(10)
+  expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
+}
 async function expectStill(page: Page, board: Locator, start: { y: number; x: number; top: number }, label: string) {
   const now = await spot(page, board)
   expect(Math.abs(now.y - start.y), `${label}: scrollY moved`).toBeLessThanOrEqual(2)
@@ -28,6 +45,7 @@ test('chess: the board stays put across three moves and the replies', async ({ p
   const board = page.getByTestId('chess-board')
   await expect(board).toHaveAttribute('data-turn', 'you', { timeout: 90_000 })
   const start = await bringIntoView(page, board)
+  await watchFrames(board)
   let plies = 0
   for (const [from, to] of [['e2', 'e4'], ['d2', 'd4'], ['c2', 'c4']] as const) {
     await page.getByTestId(`sq-${from}`).click()
@@ -38,6 +56,7 @@ test('chess: the board stays put across three moves and the replies', async ({ p
     await page.waitForTimeout(300)
     await expectStill(page, board, start, `chess after ${plies} plies`)
   }
+  await expectNoFrameShift(page, 'chess')
 })
 
 test('four in a row: the board stays put across three drops and the replies', async ({ page }) => {
@@ -48,6 +67,7 @@ test('four in a row: the board stays put across three drops and the replies', as
   const board = page.getByTestId('four-board')
   await expect(board).toHaveAttribute('data-turn', 'you')
   const start = await bringIntoView(page, board)
+  await watchFrames(board)
   for (let i = 0; i < 3; i++) {
     await expect(board).not.toHaveAttribute('data-settling', 'true')
     const col = await page.locator('[data-testid^="col-"]:not([aria-disabled="true"])').first().getAttribute('data-testid')
@@ -56,6 +76,7 @@ test('four in a row: the board stays put across three drops and the replies', as
     await expect(board).not.toHaveAttribute('data-settling', 'true')
     await expectStill(page, board, start, `four after drop ${i + 1}`)
   }
+  await expectNoFrameShift(page, 'four')
 })
 
 test("hold'em: the table stays put across three actions", async ({ page }) => {
@@ -67,6 +88,7 @@ test("hold'em: the table stays put across three actions", async ({ page }) => {
   const table = page.getByTestId('holdem-table')
   await expect(table).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
   const start = await bringIntoView(page, table)
+  await watchFrames(table)
   for (let i = 0; i < 3; i++) {
     await expect(table).toHaveAttribute('data-turn', 'you', { timeout: 30_000 })
     const go = page.getByRole('button', { name: /^(Check|Call)/ }).first()
@@ -74,6 +96,7 @@ test("hold'em: the table stays put across three actions", async ({ page }) => {
     await page.waitForTimeout(1500)
     await expectStill(page, table, start, `holdem after action ${i + 1}`)
   }
+  await expectNoFrameShift(page, 'holdem')
 })
 
 test('word duel: the ledger stays put across three guesses', async ({ page }) => {

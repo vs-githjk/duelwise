@@ -96,7 +96,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
         ) : null}
         {preview ? <PreviewBadge label={previewLabel} /> : null}
         {level && practicePick ? <PracticeBadge /> : null}
-        <ThinkingIndicator active={thinking} label={level ? `${personaFor(level).name} is thinking` : 'Thinking'} className="ml-1" />
+        <ThinkingIndicator active={thinking} label={level ? `${personaFor(level).name} is thinking` : 'Thinking'} className="ml-1 max-lg:sr-only lg:min-w-44" />
         <div className="ml-auto flex items-center gap-2">
           {cfg.kind !== 'realtime' ? <Link to="/leaderboard/$game" params={{ game: cfg.slug }} className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-ink" data-testid="game-leaderboard-link">
             Leaderboard
