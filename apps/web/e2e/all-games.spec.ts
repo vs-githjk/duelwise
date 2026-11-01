@@ -287,6 +287,7 @@ test.describe('merge integrity', () => {
       'dev/$view.tsx',
       'index.tsx',
       'leaderboard/$game.tsx',
+      'leaderboard/index.tsx',
       'owner.tsx',
       'play/$game.tsx',
       'play/index.tsx',

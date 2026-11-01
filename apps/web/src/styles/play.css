@@ -139,6 +139,8 @@
 .play-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .play-hud-seat { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 12px 4px 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
 .play-hud-seat[data-active] { border-color: var(--action); box-shadow: 0 0 0 3px var(--action-soft); }
+.play-hud[data-turn="ai"] .play-hud-seat[data-active] { animation: hud-thinking 1.8s ease-in-out infinite; }
+@keyframes hud-thinking { 50% { box-shadow: 0 0 0 5px var(--action-soft); } }
 .play-hud-clock { font-variant-numeric: tabular-nums; }
 
 /* The result panel's coloured stripe: outcome at a glance, never colour alone (the headline says it too). */
@@ -150,6 +152,7 @@
 @keyframes result-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
+  .play-hud[data-turn="ai"] .play-hud-seat[data-active] { animation: none; }
   .result-rise { animation: none; }
   .win-line { animation: none; opacity: 0.7; }
   .race-fill { transition: none; }

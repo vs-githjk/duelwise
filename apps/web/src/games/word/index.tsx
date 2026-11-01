@@ -150,7 +150,7 @@ export default function WordDuelPage() {
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-          <PlayHud turn={over ? 'over' : 'you'} swatch="bg-token-you" matchKey={match.seed} />
+          <PlayHud turn={over ? 'over' : match.thinking ? 'ai' : 'you'} swatch="bg-token-you" matchKey={match.seed} />
           <RoundCard you={state.marks[0]} opponentName={personaFor(match.level).name} opponent={state.marks[1]} maxGuesses={MAX_GUESSES} over={over} />
           <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="word-announce">
             {roundAnnouncement({ mine: state.guesses[0], myRows: state.marks[0], oppName: personaFor(match.level).name, oppRows: state.marks[1], max: MAX_GUESSES })}
