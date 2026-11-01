@@ -111,6 +111,7 @@ Only when steps 1 to 5 are solid. This is the step that adds the game to the lis
 5. Move the page to `apps/web/src/games/<id>/index.tsx`. A game is playable when that file exists; `apps/web/src/games/registry.ts` finds it by folder name, so no route edit is needed.
 6. Typecheck. TypeScript now points at every `Record<GameId, ...>` that needs your game. The files that mention game ids (found with a grep for `holdem` at this commit) include: `apps/web/src/components/GameCard.tsx`, `GameArt.tsx`, `ResultPanel.tsx`, `how-to-play-data.ts`, `apps/web/src/personas/personas.json` (each opponent's style line for your game), `apps/web/src/lib/honest-copy.ts`, `apps/web/src/lib/strength-gates.ts`, `apps/web/src/server/agent-check.ts`, `agent-models.ts`, `abandon.ts`, `apps/web/src/report/build.ts` and `training/trainer/registry.py`. Open the ones TypeScript flags and copy what the smallest existing sibling (Word Duel or Four in a Row) does.
 7. Add the game to the `guidesSeen` list in `apps/web/playwright.config.ts` so specs start past the first-visit guide.
+8. Add the game's `/play`, `/agents` and `/leaderboard` pages to `apps/web/public/sitemap.xml`. `sitemap.test.ts` fails until you do.
 
 ## How agents, measurement and the registry fit together
 

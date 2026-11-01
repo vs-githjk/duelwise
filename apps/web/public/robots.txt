@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /api/
+Disallow: /dev/
+Disallow: /owner
+
+Sitemap: https://duelwise.app/sitemap.xml
