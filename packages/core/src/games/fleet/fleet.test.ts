@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { fleetCore, FLEET_SIZE, SHIPS, type FleetAction, type FleetState } from './index'
+import { createFleetCore, fleetCore, FLEET_SIZE, SHIPS, type FleetAction, type FleetState } from './index'
 import { makeRng } from '../../rng'
 
 type Pair = [number | null, number | null]
@@ -140,6 +140,7 @@ describe('fleet core: play', () => {
     expect(fleetCore.result(s)).toEqual({ winner: 0, score: [1, 0], reason: 'fleet sunk' })
     expect(fleetCore.toAct(s)).toEqual([])
     expect(legal(s, 0)).toEqual([])
+    expect(legal(s, 1)).toEqual([])
     expect(() => shoot(s, 50)).toThrow()
   })
 
@@ -222,11 +223,49 @@ describe('fleet core: determinism and codes', () => {
     expect(fleetCore.decodeAction(199)).toEqual({ kind: 'place', cell: 99, vertical: true })
     expect(fleetCore.decodeAction(200)).toEqual({ kind: 'shot', cell: 0 })
     expect(fleetCore.decodeAction(299)).toEqual({ kind: 'shot', cell: 99 })
+    for (let n = 0; n < 300; n++) expect(fleetCore.encodeAction(fleetCore.decodeAction(n))).toBe(n)
     for (const bad of [-1, 300, 1.5, NaN]) expect(() => fleetCore.decodeAction(bad)).toThrow()
     const badActions: FleetAction[] = [
       { kind: 'place', cell: 100, vertical: false },
       { kind: 'shot', cell: -1 },
     ]
     for (const a of badActions) expect(() => fleetCore.encodeAction(a)).toThrow()
+  })
+})
+
+describe('fleet core: factory, purity and hash coverage', () => {
+  test('createFleetCore returns fleetCore', () => {
+    expect(createFleetCore()).toBe(fleetCore)
+  })
+
+  test('step does not mutate its input in setup or play', () => {
+    const s0 = fleetCore.init(1)
+    const before0 = JSON.stringify(s0)
+    const s1 = step(s0, [place(0), place(0)])
+    expect(JSON.stringify(s0)).toBe(before0)
+    const p = setupBoth(rowFleet(), rowFleet())
+    const beforeP = JSON.stringify(p)
+    const p1 = shoot(p, 0)
+    expect(JSON.stringify(p)).toBe(beforeP)
+    expect(JSON.stringify(s1)).not.toBe(before0)
+    expect(JSON.stringify(p1)).not.toBe(beforeP)
+  })
+
+  test('hash changes with any shot, orientation or position change', () => {
+    const base = setupBoth(rowFleet(), rowFleet())
+    const h = fleetCore.hash(base)
+    const clone = (): FleetState => JSON.parse(JSON.stringify(base)) as FleetState
+    const shot = clone()
+    shot.shots[0].push(5)
+    expect(fleetCore.hash(shot)).not.toBe(h)
+    const shot2 = clone()
+    shot2.shots[0].push(6)
+    expect(fleetCore.hash(shot2)).not.toBe(fleetCore.hash(shot))
+    const flipped = clone()
+    flipped.ships[0][4]!.vertical = true
+    expect(fleetCore.hash(flipped)).not.toBe(h)
+    const moved = clone()
+    moved.ships[1][4]!.cell += 1
+    expect(fleetCore.hash(moved)).not.toBe(h)
   })
 })

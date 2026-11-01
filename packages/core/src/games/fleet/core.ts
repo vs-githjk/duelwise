@@ -220,3 +220,8 @@ export const fleetCore: GameCore<FleetState, FleetAction, FleetObs> = {
     return { kind: 'shot', cell: n - PLACE_END }
   },
 }
+
+/** Factory form for the measurement harness, which builds a core from a module path (packages/agents/src/measure/harness.ts). */
+export function createFleetCore() {
+  return fleetCore
+}
