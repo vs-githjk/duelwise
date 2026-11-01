@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://duelwise.app</loc></url>
+  <url><loc>https://duelwise.app/play</loc></url>
+  <url><loc>https://duelwise.app/ai</loc></url>
+  <url><loc>https://duelwise.app/privacy</loc></url>
+  <url><loc>https://duelwise.app/terms</loc></url>
+  <url><loc>https://duelwise.app/play/chess</loc></url>
+  <url><loc>https://duelwise.app/agents/chess</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/chess</loc></url>
+  <url><loc>https://duelwise.app/play/four-in-a-row</loc></url>
+  <url><loc>https://duelwise.app/agents/four-in-a-row</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/four-in-a-row</loc></url>
+  <url><loc>https://duelwise.app/play/heads-up-holdem</loc></url>
+  <url><loc>https://duelwise.app/agents/heads-up-holdem</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/heads-up-holdem</loc></url>
+  <url><loc>https://duelwise.app/play/word-duel</loc></url>
+  <url><loc>https://duelwise.app/agents/word-duel</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/word-duel</loc></url>
+  <url><loc>https://duelwise.app/play/tinderbox</loc></url>
+  <url><loc>https://duelwise.app/agents/tinderbox</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/tinderbox</loc></url>
+  <url><loc>https://duelwise.app/play/coldstore</loc></url>
+  <url><loc>https://duelwise.app/agents/coldstore</loc></url>
+  <url><loc>https://duelwise.app/leaderboard/coldstore</loc></url>
+</urlset>

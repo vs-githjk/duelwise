@@ -131,6 +131,8 @@ Repo layout:
 
 Anyone should be able to add a game, give it opponents and have them measured honestly. The guide is **[docs/add-a-game.md](docs/add-a-game.md)**. It walks through a small example game, Cairn (a take-away counting game, in `packages/core/src/games/template/`), covering the interface, the agent, the measurement, the registry, the strength gates and the pull request. You can play Cairn on a dev server at `/dev/cairn`. It is hidden from players.
 
+Bug reports and pull requests are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
 ## Roadmap
 
 Built in this repo, not yet proven on real devices or at launch scale:
