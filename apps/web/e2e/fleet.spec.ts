@@ -45,36 +45,52 @@ test.describe('fleet dev page', () => {
     await expect(ships).toHaveCount(17)
   })
 
-  test('setup: dragging a ship with the mouse moves its cells', async ({ page }) => {
+  test('setup: dragging a ship moves it by exactly the drag offset', async ({ page }) => {
     await page.goto('/dev/fleet?hold=0')
-    const ships = page.locator('[data-testid^="fleet-setup-"][data-state="ship"]')
-    const centre = async (id: string) => {
-      const box = (await page.getByTestId(id).boundingBox())!
+    const read = async () =>
+      new Set(
+        await page
+          .locator('[data-testid^="fleet-setup-"][data-state="ship"]')
+          .evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-testid')!.split('-').pop()))),
+      )
+    const centre = async (n: number) => {
+      const box = (await page.getByTestId(`fleet-setup-${n}`).boundingBox())!
       return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
     }
-    let moved = false
-    for (let attempt = 0; attempt < 12 && !moved; attempt++) {
+    let proven = false
+    // One drag per shuffle with nothing selected, onto open water: only the drag branch can move a ship then.
+    for (let attempt = 0; attempt < 40 && !proven; attempt++) {
       await page.getByTestId('fleet-shuffle').click()
-      const before = await shipCellsNow(page)
-      const from = (await ships.first().getAttribute('data-testid'))!
-      const n = Number(from.split('-').pop())
-      for (const delta of [10, -10, 1, -1, 20, -20]) {
-        const to = n + delta
-        if (to < 0 || to > 99) continue
-        const a = await centre(from)
-        const b = await centre(`fleet-setup-${to}`)
+      const before = await read()
+      const grab = Math.min(...before)
+      for (const delta of [10, -10, 1, -1]) {
+        const to = grab + delta
+        if (to < 0 || to > 99 || before.has(to)) continue
+        const a = await centre(grab)
+        const b = await centre(to)
         await page.mouse.move(a.x, a.y)
         await page.mouse.down()
         await page.mouse.move(b.x, b.y, { steps: 4 })
         await page.mouse.up()
-        if ((await shipCellsNow(page)) !== before) {
-          moved = true
-          break
-        }
+        const after = await read()
+        if ([...before].every((x) => after.has(x))) break
+        // Exactly one straight ship through the grabbed cell moved by the drag offset; every other cell stayed.
+        const shifted = (ship: number[]) => new Set([...before].filter((x) => !ship.includes(x)).concat(ship.map((x) => x + delta)))
+        const same = (u: Set<number>, v: Set<number>) => u.size === v.size && [...u].every((x) => v.has(x))
+        const fits = [1, 10].some((step) =>
+          [2, 3, 4, 5].some((len) =>
+            Array.from({ length: len }, (_, k) => grab - k * step).some((start) => {
+              const ship = Array.from({ length: len }, (_, k) => start + k * step)
+              return ship.every((x) => before.has(x)) && same(shifted(ship), after)
+            }),
+          ),
+        )
+        expect(fits).toBe(true)
+        proven = true
+        break
       }
     }
-    expect(moved).toBe(true)
-    await expect(ships).toHaveCount(17)
+    expect(proven).toBe(true)
   })
 
   test('setup: a keyboard can select and turn a ship (Enter, no pointer)', async ({ page }) => {
@@ -101,6 +117,8 @@ test.describe('fleet dev page', () => {
     await page.getByTestId('fleet-ready').click()
     const root = page.getByTestId('fleet-page')
     await expect(root).toHaveAttribute('data-turn', 'you')
+    // Start from the top so the end-of-match scroll into view is really needed.
+    await page.evaluate(() => scrollTo(0, 0))
 
     const board = page.getByTestId('fleet-cell-board')
     const fire = page.getByTestId('fleet-fire')
@@ -139,9 +157,11 @@ test.describe('fleet dev page', () => {
       const turnBefore = await root.getAttribute('data-turn')
       const now = await rect()
       const turnAfter = await root.getAttribute('data-turn')
-      expect(now.board).toEqual(start.board)
-      expect(now.fire).toEqual(start.fire)
-      if (turnBefore !== 'over' && turnAfter !== 'over') expect(now.own).toEqual(start.own)
+      if (turnBefore !== 'over' && turnAfter !== 'over') {
+        expect(now.board).toEqual(start.board)
+        expect(now.fire).toEqual(start.fire)
+        expect(now.own).toEqual(start.own)
+      }
     }
     await expect(page.getByTestId('fleet-result')).toBeVisible()
     await expect(page.getByTestId('fleet-result-reason')).toContainText(/sank/)
@@ -178,6 +198,15 @@ test.describe('fleet dev page', () => {
     await cell.click()
     await expect(page.getByTestId('fleet-fire')).toBeEnabled()
     await page.getByTestId('fleet-resign').click()
+    // One tap only asks: the match goes on until the confirm is answered.
+    await expect(page.getByTestId('fleet-result')).toHaveCount(0)
+    await expect(page.getByTestId('fleet-resign-yes')).toHaveText('Yes, resign')
+    await page.getByTestId('fleet-resign-keep').click()
+    await expect(page.getByTestId('fleet-result')).toHaveCount(0)
+    await expect(page.getByTestId('fleet-fire')).toBeEnabled()
+    await expect(page.getByTestId('fleet-resign')).toBeVisible()
+    await page.getByTestId('fleet-resign').click()
+    await page.getByTestId('fleet-resign-yes').click()
     await expect(page.getByTestId('fleet-result')).toContainText('You resigned.')
     await expect(page.getByTestId('fleet-fire')).toBeDisabled()
     await expect(page.getByTestId('fleet-aim-chip')).toBeEmpty()

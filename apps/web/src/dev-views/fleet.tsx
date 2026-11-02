@@ -303,8 +303,29 @@ function Tally({ sunk, testId }: { sunk: Set<number>; testId: string }) {
 }
 
 function ResignButton({ onResign }: { onResign: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  if (confirming) {
+    return (
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm resign">
+        <button
+          type="button"
+          data-testid="fleet-resign-yes"
+          onClick={() => {
+            setConfirming(false)
+            onResign()
+          }}
+          className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white"
+        >
+          Yes, resign
+        </button>
+        <button type="button" data-testid="fleet-resign-keep" onClick={() => setConfirming(false)} className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold">
+          Keep playing
+        </button>
+      </div>
+    )
+  }
   return (
-    <button type="button" onClick={onResign} data-testid="fleet-resign" className="min-h-11 justify-self-start text-sm font-semibold text-action">
+    <button type="button" onClick={() => setConfirming(true)} data-testid="fleet-resign" className="min-h-11 justify-self-start text-sm font-semibold text-action">
       Resign
     </button>
   )
