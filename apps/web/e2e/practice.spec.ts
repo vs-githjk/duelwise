@@ -284,3 +284,30 @@ test.describe('a fresh player (path locked)', () => {
     await expect(page.locator('[data-persona="champion"] input')).toBeDisabled()
   })
 })
+
+test.describe('stormglass unrated play', () => {
+  // Stormglass has no Rated / Practice pick yet: its only unrated way in is a fixed `?seed=` (tests and bug reports), played on the page's own core.
+  test('a seeded match is unrated: it says why, moves no rating and leaves no row for the player', async ({ page }) => {
+    test.setTimeout(150_000)
+    await devSignIn(page, 'prac-fleet')
+    await page.goto('/play/stormglass?seed=7&hold=0')
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-counted', 'false')
+    for (let i = 0; i < 100; i++) {
+      await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+      if ((await root.getAttribute('data-turn')) === 'over') break
+      const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+      const id = (await cell.getAttribute('data-testid'))!
+      await cell.click()
+      await cell.click()
+      await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-unrated')).toBeVisible()
+    await expect(page.getByTestId('result-elo')).toHaveCount(0)
+    expect(await overflow(page)).toBeLessThanOrEqual(0)
+    await page.goto('/leaderboard/stormglass')
+    await expect(page.getByTestId('leaderboard-me')).toHaveCount(0)
+  })
+})

@@ -117,3 +117,30 @@ test('word duel: the ledger stays put across three guesses', async ({ page }) =>
     await expectStill(page, ledger, start, `word after ${w}`)
   }
 })
+
+test('stormglass: the board and the Fire bar stay put on every frame across six shots and the replies', async ({ page }) => {
+  test.setTimeout(150_000)
+  // The opponent's pause is left at its real default, so the "thinking" and "fired at" lines come and go while the page is watched.
+  await page.goto('/play/stormglass')
+  await page.getByTestId('fleet-ready').click()
+  const root = page.getByTestId('fleet-page')
+  await expect(root).toHaveAttribute('data-turn', 'you')
+  const board = page.getByTestId('fleet-cell-board')
+  const fire = page.getByTestId('fleet-fire')
+  const start = await bringIntoView(page, board)
+  const fireStart = await spot(page, fire)
+  await watchFrames(board)
+  for (let i = 0; i < 6; i++) {
+    await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+    if ((await root.getAttribute('data-turn')) === 'over') break
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    const id = (await cell.getAttribute('data-testid'))!
+    await cell.click()
+    await cell.click()
+    await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+    await expectStill(page, board, start, `fleet after shot ${i + 1}`)
+    await expectStill(page, fire, fireStart, `fleet fire bar after shot ${i + 1}`)
+  }
+  await expectNoFrameShift(page, 'fleet')
+})

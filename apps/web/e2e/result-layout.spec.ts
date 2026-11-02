@@ -49,6 +49,21 @@ const FINISH: Record<string, (page: Page) => Promise<void>> = {
       await page.getByTestId('word-input').press('Enter')
     }
   },
+  fleet: async (page) => {
+    // hold=0 removes the opponent's pause; a whole match is played shot by shot to the sinking of a fleet.
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    for (let i = 0; i < 100; i++) {
+      await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+      if ((await root.getAttribute('data-turn')) === 'over') break
+      const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+      const id = (await cell.getAttribute('data-testid'))!
+      await cell.click()
+      await cell.click()
+      await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    }
+  },
 }
 
 const inView = (page: Page, testid: string) => page.evaluate((id) => {
@@ -129,7 +144,7 @@ for (const vp of [{ name: 'desktop-1440', use: VIEWPORTS[0].use }, { name: 'ipho
 for (const vp of VIEWPORTS) {
   test.describe(`the back control on ${vp.name}`, () => {
     test.use(vp.use)
-    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore']] as const) {
+    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass']] as const) {
       test(`${game}: "All games" is a 44 px arrow button to /play with a visible focus ring`, async ({ page }) => {
         await page.goto(`/play/${slug}`)
         const back = page.getByTestId('game-back')

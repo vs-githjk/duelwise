@@ -66,7 +66,7 @@ test.describe('landing', () => {
     for (const game of GAMES) await expect(page.getByTestId(`game-card-${game}`)).toBeVisible()
   })
 
-  test('the landing describes the six games but nothing on it links into a game', async ({ page }) => {
+  test('the landing describes every game but nothing on it links into a game', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     for (const game of GAMES) {
@@ -108,7 +108,7 @@ test.describe('landing', () => {
   })
 
   for (const route of ['/play']) {
-    test(`${route} shows six cards with status and numbers from config and registry`, async ({ page }) => {
+    test(`${route} shows a card per game with status and numbers from config and registry`, async ({ page }) => {
       await page.goto(route)
       await page.waitForLoadState('networkidle')
       for (const game of GAMES) {

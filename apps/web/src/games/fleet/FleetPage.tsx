@@ -313,7 +313,7 @@ function ResignButton({ onResign }: { onResign: () => void }) {
     )
   }
   return (
-    <button type="button" onClick={() => setConfirming(true)} data-testid="fleet-resign" className="min-h-11 justify-self-start text-sm font-semibold text-action">
+    <button type="button" onClick={() => setConfirming(true)} data-testid="fleet-resign" className="min-h-11 min-w-11 justify-self-start text-sm font-semibold text-action">
       Resign
     </button>
   )

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { wordCore } from '@duelwise/core/src/games/word/core.ts'
+import { PRODUCT } from '@duelwise/core/src/product.ts'
 import { webPort } from '../port.ts'
 
 // The Sunroom build: the adventure path, the name, the call, the result sheet, the voice, the share, the board, the learn graph and settings.
@@ -7,7 +8,7 @@ import { webPort } from '../port.ts'
 const origin = `http://localhost:${webPort()}`
 const guidesSeen = {
   cookies: [],
-  origins: [{ origin, localStorage: ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet'].map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })) }],
+  origins: [{ origin, localStorage: Object.keys(PRODUCT.games).map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })) }],
 }
 
 // Seed 2: the Easy opponent needs 5 rounds, so a wrong guess then the answer is a win (same seed the visual spec uses). Not a counted match.
@@ -252,7 +253,7 @@ test.describe('board, learn graph and settings', () => {
     await expect(page.getByTestId('board-players-easy')).toHaveText(/^[\d,]+ played, [\d,]+ won$/)
     await expect(page.getByTestId('board-rows-easy').or(page.getByTestId('board-empty-easy'))).toBeVisible()
     if (await page.getByTestId('board-empty-easy').count()) await expect(page.getByTestId('board-empty-easy')).toHaveText('No wins at Easy yet. Be the first.')
-    await expect(page.getByTestId('leaderboard-switcher').getByRole('link')).toHaveCount(7)
+    await expect(page.getByTestId('leaderboard-switcher').getByRole('link')).toHaveCount(Object.keys(PRODUCT.games).length)
     await page.getByTestId('leaderboard-switcher').getByRole('link', { name: 'Chess' }).click()
     await expect(page).toHaveURL(/\/leaderboard\/chess$/)
     // Real-time games are listed too, and say their records are not re-checked yet.
