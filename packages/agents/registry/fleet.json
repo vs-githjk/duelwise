@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-02T04:00:00.000Z",
-      "promotedAt": "2026-11-02T13:23:18.016Z",
+      "promotedAt": "2026-11-02T14:28:06.791Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -14,6 +14,7 @@
       "humanMatchesUsed": 0,
       "gate": {
         "rule": "adjacent levels: the stronger level, and Pip against random legal play, each need a 95% Wilson lower bound above 0.5 over 400 games on each seat, not only pooled",
+        "summary": "Each level beat the level below, and Pip beat random legal play, from both seats over 400 games a seat",
         "strengthSource": "scripted solver: each level is a hand-written algorithm (fleet/shooter.ts, fleet/levels.ts), with no trained model, no self-play and no human games",
         "seats": "seat 0 shoots first; setups are uniform random valid fleets at every level, so this measures shooting and not placement against people",
         "gamesPerSeat": 400,
@@ -199,9 +200,17 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-02T13:23:18.016Z",
+      "measuredAt": "2026-11-02T14:28:06.791Z",
       "harness": "bun",
-      "commit": "d5362fb"
+      "commit": "89081b9",
+      "meanShots": {
+        "mean": 71.657,
+        "ci95": [
+          71.174976,
+          72.139024
+        ],
+        "n": 2000
+      }
     },
     "medium": {
       "metric": "score vs easy",
@@ -213,9 +222,17 @@
       "n": 800,
       "opponents": "easy",
       "siteElo": 1350.270739,
-      "measuredAt": "2026-11-02T13:23:18.016Z",
+      "measuredAt": "2026-11-02T14:28:06.791Z",
       "harness": "bun",
-      "commit": "d5362fb"
+      "commit": "89081b9",
+      "meanShots": {
+        "mean": 55.4305,
+        "ci95": [
+          55.053323,
+          55.807677
+        ],
+        "n": 2000
+      }
     },
     "hard": {
       "metric": "score vs medium",
@@ -227,9 +244,17 @@
       "n": 800,
       "opponents": "medium",
       "siteElo": 1521.954267,
-      "measuredAt": "2026-11-02T13:23:18.016Z",
+      "measuredAt": "2026-11-02T14:28:06.791Z",
       "harness": "bun",
-      "commit": "d5362fb"
+      "commit": "89081b9",
+      "meanShots": {
+        "mean": 49.2425,
+        "ci95": [
+          48.865742,
+          49.619258
+        ],
+        "n": 2000
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -241,9 +266,17 @@
       "n": 800,
       "opponents": "hard",
       "siteElo": 1637.180275,
-      "measuredAt": "2026-11-02T13:23:18.016Z",
+      "measuredAt": "2026-11-02T14:28:06.791Z",
       "harness": "bun",
-      "commit": "d5362fb"
+      "commit": "89081b9",
+      "meanShots": {
+        "mean": 44.8525,
+        "ci95": [
+          44.448573,
+          45.256427
+        ],
+        "n": 2000
+      }
     }
   },
   "unpublished": {},
