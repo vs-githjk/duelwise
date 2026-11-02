@@ -17,6 +17,9 @@ export type FleetCue = 'aim' | 'fire' | 'miss' | 'hit' | 'sunk' | 'win' | 'lose'
 /** Gain per cue; a cue for the opponent's shot passes its own gain on top. */
 const GAIN: Record<string, number> = { aim: 0.6, fire: 0.6, miss: 0.5 }
 
+/** Playback rate per cue: the sink is the confirmation sample four semitones down (spec 2.8). */
+const RATE: Record<string, number> = { sunk: 0.8 }
+
 /** Length of the splash, in seconds (spec 2.8: a 180 ms filtered noise burst). */
 export const SPLASH_SECONDS = 0.18
 
@@ -59,6 +62,8 @@ export function playCue(cue: FleetCue, gain = 1, delayMs = 0): void {
     else splash(g)
     return
   }
-  if (delayMs > 0) setTimeout(() => play(`fleet-${cue}`, { gain: g }), delayMs)
-  else play(`fleet-${cue}`, { gain: g })
+  const rate = RATE[cue]
+  const opts = rate === undefined ? { gain: g } : { gain: g, rate }
+  if (delayMs > 0) setTimeout(() => play(`fleet-${cue}`, opts), delayMs)
+  else play(`fleet-${cue}`, opts)
 }

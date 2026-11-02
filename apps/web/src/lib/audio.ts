@@ -88,6 +88,8 @@ export function registerSounds(map: Record<string, string>): void {
 export interface PlayOpts {
   /** Relative gain 0..1, multiplied by the master volume. */
   gain?: number
+  /** Playback rate; below 1 lowers the pitch. Left alone when not given. */
+  rate?: number
 }
 
 const POOL_SIZE = 3
@@ -123,6 +125,11 @@ export function play(name: string, opts: PlayOpts = {}): void {
     el.volume = Math.min(1, Math.max(0, p.volume * (opts.gain ?? 1)))
     stamp.set(el, ++stampCounter) // a prime still waiting on this element must not pause this cue
     el.muted = false
+    if (opts.rate !== undefined) {
+      // Browsers keep the pitch when the rate changes unless told not to.
+      el.preservesPitch = false
+      el.playbackRate = opts.rate
+    }
     try { el.currentTime = 0 } catch { /* not seekable yet */ }
     void el.play().catch(() => {})
   } catch {

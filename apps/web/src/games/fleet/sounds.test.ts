@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test'
-import { resetAudioForTests, setMuted, setVolume } from '../../lib/audio'
+import { registerSounds, resetAudioForTests, setMuted, setVolume } from '../../lib/audio'
 import { playCue, SPLASH_SECONDS } from './sounds'
 import { moodForGame } from '../../lib/music'
 
@@ -68,4 +68,25 @@ test('the splash follows the master volume and stays silent when sound effects a
   setMuted(true)
   playCue('miss')
   expect(made).toHaveLength(2)
+})
+
+test('the sink cue is pitched down to 0.8 and really changes pitch; other cues keep the sample as it is', () => {
+  const els: Array<FakeAudio & { playbackRate?: number; preservesPitch?: boolean }> = []
+  g.Audio = class extends FakeAudio {
+    constructor(src: string) {
+      super(src)
+      els.push(this)
+    }
+  }
+  // The reset above forgets the module's own registration, so the two cues are registered again under their names.
+  registerSounds({ 'fleet-sunk': '/x/confirmation_002.ogg', 'fleet-hit': '/x/impactPlate_medium_000.ogg' })
+  playCue('sunk')
+  const played = els.find((e) => !e.paused)!
+  expect(played.src).toContain('confirmation_002')
+  expect(played.playbackRate).toBe(0.8)
+  expect(played.preservesPitch).toBe(false)
+  els.length = 0
+  playCue('hit')
+  const hit = els.find((e) => !e.paused)!
+  expect(hit.playbackRate).toBeUndefined()
 })
