@@ -1,5 +1,6 @@
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { PRODUCT } from '@duelwise/core/src/product'
+import { isSealed } from '@duelwise/core/src/sealed'
 import type { Ticket, TicketOwner } from '../server/ticket-issue'
 import { CONSUMED, TICKETS, transact } from './offline-db'
 import { bundleAgentVersion } from './bundle-version'
@@ -62,7 +63,7 @@ export const PLAYED_POOL = 5
 export const OTHER_POOL = 2
 
 /** Games that can have offline tickets: Word Duel keeps its seed on the server, so it plays unranked offline. */
-export const TICKET_GAMES: readonly GameId[] = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => g !== 'word')
+export const TICKET_GAMES: readonly GameId[] = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g))
 
 const PLAYED_KEY = 'duelwise.played-levels'
 type Played = Partial<Record<GameId, Level[]>>

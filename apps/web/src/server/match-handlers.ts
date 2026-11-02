@@ -4,6 +4,7 @@ import { decodeRecord, RecordError, type MatchRecordV1 } from '@duelwise/core/sr
 import { optionsProblem, sameChoice, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
+import { isSealed } from '@duelwise/core/src/sealed'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import type { Result } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
@@ -223,7 +224,7 @@ export async function startMatchHandler(
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
-  if (game === 'word') return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
+  if (isSealed(game as GameId)) return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
   return { status: 200, body: { matchId, seed, agentVersion } }
 }
 
