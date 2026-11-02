@@ -53,6 +53,7 @@ On a phone, Tinderbox and Coldstore have touch controls, and the app installs an
 | Word Duel | A solver, not a learned model. Levels differ in how often the solver overlooks a clue. | No (nothing to train) |
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. | No |
 | Coldstore | The same method as Tinderbox. | No |
+| Stormglass | A scripted solver, not a learned model. Each level is a different algorithm. | No (nothing to train) |
 
 "Learning from you, starting with Four in a Row", the line on the product, is where this stands. Making human matches train all seven is on the roadmap.
 

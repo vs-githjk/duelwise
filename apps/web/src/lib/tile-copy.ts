@@ -1,4 +1,4 @@
-import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord, type GameId, type Level } from '@duelwise/core/src/product'
 import { personaFor } from '../personas'
 import type { RegistrySummary } from '../server/stats'
 
@@ -44,6 +44,9 @@ export function tileNote(game: GameId, reg: RegistrySummary): string {
   return `${base} ${named(top.level)} site Elo ${Math.round(top.siteElo!)}.${tail}`
 }
 
+/** Lowercase count word for the copy; digits below six, where gameCountWord has no word. */
+const countWord = (n: number) => (n >= 6 && n <= 10 ? gameCountWord(n).toLowerCase() : String(n))
+
 export interface LearningFacts {
   game: GameId
   learnsFromHumans: boolean
@@ -55,17 +58,17 @@ export interface LearningFacts {
 
 /**
  * The third stat on the landing strip, from the same flags the honesty rule reads. A game that learns from people says how many
- * human matches its newest retrain used (zero is said as zero); the others are named as self-play.
+ * human matches its newest retrain used (zero is said as zero); the others are said not to learn from matches yet (some train by self-play, Word Duel and Stormglass are scripted solvers).
  */
 export function learningStrip(facts: LearningFacts[]): { headline: string; body: string } {
   const learners = facts.filter((f) => f.learnsFromHumans)
   const others = facts.length - learners.length
-  if (learners.length === 0) return { headline: 'Self-play', body: `All ${facts.length} games train by self-play and against test bots, not from your matches yet.` }
+  if (learners.length === 0) return { headline: 'Self-play', body: `None of the ${facts.length} games learn from your matches yet.` }
   const f = learners[0]!
   const name = PRODUCT.games[f.game].displayName
   const when = f.promotedAt ? new Date(f.promotedAt) : null
   const day = when && !Number.isNaN(when.getTime()) ? `${MONTHS[when.getUTCMonth()]} ${when.getUTCDate()}` : null
-  const tail = others > 0 ? ` The other ${others === 5 ? 'five' : others} train by self-play.` : ''
+  const tail = others > 0 ? ` The other ${countWord(others)} do not learn from your matches yet.` : ''
   const retrained = f.parent && day ? `retrained ${day}` : null
   if (retrained && f.humanMatchesUsed > 0) return { headline: `${name} ${f.version}`, body: `${retrained} from ${f.humanMatchesUsed.toLocaleString('en-US')} human matches.${tail}` }
   if (retrained) return { headline: `${name} ${f.version}`, body: `${retrained} on self-play; it has not used human matches yet.${tail}` }

@@ -6,6 +6,12 @@ test('a game that does not learn says self-play and test bots, never that every 
   expect(c.body).toBe('Word Duel trains by self-play and against test bots, not from your matches yet. Your match is recorded for your report and the board.')
   expect(c.body).not.toMatch(/every match/i)
 })
+test('Stormglass is a scripted solver: it never claims self-play or training', () => {
+  const c = learnCopy({ game: 'fleet', learns: false, champion: null, sinceCount: 4, sinceEligible: 0 })
+  expect(`${c.title} ${c.body}`).not.toMatch(/self-play|trains/i)
+  expect(c.body).toContain('scripted solver')
+  expect(c.body).toContain('Your match is recorded for your report and the board.')
+})
 test('a learning game reports what the newest version used and beat, from the gate', () => {
   const c = learnCopy({ game: 'four', learns: true, champion: { version: 'v2', parent: 'v1', humanMatchesUsed: 1800, gate: { score: 0.61125, n: 400, ci95: [0.562637, 0.657747] } }, sinceCount: 2140, sinceEligible: 1900 })
   expect(c.title).toBe('This game learns from your matches.')

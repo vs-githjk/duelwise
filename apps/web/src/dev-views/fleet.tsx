@@ -38,18 +38,6 @@ registerSounds({
   'fleet-sunk': `${BASE}/interface-sounds/confirmation_002.ogg`,
 })
 
-const PALETTE = {
-  '--sea': '#dcecf6',
-  '--sea-line': '#9fbfd6',
-  '--sea-deep': '#b7d3e6',
-  '--hull': '#4a5568',
-  '--hull-edge': '#2d3748',
-  '--hit': '#e8500e',
-  '--miss': '#64748b',
-  '--sunk': '#8f1f1b',
-  '--game-fleet': '#1b4d7a',
-} as CSSProperties
-
 const LEVELS: Array<{ id: Level; label: string }> = [
   { id: 'easy', label: 'Easy' },
   { id: 'medium', label: 'Medium' },
@@ -532,7 +520,6 @@ export default function FleetView() {
       data-testid="fleet-page"
       data-turn={pageTurn}
       data-phase={match ? 'play' : 'setup'}
-      style={PALETTE}
     >
       <h1 className="font-display text-display-md">Stormglass (dev page)</h1>
 
