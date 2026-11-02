@@ -5,6 +5,8 @@ export const RESIGN_URL = '/api/resign'
 export interface ResignReply {
   resigned: true
   unplayed?: boolean
+  /** The server's own log already had the player winning: nothing was counted, no gain and no charge. */
+  loggedWin?: boolean
   elo?: { before: number; after: number }
   provisional?: boolean
 }

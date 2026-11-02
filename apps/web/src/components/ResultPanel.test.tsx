@@ -122,6 +122,17 @@ test('turning the voice on while a rated win is settling does not speak the prov
   expect(toggleSpeaksNow('off', false)).toBe(false)
 })
 
+test("a resignation after the server's log already says the player won says nothing was counted, never a sign-in prompt", () => {
+  const lost: Result = { winner: 1, score: [0, 1], reason: 'resigned' }
+  const html = renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'fleet', level: 'easy' }}>
+      <ResultPanel result={lost} humanSeat={0} onRematch={() => {}} onChangeLevel={() => {}} upload={{ status: 'counted', matchId: 'm', loggedWin: true }} />
+    </OpponentContext.Provider>,
+  )
+  expect(html).toContain('Your last shot had already sunk their fleet, so nothing was counted.')
+  expect(html).not.toContain('Sign in to get a rating')
+})
+
 test('a resignation before the first shot says it does not count, with or without an account', () => {
   const lost: Result = { winner: 1, score: [0, 1], reason: 'resigned' }
   const html = renderToStaticMarkup(

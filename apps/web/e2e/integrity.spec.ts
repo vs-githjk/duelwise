@@ -531,3 +531,59 @@ test.describe('fleet: a counted match', () => {
     await expect(page.locator('[data-testid^="fleet-cell-"][data-aimed]')).toHaveCount(0)
   })
 })
+
+test('fleet: the match-ending reply is lost and the player resigns: a win in the log says nothing was counted, a loss shows its rating, never "Sign in to get a rating"', async ({ page }) => {
+  test.setTimeout(180_000)
+  await devSignIn(page, 'unseen')
+  let dropped = 0
+  await page.route(/_serverFn\//, async (route) => {
+    const m = /\/_serverFn\/([^?]+)/.exec(route.request().url())
+    const isTurn = !!m && Buffer.from(m[1]!, 'base64').toString().includes('fleetTurn')
+    if (!isTurn) return route.continue()
+    // The server plays the turn for real; only the reply that carries the end (it alone carries the agent's actions) never arrives.
+    const reply = await route.fetch()
+    if ((await reply.text()).includes('agentActions')) {
+      dropped++
+      return route.abort('failed')
+    }
+    return route.fulfill({ response: reply })
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/play/stormglass?hold=0')
+  await page.getByTestId('fleet-ready').click()
+  const root = page.getByTestId('fleet-page')
+  await expect(root).toHaveAttribute('data-turn', 'you')
+  // A careful hunt (checkerboard, then the neighbours of a hit), so the player usually finishes first and the lost reply is a win; either way is checked below.
+  const queue: number[] = []
+  const tried = new Set<number>()
+  const hunt = Array.from({ length: 100 }, (_, c) => c).sort((a, b) => ((Math.floor(a / 10) + a) % 2) - ((Math.floor(b / 10) + b) % 2) || a - b)
+  while (dropped === 0) {
+    const cell = queue.shift() ?? hunt.find((c) => !tried.has(c))
+    if (cell === undefined) break
+    tried.add(cell)
+    const c = page.getByTestId(`fleet-cell-${cell}`)
+    if ((await c.getAttribute('data-state')) !== 'open') continue
+    await c.click()
+    await c.click()
+    await expect(async () => {
+      expect((await root.getAttribute('data-turn')) === 'you' || dropped > 0 || (await root.getAttribute('data-turn')) === 'over').toBe(true)
+    }).toPass({ timeout: 15_000 })
+    if ((await c.getAttribute('data-state')) === 'hit') {
+      const r = Math.floor(cell / 10)
+      for (const n of [cell - 10, cell + 10, r === Math.floor((cell - 1) / 10) ? cell - 1 : -1, r === Math.floor((cell + 1) / 10) ? cell + 1 : -1]) if (n >= 0 && n < 100 && !tried.has(n)) queue.unshift(n)
+    }
+  }
+  await expect(page.getByTestId('fleet-failure')).toContainText(/not sent/i)
+  await page.getByTestId('fleet-resign').click()
+  await page.getByTestId('fleet-resign-yes').click()
+  await expect(root).toHaveAttribute('data-turn', 'over')
+  // Settled either way: won in the log, so nothing was counted and the line says so; lost in the log, so charged like a resign with its rating shown.
+  const upload = page.getByTestId('result-upload')
+  const elo = page.getByTestId('result-elo')
+  await expect(async () => {
+    const said = (await upload.count()) > 0 ? ((await upload.textContent()) ?? '') : ''
+    expect(said.includes('nothing was counted') || (await elo.count()) > 0).toBe(true)
+  }).toPass({ timeout: 20_000 })
+  await expect(page.getByText('Sign in to get a rating')).toHaveCount(0)
+  expect((await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted') && (await elo.count()) > 0).toBe(false)
+})

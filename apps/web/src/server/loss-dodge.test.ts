@@ -704,7 +704,7 @@ describe('Stormglass: the seed is revealed after a loss, so the server\'s own lo
       const m = await wonUnseen()
       const r = await resignMatchHandler(db, { matchId: m.matchId, tick: 40 }, USER, CHECKED)
       expect(r.status).toBe(200)
-      expect(r.body).toEqual({ resigned: true })
+      expect(r.body).toEqual({ resigned: true, loggedWin: true })
       await noRating()
       await expectKept(m.matchId, 'resigned')
     })

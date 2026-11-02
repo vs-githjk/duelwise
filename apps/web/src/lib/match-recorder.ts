@@ -145,7 +145,7 @@ export type Upload =
   | { status: 'none' }
   | { status: 'uploading'; matchId?: string }
   /** `matchId` is the counted match, which is also the id of its report page. */
-  | { status: 'counted'; matchId?: string; elo?: { before: number; after: number }; provisional?: boolean; unplayed?: boolean }
+  | { status: 'counted'; matchId?: string; elo?: { before: number; after: number }; provisional?: boolean; unplayed?: boolean; loggedWin?: boolean }
   /** `elo` is set when the server charged the refused record as a loss. */
   | { status: 'rejected'; reason: string; elo?: { before: number; after: number }; provisional?: boolean }
   /** `kind: 'resign'` marks a failed give-up call; otherwise the finished record could not be uploaded. */
@@ -448,7 +448,7 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     setUpload({ status: 'uploading' })
     try {
       const r = await (api.resign ?? postResign)(m.matchId, tick ?? m.tick)
-      setUpload({ status: 'counted', matchId: m.matchId, elo: r.elo, provisional: r.provisional, unplayed: r.unplayed })
+      setUpload({ status: 'counted', matchId: m.matchId, elo: r.elo, provisional: r.provisional, unplayed: r.unplayed, loggedWin: r.loggedWin })
     } catch (e) {
       setUpload({ status: 'failed', message: e instanceof Error ? e.message : 'Resign failed.', kind: 'resign' })
     }

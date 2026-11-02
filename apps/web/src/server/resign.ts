@@ -13,6 +13,8 @@ type Db = PgDatabase<any, typeof schema>
 
 export interface ResignBody {
   resigned: true
+  /** Set when the server's own log already had the player winning: nothing was charged and nothing counts. */
+  loggedWin?: boolean
   /** Set when a sealed match ended before its first shot: nothing was played, so nothing was charged. */
   unplayed?: boolean
   /** Set only for a signed-in player: the rating before and after the loss. */
@@ -79,7 +81,7 @@ export async function resignMatchHandler(
   })
 
   // A practice match moves no rating, so a resignation costs nothing; neither does one after the log says the player won.
-  if (!row.userId || isPractice(row.filterFlags) || unplayed || wonBefore) return { status: 200, body: { resigned: true, ...(unplayed ? { unplayed: true } : {}) } }
+  if (!row.userId || isPractice(row.filterFlags) || unplayed || wonBefore) return { status: 200, body: { resigned: true, ...(unplayed ? { unplayed: true } : {}), ...(wonBefore ? { loggedWin: true } : {}) } }
   const change = await applyRatingIfRanked(db, {
     userId: row.userId,
     game: row.game as GameId,

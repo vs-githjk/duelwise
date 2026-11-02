@@ -226,7 +226,8 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   )
   const warn = 'rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink'
   const uploadLine =
-    upload?.status === 'counted' && upload.unplayed ? <p className="text-xs text-muted" data-testid="result-upload">No shot was fired, so this match does not count.</p>
+    upload?.status === 'counted' && upload.loggedWin ? <p className="text-xs text-muted" data-testid="result-upload">Your last shot had already sunk their fleet, so nothing was counted.</p>
+    : upload?.status === 'counted' && upload.unplayed ? <p className="text-xs text-muted" data-testid="result-upload">No shot was fired, so this match does not count.</p>
     : practice && (upload?.status === 'uploading' || upload?.status === 'counted' || upload?.status === 'synced' || upload?.status === 'queued') ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{upload.status === 'uploading' ? 'Saving this practice match' : 'Saved to your history. It changes no rating, path or leaderboard.'}</p>
     : upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
     : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating.'}</p>
