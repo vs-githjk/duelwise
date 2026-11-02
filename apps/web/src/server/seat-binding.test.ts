@@ -322,7 +322,7 @@ for (const [game, seeds] of [['chess', { win: 11, loss: 4 }], ['four', { win: 1,
 
 describe('no real client plays from another seat', () => {
   // The seat checks above refuse any record not from seat 0, so a page that ever sent another seat would lose every match it plays.
-  const HOOKS: Record<GameId, { hook: string; seat: string }> = {
+  const HOOKS = {
     chess: { hook: 'chess/useChessMatch.ts', seat: 'chess/useChessMatch.ts' },
     four: { hook: 'four/useFourMatch.ts', seat: 'four/useFourMatch.ts' },
     holdem: { hook: 'holdem/useHoldemMatch.ts', seat: 'holdem/seats.ts' },
