@@ -4,34 +4,53 @@ import { hashState } from '../../hash'
 import { makeRng } from '../../rng'
 
 /**
- * Twelve Yards: a penalty shootout with simultaneous hidden choices. Each tick is one kick:
- * the shooter picks a zone and the keeper picks a dive zone at the same time, neither sees the
- * other's pick, and a seeded roll decides the goal from a fixed table. Seat 0 shoots first and
- * the roles swap every kick. Five kicks each, an early end when a lead cannot be caught, then
- * sudden death by whole rounds.
+ * Twelve Yards: a penalty shootout with simultaneous hidden choices. Each tick is one kick: the shooter picks one of nine zones
+ * of the goal and the keeper picks one of five dives at the same time, neither sees the other's pick, and one seeded roll decides
+ * goal, save or wide from two fixed tables. Seat 0 shoots first and the roles swap every kick. Five kicks each, an early end when
+ * a lead cannot be caught, then sudden death by whole rounds.
  *
- * State is { seed, kicks } and everything else derives from it. The roll belongs to the kick
- * index, so there is no generator state to carry or hash.
+ * State is { seed, kicks } and everything else derives from it. The roll belongs to the kick index, so there is no generator
+ * state to carry or hash.
  */
 
 export const KICKS = 5
 export const EXTRA_ROUNDS = 12
 
-/** Left, Middle, Right as seen from the spot, in both roles. */
-export type Zone = 0 | 1 | 2
+/** A goal zone as seen from the spot, row * 3 + column: 0 top left, 1 top middle, 2 top right, 3 left, 4 straight down the middle, 5 right, 6 bottom left, 7 bottom middle, 8 bottom right. */
+export type Zone = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+/** A keeper's dive: 0 left high, 1 left low, 2 stay, 3 right high, 4 right low. A dive is a shared action code, so it fits in the same 0..8 range. */
+export type Dive = 0 | 1 | 2 | 3 | 4
 
-/** Goal chance in per mille, [shooter zone][keeper dive zone]. Same side is the keeper's best case; the middle is a bluff. */
+export const ZONES: readonly Zone[] = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+export const DIVES: readonly Dive[] = [0, 1, 2, 3, 4]
+
+/** Chance the shot is on target, per mille, by zone. Top corners miss most, bottom corners least. */
+export const ON_TARGET_PER_MILLE: readonly number[] = [760, 760, 760, 800, 780, 800, 930, 800, 930]
+
+/**
+ * Goal chance in per mille, [shooter zone][dive]. Never above the zone's on-target chance, so one roll gives all three outcomes.
+ * A top corner saved is 340, a bottom corner 120: hard to reach, easier to miss. Down the middle is the bluff: 780 past a keeper
+ * who goes, 30 into one who stays. The four edge cells are the cheap looking shots two dives or the stay already cover.
+ */
 export const GOAL_PER_MILLE: readonly (readonly number[])[] = [
-  [100, 920, 980],
-  [700, 50, 700],
-  [980, 920, 100],
+  [340, 760, 760, 760, 760],
+  [480, 760, 220, 480, 760],
+  [760, 760, 760, 340, 760],
+  [200, 200, 760, 800, 800],
+  [780, 780, 30, 780, 780],
+  [800, 800, 760, 200, 200],
+  [780, 120, 930, 930, 930],
+  [800, 480, 120, 800, 480],
+  [930, 930, 930, 780, 120],
 ]
 
 export interface Kick {
   kicker: Seat
   zone: Zone
-  dive: Zone
+  dive: Dive
   goal: boolean
+  /** A goal is always on target; on target with no goal is a save, off target is wide. */
+  onTarget: boolean
 }
 
 export interface PenaltyState {
@@ -42,8 +61,7 @@ export interface PenaltyState {
 export interface KickView {
   byMe: boolean
   zone: Zone
-  dive: Zone
-  /** Save when the zones match and no goal, otherwise wide. */
+  dive: Dive
   outcome: 'goal' | 'save' | 'wide'
 }
 
@@ -67,7 +85,11 @@ const ID = 'penalty' as GameId
 const MAX_KICKS = 2 * (KICKS + EXTRA_ROUNDS)
 
 function isZone(n: unknown): n is Zone {
-  return n === 0 || n === 1 || n === 2
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 8
+}
+
+function isDive(n: unknown): n is Dive {
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 4
 }
 
 function tally(kicks: Kick[]): { goals: [number, number]; taken: [number, number] } {
@@ -97,30 +119,34 @@ function kickerOf(index: number): Seat {
   return (index % 2) as Seat
 }
 
-function roll(seed: number, index: number, zone: Zone, dive: Zone): boolean {
-  return makeRng((seed ^ Math.imul(index + 1, 0x85ebca6b)) | 0).int(1000) < GOAL_PER_MILLE[zone][dive]
+function roll(seed: number, index: number): number {
+  return makeRng((seed ^ Math.imul(index + 1, 0x85ebca6b)) | 0).int(1000)
 }
 
 export const penaltyCore: GameCore<PenaltyState, Zone, PenaltyObs> = {
   id: ID,
-  version: 'penalty-1',
+  version: 'penalty-2',
   init(seed) {
     return { seed: seed | 0, kicks: [] }
   },
   toAct: (s) => (isOver(s.kicks) ? [] : [0, 1]),
-  legal: (s, _seat) => (isOver(s.kicks) ? [] : [0, 1, 2]),
+  legal: (s, seat) => {
+    if (isOver(s.kicks)) return []
+    return [...(kickerOf(s.kicks.length) === seat ? ZONES : DIVES)]
+  },
   step(s, actions) {
     if (isOver(s.kicks)) throw new Error('penalty: the shootout is over')
+    const index = s.kicks.length
+    const kicker = kickerOf(index)
     for (const seat of [0, 1] as const) {
       const a = actions[seat]
       if (a === null || a === undefined) throw new Error('penalty: missing action for seat ' + seat)
-      if (!isZone(a)) throw new Error('penalty: bad zone ' + String(a))
+      if (seat === kicker ? !isZone(a) : !isDive(a)) throw new Error(`penalty: bad ${seat === kicker ? 'zone' : 'dive'} ${String(a)}`)
     }
-    const index = s.kicks.length
-    const kicker = kickerOf(index)
     const zone = actions[kicker] as Zone
-    const dive = actions[(1 - kicker) as Seat] as Zone
-    const kick: Kick = { kicker, zone, dive, goal: roll(s.seed, index, zone, dive) }
+    const dive = actions[(1 - kicker) as Seat] as Dive
+    const r = roll(s.seed, index)
+    const kick: Kick = { kicker, zone, dive, goal: r < GOAL_PER_MILLE[zone]![dive]!, onTarget: r < ON_TARGET_PER_MILLE[zone]! }
     return { seed: s.seed, kicks: [...s.kicks, kick] }
   },
   terminal: (s) => isOver(s.kicks),
@@ -147,7 +173,7 @@ export const penaltyCore: GameCore<PenaltyState, Zone, PenaltyObs> = {
         byMe: k.kicker === seat,
         zone: k.zone,
         dive: k.dive,
-        outcome: k.goal ? 'goal' : k.zone === k.dive ? 'save' : 'wide',
+        outcome: k.goal ? 'goal' : k.onTarget ? 'save' : 'wide',
       })),
       over,
     }

@@ -35,12 +35,13 @@ describe('Twelve Yards agents never see the pending choice', () => {
       for (const agentSeat of [0, 1] as const) {
         for (let seed = 1; seed <= 12; seed++) {
           const rng = makeRng(seed * 31 + agentSeat)
-          const base = Array.from({ length: 40 }, () => rng.int(3) as Zone)
+          // Picks 0..4 are legal in both roles.
+          const base = Array.from({ length: 40 }, () => rng.int(5) as Zone)
           const ref = await run(level, seed, agentSeat, (t) => base[t]!)
           for (let t = 0; t < ref.acts.length; t++) {
-            for (const swap of [1, 2]) {
+            for (const swap of [1, 2, 3, 4]) {
               // Same history before t, a different pick at t, anything after.
-              const alt = await run(level, seed, agentSeat, (k) => (k === t ? (((base[t]! + swap) % 3) as Zone) : k < t ? base[k]! : (((base[k]! + swap) % 3) as Zone)))
+              const alt = await run(level, seed, agentSeat, (k) => (k === t ? (((base[t]! + swap) % 5) as Zone) : k < t ? base[k]! : (((base[k]! + swap) % 5) as Zone)))
               expect(alt.seen[t]).toBe(ref.seen[t])
               expect(alt.acts[t]).toBe(ref.acts[t])
               compared++

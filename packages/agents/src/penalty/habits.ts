@@ -2,20 +2,49 @@ import { GOAL_PER_MILLE } from '@duelwise/core/src/games/penalty/core'
 import type { KickView } from '@duelwise/core/src/games/penalty/core'
 import { EQ_KEEPER, EQ_SHOOTER } from './levels'
 
-export type Dist = [number, number, number]
+export type Dist = number[]
 
-/** Goal chance [shooter zone][keeper dive zone]. */
+export const ZONE_COUNT = 9
+export const DIVE_COUNT = 5
+export const CORNERS = [0, 2, 6, 8] as const
+export const SIDE_DIVES = [0, 1, 3, 4] as const
+
+/** Goal chance [shooter zone][dive]. */
 const M: number[][] = GOAL_PER_MILLE.map((row) => row.map((x) => x / 1000))
+
+/** The same zone on the other side of the goal: left and right swap, the row stays. */
+export function mirrorZone(z: number): number {
+  return z - (z % 3) + (2 - (z % 3))
+}
+
+/** The same dive to the other side; a stay is its own mirror. */
+export function mirrorDive(d: number): number {
+  return d === 2 ? 2 : d < 2 ? d + 3 : d - 3
+}
+
+/** 0 left, 1 stay, 2 right. */
+export function sideOfDive(d: number): 0 | 1 | 2 {
+  return d === 2 ? 1 : d < 2 ? 0 : 2
+}
+
+function indexOfMin(v: readonly number[]): number {
+  let best = 0
+  for (let i = 1; i < v.length; i++) if (v[i]! < v[best]!) best = i
+  return best
+}
+
+/** The dive that gives up the fewest goals to this zone. */
+export const COVER: readonly number[] = M.map((row) => indexOfMin(row))
 
 /** What each side did, in kick order. Built from finished kicks only. */
 export interface Streams {
   /** Zones the opponent shot to (when I dived). */
   oppKicks: number[]
-  /** Zones I dived to against those. Same length as oppKicks. */
+  /** Dives I picked against those. Same length as oppKicks. */
   myDives: number[]
   /** Zones I shot to. */
   myKicks: number[]
-  /** Zones the opponent dived to against those. Same length as myKicks. */
+  /** Dives the opponent picked against those. Same length as myKicks. */
   oppDives: number[]
 }
 
@@ -33,93 +62,92 @@ export function streamsOf(kicks: readonly KickView[]): Streams {
   return s
 }
 
-export function one(i: number): Dist {
-  const d: Dist = [0, 0, 0]
+export function one(i: number, n: number): Dist {
+  const d: Dist = new Array<number>(n).fill(0)
   d[i] = 1
   return d
 }
 
 /** w * a + (1 - w) * b. */
 export function mix(a: readonly number[], b: readonly number[], w: number): Dist {
-  return [w * a[0]! + (1 - w) * b[0]!, w * a[1]! + (1 - w) * b[1]!, w * a[2]! + (1 - w) * b[2]!]
+  return a.map((x, i) => w * x + (1 - w) * b[i]!)
 }
 
-/** Left and right count as tied when their values are within this; the caller's side then decides (the table is mirror symmetric, so the gap is fictitious play noise). */
+/** Lifts every entry to at least `min`, then rescales so the total is 1 again. */
+export function floored(d: readonly number[], min: number): Dist {
+  const raised = d.map((x) => Math.max(x, min))
+  const sum = raised.reduce((a, b) => a + b, 0)
+  return raised.map((x) => x / sum)
+}
+
+/** Left and right count as tied when their values are within this; the caller's side then decides (the table is mirror symmetric, so the gap is noise). */
 const SIDE_TIE = 0.002
 
-/** The dive that gives up the fewest goals against a predicted shooter mix; a left/right near tie goes to `side`, other ties to the lowest zone. */
+/** The dive that gives up the fewest goals against a predicted shooter mix; a left/right near tie goes to `side`, other ties to the lowest dive. */
 export function bestKeeper(p: readonly number[], side: 0 | 2 = 0): Dist {
   const vals: number[] = []
-  let best = 0
-  let bestV = Infinity
-  for (let k = 0; k < 3; k++) {
-    const v = p[0]! * M[0]![k]! + p[1]! * M[1]![k]! + p[2]! * M[2]![k]!
-    vals.push(v)
-    if (v < bestV) {
-      bestV = v
-      best = k
-    }
-  }
-  if (best !== 1 && Math.abs(vals[0]! - vals[2]!) <= SIDE_TIE) best = side
-  return one(best)
+  for (let d = 0; d < DIVE_COUNT; d++) vals.push(p.reduce((a, q, z) => a + q * M[z]![d]!, 0))
+  let best = indexOfMin(vals)
+  const other = mirrorDive(best)
+  if (best !== other && Math.abs(vals[best]! - vals[other]!) <= SIDE_TIE) best = sideOfDive(best) === side ? best : other
+  return one(best, DIVE_COUNT)
 }
 
 /** The zone that scores most against a predicted keeper mix; a left/right near tie goes to `side`, other ties to the lowest zone. */
 export function bestShooter(p: readonly number[], side: 0 | 2 = 0): Dist {
-  const vals: number[] = []
+  const vals: number[] = M.map((row) => row.reduce((a, g, d) => a + g * p[d]!, 0))
   let best = 0
-  let bestV = -Infinity
-  for (let s = 0; s < 3; s++) {
-    const v = p[0]! * M[s]![0]! + p[1]! * M[s]![1]! + p[2]! * M[s]![2]!
-    vals.push(v)
-    if (v > bestV) {
-      bestV = v
-      best = s
-    }
-  }
-  if (best !== 1 && Math.abs(vals[0]! - vals[2]!) <= SIDE_TIE) best = side
-  return one(best)
+  for (let z = 1; z < ZONE_COUNT; z++) if (vals[z]! > vals[best]!) best = z
+  const other = mirrorZone(best)
+  if (best !== other && Math.abs(vals[best]! - vals[other]!) <= SIDE_TIE) best = best % 3 === side ? best : other
+  return one(best, ZONE_COUNT)
 }
 
 type Hypothesis = (prev: number[], mine: number[]) => readonly number[]
 
 const SOFT = 0.1
 
-function soft(i: number): Dist {
-  const d: Dist = [SOFT / 2, SOFT / 2, SOFT / 2]
-  d[i] = 1 - SOFT
-  return d
+function softOf(d: readonly number[]): Dist {
+  return d.map((x) => x * (1 - SOFT) + SOFT / d.length)
 }
 
 /**
- * Nine habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's
- * distribution from the stream so far (`prev`) and from what I did alongside it (`mine`). Index 0 is the equilibrium.
+ * Eleven habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's distribution
+ * from the stream so far (`prev`) and from what I did alongside it (`mine`). Index 0 is the equilibrium. `echo` turns one of my
+ * choices into the opponent's choices that follow it, for the "copies my last" and "avoids my last" shapes.
  */
-function habitShapes(eq: readonly number[]): Hypothesis[] {
+function habitShapes(eq: readonly number[], favourites: readonly number[], mirror: (x: number) => number, echo: (m: number) => Dist): Hypothesis[] {
+  const n = eq.length
+  const soft = (i: number) => softOf(one(i, n))
   return [
     () => eq,
-    () => soft(0), // favourite left
-    () => soft(1), // favourite middle
-    () => soft(2), // favourite right
+    ...favourites.map((f): Hypothesis => () => soft(f)),
     (p) => (p.length ? soft(p[p.length - 1]!) : eq), // repeat
     (p) => (p.length >= 2 ? soft(p[p.length - 2]!) : eq), // alternate
-    (p) => (p.length ? soft(2 - p[p.length - 1]!) : eq), // mirror
-    (_p, m) => (m.length ? soft(m[m.length - 1]!) : eq), // copies my last
+    (p) => (p.length ? soft(mirror(p[p.length - 1]!)) : eq), // mirror
+    (_p, m) => (m.length ? softOf(echo(m[m.length - 1]!)) : eq), // copies my last
     (_p, m) => {
       // avoids my last
       if (!m.length) return eq
-      const d = [1, 1, 1]
-      d[m[m.length - 1]!] = 0
-      return d.map((x) => (x / 2) * (1 - SOFT) + SOFT / 3)
+      const away = echo(m[m.length - 1]!).map((x) => (x > 0 ? 0 : 1))
+      const sum = away.reduce((a, b) => a + b, 0)
+      return softOf(away.map((x) => x / sum))
     },
   ]
 }
 
-/** Shapes for a stream of kicks (the shooter's choices) and for a stream of dives. */
-export const KICK_HABITS: Hypothesis[] = habitShapes(EQ_SHOOTER)
-export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER)
+/** The zones this dive is the best answer to, shared evenly: what a shooter who copies my dive is drawn to. */
+function zonesOfDive(dive: number): Dist {
+  const hits = COVER.map((d): number => (d === dive ? 1 : 0))
+  const sum = hits.reduce((a, b) => a + b, 0)
+  return sum ? hits.map((x) => x / sum) : new Array<number>(ZONE_COUNT).fill(1 / ZONE_COUNT)
+}
 
-/** Equilibrium 0.5, the other eight share the rest. */
+/** Shapes for a stream of kicks (the shooter's choices, read beside my dives) and for a stream of dives (read beside my kicks). */
+export const KICK_HABITS: Hypothesis[] = habitShapes(EQ_SHOOTER, [...CORNERS, 4], mirrorZone, zonesOfDive)
+export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER, [0, 1, 2, 3, 4], mirrorDive, (z) => one(COVER[z]!, DIVE_COUNT))
+
+/** Equilibrium 0.5, the others share the rest. */
 function prior(n: number): number[] {
   const p: number[] = new Array<number>(n).fill(0.5 / (n - 1))
   p[0] = 0.5
@@ -137,10 +165,11 @@ export function predict(shapes: Hypothesis[], observed: number[], mine: number[]
     }
     for (let h = 0; h < shapes.length; h++) post[h]! /= sum
   }
-  const out: Dist = [0, 0, 0]
+  const first = shapes[0]!(observed, mine)
+  const out: Dist = new Array<number>(first.length).fill(0)
   for (let h = 0; h < shapes.length; h++) {
     const d = shapes[h]!(observed, mine)
-    for (let i = 0; i < 3; i++) out[i]! += post[h]! * d[i]!
+    for (let i = 0; i < out.length; i++) out[i]! += post[h]! * d[i]!
   }
   return { out, eqP: post[0]! }
 }

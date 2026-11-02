@@ -3,25 +3,28 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
-import { bestKeeper, bestShooter, DIVE_HABITS, KICK_HABITS, mix, one, predict, streamsOf, type Dist } from './habits'
+import { bestKeeper, bestShooter, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS } from './levels'
 
 /**
- * Twelve Yards agent: four habit levels, each a small scripted reader of the opponent's last kicks.
- * Pip has one favourite side. Marlow echoes the last kick. Vesper expects a pattern. Sable weighs nine habit shapes and
- * answers the likeliest, staying near the equilibrium mix when nothing stands out.
+ * Twelve Yards agent: four habit levels, each a small scripted reader of the opponent's last kicks. Pip has one favourite corner
+ * and one favourite dive. Marlow echoes the last kick. Vesper expects a pattern. Sable weighs eleven habit shapes and answers the
+ * likeliest, staying near the equilibrium mix when nothing stands out.
  *
- * choosePenaltyAction is pure: the action depends on the level, the observation, the rng state and the salt, and nothing
- * is kept between calls. What an agent "knows" about a player is only the kicks inside this one match.
+ * choosePenaltyAction is pure: the action depends on the level, the observation, the rng state and the salt, and nothing is kept
+ * between calls. What an agent "knows" about a player is only the kicks inside this one match.
  */
 
-function pick(d: readonly number[], rng: Rng): 0 | 1 | 2 {
+/** Sable's first shot or dive has nothing to read: the equilibrium, with every choice kept alive so all nine zones turn up. */
+const OPEN_FLOOR = 0.03
+
+function pick(d: readonly number[], rng: Rng): number {
   let r = rng.float()
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < d.length; i++) {
     r -= d[i]!
-    if (r < 0) return i as 0 | 1 | 2
+    if (r < 0) return i
   }
-  return 2
+  return d.length - 1
 }
 
 /** Integer hash so the salt's low bits are not the seed's low bits. */
@@ -32,10 +35,10 @@ function hashSalt(salt: number): number {
   return (x ^ (x >>> 16)) >>> 0
 }
 
-/** A favourite side (0 or 2) per role, from the salt alone. */
-function favourites(salt: number): { shoot: 0 | 2; dive: 0 | 2 } {
+/** The match's favourites, from the salt alone: a corner to shoot at, a side dive, and a side (0 or 2) for left/right ties. */
+function favourites(salt: number): { shoot: number; dive: number; side: 0 | 2 } {
   const h = hashSalt(salt)
-  return { shoot: h & 1 ? 2 : 0, dive: h & 2 ? 2 : 0 }
+  return { shoot: CORNERS[h & 3]!, dive: SIDE_DIVES[(h >>> 2) & 3]!, side: (h >>> 4) & 1 ? 2 : 0 }
 }
 
 function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
@@ -44,52 +47,55 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
   const eq = shooter ? EQ_SHOOTER : EQ_KEEPER
   const s = streamsOf(obs.kicks)
   const fav = favourites(salt)
+  const zone = (z: number) => one(z, ZONE_COUNT)
+  const dive = (d: number) => one(d, DIVE_COUNT)
   switch (cfg.kind) {
-    case 'pip': {
-      const f = shooter ? fav.shoot : fav.dive
-      const d: Dist = [0, 0, 0]
-      d[f] = cfg.favourite
-      d[2 - f] = 1 - cfg.favourite
-      return d
-    }
+    case 'pip':
+      return shooter ? mix(zone(fav.shoot), zone(mirrorZone(fav.shoot)), cfg.favourite) : mix(dive(fav.dive), dive(mirrorDive(fav.dive)), cfg.favourite)
     case 'marlow': {
       if (shooter) {
-        // Goes away from the side the keeper dived to most; the first kick is the favourite side.
-        if (!s.oppDives.length) return one(fav.shoot)
-        const cnt = [0, 0, 0]
-        for (const z of s.oppDives) cnt[z]!++
-        const away = cnt[0]! > cnt[2]! ? 2 : cnt[2]! > cnt[0]! ? 0 : fav.shoot
-        return mix(one(away), eq, cfg.read)
+        // Goes away from the side the keeper dived to most, at the favourite corner's height; the first kick is the favourite.
+        if (!s.oppDives.length) return zone(fav.shoot)
+        let left = 0
+        let right = 0
+        for (const d of s.oppDives) {
+          if (sideOfDive(d) === 0) left++
+          if (sideOfDive(d) === 2) right++
+        }
+        const row = fav.shoot >= 6 ? 6 : 0
+        const away = left > right ? row + 2 : right > left ? row : fav.shoot
+        return mix(zone(away), eq, cfg.read)
       }
       if (!s.oppKicks.length) return [...EQ_KEEPER]
-      return mix(one(s.oppKicks[s.oppKicks.length - 1]!), eq, cfg.read)
+      return mix(dive(COVER[s.oppKicks[s.oppKicks.length - 1]!]!), eq, cfg.read)
     }
     case 'vesper': {
       if (shooter) {
-        // Swaps sides every kick: strong, and predictable on purpose.
-        if (!s.myKicks.length) return one(fav.shoot)
+        // Swaps corners every kick: strong, and predictable on purpose.
+        if (!s.myKicks.length) return zone(fav.shoot)
         const last = s.myKicks[s.myKicks.length - 1]!
-        return mix(one(last === 0 ? 2 : last === 2 ? 0 : fav.shoot), eq, cfg.read)
+        return mix(zone(last % 3 === 1 ? fav.shoot : mirrorZone(last)), eq, cfg.read)
       }
       if (!s.oppKicks.length) return [...EQ_KEEPER]
-      const recent = s.oppKicks.slice(-3)
-      const cnt = [0, 0, 0]
-      for (const z of recent) cnt[z]!++
+      const cnt = new Array<number>(ZONE_COUNT).fill(0)
+      for (const z of s.oppKicks.slice(-3)) cnt[z]!++
       const common = cnt.indexOf(Math.max(...cnt))
       const n = s.oppKicks.length
       const pred = n >= 2 && s.oppKicks[n - 1] !== s.oppKicks[n - 2] ? s.oppKicks[n - 2]! : common
-      return mix(one(pred), eq, cfg.read)
+      return mix(dive(COVER[pred]!), eq, cfg.read)
     }
     case 'sable': {
+      const stream = shooter ? s.oppDives : s.oppKicks
+      if (!stream.length) return floored(eq, OPEN_FLOOR)
       const { out, eqP } = shooter ? predict(DIVE_HABITS, s.oppDives, s.myKicks) : predict(KICK_HABITS, s.oppKicks, s.myDives)
       const conf = Math.min(1, (1 - eqP) * cfg.weight)
-      return mix(shooter ? bestShooter(out, fav.shoot) : bestKeeper(out, fav.dive), eq, conf)
+      return mix(shooter ? bestShooter(out, fav.side) : bestKeeper(out, fav.side), eq, conf)
     }
   }
 }
 
-/** The zone (0 left, 1 middle, 2 right) this level picks now. Reads only `obs`; draws from `rng`; `salt` fixes the favourite sides of Pip, Marlow and Vesper, and breaks Sable's left/right ties. */
-export function choosePenaltyAction(level: Level, obs: PenaltyObs, rng: Rng, salt: number): 0 | 1 | 2 {
+/** This level's pick now: a zone 0..8 as shooter, a dive 0..4 as keeper. Reads only `obs`; draws from `rng`; `salt` fixes the favourites of Pip, Marlow and Vesper, and breaks Sable's left/right ties. */
+export function choosePenaltyAction(level: Level, obs: PenaltyObs, rng: Rng, salt: number): number {
   if (obs.role === null) throw new Error('penalty: no action once the shootout is over')
   return pick(distFor(level, obs, salt), rng)
 }

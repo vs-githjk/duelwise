@@ -3,13 +3,13 @@ import { makeRng } from '../../rng'
 import { replay } from '../../replay'
 import type { MatchRecordV1 } from '../../match-record'
 import type { GameId } from '../../product'
-import { EXTRA_ROUNDS, GOAL_PER_MILLE, KICKS, createPenaltyCore, penaltyCore, type Kick, type PenaltyState, type Zone } from './index'
+import { DIVES, EXTRA_ROUNDS, GOAL_PER_MILLE, KICKS, ON_TARGET_PER_MILLE, ZONES, createPenaltyCore, penaltyCore, type Dive, type Kick, type PenaltyState, type Zone } from './index'
 
 const core = penaltyCore
 
 /** A state with the given goal flags, kick 0 by seat 0, then alternating. Zones are irrelevant to the end rules. */
 function withGoals(flags: boolean[], seed = 1): PenaltyState {
-  const kicks: Kick[] = flags.map((goal, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal }))
+  const kicks: Kick[] = flags.map((goal, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal, onTarget: goal }))
   return { seed, kicks }
 }
 
@@ -37,9 +37,11 @@ describe('penalty core: ticks and actions', () => {
     let ticks = 0
     while (!core.terminal(s)) {
       expect(core.toAct(s)).toEqual([0, 1])
-      expect(core.legal(s, 0)).toEqual([0, 1, 2])
-      expect(core.legal(s, 1)).toEqual([0, 1, 2])
-      s = play(s, rng.int(3) as Zone, rng.int(3) as Zone)
+      // The shooter has nine zones, the keeper five dives, and the two swap every kick.
+      const shooter = s.kicks.length % 2
+      expect(core.legal(s, shooter as 0 | 1)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
+      expect(core.legal(s, (1 - shooter) as 0 | 1)).toEqual([0, 1, 2, 3, 4])
+      s = shooter === 0 ? play(s, rng.int(9) as Zone, rng.int(5) as Zone) : play(s, rng.int(5) as Zone, rng.int(9) as Zone)
       ticks++
     }
     expect(ticks).toBeGreaterThanOrEqual(KICKS + 1)
@@ -53,7 +55,11 @@ describe('penalty core: ticks and actions', () => {
     expect(() => core.step(s, [0, null])).toThrow()
     expect(() => core.step(s, [null, 1])).toThrow()
     expect(() => core.step(s, [null, null])).toThrow()
-    expect(() => core.step(s, [3 as Zone, 0])).toThrow()
+    // Seat 0 shoots here: zones run to 8, seat 1's dive only to 4.
+    expect(core.step(s, [8, 4]).kicks[0]).toMatchObject({ zone: 8, dive: 4 })
+    expect(() => core.step(s, [9 as Zone, 0])).toThrow()
+    expect(() => core.step(s, [0, 5 as Zone])).toThrow(/bad dive/)
+    expect(() => core.step(core.step(s, [0, 0]), [5 as Zone, 0])).toThrow(/bad dive/)
     expect(() => core.step(s, [0, -1 as Zone])).toThrow()
     expect(() => core.step(s, [1.5 as Zone, 0])).toThrow()
     expect(() => core.step(s, ['1' as unknown as Zone, 0])).toThrow()
@@ -78,12 +84,12 @@ describe('penalty core: roles and kicks', () => {
       const shooter = (i % 2) as 0 | 1
       expect(core.observe(s, shooter).role).toBe('shooter')
       expect(core.observe(s, (1 - shooter) as 0 | 1).role).toBe('keeper')
-      // The shooter picks zone 2, the keeper picks zone 0.
-      s = shooter === 0 ? play(s, 2, 0) : play(s, 0, 2)
+      // The shooter picks zone 7, the keeper picks dive 3.
+      s = shooter === 0 ? play(s, 7, 3) : play(s, 3, 7)
       const k = s.kicks[i]
       expect(k.kicker).toBe(shooter)
-      expect(k.zone).toBe(2)
-      expect(k.dive).toBe(0)
+      expect(k.zone).toBe(7)
+      expect(k.dive).toBe(3)
     }
   })
 
@@ -104,15 +110,17 @@ describe('penalty core: roles and kicks', () => {
     expect(o0.over).toBe(false)
   })
 
-  test('a save is a miss with matching zones, wide is a miss otherwise', () => {
-    const miss = (zone: Zone, dive: Zone): PenaltyState => ({ seed: 0, kicks: [{ kicker: 0, zone, dive, goal: false }] })
-    expect(core.observe(miss(1, 1), 0).kicks[0].outcome).toBe('save')
-    expect(core.observe(miss(0, 2), 0).kicks[0].outcome).toBe('wide')
-    // A goal with matching zones (table cells 50 and 100 per mille) is still a goal.
-    const hit = (zone: Zone, dive: Zone): PenaltyState => ({ seed: 0, kicks: [{ kicker: 0, zone, dive, goal: true }] })
-    expect(core.observe(hit(1, 1), 0).kicks[0].outcome).toBe('goal')
-    expect(core.observe(hit(0, 0), 0).kicks[0].outcome).toBe('goal')
-    expect(core.observe(hit(1, 1), 0).goals).toEqual([1, 0])
+  test('a save is on target and no goal, wide is off target, and the dive plays no part in the word', () => {
+    const kick = (zone: Zone, dive: Dive, goal: boolean, onTarget: boolean): PenaltyState => ({ seed: 0, kicks: [{ kicker: 0, zone, dive, goal, onTarget }] })
+    expect(core.observe(kick(4, 2, false, true), 0).kicks[0].outcome).toBe('save')
+    expect(core.observe(kick(0, 0, false, false), 0).kicks[0].outcome).toBe('wide')
+    // Off target against the keeper's own best dive is still wide; on target against a far dive is still a save word if the flag says so.
+    expect(core.observe(kick(8, 4, false, false), 0).kicks[0].outcome).toBe('wide')
+    expect(core.observe(kick(0, 4, false, true), 0).kicks[0].outcome).toBe('save')
+    // A goal into the keeper's best dive is still a goal.
+    expect(core.observe(kick(4, 2, true, true), 0).kicks[0].outcome).toBe('goal')
+    expect(core.observe(kick(0, 0, true, true), 0).kicks[0].outcome).toBe('goal')
+    expect(core.observe(kick(4, 2, true, true), 0).goals).toEqual([1, 0])
   })
 
   test('observe carries nothing about the seed or any roll', () => {
@@ -161,22 +169,22 @@ describe('penalty core: when it ends', () => {
   test('sudden death only ends after a whole round', () => {
     const level = fromSeats([T, F, F, F, F], [T, F, F, F, F])
     // Seat 0 scores in round 6; seat 1 has not shot, so it is not over.
-    const half: PenaltyState = { seed: level.seed, kicks: [...level.kicks, { kicker: 0, zone: 0, dive: 1, goal: true }] }
+    const half: PenaltyState = { seed: level.seed, kicks: [...level.kicks, { kicker: 0, zone: 0, dive: 1, goal: true, onTarget: true }] }
     expect(core.terminal(half)).toBe(false)
     // Seat 1 scores too: level, play on.
-    const both: PenaltyState = { seed: level.seed, kicks: [...half.kicks, { kicker: 1, zone: 0, dive: 1, goal: true }] }
+    const both: PenaltyState = { seed: level.seed, kicks: [...half.kicks, { kicker: 1, zone: 0, dive: 1, goal: true, onTarget: true }] }
     expect(core.terminal(both)).toBe(false)
     // Seat 0 scores and seat 1 misses in the next round: seat 0 wins.
     const next: PenaltyState = {
       seed: level.seed,
-      kicks: [...both.kicks, { kicker: 0, zone: 0, dive: 1, goal: true }, { kicker: 1, zone: 0, dive: 1, goal: false }],
+      kicks: [...both.kicks, { kicker: 0, zone: 0, dive: 1, goal: true, onTarget: true }, { kicker: 1, zone: 0, dive: 1, goal: false, onTarget: false }],
     }
     expect(core.terminal(next)).toBe(true)
     expect(core.result(next)).toEqual({ winner: 0, score: [3, 2], reason: 'more goals' })
     // Seat 0 misses and seat 1 scores: seat 1 wins, and only on the second kick of the round.
-    const mid: PenaltyState = { seed: level.seed, kicks: [...both.kicks, { kicker: 0, zone: 0, dive: 1, goal: false }] }
+    const mid: PenaltyState = { seed: level.seed, kicks: [...both.kicks, { kicker: 0, zone: 0, dive: 1, goal: false, onTarget: false }] }
     expect(core.terminal(mid)).toBe(false)
-    const lost: PenaltyState = { seed: level.seed, kicks: [...mid.kicks, { kicker: 1, zone: 0, dive: 1, goal: true }] }
+    const lost: PenaltyState = { seed: level.seed, kicks: [...mid.kicks, { kicker: 1, zone: 0, dive: 1, goal: true, onTarget: true }] }
     expect(core.result(lost)?.winner).toBe(1)
   })
 
@@ -225,35 +233,72 @@ describe('penalty core: when it ends', () => {
 })
 
 describe('penalty core: goal table and seed', () => {
-  test('each table cell scores within 3 points of its per-mille value over 3,000 kicks', () => {
-    for (let zone = 0 as Zone; zone < 3; zone++) {
-      for (let dive = 0 as Zone; dive < 3; dive++) {
+  test('each table cell scores within 3 points of its per-mille value over 3,000 kicks, and goes on target at its own rate', () => {
+    for (const zone of ZONES) {
+      for (const dive of DIVES) {
         let goals = 0
+        let onTarget = 0
         for (let seed = 0; seed < 3000; seed++) {
           const s = play(core.init(seed * 7 + 11), zone, dive)
           if (s.kicks[0].goal) goals++
+          if (s.kicks[0].onTarget) onTarget++
         }
-        const rate = goals / 3000
-        const want = GOAL_PER_MILLE[zone][dive] / 1000
-        expect(Math.abs(rate - want)).toBeLessThan(0.03)
+        expect(Math.abs(goals / 3000 - GOAL_PER_MILLE[zone][dive] / 1000)).toBeLessThan(0.03)
+        expect(Math.abs(onTarget / 3000 - ON_TARGET_PER_MILLE[zone] / 1000)).toBeLessThan(0.03)
       }
     }
   })
 
   test('the table is the planned one', () => {
     expect(GOAL_PER_MILLE).toEqual([
-      [100, 920, 980],
-      [700, 50, 700],
-      [980, 920, 100],
+      [340, 760, 760, 760, 760],
+      [480, 760, 220, 480, 760],
+      [760, 760, 760, 340, 760],
+      [200, 200, 760, 800, 800],
+      [780, 780, 30, 780, 780],
+      [800, 800, 760, 200, 200],
+      [780, 120, 930, 930, 930],
+      [800, 480, 120, 800, 480],
+      [930, 930, 930, 780, 120],
     ])
+    expect(ON_TARGET_PER_MILLE).toEqual([760, 760, 760, 800, 780, 800, 930, 800, 930])
     expect(KICKS).toBe(5)
     expect(EXTRA_ROUNDS).toBe(12)
+  })
+
+  test('a goal is always on target, so one roll decides goal, save and wide', () => {
+    for (const zone of ZONES) for (const dive of DIVES) expect(GOAL_PER_MILLE[zone][dive]).toBeLessThanOrEqual(ON_TARGET_PER_MILLE[zone])
+    for (let seed = 0; seed < 2000; seed++) {
+      const k = play(core.init(seed), 0, 0).kicks[0]
+      if (k.goal) expect(k.onTarget).toBe(true)
+    }
+  })
+
+  test('the table is left-right mirror symmetric', () => {
+    const mirrorZone = (z: number) => z - (z % 3) + (2 - (z % 3))
+    const mirrorDive = [3, 4, 2, 0, 1]
+    for (const zone of ZONES) {
+      expect(ON_TARGET_PER_MILLE[mirrorZone(zone)]).toBe(ON_TARGET_PER_MILLE[zone])
+      for (const dive of DIVES) expect(GOAL_PER_MILLE[mirrorZone(zone)][mirrorDive[dive]]).toBe(GOAL_PER_MILLE[zone][dive])
+    }
+  })
+
+  test('top corners are harder to save and easier to miss than bottom corners; down the middle is a bluff', () => {
+    const savedShare = (zone: Zone) => 1 - Math.min(...GOAL_PER_MILLE[zone]) / ON_TARGET_PER_MILLE[zone]
+    for (const [top, bottom] of [[0, 6], [2, 8]] as [Zone, Zone][]) {
+      expect(savedShare(top)).toBeLessThan(savedShare(bottom))
+      expect(ON_TARGET_PER_MILLE[top]).toBeLessThan(ON_TARGET_PER_MILLE[bottom])
+      expect(Math.min(...GOAL_PER_MILLE[top])).toBeGreaterThan(Math.min(...GOAL_PER_MILLE[bottom]))
+    }
+    // The centre is the worst shot in the goal when the keeper stays, and the best shot in the middle column when the keeper goes.
+    expect(GOAL_PER_MILLE[4][2]).toBe(Math.min(...ZONES.map((z) => GOAL_PER_MILLE[z][2])))
+    for (const dive of [0, 1, 3, 4]) expect(GOAL_PER_MILLE[4][dive]).toBeGreaterThanOrEqual(Math.max(GOAL_PER_MILLE[1][dive]!, GOAL_PER_MILLE[7][dive]!) - 20)
   })
 
   test('same seed and actions give the same hash; a different seed gives a different roll sequence', () => {
     const run = (seed: number) => {
       let s = core.init(seed)
-      for (let i = 0; i < 8 && !core.terminal(s); i++) s = play(s, (i % 3) as Zone, ((i + 1) % 3) as Zone)
+      for (let i = 0; i < 8 && !core.terminal(s); i++) s = play(s, (i % 5) as Zone, ((i + 1) % 5) as Zone)
       return s
     }
     expect(core.hash(run(5))).toBe(core.hash(run(5)))
@@ -263,22 +308,23 @@ describe('penalty core: goal table and seed', () => {
     const seqs = new Set<string>()
     for (let seed = 0; seed < 20; seed++) {
       let s = core.init(seed)
-      for (let i = 0; i < 6; i++) s = play(s, 1, 0) // 70 percent cell
+      for (let i = 0; i < 6; i++) s = play(s, 0, 1) // a 76 percent cell for seat 0, 34 to 80 for seat 1
       seqs.add(s.kicks.map((k) => (k.goal ? '1' : '0')).join(''))
     }
     expect(seqs.size).toBeGreaterThan(5)
   })
 
   test('the roll belongs to the kick index: it follows the plan formula and ignores earlier kicks', () => {
-    const want = (seed: number, k: number, zone: Zone, dive: Zone) =>
+    const want = (seed: number, k: number, zone: Zone, dive: Dive) =>
       makeRng((seed ^ Math.imul(k + 1, 0x85ebca6b)) | 0).int(1000) < GOAL_PER_MILLE[zone][dive]
+    const wantOn = (seed: number, k: number, zone: Zone) => makeRng((seed ^ Math.imul(k + 1, 0x85ebca6b)) | 0).int(1000) < ON_TARGET_PER_MILLE[zone]
     for (const seed of [1, 42, 977, 123456, -5]) {
       for (const k of [1, 3, 6, 9, 10, 11, 12, 21, 32, 33]) {
-        for (const zone of [0, 1, 2] as Zone[]) {
-          for (const dive of [0, 1, 2] as Zone[]) {
+        for (const zone of ZONES) {
+          for (const dive of DIVES) {
             // Two different histories of k kicks with the same seed (zones and goal flags differ).
-            const histA: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal: false }))
-            const histB: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 2, dive: 2, goal: i % 4 < 2 }))
+            const histA: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal: false, onTarget: false }))
+            const histB: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 2, dive: 2, goal: i % 4 < 2, onTarget: i % 4 < 2 }))
             expect(core.terminal({ seed, kicks: histA })).toBe(false)
             expect(core.terminal({ seed, kicks: histB })).toBe(false)
             const kicker = (k % 2) as 0 | 1
@@ -287,6 +333,8 @@ describe('penalty core: goal table and seed', () => {
             const b = core.step({ seed, kicks: histB }, acts).kicks[k]
             expect(a.goal).toBe(b.goal)
             expect(a.goal).toBe(want(seed, k, zone, dive))
+            expect(a.onTarget).toBe(b.onTarget)
+            expect(a.onTarget).toBe(wantOn(seed, k, zone))
           }
         }
       }
@@ -295,21 +343,21 @@ describe('penalty core: goal table and seed', () => {
 })
 
 describe('penalty core: codes', () => {
-  test('codes 0..2 round-trip, anything else throws', () => {
-    for (const z of [0, 1, 2] as Zone[]) {
+  test('codes 0..8 round-trip, anything else throws', () => {
+    for (const z of ZONES) {
       expect(core.decodeAction(core.encodeAction(z))).toBe(z)
       expect(core.encodeAction(z)).toBe(z)
     }
-    expect(() => core.decodeAction(3)).toThrow()
+    expect(() => core.decodeAction(9)).toThrow()
     expect(() => core.decodeAction(-1)).toThrow()
     expect(() => core.decodeAction(0.5)).toThrow()
-    expect(() => core.encodeAction(3 as Zone)).toThrow()
+    expect(() => core.encodeAction(9 as Zone)).toThrow()
   })
 
   test('a full random match steps through legal, encodeAction and decodeAction', () => {
     const make = createPenaltyCore()
     expect(make.id as string).toBe('penalty')
-    expect(make.version).toBe('penalty-1')
+    expect(make.version).toBe('penalty-2')
     for (let seed = 0; seed < 50; seed++) {
       const rng = makeRng(seed)
       let s = make.init(seed)
@@ -339,8 +387,9 @@ function randomMatch(seed: number, onState?: (s: PenaltyState) => void): { s: Pe
   const ticks: [number, number][] = []
   onState?.(s)
   while (!core.terminal(s)) {
-    const a = rng.int(3) as Zone
-    const b = rng.int(3) as Zone
+    const shooterFirst = s.kicks.length % 2 === 0
+    const a = rng.int(shooterFirst ? 9 : 5) as Zone
+    const b = rng.int(shooterFirst ? 5 : 9) as Zone
     ticks.push([core.encodeAction(a), core.encodeAction(b)])
     s = play(s, a, b)
     onState?.(s)
@@ -378,8 +427,8 @@ describe('penalty core: the hidden choice', () => {
       randomMatch(seed, (st) => {
         if (core.terminal(st)) return
         const before = [0, 1].map((seat) => JSON.stringify(core.observe(st, seat as 0 | 1)))
-        for (const a of [0, 1, 2] as const) {
-          for (const b of [0, 1, 2] as const) {
+        for (const a of DIVES) {
+          for (const b of DIVES) {
             core.step(st, [a, b])
             expect([0, 1].map((seat) => JSON.stringify(core.observe(st, seat as 0 | 1)))).toEqual(before)
           }
@@ -439,7 +488,7 @@ describe('penalty core: real replay() through the borrowed id', () => {
       // Changed zone: rotate one action. The roll, the early end or the hash moves, so it never replays ok.
       const i = (seed * 5) % r.actions.length
       const changed = r.actions.map((a) => [...a] as MatchRecordV1['actions'][number])
-      changed[i]![2] = (changed[i]![2] + 1) % 3
+      changed[i]![2] = (changed[i]![2] + 1) % 5
       const c = run({ ...r, actions: changed })
       expect(c.ok).toBe(false)
       expect(c.error).toMatch(/mismatch|actions after the game ended|record ends/)
@@ -463,12 +512,17 @@ describe('penalty core: real replay() through the borrowed id', () => {
     }
   })
 
-  test('an action code outside 0..2 is refused as illegal', () => {
+  test('an action code outside the seat role is refused as illegal: 9 for the shooter, 5 for the keeper', () => {
     const r = recordOf(3)
     const bad = r.actions.map((a) => [...a] as MatchRecordV1['actions'][number])
-    bad[0]![2] = 3
+    bad[0]![2] = 9
     const out = run({ ...r, actions: bad })
     expect(out.ok).toBe(false)
-    expect(out.error).toMatch(/illegal action 3/)
+    expect(out.error).toMatch(/illegal action 9/)
+    const badDive = r.actions.map((a) => [...a] as MatchRecordV1['actions'][number])
+    badDive[1]![2] = 5
+    const out2 = run({ ...r, actions: badDive })
+    expect(out2.ok).toBe(false)
+    expect(out2.error).toMatch(/illegal action 5/)
   })
 })

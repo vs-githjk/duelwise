@@ -1,21 +1,20 @@
 import { describe, expect, test } from 'bun:test'
-import { GOAL_PER_MILLE, penaltyCore, type KickView, type PenaltyObs, type Zone } from '@duelwise/core/src/games/penalty/core'
+import { GOAL_PER_MILLE, penaltyCore, type Dive, type KickView, type PenaltyObs, type Zone } from '@duelwise/core/src/games/penalty/core'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { choosePenaltyAction, createGameAgent } from './agent'
-import { bestKeeper, bestShooter, DIVE_HABITS, KICK_HABITS, predict, streamsOf } from './habits'
+import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER } from './levels'
 
-function one3(i: number): [number, number, number] {
-  const d: [number, number, number] = [0, 0, 0]
-  d[i] = 1
-  return d
-}
+const zoneAt = (z: number) => one(z, 9)
+const diveAt = (d: number) => one(d, 5)
+const TL = 0, TM = 1, TR = 2, ML = 3, C = 4, MR = 5, BL = 6, BM = 7, BR = 8
+const LH = 0, LL = 1, STAY = 2, RH = 3, RL = 4
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 
-function view(byMe: boolean, zone: Zone, dive: Zone): KickView {
-  return { byMe, zone, dive, outcome: zone === dive ? 'save' : 'wide' }
+function view(byMe: boolean, zone: number, dive: number): KickView {
+  return { byMe, zone: zone as Zone, dive: dive as Dive, outcome: 'wide' }
 }
 
 function obs(role: 'shooter' | 'keeper', kicks: KickView[] = []): PenaltyObs {
@@ -32,56 +31,79 @@ function obs(role: 'shooter' | 'keeper', kicks: KickView[] = []): PenaltyObs {
   }
 }
 
-/** Draw `n` actions from one seeded rng, same obs and salt each time. */
-function draws(level: Level, o: PenaltyObs, n: number, salt = 7, seed = 11): [number, number, number] {
+/** Draw `n` actions from one seeded rng, same obs and salt each time. Counts per action, nine or five entries by role. */
+function draws(level: Level, o: PenaltyObs, n: number, salt = 7, seed = 11): number[] {
   const rng = makeRng(seed)
-  const c: [number, number, number] = [0, 0, 0]
-  for (let i = 0; i < n; i++) c[choosePenaltyAction(level, o, rng, salt)]++
+  const c: number[] = new Array<number>(o.role === 'shooter' ? 9 : 5).fill(0)
+  for (let i = 0; i < n; i++) c[choosePenaltyAction(level, o, rng, salt)]!++
   return c
 }
 
-/** Fictitious play on the goal table, the same way the sim found its equilibrium. */
+/** Fictitious play on the goal table, the same way the sim checks its equilibrium. */
 function fictitiousPlay(): { s: number[]; k: number[] } {
   const M = GOAL_PER_MILLE.map((r) => r.map((x) => x / 1000))
-  const sc = [1, 1, 1]
-  const kc = [1, 1, 1]
-  for (let t = 0; t < 400000; t++) {
-    const sv = [0, 1, 2].map((s) => [0, 1, 2].reduce((a, k) => a + M[s]![k]! * kc[k]!, 0))
-    const kv = [0, 1, 2].map((k) => [0, 1, 2].reduce((a, s) => a + M[s]![k]! * sc[s]!, 0))
-    sc[sv.indexOf(Math.max(...sv))]!++
-    kc[kv.indexOf(Math.min(...kv))]!++
+  const sc: number[] = new Array<number>(9).fill(0)
+  const kc: number[] = new Array<number>(5).fill(0)
+  const sv: number[] = new Array<number>(9).fill(0)
+  const kv: number[] = new Array<number>(5).fill(0)
+  let s = 4
+  let k = 2
+  for (let t = 0; t < 1_000_000; t++) {
+    sc[s]!++
+    kc[k]!++
+    for (let i = 0; i < 9; i++) sv[i]! += M[i]![k]!
+    for (let j = 0; j < 5; j++) kv[j]! += M[s]![j]!
+    s = sv.indexOf(Math.max(...sv))
+    k = kv.indexOf(Math.min(...kv))
   }
-  const norm = (a: number[]) => a.map((x) => x / (a[0]! + a[1]! + a[2]!))
+  const norm = (a: number[]) => a.map((x) => x / a.reduce((p, q) => p + q, 0))
   return { s: norm(sc), k: norm(kc) }
 }
+
+const M1 = GOAL_PER_MILLE.map((r) => r.map((x) => x / 1000))
+const kickValue = (sd: readonly number[], kd: readonly number[]) => sd.reduce((a, p, z) => a + p * kd.reduce((b, q, d) => b + q * M1[z]![d]!, 0), 0)
 
 describe('equilibrium constants', () => {
   test('match fictitious play on the goal table within 0.01', () => {
     const { s, k } = fictitiousPlay()
-    for (let i = 0; i < 3; i++) {
-      expect(Math.abs(EQ_SHOOTER[i]! - s[i]!)).toBeLessThan(0.01)
-      expect(Math.abs(EQ_KEEPER[i]! - k[i]!)).toBeLessThan(0.01)
-    }
+    for (let i = 0; i < 9; i++) expect(Math.abs(EQ_SHOOTER[i]! - s[i]!)).toBeLessThan(0.01)
+    for (let i = 0; i < 5; i++) expect(Math.abs(EQ_KEEPER[i]! - k[i]!)).toBeLessThan(0.01)
     expect(EQ_SHOOTER.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 2)
     expect(EQ_KEEPER.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 2)
+  })
+
+  test('the skill is real: random play is well below perfect play on both sides, and the centre is a bluff both sides must respect', () => {
+    const v = kickValue(EQ_SHOOTER, EQ_KEEPER)
+    const uz = new Array<number>(9).fill(1 / 9)
+    const ud = new Array<number>(5).fill(1 / 5)
+    // Random kicks into the equilibrium keeper lose at least 5 points a kick, and at least 10 once the keeper answers them.
+    expect(v - kickValue(uz, EQ_KEEPER)).toBeGreaterThan(0.05)
+    expect(v - Math.min(...[0, 1, 2, 3, 4].map((d) => kickValue(uz, diveAt(d))))).toBeGreaterThan(0.1)
+    // A random keeper gives up at least 5 points a kick to a shooter who answers it.
+    expect(Math.max(...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((z) => kickValue(zoneAt(z), ud))) - v).toBeGreaterThan(0.045)
+    // Straight down the middle is in the mix, and so is staying: neither side can drop it.
+    expect(EQ_SHOOTER[C]!).toBeGreaterThan(0.1)
+    expect(EQ_KEEPER[STAY]!).toBeGreaterThan(0.1)
+    // Top corners are shot more than bottom ones at equilibrium: worth the miss.
+    expect(EQ_SHOOTER[TL]!).toBeGreaterThan(EQ_SHOOTER[BL]!)
   })
 })
 
 describe('every level', () => {
   const histories: KickView[][] = [
     [],
-    [view(true, 0, 2)],
-    [view(false, 2, 1), view(true, 1, 0), view(false, 0, 0)],
-    [view(true, 2, 2), view(false, 1, 0), view(true, 0, 1), view(false, 0, 2), view(true, 2, 0)],
+    [view(true, TR, LH)],
+    [view(false, BR, STAY), view(true, C, LL), view(false, TL, RH)],
+    [view(true, MR, RL), view(false, TM, LH), view(true, BM, STAY), view(false, ML, RH), view(true, BL, LH)],
   ]
   for (const level of LEVELS) {
-    for (const role of ['shooter', 'keeper'] as const) {
-      test(`${level} returns 0, 1 or 2 as ${role}`, () => {
+    for (const [role, n] of [['shooter', 9], ['keeper', 5]] as const) {
+      test(`${level} returns a legal code for the ${role}, 0..${n - 1}`, () => {
         const rng = makeRng(5)
         for (const h of histories) {
           for (let i = 0; i < 50; i++) {
             const a = choosePenaltyAction(level, obs(role, h), rng, i)
-            expect([0, 1, 2]).toContain(a)
+            expect(Number.isInteger(a) && a >= 0 && a < n).toBe(true)
           }
         }
       })
@@ -94,7 +116,7 @@ describe('every level', () => {
   })
 
   test('is pure: same level, obs, rng state and salt give the same action, and nothing is kept between calls', () => {
-    const hist = [view(false, 0, 2), view(true, 2, 0), view(false, 0, 1), view(true, 1, 1)]
+    const hist = [view(false, TL, RH), view(true, TR, LH), view(false, TL, LL), view(true, C, STAY)]
     for (const level of LEVELS) {
       for (const role of ['shooter', 'keeper'] as const) {
         const o = obs(role, hist)
@@ -114,11 +136,11 @@ describe('every level', () => {
     }
   })
 
-  test('Sable uses the salt only to break a left/right tie; Pip uses it for a favourite side', () => {
+  test('Sable uses the salt only to break a left/right tie; Pip uses it for a favourite', () => {
     // A clear read leaves nothing to break: the salt changes nothing.
     const clear: KickView[] = []
-    for (let i = 0; i < 4; i++) clear.push(view(false, 0, 1), view(true, 1, 0))
-    clear.push(view(false, 0, 1))
+    for (let i = 0; i < 4; i++) clear.push(view(false, TL, LL), view(true, C, LH))
+    clear.push(view(false, TL, LL))
     const o = obs('keeper', clear)
     const a: number[] = []
     const b: number[] = []
@@ -129,57 +151,60 @@ describe('every level', () => {
       b.push(choosePenaltyAction('champion', o, r2, 2))
     }
     expect(a).toEqual(b)
-    const pipSides = new Set<number>()
-    for (let salt = 0; salt < 40; salt++) {
+    const pipCorners = new Set<number>()
+    for (let salt = 0; salt < 60; salt++) {
       const c = draws('easy', obs('shooter'), 200, salt)
-      pipSides.add(c[0] > c[2] ? 0 : 2)
+      pipCorners.add(c.indexOf(Math.max(...c)))
     }
-    expect(pipSides.size).toBe(2)
+    expect(pipCorners).toEqual(new Set([TL, TR, BL, BR]))
   })
 })
 
 describe('Pip', () => {
-  test('never picks the middle and uses one side about 75% of the time, in both roles', () => {
+  test('only uses a favourite and its mirror, about 75% on the favourite, never the middle, in both roles', () => {
     for (const role of ['shooter', 'keeper'] as const) {
       for (const salt of [1, 2, 3, 4, 5, 6]) {
         const c = draws('easy', obs(role), 2000, salt)
-        expect(c[1]).toBe(0)
-        const share = Math.max(c[0], c[2]) / 2000
-        expect(share).toBeGreaterThan(0.72)
-        expect(share).toBeLessThan(0.78)
+        const f = c.indexOf(Math.max(...c))
+        const m = role === 'shooter' ? mirrorZone(f) : mirrorDive(f)
+        expect(f).not.toBe(role === 'shooter' ? C : STAY)
+        expect(c[f]! + c[m]!).toBe(2000)
+        expect(c[f]! / 2000).toBeGreaterThan(0.72)
+        expect(c[f]! / 2000).toBeLessThan(0.78)
+        if (role === 'shooter') expect([TL, TR, BL, BR]).toContain(f)
       }
     }
   })
 
   test('is not moved by what happened', () => {
-    const hist = [view(false, 0, 0), view(true, 0, 0), view(false, 0, 0)]
+    const hist = [view(false, TL, LH), view(true, TL, LH), view(false, TL, LH)]
     expect(draws('easy', obs('shooter', hist), 500, 9)).toEqual(draws('easy', obs('shooter'), 500, 9))
   })
 })
 
+/** Left or right of the goal for a kick count: 0 or 2. */
+const kickSide = (c: number[]) => (c[TL]! + c[ML]! + c[BL]! > c[TR]! + c[MR]! + c[BR]! ? 0 : 2)
+
 /** Side a no-history opener picks, per salt, from many draws (0 or 2). */
-function openerSides(level: Level, role: 'shooter' | 'keeper', kicks: KickView[] = []): Set<number> {
+function openerSides(level: Level, kicks: KickView[] = []): Set<number> {
   const sides = new Set<number>()
-  for (let salt = 0; salt < 40; salt++) {
-    const c = draws(level, obs(role, kicks), 300, salt)
-    sides.add(c[0] > c[2] ? 0 : 2)
-  }
+  for (let salt = 0; salt < 40; salt++) sides.add(kickSide(draws(level, obs('shooter', kicks), 300, salt)))
   return sides
 }
 
 /** Shares of a draw count. */
-function shares(c: [number, number, number]): number[] {
-  const n = c[0] + c[1] + c[2]
+function shares(c: number[]): number[] {
+  const n = c.reduce((a, b) => a + b, 0)
   return c.map((x) => x / n)
 }
 
 describe('Marlow', () => {
-  test('as keeper dives to the last kick zone about 75% of the time', () => {
-    for (const z of [0, 1, 2] as const) {
-      const hist = [view(false, 1, 0), view(true, 0, 0), view(false, z, 2)]
+  test('as keeper answers the last kick about 75% of the time, whichever zone it was', () => {
+    for (let z = 0; z < 9; z++) {
+      const hist = [view(false, C, LH), view(true, TL, LH), view(false, z, STAY)]
       const c = draws('medium', obs('keeper', hist), 4000)
-      const share = c[z] / 4000
-      // 0.75 on the last kick plus its share of the equilibrium 0.25.
+      const share = c[COVER[z]!]! / 4000
+      // 0.75 on the cover plus its share of the equilibrium 0.25.
       expect(share).toBeGreaterThan(0.74)
       expect(share).toBeLessThan(0.87)
     }
@@ -187,200 +212,211 @@ describe('Marlow', () => {
 
   test('as keeper with no kick to read plays the equilibrium dive mix', () => {
     const f = shares(draws('medium', obs('keeper'), 8000))
-    for (let i = 0; i < 3; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
+    for (let i = 0; i < 5; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
   })
 
   test('as shooter goes away from the side the keeper dived to most', () => {
-    const hist = [view(true, 1, 0), view(false, 0, 1), view(true, 1, 0)]
+    const hist = [view(true, C, LH), view(false, TL, LL), view(true, C, LL)]
     const c = draws('medium', obs('shooter', hist), 3000)
-    expect(c[2] / 3000).toBeGreaterThan(0.74)
+    expect((c[TR]! + c[BR]!) / 3000).toBeGreaterThan(0.74)
+    const d = draws('medium', obs('shooter', [view(true, C, RH), view(true, C, RL)]), 3000)
+    expect((d[TL]! + d[BL]!) / 3000).toBeGreaterThan(0.74)
   })
 
-  test('as shooter opens on the salt side, and keeps it when the keeper dived left and right equally', () => {
-    expect(openerSides('medium', 'shooter')).toEqual(new Set([0, 2]))
-    const tied = [view(true, 1, 0), view(true, 1, 2)]
-    expect(openerSides('medium', 'shooter', tied)).toEqual(new Set([0, 2]))
+  test('as shooter opens on the salt corner, and keeps it when the keeper dived left and right equally', () => {
+    expect(openerSides('medium')).toEqual(new Set([0, 2]))
+    const tied = [view(true, C, LH), view(true, C, RL)]
+    expect(openerSides('medium', tied)).toEqual(new Set([0, 2]))
     const c = shares(draws('medium', obs('shooter', tied), 3000))
-    // 0.75 on the salt side plus its share of the equilibrium 0.25.
-    expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.8)
-    expect(Math.max(c[0]!, c[2]!)).toBeLessThan(0.86)
+    // 0.75 on the salt corner plus its share of the equilibrium 0.25.
+    expect(Math.max(...c)).toBeGreaterThan(0.76)
+    expect(Math.max(...c)).toBeLessThan(0.86)
   })
 })
 
 describe('Vesper', () => {
-  test('as shooter swaps sides each kick', () => {
-    const c = draws('hard', obs('shooter', [view(true, 0, 1), view(false, 1, 1)]), 3000)
-    expect(c[2] / 3000).toBeGreaterThan(0.74)
-    const d = draws('hard', obs('shooter', [view(true, 2, 1), view(false, 1, 1)]), 3000)
-    expect(d[0] / 3000).toBeGreaterThan(0.74)
+  test('as shooter swaps corners each kick', () => {
+    for (const z of [TL, TR, BL, BR]) {
+      const c = draws('hard', obs('shooter', [view(true, z, STAY), view(false, C, STAY)]), 3000)
+      expect(c[mirrorZone(z)]! / 3000).toBeGreaterThan(0.74)
+    }
   })
 
-  test('as shooter opens on the salt side, and after a middle kick picks a salt side again', () => {
-    expect(openerSides('hard', 'shooter')).toEqual(new Set([0, 2]))
-    expect(openerSides('hard', 'shooter', [view(true, 1, 0)])).toEqual(new Set([0, 2]))
-    const c = shares(draws('hard', obs('shooter', [view(true, 1, 0)]), 3000))
-    expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.8)
-    expect(Math.max(c[0]!, c[2]!)).toBeLessThan(0.86)
+  test('as shooter opens on the salt corner, and after a middle kick picks a salt corner again', () => {
+    expect(openerSides('hard')).toEqual(new Set([0, 2]))
+    expect(openerSides('hard', [view(true, C, LH)])).toEqual(new Set([0, 2]))
+    const c = shares(draws('hard', obs('shooter', [view(true, C, LH)]), 3000))
+    expect(Math.max(...c)).toBeGreaterThan(0.76)
+    expect(Math.max(...c)).toBeLessThan(0.86)
   })
 
   test('as keeper with no kick to read plays the equilibrium dive mix', () => {
     const f = shares(draws('hard', obs('keeper'), 8000))
-    for (let i = 0; i < 3; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
+    for (let i = 0; i < 5; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
   })
 
   test('as keeper expects a swap when the last two kicks differ: read 0.75 plus its equilibrium share', () => {
-    // Zones 2 then 0: the swap predicts 2, the most common of the two would say 0.
-    const c = draws('hard', obs('keeper', [view(false, 2, 1), view(true, 1, 1), view(false, 0, 1)]), 8000)
-    const want = 0.75 + 0.25 * EQ_KEEPER[2]!
-    expect(Math.abs(c[2] / 8000 - want)).toBeLessThan(0.02)
-    expect(c[0] / 8000).toBeLessThan(0.2)
+    // Zones BR then TL: the swap predicts BR, the most common of the two would say TL or BR's cover by count.
+    const c = draws('hard', obs('keeper', [view(false, BR, STAY), view(true, C, STAY), view(false, TL, STAY)]), 8000)
+    const want = 0.75 + 0.25 * EQ_KEEPER[RL]!
+    expect(Math.abs(c[RL]! / 8000 - want)).toBeLessThan(0.02)
+    expect(c[LH]! / 8000).toBeLessThan(0.2)
   })
 
   test('as keeper takes the most common of the last three when the last two kicks match', () => {
-    // 2, 2, 2, 1, 0, 0: the last three are 1, 0, 0, so 0; all six would say 2.
-    const zones: Zone[] = [2, 2, 2, 1, 0, 0]
-    const hist = zones.map((z) => view(false, z, 1))
+    // BR, BR, BR, C, TL, TL: the last three are C, TL, TL, so TL; all six would say BR.
+    const hist = [BR, BR, BR, C, TL, TL].map((z) => view(false, z, STAY))
     const c = draws('hard', obs('keeper', hist), 8000)
-    const want = 0.75 + 0.25 * EQ_KEEPER[0]!
-    expect(Math.abs(c[0] / 8000 - want)).toBeLessThan(0.02)
-    expect(c[2] / 8000).toBeLessThan(0.2)
+    const want = 0.75 + 0.25 * EQ_KEEPER[LH]!
+    expect(Math.abs(c[LH]! / 8000 - want)).toBeLessThan(0.02)
+    expect(c[RL]! / 8000).toBeLessThan(0.2)
   })
 })
 
 describe('Sable', () => {
-  const sim = {
-    // The sim's Sable with no history (plan/bench/more-games-sim/pen.ts, weight 1.5): 0.75 best response to its prior plus 0.25 equilibrium.
-    kick: [0.0789, 0.0923, 0.8288],
-    dive: [0.106, 0.0384, 0.8555],
-  }
-
-  test('with no history keeps at least 3% on every zone and matches the sim mix within 0.02 over 5,000 draws', () => {
-    for (const [role, want] of [
-      ['shooter', sim.kick],
-      ['keeper', sim.dive],
+  test('with no history keeps at least 3% on every zone and dive and matches its opening mix within 0.02 over 5,000 draws', () => {
+    for (const [role, eq] of [
+      ['shooter', EQ_SHOOTER],
+      ['keeper', EQ_KEEPER],
     ] as const) {
-      const c = draws('champion', obs(role), 5000)
-      const f = c.map((x) => x / 5000)
-      for (const p of f) expect(p).toBeGreaterThanOrEqual(0.03)
-      // Left and right are a near tie in the best response to the prior (gaps of 0.0014 as shooter, 0.0007 as keeper) and the salt
-      // picks the side, so the mix matches the sim's, whose own tie fell to the right, or its mirror image.
-      const err = (w: readonly number[]) => Math.max(...f.map((p, z) => Math.abs(p - w[z]!)))
-      const mirrored = [want[2]!, want[1]!, want[0]!]
-      expect(Math.min(err(want), err(mirrored))).toBeLessThan(0.02)
+      const f = shares(draws('champion', obs(role), 5000))
+      const want = floored(eq, 0.03)
+      for (let i = 0; i < f.length; i++) {
+        expect(f[i]!).toBeGreaterThanOrEqual(0.03 * 0.75) // 3% of the mix, less sampling noise at 5,000 draws (sd about 0.0025)
+        expect(Math.abs(f[i]! - want[i]!)).toBeLessThan(0.02)
+      }
+      for (const p of want) expect(p).toBeGreaterThanOrEqual(0.0265)
     }
   })
 
-  test('after five kicks to one side its keeper goes to that side over 97%', () => {
-    for (const side of [0, 1, 2] as const) {
+  test('after five kicks to one zone its keeper answers that zone over 97%', () => {
+    for (const z of [TL, TR, C, BL, BR]) {
       const hist: KickView[] = []
-      for (let i = 0; i < 5; i++) {
-        hist.push(view(false, side, 1))
-        hist.push(view(true, 1, 0))
-      }
+      for (let i = 0; i < 5; i++) hist.push(view(false, z, STAY), view(true, C, LH))
       const c = draws('champion', obs('keeper', hist.slice(0, 9)), 3000)
-      expect(c[side] / 3000).toBeGreaterThan(0.97)
+      expect(c[COVER[z]!]! / 3000).toBeGreaterThan(0.97)
     }
   })
 
   test('after five dives to one side its shooter goes to the other side over 95%', () => {
-    for (const side of [0, 2] as const) {
+    for (const [dive, zones] of [
+      [LH, [TR, MR, BR, TM, BM]],
+      [RL, [TL, ML, BL, TM, BM]],
+    ] as const) {
       const hist: KickView[] = []
-      for (let i = 0; i < 5; i++) hist.push(view(true, 1, side), view(false, 1, 1))
+      for (let i = 0; i < 5; i++) hist.push(view(true, C, dive), view(false, C, STAY))
       const c = draws('champion', obs('shooter', hist.slice(0, 9)), 3000)
-      expect(c[2 - side] / 3000).toBeGreaterThan(0.95)
+      expect(zones.reduce((a, z) => a + c[z]!, 0) / 3000).toBeGreaterThan(0.95)
     }
   })
 
-  test('a keeper facing L R L R L dives right over 97%', () => {
-    const zones: Zone[] = [0, 2, 0, 2, 0]
-    const hist = zones.flatMap((z): KickView[] => [view(false, z, 1), view(true, 1, 1)]).slice(0, 9)
+  test('a keeper facing TL TR TL TR TL covers top right over 97%', () => {
+    const zones = [TL, TR, TL, TR, TL]
+    const hist = zones.flatMap((z): KickView[] => [view(false, z, STAY), view(true, C, STAY)]).slice(0, 9)
     const c = draws('champion', obs('keeper', hist), 3000)
-    expect(c[2] / 3000).toBeGreaterThan(0.97)
+    expect(c[RH]! / 3000).toBeGreaterThan(0.97)
   })
 
-  test('with no history it opens on the salt side, and both sides turn up across salts', () => {
+  test('with no history no side is favoured, whatever the salt', () => {
     for (const role of ['shooter', 'keeper'] as const) {
-      expect(openerSides('champion', role)).toEqual(new Set([0, 2]))
       for (const salt of [1, 2, 3]) {
-        const c = shares(draws('champion', obs(role), 4000, salt))
-        // 0.75 (after the weight) best response to the prior plus the equilibrium share: well above half, never all.
-        expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.75)
+        const c = shares(draws('champion', obs(role), 8000, salt))
+        const [left, right] = role === 'shooter' ? [c[TL]! + c[ML]! + c[BL]!, c[TR]! + c[MR]! + c[BR]!] : [c[LH]! + c[LL]!, c[RH]! + c[RL]!]
+        expect(Math.abs(left - right)).toBeLessThan(0.04)
       }
     }
   })
 
-  test('the side tie rule never overrides a Middle best response', () => {
-    const s = streamsOf([0, 1, 2].map((d, i) => view(true, [0, 0, 1][i] as Zone, d as Zone)))
-    expect(s.oppDives).toEqual([0, 1, 2])
-    expect(s.myKicks).toEqual([0, 0, 1])
-    const out = predict(DIVE_HABITS, s.oppDives, s.myKicks).out
-    expect(bestShooter(out)).toEqual(one3(1))
-    expect(bestShooter(out, 2)).toEqual(one3(1))
+  test('a left/right tie goes to the salt side both ways, and the tie rule never overrides a stay or a middle best response', () => {
+    const even = new Array<number>(9).fill(0)
+    even[TL] = 0.5
+    even[TR] = 0.5
+    expect(bestKeeper(even, 0)).toEqual(diveAt(LH))
+    expect(bestKeeper(even, 2)).toEqual(diveAt(RH))
+    const stayAll = [0, 0, 0, 0, 1, 0, 0, 0, 0]
+    expect(bestKeeper(stayAll, 0)).toEqual(diveAt(STAY))
+    expect(bestKeeper(stayAll, 2)).toEqual(diveAt(STAY))
+    const dives = [0.5, 0, 0, 0.5, 0]
+    expect(bestShooter(dives, 0)).toEqual(zoneAt(BL))
+    expect(bestShooter(dives, 2)).toEqual(zoneAt(BR))
+    const allStay = [0, 0, 1, 0, 0]
+    expect(bestShooter(allStay, 0)).toEqual(zoneAt(BL))
+    expect(bestShooter(allStay, 2)).toEqual(zoneAt(BR))
+    // TM against a keeper low on both sides: a middle best response stays put under either side.
+    const lows = [0, 0.5, 0, 0, 0.5]
+    expect(bestShooter(lows, 0)).toEqual(bestShooter(lows, 2))
   })
 
-  test('the shoot and dive favourites are independent: all four pairs turn up across salts', () => {
+  test('the shoot and dive favourites are independent: all sixteen pairs turn up across salts', () => {
     const major = (role: 'shooter' | 'keeper', salt: number) => {
       const c = draws('easy', obs(role), 60, salt)
-      return c[0] > c[2] ? 0 : 2
+      return c.indexOf(Math.max(...c))
     }
     const pairs = new Set<string>()
-    for (let salt = 1; salt <= 40; salt++) pairs.add(`${major('shooter', salt)}${major('keeper', salt)}`)
-    expect(pairs).toEqual(new Set(['00', '02', '20', '22']))
+    for (let salt = 1; salt <= 300; salt++) pairs.add(`${major('shooter', salt)}.${major('keeper', salt)}`)
+    expect(pairs.size).toBe(16)
   })
 
   // Through the agent: the "copies my last" and "avoids my last" streams must reach predict().
   test('champion keeper reads a player who copies its last dive', () => {
-    const opp = [0, 2, 2, 2, 2, 2]
-    const mine = [2, 2, 2, 2, 2, 0]
-    const hist = opp.map((z, i) => view(false, z as Zone, mine[i] as Zone))
+    const opp = [TL, TR, TL, TL, TR, TR]
+    const mine = [RH, LH, LH, RH, RH, LH]
+    const hist = opp.map((z, i) => view(false, z, mine[i]!))
     const c = draws('champion', obs('keeper', hist), 2000)
-    expect(c.indexOf(Math.max(...c))).toBe(0)
+    expect(c.indexOf(Math.max(...c))).toBe(LH)
   })
 
   test('champion shooter reads a keeper that copies its last kick', () => {
-    const mine = [1, 1, 1, 1, 1, 0]
-    const hist = mine.map((z, i) => view(true, z as Zone, 1))
+    const mine = [BL, BL, BL, BL, BL, BR]
+    const opp = [STAY, LL, LL, LL, LL, LL]
+    const hist = mine.map((z, i) => view(true, z, opp[i]!))
     const c = draws('champion', obs('shooter', hist), 2000)
-    expect(c.indexOf(Math.max(...c))).toBe(2)
+    const left = c[TL]! + c[ML]! + c[BL]!
+    expect(left).toBeGreaterThan(c[TR]! + c[MR]! + c[BR]!)
+    expect(c[BR]! / 2000).toBeLessThan(0.1)
   })
 
-  // One habit shape at a time: with that shape swapped for plain equilibrium play the answer would be a different zone.
-  // [name, opponent's stream, what I did alongside it, the zone that must come out].
+  // One habit shape at a time: with that shape swapped for plain equilibrium play the answer would be a different choice.
+  // [name, opponent's stream, what I did alongside it, the choice that must come out].
   const keeperShapes: [string, number[], number[], number][] = [
-    ['favourite left', [2, 0, 0, 2, 0], [0, 0, 0, 0, 0], 0],
-    ['favourite middle', [1, 1, 1, 1, 1, 2], [0, 0, 0, 0, 0, 0], 1],
-    ['favourite right', [2, 2, 2, 2, 2, 1], [0, 0, 0, 0, 0, 0], 2],
-    ['repeat', [2, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 0], 1],
-    ['alternate', [1, 2, 1, 2, 1, 2], [0, 0, 0, 0, 0, 0], 1],
-    ['mirror', [0, 2, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0], 2],
-    ['copies my last', [0, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 0], 0],
-    ['avoids my last', [0, 2, 0, 2, 2], [0, 1, 0, 0, 0], 2],
+    ['favourite top left', [TL, TL, TL, TR, TL, TL], [2, 2, 2, 2, 2, 2], LH],
+    ['favourite top right', [TR, TR, TR, TL, TR, TR], [2, 2, 2, 2, 2, 2], RH],
+    ['favourite bottom left', [BL, BL, BL, BR, BL, BL], [2, 2, 2, 2, 2, 2], LL],
+    ['favourite bottom right', [BR, BR, BR, BL, BR, BR], [2, 2, 2, 2, 2, 2], RL],
+    ['favourite centre', [C, C, C, BR, C, C], [2, 2, 2, 2, 2, 2], STAY],
+    ['repeat', [TR, TR, TR, TR, BR, BR], [2, 2, 2, 2, 2, 2], RL],
+    ['alternate', [BL, TR, BL, TR, BL, TR], [2, 2, 2, 2, 2, 2], LL],
+    ['mirror', [TL, TR, TL, TR, TL, TL], [2, 2, 2, 2, 2, 2], RH],
+    ['copies my last', [TL, TR, TL, TL, TR, TR], [RH, LH, LH, RH, RH, LH], LH],
+    ['avoids my last', [TR, BL, BR, TR, BL, BR], [LH, LH, LH, LH, LH, LH], STAY],
   ]
-  for (const [name, opp, mine, zone] of keeperShapes) {
+  for (const [name, opp, mine, dive] of keeperShapes) {
     test(`keeper reads the "${name}" habit`, () => {
-      const hist = opp.flatMap((z, i): KickView[] => [view(false, z as Zone, mine[i] as Zone)])
+      const hist = opp.flatMap((z, i): KickView[] => [view(false, z, mine[i]!)])
       const s = streamsOf(hist)
       expect(s.oppKicks).toEqual(opp)
-      expect(bestKeeper(predict(KICK_HABITS, s.oppKicks, s.myDives).out)).toEqual(one3(zone))
+      expect(bestKeeper(predict(KICK_HABITS, s.oppKicks, s.myDives).out)).toEqual(diveAt(dive))
     })
   }
 
   const shooterShapes: [string, number[], number[], number][] = [
-    ['favourite left', [0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 0], 2],
-    ['favourite middle', [1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 0, 0], 0],
-    ['favourite right', [2, 2, 2, 2, 2, 0], [0, 0, 0, 0, 0, 0], 0],
-    ['repeat', [1, 1, 1, 1, 1, 2], [0, 0, 0, 0, 0, 0], 0],
-    ['alternate', [1, 1, 1, 1, 0, 1], [0, 0, 0, 0, 0, 0], 2],
-    ['mirror', [1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 0, 0], 0],
-    ['copies my last', [1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 0], 2],
-    ['avoids my last', [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 2], 2],
+    ['favourite left high', [LH, LH, LH, RH, LH], [C, C, C, C, C], BR],
+    ['favourite left low', [LL, LL, LL, RL, LL], [C, C, C, C, C], BR],
+    ['favourite stay', [STAY, STAY, STAY, STAY, STAY], [C, C, C, C, C], BL],
+    ['favourite right high', [RH, RH, RH, LL, RH], [C, C, C, C, C], BL],
+    ['favourite right low', [RL, RL, RL, LH, RL], [C, C, C, C, C], BL],
+    ['repeat', [RH, RH, RH, RH, LL, LL], [C, C, C, C, C, C], BR],
+    ['alternate', [LL, RL, LL, RL, LL, RL], [C, C, C, C, C, C], BR],
+    ['mirror', [LH, RH, LH, RH, LH, LH], [C, C, C, C, C, C], BL],
+    ['copies my last', [STAY, RL, RL, RL, RL, RL], [BR, BR, BR, BR, BR, TL], BL],
+    ['avoids my last', [LH, RH, LH, RH, LH, RH], [BR, TL, BR, TL, BR, TL], BR],
   ]
   for (const [name, opp, mine, zone] of shooterShapes) {
     test(`shooter reads the "${name}" habit`, () => {
-      const hist = opp.map((d, i) => view(true, mine[i] as Zone, d as Zone))
+      const hist = opp.map((d, i) => view(true, mine[i]!, d))
       const s = streamsOf(hist)
       expect(s.oppDives).toEqual(opp)
-      expect(bestShooter(predict(DIVE_HABITS, s.oppDives, s.myKicks).out)).toEqual(one3(zone))
+      expect(bestShooter(predict(DIVE_HABITS, s.oppDives, s.myKicks).out)).toEqual(zoneAt(zone))
     })
   }
 
@@ -388,7 +424,7 @@ describe('Sable', () => {
     const rngA = makeRng(21)
     const first = Array.from({ length: 30 }, () => choosePenaltyAction('champion', obs('keeper'), rngA, 3))
     // A long run of one-sided kicks in between must leave nothing behind.
-    const busy: KickView[] = Array.from({ length: 10 }, () => view(false, 0, 1))
+    const busy: KickView[] = Array.from({ length: 10 }, () => view(false, TL, LL))
     for (let i = 0; i < 20; i++) choosePenaltyAction('champion', obs('keeper', busy), makeRng(i), 3)
     const rngB = makeRng(21)
     const again = Array.from({ length: 30 }, () => choosePenaltyAction('champion', obs('keeper'), rngB, 3))
@@ -398,7 +434,7 @@ describe('Sable', () => {
   test('slowest choice over a full-length history is under 2 ms', () => {
     // Longest possible shootout: 2 * (5 + 12) = 34 kicks, so up to 33 are visible when the last is chosen.
     const hist: KickView[] = []
-    for (let i = 0; i < 33; i++) hist.push(view(i % 2 === 0, (i % 3) as Zone, ((i + 1) % 3) as Zone))
+    for (let i = 0; i < 33; i++) hist.push(view(i % 2 === 0, i % 9, (i + 1) % 5))
     const rng = makeRng(2)
     // A real slow path is slow in every sweep; a scheduler or GC pause hits one. So the smallest sweep's worst is what counts.
     const sweeps: number[] = []
@@ -463,7 +499,11 @@ describe('createGameAgent', () => {
       for (let i = 0; i < n; i++) out.push((await a.act(o))[0]!)
       return out
     }
-    const side = (xs: number[]) => (xs.filter((x) => x === 0).length > xs.filter((x) => x === 2).length ? 0 : 2)
+    const side = (xs: number[]) => {
+      const c = new Array<number>(9).fill(0)
+      for (const x of xs) c[x]!++
+      return c.indexOf(Math.max(...c))
+    }
     // Same seed, role and observation: the seat alone must change the action stream.
     expect(await stream(0, 5, 60)).not.toEqual(await stream(1, 5, 60))
     const favs: [number[], number[]] = [[], []]
@@ -473,7 +513,7 @@ describe('createGameAgent', () => {
     }
     // The favourite differs between the seats for some seed, and between seeds for one seat.
     expect(favs[0].some((f, i) => f !== favs[1][i])).toBe(true)
-    expect(new Set(favs[0]).size).toBe(2)
-    expect(new Set(favs[1]).size).toBe(2)
+    expect(new Set(favs[0]).size).toBeGreaterThanOrEqual(2)
+    expect(new Set(favs[1]).size).toBeGreaterThanOrEqual(2)
   })
 })

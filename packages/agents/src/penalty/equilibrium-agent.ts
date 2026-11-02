@@ -21,11 +21,11 @@ export async function createGameAgent(_level: Level, opts: AgentOpts = {}): Prom
       const o = obs as PenaltyObs
       const d = o.role === 'shooter' ? EQ_SHOOTER : EQ_KEEPER
       let r = rng.float()
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < d.length; i++) {
         r -= d[i]!
         if (r < 0) return [i]
       }
-      return [2]
+      return [d.length - 1]
     },
     dispose() {},
   }

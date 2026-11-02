@@ -7,10 +7,19 @@ import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 export const HUMAN: Seat = 0
 export const AGENT_SEAT: Seat = 1
 
-/** Reveal timing in ms, from the plan: both choices show at 0, ball and keeper move for MOVE_MS, the outcome word holds until HOLD_MS. */
-export const MOVE_MS = 360
-export const HOLD_MS = 1100
+/**
+ * One kick's beats in ms from the commit: both picks show on the goal at 0, ball and keeper leave at SET_MS, the ball arrives at
+ * CONTACT_MS (the result word, the sound and the score dot land together), the scene clears from CLEAR_MS and the next pick opens
+ * at KICK_MS. penalty.css holds the same flight length in --flight. A tap on the scene after SKIP_AFTER_MS jumps to the next pick.
+ */
+export const SET_MS = 120
+export const FLIGHT_MS = 420
+export const CONTACT_MS = SET_MS + FLIGHT_MS
+export const CLEAR_MS = 1250
+export const KICK_MS = 1400
+export const SKIP_AFTER_MS = 250
 
+/** In this file a pick is an action code: a zone 0..8 for the shooter, a dive 0..4 for the keeper. */
 export interface PenaltyMatch {
   state: PenaltyState
   /** One entry per kick, both seats' picks as [seat 0, seat 1]. A real game stores these as the match record's actions. */
@@ -18,8 +27,17 @@ export interface PenaltyMatch {
 }
 
 export type Slot = 'goal' | 'miss' | 'none'
+export type Role = 'shooter' | 'keeper'
 
-const ZONE_WORD = ['left', 'middle', 'right'] as const
+export const ZONE_LABEL = ['Top left', 'Top middle', 'Top right', 'Left', 'Middle', 'Right', 'Bottom left', 'Bottom middle', 'Bottom right'] as const
+export const DIVE_LABEL = ['Left high', 'Left low', 'Stay', 'Right high', 'Right low'] as const
+
+const ZONE_WORD = ['top left', 'top middle', 'top right', 'left', 'down the middle', 'right', 'bottom left', 'bottom middle', 'bottom right'] as const
+const DIVE_WORD = ['dived left high', 'dived left low', 'stayed', 'dived right high', 'dived right low'] as const
+
+export function pickLabel(role: Role, pick: number): string {
+  return role === 'shooter' ? ZONE_LABEL[pick]! : DIVE_LABEL[pick]!
+}
 
 export function startMatch(seed: number): PenaltyMatch {
   return { state: penaltyCore.init(seed), log: [] }
@@ -51,17 +69,92 @@ export function tapZone(selected: Zone | null, zone: Zone): { selected: Zone; co
   return { selected: zone, commit: selected === zone }
 }
 
-/** The action button commits only when a zone is chosen. */
+/** The action button, or a tap on the ball, commits only when a zone is chosen. */
 export function pressAction(selected: Zone | null): boolean {
   return selected !== null
 }
 
-export function zoneWord(z: Zone): string {
-  return ZONE_WORD[z]
+// Drag geometry in the 328 unit scene: the ball's rest spot, the goal's inner box, and how far the aim moves per unit of drag. A thumb
+// never has to cover the target: 130 units up reaches the top row. Speed plays no part, only where the thumb is when it lifts.
+export const SPOT = { x: 164, y: 262 } as const
+export const GOAL = { left: 24, top: 16, cell: { w: 280 / 3, h: 50 } } as const
+const DRAG_GAIN = 1.7
+const DRAG_DEAD = 18
+
+/** The pick a drag from the ball points at, or null while it is still inside the dead zone around the ball (lifting there cancels). Clamped to the goal, so a long drag stays on the edge cell. */
+export function aimFromDrag(dx: number, dy: number, role: Role): Zone | null {
+  if (Math.hypot(dx, dy) < DRAG_DEAD || dy > 0) return null
+  const x = SPOT.x + dx * DRAG_GAIN - GOAL.left
+  const y = SPOT.y + dy * DRAG_GAIN - GOAL.top
+  const col = Math.max(0, Math.min(2, Math.floor(x / GOAL.cell.w)))
+  const row = Math.max(0, Math.min(2, Math.floor(y / GOAL.cell.h)))
+  if (role === 'shooter') return (row * 3 + col) as Zone
+  if (col === 1) return 2
+  const high = y < (3 * GOAL.cell.h) / 2
+  return ((col === 0 ? 0 : 3) + (high ? 0 : 1)) as Zone
 }
 
-export function outcomeWord(k: Kick): 'Goal' | 'Saved' | 'Wide' {
-  return k.goal ? 'Goal' : k.zone === k.dive ? 'Saved' : 'Wide'
+/** Centre of a goal cell in scene units. */
+export function cellCentre(zone: number): { x: number; y: number } {
+  return { x: GOAL.left + (zone % 3) * GOAL.cell.w + GOAL.cell.w / 2, y: GOAL.top + Math.floor(zone / 3) * GOAL.cell.h + GOAL.cell.h / 2 }
+}
+
+export type Outcome = 'Goal' | 'Saved' | 'Wide' | 'Over'
+
+export function zoneWord(z: number): string {
+  return ZONE_WORD[z]!
+}
+
+/** The cause in one word. The roll is the only source: a kick off target went over the bar from the top row or the centre, and wide from anywhere else. */
+export function outcomeWord(k: Kick): Outcome {
+  if (k.goal) return 'Goal'
+  if (k.onTarget) return 'Saved'
+  return k.zone <= 2 || k.zone === 4 ? 'Over' : 'Wide'
+}
+
+export interface Flight {
+  /** Ball offset from the spot at the end of its flight. */
+  bx: number
+  by: number
+  /** How far it bends sideways mid flight, so no shot flies a straight line. */
+  curl: number
+  /** Where it goes after contact: a rebound off the keeper, a drop in the net, or on past the frame. */
+  dx: number
+  dy: number
+}
+
+/** The ball's path for a finished kick, in scene units. Only ever read after the commit. */
+export function flightOf(k: Kick): Flight {
+  const c = cellCentre(k.zone)
+  const word = outcomeWord(k)
+  const side = k.zone % 3 === 0 ? -1 : k.zone % 3 === 2 ? 1 : 0
+  const curl = side === 0 ? (k.kicker === 0 ? 16 : -16) : -side * 22
+  if (word === 'Over') return { bx: c.x - SPOT.x, by: -6 - SPOT.y, curl, dx: side * 10, dy: -30 }
+  if (word === 'Wide') {
+    const out = side === 0 ? (k.kicker === 0 ? 1 : -1) : side
+    return { bx: SPOT.x * out + out * -6, by: c.y - SPOT.y + 8, curl: -out * 22, dx: out * 30, dy: 0 }
+  }
+  if (word === 'Saved') {
+    const away = side === 0 ? (k.kicker === 0 ? 1 : -1) : side
+    return { bx: c.x - SPOT.x, by: c.y - SPOT.y + 10, curl, dx: away * 46, dy: 70 }
+  }
+  return { bx: c.x - SPOT.x, by: c.y - SPOT.y, curl, dx: 0, dy: 16 }
+}
+
+/** The keeper's move for a finished kick, from its rest spot: a stay reaches up for a shot at the top middle. */
+export function diveOf(k: Kick): { kx: number; ky: number; kr: number } {
+  switch (k.dive) {
+    case 0:
+      return { kx: -88, ky: -56, kr: -64 }
+    case 1:
+      return { kx: -92, ky: -2, kr: -92 }
+    case 3:
+      return { kx: 88, ky: -56, kr: 64 }
+    case 4:
+      return { kx: 92, ky: -2, kr: 92 }
+    default:
+      return { kx: 0, ky: k.zone === 1 ? -34 : -4, kr: 0 }
+  }
 }
 
 export function roleLine(m: PenaltyMatch): string {
@@ -78,14 +171,15 @@ export function scoreSlots(m: PenaltyMatch, seat: Seat): Slot[] {
   return [...shown, ...Array<Slot>(KICKS - shown.length).fill('none')]
 }
 
-/** The last kick in words, e.g. "Pip went right. You dived left. Goal." Empty before the first kick. */
+/** The last kick in words, e.g. "Pip went top right. You dived left low. Goal." Empty before the first kick. */
 export function lastKickLine(m: PenaltyMatch, name: string): string {
   const k = m.state.kicks[m.state.kicks.length - 1]
   if (!k) return ''
   const mine = k.kicker === HUMAN
   const shooter = mine ? 'You' : name
   const keeper = mine ? name : 'You'
-  return `${shooter} went ${zoneWord(k.zone)}. ${keeper} dived ${zoneWord(k.dive)}. ${outcomeWord(k)}.`
+  const went = k.zone === 4 ? 'went down the middle' : `went ${zoneWord(k.zone)}`
+  return `${shooter} ${went}. ${keeper} ${DIVE_WORD[k.dive]!}. ${outcomeWord(k)}.`
 }
 
 export function resultLine(m: PenaltyMatch, name: string): string {

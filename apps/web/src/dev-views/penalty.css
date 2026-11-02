@@ -1,15 +1,18 @@
 /*
- * Twelve Yards dev page. The scene is drawn in a 328 x 240 box and scaled by --u (container width / 328), so it is exact at 360
+ * Twelve Yards dev page. The scene is drawn in a 328 x 300 box and scaled by --u (container width / 328), so it is exact at 360
  * wide and grows to 520 on a desktop with the same proportions. Pitch and goal colours are object colours: the same in light
  * and dark, since their contrast is against the grass, not the page. Promotion moves them to tokens.
- * Only transforms and opacity change during a reveal; no box ever resizes.
+ * A kick only changes transform and opacity; no box ever resizes. --flight matches FLIGHT_MS in penalty-match.ts.
  */
 .pen {
   --pitch: #2f7d46;
   --pitch-stripe: #38904f;
   --goal-post: #ffffff;
-  --goal-net: rgba(255, 255, 255, 0.28);
+  --goal-net: rgba(255, 255, 255, 0.3);
   --game-penalty: #5f8f1f;
+  --keeper-you: #2166f0;
+  --keeper-them: #f2a11f;
+  --flight: 420ms;
 }
 
 .pen-scene-wrap {
@@ -22,46 +25,89 @@
   --u: calc(100cqw / 328);
   position: relative;
   width: 100%;
-  height: calc(240 * var(--u));
+  height: calc(300 * var(--u));
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: repeating-linear-gradient(90deg, var(--pitch) 0, var(--pitch) calc(41 * var(--u)), var(--pitch-stripe) calc(41 * var(--u)), var(--pitch-stripe) calc(82 * var(--u)));
+  background: var(--pitch);
   box-shadow: var(--shadow-card, none);
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Everything that moves or shakes sits in here, so the scene's own box never does. */
+.pen-world {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, var(--pitch) 0, var(--pitch) calc(26 * var(--u)), var(--pitch-stripe) calc(26 * var(--u)), var(--pitch-stripe) calc(52 * var(--u)));
+}
+
+/* The stand behind the goal: a soft band, so the white frame reads against something darker than grass. */
+.pen-back {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(168 * var(--u));
+  background: linear-gradient(180deg, #1c4f31 0%, #245f3b 100%);
+  pointer-events: none;
 }
 
 .pen-frame {
   position: absolute;
-  left: calc(14 * var(--u));
-  top: calc(10 * var(--u));
-  width: calc(300 * var(--u));
-  height: calc(124 * var(--u));
+  left: calc(20 * var(--u));
+  top: calc(12 * var(--u));
+  width: calc(288 * var(--u));
+  height: calc(156 * var(--u));
   border: calc(4 * var(--u)) solid var(--goal-post);
   border-bottom-width: 0;
-  background:
-    repeating-linear-gradient(0deg, var(--goal-net) 0 1px, transparent 1px calc(10 * var(--u))),
-    repeating-linear-gradient(90deg, var(--goal-net) 0 1px, transparent 1px calc(10 * var(--u)));
+  border-radius: calc(3 * var(--u)) calc(3 * var(--u)) 0 0;
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(0, 0, 0, 0.25);
   pointer-events: none;
+}
+
+.pen-net {
+  position: absolute;
+  left: calc(24 * var(--u));
+  top: calc(16 * var(--u));
+  width: calc(280 * var(--u));
+  height: calc(152 * var(--u));
+  background:
+    repeating-linear-gradient(0deg, var(--goal-net) 0 1px, transparent 1px calc(9 * var(--u))),
+    repeating-linear-gradient(90deg, var(--goal-net) 0 1px, transparent 1px calc(9 * var(--u)));
+  transform-origin: 50% 40%;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .pen-line {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(134 * var(--u));
+  top: calc(167 * var(--u));
   height: 2px;
   background: var(--goal-post);
   opacity: 0.85;
   pointer-events: none;
 }
 
+.pen-box {
+  position: absolute;
+  left: calc(58 * var(--u));
+  top: calc(168 * var(--u));
+  width: calc(212 * var(--u));
+  height: calc(62 * var(--u));
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top: 0;
+  pointer-events: none;
+}
+
 .pen-spot {
   position: absolute;
   left: calc(161 * var(--u));
-  top: calc(202 * var(--u));
+  top: calc(259 * var(--u));
   width: calc(6 * var(--u));
   height: calc(6 * var(--u));
   border-radius: 50%;
@@ -69,101 +115,293 @@
   pointer-events: none;
 }
 
+/* Goal cells: nine for a shot, five for a dive. Quiet until touched. */
 .pen-zone {
   position: absolute;
-  top: 0;
-  height: calc(164 * var(--u));
-  width: 33.3334%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding-bottom: calc(4 * var(--u));
   border: 0;
   border-radius: 0;
+  padding: 0;
   background: transparent;
   color: #ffffff;
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   cursor: pointer;
-  /* a quiet outline so the target is visible before it is picked */
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.34);
+  transition: background-color 60ms linear;
 }
-.pen-zone:nth-of-type(1) { left: 0; }
-.pen-zone:nth-of-type(2) { left: 33.3333%; }
-.pen-zone:nth-of-type(3) { left: 66.6667%; }
+.pen-zones[data-kind='kick'] .pen-zone {
+  width: calc(280 * var(--u) / 3);
+  height: calc(50 * var(--u));
+}
+.pen-zone[data-col='0'] { left: calc(24 * var(--u)); }
+.pen-zone[data-col='1'] { left: calc(24 * var(--u) + 280 * var(--u) / 3); }
+.pen-zone[data-col='2'] { left: calc(24 * var(--u) + 560 * var(--u) / 3); }
+.pen-zone[data-row='0'] { top: calc(16 * var(--u)); }
+.pen-zone[data-row='1'] { top: calc(66 * var(--u)); }
+.pen-zone[data-row='2'] { top: calc(116 * var(--u)); }
+.pen-zones[data-kind='dive'] .pen-zone {
+  width: calc(280 * var(--u) / 3);
+  height: calc(75 * var(--u));
+}
+.pen-zones[data-kind='dive'] .pen-zone[data-row='1'] { top: calc(91 * var(--u)); }
+.pen-zones[data-kind='dive'] .pen-zone[data-row='stay'] { top: calc(16 * var(--u)); height: calc(150 * var(--u)); }
+
+.pen-zone:active { background: rgba(255, 255, 255, 0.28); }
+@media (hover: hover) {
+  .pen-zone:hover { background: rgba(255, 255, 255, 0.14); }
+}
 .pen-zone[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 3px var(--action), inset 0 0 0 calc(40 * var(--u)) rgba(33, 102, 240, 0.22);
+  background: rgba(33, 102, 240, 0.42);
+  box-shadow: inset 0 0 0 3px #ffffff;
 }
 .pen-zone:disabled,
 .pen-zone[aria-disabled='true'] { cursor: default; }
 .pen-zone:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; }
 
-/* who picked what, shown the moment a kick is committed */
+/* The aim: a ring on the cell, a dotted path from the ball to it. */
+.pen-aim-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.pen-aim-path path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 7;
+  opacity: 0.9;
+}
+
+/* Both picks on the goal at once, the moment a kick is committed. */
+.pen-mark {
+  position: absolute;
+  pointer-events: none;
+}
+.pen-mark-shot {
+  width: calc(34 * var(--u));
+  height: calc(34 * var(--u));
+  margin: calc(-17 * var(--u)) 0 0 calc(-17 * var(--u));
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+}
 .pen-tag {
   position: absolute;
-  top: calc(6 * var(--u));
+  z-index: 6;
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.62);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
   pointer-events: none;
 }
 
 .pen-keeper {
   position: absolute;
   left: calc(146 * var(--u));
-  top: calc(78 * var(--u));
+  top: calc(106 * var(--u));
   width: calc(36 * var(--u));
-  height: calc(56 * var(--u));
-  overflow: visible;
+  height: calc(62 * var(--u));
   pointer-events: none;
-  transform-origin: 50% 80%;
+  transform-origin: 50% 70%;
+  transition: opacity 140ms linear;
+  will-change: transform;
+}
+.pen-keeper-lean {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  transition: transform 90ms ease-out;
+}
+.pen-keeper-lean[data-lean='l'] { transform: translateX(calc(-9 * var(--u))) rotate(-7deg); }
+.pen-keeper-lean[data-lean='r'] { transform: translateX(calc(9 * var(--u))) rotate(7deg); }
+.pen-keeper-lean[data-lean='c'] { transform: scale(1.06, 0.95); }
+.pen-keeper-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  animation: pen-sway 1.4s ease-in-out infinite alternate;
+}
+.pen-keeper-svg .shirt { fill: var(--keeper-them); }
+.pen-scene[data-role='keeper'] .pen-keeper-svg .shirt { fill: var(--keeper-you); }
+@keyframes pen-sway {
+  from { transform: translateX(calc(-1.5 * var(--u))); }
+  to { transform: translateX(calc(1.5 * var(--u))); }
+}
+
+/* The ball: x, curl, y and depth on separate layers, each with its own easing, so its path is a curve and only the compositor works. */
+.pen-ball-shadow {
+  position: absolute;
+  left: calc(153 * var(--u));
+  top: calc(268 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(7 * var(--u));
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+  transition: opacity 140ms linear;
 }
 .pen-ball {
   position: absolute;
-  left: calc(157 * var(--u));
-  top: calc(198 * var(--u));
-  width: calc(14 * var(--u));
-  height: calc(14 * var(--u));
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #15181e;
-  box-sizing: border-box;
+  left: calc(153 * var(--u));
+  top: calc(251 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
   pointer-events: none;
+  transition: opacity 140ms linear;
+  will-change: transform;
 }
+.pen-ball > div,
+.pen-ball > div > div,
+.pen-ball > div > div > div,
+.pen-ball > div > div > div > div {
+  width: 100%;
+  height: 100%;
+}
+.pen-ball-svg { display: block; width: 100%; height: 100%; }
+.pen-ball-pull { transition: transform 90ms ease-out; }
+.pen-scene[data-armed] .pen-ball-pull { transform: translateY(calc(3 * var(--u))) scale(1.06); }
 
-/* the reveal: transforms only, and only while data-reveal is set */
 .pen-scene[data-reveal='go'] .pen-ball {
-  transform: translate(calc(var(--bx) * var(--u)), calc(var(--by) * var(--u))) scale(0.8);
-  transition: transform var(--duration-slow, 360ms) var(--ease-out, ease-out);
+  transform: translateX(calc(var(--bx) * var(--u)));
+  transition: transform var(--flight) cubic-bezier(0.3, 0.1, 0.6, 1), opacity 140ms linear;
 }
-.pen-scene[data-reveal='go'] .pen-keeper {
-  transform: translate(calc(var(--kx) * var(--u)), calc(var(--ky) * var(--u))) rotate(var(--kr)) scale(var(--ks));
-  transition: transform var(--duration-slow, 360ms) var(--ease-out, ease-out);
+.pen-scene[data-reveal='go'] .pen-ball-curl { animation: pen-curl var(--flight) ease-in-out both; }
+.pen-scene[data-reveal='go'] .pen-ball-y {
+  transform: translateY(calc(var(--by) * var(--u)));
+  transition: transform var(--flight) cubic-bezier(0.14, 0.62, 0.32, 1);
+}
+.pen-scene[data-reveal='go'] .pen-ball-z {
+  transform: scale(0.56) rotate(540deg);
+  transition: transform var(--flight) linear;
+}
+.pen-scene[data-reveal='go'] .pen-ball-shadow {
+  transform: translateX(calc(var(--bx) * 0.7 * var(--u))) translateY(calc(-96 * var(--u))) scale(0.5);
+  opacity: 0.35;
+  transition: transform var(--flight) ease-out, opacity 140ms linear;
+}
+@keyframes pen-curl {
+  50% { transform: translateX(calc(var(--curl) * var(--u))); }
+}
+.pen-scene[data-beat] .pen-ball-rebound {
+  transform: translate(calc(var(--dx) * var(--u)), calc(var(--dy) * var(--u)));
+  transition: transform 300ms cubic-bezier(0.2, 0.7, 0.4, 1);
 }
 
-/* the outcome word: a slot that exists from the start; only its opacity changes */
-.pen-word {
+.pen-scene[data-reveal='set'] .pen-keeper-lean { transform: scale(1.05, 0.9); }
+.pen-scene[data-reveal='go'] .pen-keeper {
+  transform: translate(calc(var(--kx) * var(--u)), calc(var(--ky) * var(--u))) rotate(var(--kr));
+  transition: transform 400ms cubic-bezier(0.2, 0.75, 0.3, 1), opacity 140ms linear;
+}
+
+/* The payoff lands at contact: the net takes the ball, the picture jolts once. */
+.pen-ripple {
   position: absolute;
   left: 0;
-  right: 0;
-  top: calc(166 * var(--u));
-  height: calc(36 * var(--u));
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  top: 0;
+  width: calc(60 * var(--u));
+  height: calc(60 * var(--u));
+  margin: calc(-30 * var(--u)) 0 0 calc(-30 * var(--u));
+  border: 3px solid #ffffff;
+  border-radius: 50%;
   opacity: 0;
   pointer-events: none;
 }
-.pen-word[data-on] { opacity: 1; transition: opacity var(--duration-fast, 120ms) linear; }
+.pen-scene[data-beat='hit'][data-end='goal'] .pen-ripple { animation: pen-ripple 420ms ease-out both; }
+.pen-scene[data-beat='hit'][data-end='goal'] .pen-ripple-2 { animation-delay: 70ms; }
+@keyframes pen-ripple {
+  from { transform: scale(0.25); opacity: 0.95; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+.pen-scene[data-beat='hit'][data-end='goal'] .pen-net { animation: pen-net 460ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+@keyframes pen-net {
+  0% { transform: scale(1); }
+  28% { transform: scale(1.035, 1.05) translateY(calc(2 * var(--u))); }
+  62% { transform: scale(0.99); }
+  100% { transform: scale(1); }
+}
+.pen-scene[data-beat='hit'][data-end='goal'] .pen-world { animation: pen-jolt 200ms ease-out both; }
+.pen-scene[data-beat='hit'][data-end='saved'] .pen-world { animation: pen-jolt 160ms ease-out both; }
+@keyframes pen-jolt {
+  25% { transform: translate(calc(2 * var(--u)), calc(-3 * var(--u))); }
+  60% { transform: translate(calc(-2 * var(--u)), calc(2 * var(--u))); }
+}
+
+/* Clearing the scene: ball and keeper fade out together, then snap home unseen and fade back in. */
+.pen-scene[data-beat='out'] .pen-ball,
+.pen-scene[data-beat='out'] .pen-keeper,
+.pen-scene[data-beat='out'] .pen-ball-shadow { opacity: 0; }
+
+/* The outcome word: a slot that exists from the start; only opacity and scale change. */
+.pen-word {
+  position: absolute;
+  z-index: 7;
+  left: 0;
+  right: 0;
+  top: calc(176 * var(--u));
+  height: calc(52 * var(--u));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: calc(38 * var(--u));
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  pointer-events: none;
+}
+.pen-word[data-on] { opacity: 1; animation: pen-word 240ms cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.pen-scene[data-beat='out'] .pen-word { opacity: 0; transition: opacity 140ms linear; animation: none; }
+@keyframes pen-word {
+  from { opacity: 0; transform: scale(0.72); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* The ball is the drag handle, and a tap on it confirms an aim. A big pad, and only this pad stops the page scrolling under a thumb. */
+.pen-pad {
+  position: absolute;
+  z-index: 5;
+  left: calc(112 * var(--u));
+  top: calc(212 * var(--u));
+  width: calc(104 * var(--u));
+  height: calc(86 * var(--u));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+.pen-pad:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; border-radius: 12px; }
+.pen-pad:disabled { cursor: default; }
+.pen-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(280 * var(--u));
+  text-align: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  opacity: 0.92;
+  transition: opacity 120ms linear;
+}
+.pen-hint[data-off] { opacity: 0; }
 
 /* score row */
 .pen-score { height: 44px; display: grid; grid-template-rows: 22px 22px; }
@@ -177,8 +415,9 @@
   box-sizing: border-box;
   border: 2px solid var(--ink);
 }
-.pen-dot[data-slot='goal'] { background: var(--ink); }
+.pen-dot[data-slot='goal'] { background: var(--ink); animation: pen-dot 220ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .pen-dot[data-slot='none'] { border-color: var(--line); opacity: 0.5; }
+.pen-dot[data-slot='miss'] { animation: pen-dot 220ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .pen-dot[data-slot='miss']::after { /* a strike through a hollow dot, so colour is never the only signal */
   content: '';
   position: absolute;
@@ -190,16 +429,41 @@
   background: var(--ink);
   transform: rotate(-45deg);
 }
+@keyframes pen-dot {
+  from { transform: scale(0.4); }
+  to { transform: scale(1); }
+}
 
 .pen-role { height: 28px; line-height: 28px; font-family: var(--font-display); font-size: 18px; white-space: nowrap; overflow: hidden; }
 .pen-bar { height: 56px; display: flex; gap: 8px; }
 .pen-chip {
-  width: 96px;
+  width: 124px;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
-  font-family: var(--font-mono, monospace);
   font-size: 14px;
+  font-weight: 600;
 }
 .pen-last { height: 3rem; font-size: 14px; line-height: 1.5rem; overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pen-keeper-svg,
+  .pen-ball-curl,
+  .pen-net,
+  .pen-world,
+  .pen-ripple,
+  .pen-dot,
+  .pen-word[data-on] { animation: none !important; }
+  .pen-ball,
+  .pen-ball-y,
+  .pen-ball-z,
+  .pen-ball-pull,
+  .pen-ball-rebound,
+  .pen-ball-shadow,
+  .pen-keeper,
+  .pen-keeper-lean,
+  .pen-zone,
+  .pen-word,
+  .pen-hint { transition: none !important; }
+}
