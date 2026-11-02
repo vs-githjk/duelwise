@@ -262,9 +262,8 @@ describe('Sable', () => {
       const c = draws('champion', obs(role), 5000)
       const f = c.map((x) => x / 5000)
       for (const p of f) expect(p).toBeGreaterThanOrEqual(0.03)
-      // Left and right are a near tie in the best response to the prior (a 0.0003 gap), and the sim built its habit shapes from an
-      // earlier table's equilibrium, so its tie fell to the right. Here the shapes use the real equilibrium and the tie can fall either
-      // way; the mix must match the sim's or its mirror image.
+      // Left and right are a near tie in the best response to the prior (gaps of 0.0014 as shooter, 0.0007 as keeper) and the salt
+      // picks the side, so the mix matches the sim's, whose own tie fell to the right, or its mirror image.
       const err = (w: readonly number[]) => Math.max(...f.map((p, z) => Math.abs(p - w[z]!)))
       const mirrored = [want[2]!, want[1]!, want[0]!]
       expect(Math.min(err(want), err(mirrored))).toBeLessThan(0.02)
@@ -272,7 +271,7 @@ describe('Sable', () => {
   })
 
   test('after five kicks to one side its keeper goes to that side over 97%', () => {
-    for (const side of [0, 2] as const) {
+    for (const side of [0, 1, 2] as const) {
       const hist: KickView[] = []
       for (let i = 0; i < 5; i++) {
         hist.push(view(false, side, 1))
@@ -308,6 +307,41 @@ describe('Sable', () => {
         expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.75)
       }
     }
+  })
+
+  test('the side tie rule never overrides a Middle best response', () => {
+    const s = streamsOf([0, 1, 2].map((d, i) => view(true, [0, 0, 1][i] as Zone, d as Zone)))
+    expect(s.oppDives).toEqual([0, 1, 2])
+    expect(s.myKicks).toEqual([0, 0, 1])
+    const out = predict(DIVE_HABITS, s.oppDives, s.myKicks).out
+    expect(bestShooter(out)).toEqual(one3(1))
+    expect(bestShooter(out, 2)).toEqual(one3(1))
+  })
+
+  test('the shoot and dive favourites are independent: all four pairs turn up across salts', () => {
+    const major = (role: 'shooter' | 'keeper', salt: number) => {
+      const c = draws('easy', obs(role), 60, salt)
+      return c[0] > c[2] ? 0 : 2
+    }
+    const pairs = new Set<string>()
+    for (let salt = 1; salt <= 40; salt++) pairs.add(`${major('shooter', salt)}${major('keeper', salt)}`)
+    expect(pairs).toEqual(new Set(['00', '02', '20', '22']))
+  })
+
+  // Through the agent: the "copies my last" and "avoids my last" streams must reach predict().
+  test('champion keeper reads a player who copies its last dive', () => {
+    const opp = [0, 2, 2, 2, 2, 2]
+    const mine = [2, 2, 2, 2, 2, 0]
+    const hist = opp.map((z, i) => view(false, z as Zone, mine[i] as Zone))
+    const c = draws('champion', obs('keeper', hist), 2000)
+    expect(c.indexOf(Math.max(...c))).toBe(0)
+  })
+
+  test('champion shooter reads a keeper that copies its last kick', () => {
+    const mine = [1, 1, 1, 1, 1, 0]
+    const hist = mine.map((z, i) => view(true, z as Zone, 1))
+    const c = draws('champion', obs('shooter', hist), 2000)
+    expect(c.indexOf(Math.max(...c))).toBe(2)
   })
 
   // One habit shape at a time: with that shape swapped for plain equilibrium play the answer would be a different zone.
