@@ -307,7 +307,9 @@ test.describe('fleet: a counted match', () => {
     await expect(page.getByTestId('leaving-notice')).toContainText(/resigns a counted match/)
     await expect(page.getByTestId('opponent-style')).not.toBeEmpty()
     await expect(page.getByTestId('fleet-legend')).toContainText('Sunk')
-    // Fire still fits the 360 x 780 screen with the aside present.
+    await expect(page.getByTestId('preview-badge')).toHaveText(/In training/)
+    // Fire still fits the 360 x 780 screen with the aside present, measured as the design does (section 2.2): page scrolled so the HUD is at the top.
+    await page.getByTestId('fleet-hud').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY))
     await expect(page.getByTestId('fleet-fire')).toBeInViewport({ ratio: 1 })
     for (let i = 0; i < 100; i++) if (!(await fireNext(page))) break
     await expect(page.getByTestId('result-panel')).toBeVisible()
@@ -315,6 +317,8 @@ test.describe('fleet: a counted match', () => {
     const fit = await page.evaluate(() => {
       const panel = document.querySelector('[data-testid="result-panel"]') as HTMLElement
       const reveal = document.querySelector('[data-testid="fleet-reveal"]') as HTMLElement
+      // The win's decorative chips are absolutely positioned and may pass the edge; they are not layout.
+      panel.querySelectorAll('.result-chips').forEach((n) => n.remove())
       const cs = getComputedStyle(panel)
       const pr = panel.getBoundingClientRect()
       return {

@@ -127,6 +127,8 @@ test.describe('fleet dev page and promotion', () => {
     await expect(root).toHaveAttribute('data-turn', 'you')
     // Start from the top so the end-of-match scroll into view is really needed.
     await page.evaluate(() => scrollTo(0, 0))
+    // Then the design's own fit test (section 2.2): scroll so the HUD is at the top, which keeps the board, Fire and the click targets in view with the In training badge in the header.
+    await page.getByTestId('fleet-hud').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY))
 
     const board = page.getByTestId('fleet-cell-board')
     const fire = page.getByTestId('fleet-fire')

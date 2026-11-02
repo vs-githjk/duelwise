@@ -22,8 +22,8 @@ import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt,
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
 // The water and hull colours are the spec's section 1 tokens, in tokens.css since F7.
 
-const levelInfo = levelInfoFromRegistry(null)
 const registry = visibleRegistry(parseRegistry(fleetRegistryJson))
+const levelInfo = levelInfoFromRegistry(registry)
 
 const LEVELS: Array<{ id: Level; label: string }> = [
   { id: 'easy', label: 'Easy' },
@@ -624,6 +624,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     <GameShell
       game="fleet"
       level={started || starting ? shownLevel : undefined}
+      preview={(started || starting) && levelInfo[shownLevel].preview}
+      previewLabel="In training"
       thinking={game.thinking}
       matchActive={started && !over}
       result={resultNode}
