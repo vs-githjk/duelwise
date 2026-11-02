@@ -128,6 +128,15 @@ describe('level parameters', () => {
       champion: { kind: 'search', depth: 6, mobility: true, noise: 1, openingNoise: { above: 50, noise: 30 }, exactEmpties: 8, nodeCap: 120_000 },
     })
   })
+
+  test("Sable's opening noise 30 holds at 51 empties and drops to 1 at 50, the gate sits exactly there", () => {
+    const empties = (n: number) => positions(4000, 7).find((s) => s.cells.filter((c) => c === 0).length === n)!
+    const at51 = empties(51)
+    const at50 = empties(50)
+    const rng = makeRng(1)
+    expect(slackSearchOpts(SLACK_LEVELS.champion, obsOf(at51), rng).noise).toBe(30)
+    expect(slackSearchOpts(SLACK_LEVELS.champion, obsOf(at50), rng).noise).toBe(1)
+  })
 })
 
 describe('Pip', () => {
