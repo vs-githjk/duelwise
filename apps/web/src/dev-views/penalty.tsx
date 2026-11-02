@@ -116,8 +116,6 @@ export default function PenaltyView() {
   const view = useMemo(() => (match ? { ...match, state: { seed: match.state.seed, kicks: match.state.kicks.slice(0, shown) } } : null), [match, shown])
   const over = !!view && (penaltyCore.terminal(view.state) || resigned)
   const revealing = phase !== 'pick'
-  // While a match runs the intro and level row step aside, so the scene and bar fit one phone screen. They return at full time.
-  const live = !!view && !over
   const name = personaFor(playing).name
   const lastKick = match && revealing ? match.state.kicks[match.state.kicks.length - 1]! : null
   const role = view && !over ? penaltyCore.observe(view.state, HUMAN).role : null
@@ -197,37 +195,41 @@ export default function PenaltyView() {
     if (match) setShown(match.state.kicks.length)
   }
 
+  // Full time keeps the live layout: nothing is inserted above the scene, so the result sits in the role line slot.
   const result = view && !resigned && penaltyCore.terminal(view.state) ? penaltyCore.result(view.state) : null
-  const verdict = resigned ? `You resigned. ${name} wins.` : result ? (result.winner === null ? 'Level after sudden death.' : result.winner === HUMAN ? 'You win.' : `${name} wins.`) : ''
+  const verdict = resigned ? 'You resigned.' : result ? (result.winner === null ? 'A draw.' : result.winner === HUMAN ? 'You win.' : `${name} wins.`) : ''
   const humanLabel = role === 'keeper' ? 'Save' : 'Shoot'
+  const levelRow = (
+    <div role="radiogroup" aria-label="Level" className="flex flex-wrap gap-2">
+      {LEVELS.map((l) => (
+        <button
+          key={l}
+          type="button"
+          role="radio"
+          aria-checked={level === l}
+          onClick={() => setLevel(l)}
+          data-testid={`penalty-level-${l}`}
+          className={`min-h-11 rounded-control border px-3 text-sm font-semibold ${level === l ? 'border-action bg-action text-action-ink' : 'border-line bg-surface'}`}
+        >
+          {personaFor(l).name}
+          <span className="font-normal opacity-80"> {LEVEL_LABEL[l]}</span>
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <OpponentContext.Provider value={{ level: playing }}>
       <section className="pen grid max-w-5xl gap-3 py-4" data-testid="penalty-page">
-        <h1 className={`font-display ${live ? 'text-display-sm' : 'text-display-md'}`}>Twelve Yards (dev)</h1>
-        {!live && (
+        <h1 className={`font-display ${view ? 'text-display-sm' : 'text-display-md'}`}>Twelve Yards (dev)</h1>
+        {!view && (
           <>
-            <p className="text-muted">Pick a zone, then tap it again or press the button. You and {name} choose at the same moment. Dev only: this page is the groundwork, not a released game.</p>
+            <p className="text-muted">Pick a zone, then tap it again or press the button. You and {personaFor(level).name} choose at the same moment. Dev only: this page is the groundwork, not a released game.</p>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div role="radiogroup" aria-label="Level" className="flex flex-wrap gap-2">
-                {LEVELS.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    role="radio"
-                    aria-checked={level === l}
-                    onClick={() => setLevel(l)}
-                    data-testid={`penalty-level-${l}`}
-                    className={`min-h-11 rounded-control border px-3 text-sm font-semibold ${level === l ? 'border-action bg-action text-action-ink' : 'border-line bg-surface'}`}
-                  >
-                    {personaFor(l).name}
-                    <span className="font-normal opacity-80"> {LEVEL_LABEL[l]}</span>
-                  </button>
-                ))}
-              </div>
+              {levelRow}
               <button type="button" onClick={() => void begin()} data-testid="penalty-start" className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold">
-                {match ? 'New match' : 'Start match'}
+                Start match
               </button>
             </div>
           </>
@@ -255,8 +257,8 @@ export default function PenaltyView() {
                 })}
               </div>
 
-              <p className="pen-role" data-testid="penalty-role">
-                {over ? 'Full time.' : roleLine(view)}
+              <p className="pen-role" data-over={over ? '' : undefined} data-testid={over ? 'penalty-result' : 'penalty-role'}>
+                {over ? `${resultLine(view, name)}. ${verdict}` : roleLine(view)}
               </p>
 
               <div className="pen-scene-wrap">
@@ -264,7 +266,12 @@ export default function PenaltyView() {
                   <div className="pen-frame" />
                   <div className="pen-line" />
                   <div className="pen-spot" />
-                  <div className="pen-keeper" data-testid="penalty-keeper" />
+                  <svg className="pen-keeper" data-testid="penalty-keeper" viewBox="0 0 36 56" aria-hidden="true">
+                    <circle cx="18" cy="8" r="7" fill="var(--surface)" stroke="var(--ink)" strokeWidth="2" />
+                    <rect x="2" y="16" width="32" height="38" rx="9" fill="var(--surface)" stroke="var(--ink)" strokeWidth="2" />
+                    <circle cx="3" cy="30" r="3.5" fill="var(--ink)" />
+                    <circle cx="33" cy="30" r="3.5" fill="var(--ink)" />
+                  </svg>
                   <div className="pen-ball" data-testid="penalty-ball" />
                   {ZONES.map((z) => (
                     <button
@@ -272,7 +279,8 @@ export default function PenaltyView() {
                       type="button"
                       className="pen-zone"
                       aria-pressed={selected === z}
-                      disabled={revealing || over}
+                      disabled={over}
+                      aria-disabled={revealing && !over ? true : undefined}
                       onClick={() => onZone(z)}
                       data-testid={`penalty-zone-${z}`}
                     >
@@ -301,12 +309,12 @@ export default function PenaltyView() {
                 </div>
                 <button
                   type="button"
-                  onClick={onAction}
-                  disabled={selected === null || revealing || over}
+                  onClick={over ? () => void begin() : onAction}
+                  disabled={over ? false : selected === null || revealing}
                   data-testid="penalty-action"
                   className="min-h-11 flex-1 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-40"
                 >
-                  {over ? 'Shoot' : humanLabel}
+                  {over ? 'Play again' : humanLabel}
                 </button>
               </div>
             </div>
@@ -320,17 +328,12 @@ export default function PenaltyView() {
 
               {over ? (
                 <div className="grid gap-2" data-testid="penalty-over">
-                  <p className="font-display text-display-sm" data-testid="penalty-result">
-                    {resultLine(view, name)}
-                  </p>
-                  <p>{verdict}</p>
-                  <button type="button" onClick={() => void begin()} className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold">
-                    Play again
-                  </button>
+                  <p className="text-sm text-muted">Next opponent, then Play again.</p>
+                  {levelRow}
                 </div>
               ) : confirming ? (
                 <div className="flex gap-2">
-                  <button type="button" onClick={resign} data-testid="penalty-resign-yes" className="min-h-11 flex-1 rounded-control border border-line bg-surface px-3 font-semibold">
+                  <button type="button" onClick={resign} data-testid="penalty-resign-yes" disabled={revealing} className="min-h-11 flex-1 rounded-control border border-line bg-surface px-3 font-semibold disabled:opacity-40">
                     Yes, resign
                   </button>
                   <button type="button" onClick={() => setConfirming(false)} className="min-h-11 flex-1 rounded-control border border-line bg-surface px-3 font-semibold">

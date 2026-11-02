@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { penaltyCore, type PenaltyState, type Zone } from '@duelwise/core/src/games/penalty/core'
+import { penaltyCore, type Kick, type PenaltyState, type Zone } from '@duelwise/core/src/games/penalty/core'
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent } from '@duelwise/agents/src/penalty/agent'
 import {
@@ -104,12 +104,54 @@ describe('penalty match logic', () => {
     }
   })
 
-  test('agentChoose reads only the agent seat observation and ignores the human pick', async () => {
+  test('the agent is shown its own seat observation: the agent seat, the opposite role, nothing of the player', async () => {
+    for (const level of LEVELS) {
+      const agent = await agentFor(level, 5)
+      const seen: unknown[] = []
+      const spy = new Proxy(agent, {
+        get(t, k, r) {
+          if (k === 'act')
+            return async (...args: Parameters<typeof agent.act>) => {
+              seen.push(args[0])
+              return t.act(...args)
+            }
+          return Reflect.get(t, k, r)
+        },
+      })
+      let m = startMatch(5)
+      const expected: unknown[] = []
+      for (let tick = 0; tick < 6; tick++) {
+        // Tick 0 and after several kicks; the player's role must be the opposite of the one the agent sees.
+        expected.push(penaltyCore.observe(m.state, AGENT_SEAT))
+        const mine = penaltyCore.observe(m.state, HUMAN)
+        const theirs = penaltyCore.observe(m.state, AGENT_SEAT)
+        expect(theirs.seat).toBe(AGENT_SEAT)
+        expect(theirs.role).not.toBeNull()
+        expect(theirs.role).not.toBe(mine.role)
+        m = await playTick(m, spy, () => ((tick * 2 + 1) % 3) as Zone)
+      }
+      expect(seen).toEqual(expected)
+      for (const o of seen as Array<{ seat: number }>) expect(o.seat).toBe(AGENT_SEAT)
+    }
+  })
+
+  test('agentChoose passes the agent seat observation to act, never the human one', async () => {
     const agent = await agentFor('champion', 5)
+    let first: unknown
+    const spy = new Proxy(agent, {
+      get(t, k, r) {
+        if (k === 'act')
+          return async (...args: Parameters<typeof agent.act>) => {
+            first = args[0]
+            return t.act(...args)
+          }
+        return Reflect.get(t, k, r)
+      },
+    })
     const m = startMatch(5)
-    const a = await agentChoose(m, agent)
-    const agent2 = await agentFor('champion', 5)
-    expect(await agentChoose(m, agent2)).toBe(a)
+    await agentChoose(m, spy)
+    expect(first).toEqual(penaltyCore.observe(m.state, AGENT_SEAT))
+    expect(first).not.toEqual(penaltyCore.observe(m.state, HUMAN))
   })
 
   test('one tap selects, a second tap on the same zone commits, a different zone moves the selection', () => {
@@ -152,11 +194,47 @@ describe('penalty match logic', () => {
     expect(lastKickLine(m0, 'Pip')).toBe('')
     const k = m.state.kicks[0]!
     expect(lastKickLine(m, 'Pip')).toMatch(/^You went left\. Pip dived (left|middle|right)\. (Goal|Saved|Wide)\.$/)
-    expect(outcomeWord(k)).toBe(k.goal ? 'Goal' : k.zone === k.dive ? 'Saved' : 'Wide')
     m = await playTick(m, agent, () => 1)
     expect(lastKickLine(m, 'Pip')).toMatch(/^Pip went (left|middle|right)\. You dived middle\. (Goal|Saved|Wide)\.$/)
     const over = await play('easy', 2, cycle)
-    expect(resultLine(over, 'Pip')).toMatch(/^You \d+, Pip \d+$/)
+    const [h, a] = penaltyCore.result(over.state)!.score!
+    expect(resultLine(over, 'Pip')).toBe(`You ${h}, Pip ${a}`)
+  })
+
+  // Hand-built kicks: the words are literal, so a swapped branch or seat cannot hide behind a played match.
+  const withKick = (k: Kick): PenaltyMatch => ({ state: { seed: 1, kicks: [k] }, log: [] })
+  const goal: Kick = { kicker: HUMAN, zone: 0, dive: 2, goal: true }
+  const saved: Kick = { kicker: AGENT_SEAT, zone: 1, dive: 1, goal: false }
+  const wide: Kick = { kicker: HUMAN, zone: 2, dive: 0, goal: false }
+  const goalIntoDive: Kick = { kicker: AGENT_SEAT, zone: 1, dive: 1, goal: true }
+
+  test('outcome word: Goal, Saved, Wide, and a goal wins over zone equals dive', () => {
+    expect(outcomeWord(goal)).toBe('Goal')
+    expect(outcomeWord(saved)).toBe('Saved')
+    expect(outcomeWord(wide)).toBe('Wide')
+    expect(outcomeWord(goalIntoDive)).toBe('Goal')
+  })
+
+  test('last kick line in words for Goal, Saved, Wide and a goal where zone equals dive', () => {
+    expect(lastKickLine(withKick(goal), 'Pip')).toBe('You went left. Pip dived right. Goal.')
+    expect(lastKickLine(withKick(saved), 'Pip')).toBe('Pip went middle. You dived middle. Saved.')
+    expect(lastKickLine(withKick(wide), 'Pip')).toBe('You went right. Pip dived left. Wide.')
+    expect(lastKickLine(withKick(goalIntoDive), 'Pip')).toBe('Pip went middle. You dived middle. Goal.')
+  })
+
+  test('result line puts the player first and matches the core score on a hand-built 3 to 1', () => {
+    // Five rounds, seat 0 kicks first each round: you score 3 of 5, Pip 1 of 5.
+    const ys = [true, true, false, true, false]
+    const ps = [false, true, false, false, false]
+    const kicks: Kick[] = []
+    for (let r = 0; r < 5; r++) {
+      kicks.push({ kicker: HUMAN, zone: 0, dive: 1, goal: ys[r]! })
+      kicks.push({ kicker: AGENT_SEAT, zone: 2, dive: 1, goal: ps[r]! })
+    }
+    const m: PenaltyMatch = { state: { seed: 1, kicks }, log: [] }
+    expect(penaltyCore.terminal(m.state)).toBe(true)
+    expect(penaltyCore.result(m.state)!.score).toEqual([3, 1])
+    expect(resultLine(m, 'Pip')).toBe('You 3, Pip 1')
   })
 
   test('score slots: goal, miss and not taken, and the rows slide in sudden death', async () => {

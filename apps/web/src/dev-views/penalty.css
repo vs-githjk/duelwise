@@ -96,7 +96,8 @@
 .pen-zone[aria-pressed='true'] {
   box-shadow: inset 0 0 0 3px var(--action), inset 0 0 0 calc(40 * var(--u)) rgba(33, 102, 240, 0.22);
 }
-.pen-zone:disabled { cursor: default; }
+.pen-zone:disabled,
+.pen-zone[aria-disabled='true'] { cursor: default; }
 .pen-zone:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; }
 
 /* who picked what, shown the moment a kick is committed */
@@ -118,35 +119,10 @@
   top: calc(78 * var(--u));
   width: calc(36 * var(--u));
   height: calc(56 * var(--u));
+  overflow: visible;
   pointer-events: none;
   transform-origin: 50% 80%;
 }
-.pen-keeper::before { /* head */
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 38%;
-  height: 28%;
-  margin-left: -19%;
-  border-radius: 50%;
-  background: #f3ead8;
-  border: 2px solid #15181e;
-  box-sizing: border-box;
-}
-.pen-keeper::after { /* shirt and gloves */
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 26%;
-  bottom: 0;
-  border-radius: 10px 10px 4px 4px;
-  background: #f2c94c;
-  border: 2px solid #15181e;
-  box-sizing: border-box;
-}
-
 .pen-ball {
   position: absolute;
   left: calc(157 * var(--u));
@@ -175,8 +151,8 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(138 * var(--u));
-  height: calc(40 * var(--u));
+  top: calc(166 * var(--u));
+  height: calc(36 * var(--u));
   display: grid;
   place-items: center;
   font-family: var(--font-display);
@@ -215,7 +191,7 @@
   transform: rotate(-45deg);
 }
 
-.pen-role { height: 28px; line-height: 28px; font-family: var(--font-display); font-size: 18px; }
+.pen-role { height: 28px; line-height: 28px; font-family: var(--font-display); font-size: 18px; white-space: nowrap; overflow: hidden; }
 .pen-bar { height: 56px; display: flex; gap: 8px; }
 .pen-chip {
   width: 96px;
