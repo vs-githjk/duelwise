@@ -380,7 +380,17 @@ describe('slackwater replay', () => {
       expect(out.ok).toBe(true)
     }
     console.log('SW2 replayed random matches holding a pass: ' + withPass + ' of 200 (plus 1 scripted)')
-    expect(withPass + 1).toBeGreaterThan(0)
+    expect(withPass).toBeGreaterThan(0)
+  })
+
+  test('a wipe-out game (one seat left with no discs) replays ok', () => {
+    const game = [37, 43, 34, 29, 20, 45, 38, 44, 52]
+    const out = ok(recordOf(1, game))
+    expect(out.error).toBeUndefined()
+    expect(out.ok).toBe(true)
+    let s = slackCore.init(1)
+    for (const a of game) s = act(s, a)
+    expect(Math.min(count(s, 1), count(s, 2))).toBe(0)
   })
 
   test('a changed action, an action after the end, a removed pass and a wrong final hash are each not ok', () => {
