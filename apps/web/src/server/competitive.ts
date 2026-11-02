@@ -24,8 +24,17 @@ export const notPractice = sql`coalesce((${schema.match.filterFlags}->>'practice
 
 export const notUnplayed = sql`coalesce((${schema.match.filterFlags}->>'unplayed')::boolean, false) = false`
 
-/** Every read that counts a result for anyone's standing adds this: the match was neither left early, played as practice, nor settled as never played. */
-export const competitive = sql`${notLeft} and ${notPractice} and ${notUnplayed}`
+/**
+ * A sealed turn match the server's own log says the player won, settled by giving up (resign, abandon sweep, over-cap sweep) before the
+ * player saw the end. Only a resigned or abandoned row is left out; a win that was uploaded and finished keeps counting. The player won, so it moves no rating either way, and it is not a loss on any record. The turn handler writes the
+ * marker with the terminal log; resign derives it from the log itself.
+ */
+export const LOGGED_WIN_FLAG = 'loggedWin'
+
+export const notLoggedWin = sql`not (${schema.match.status} in ('resigned', 'abandoned') and coalesce((${schema.match.filterFlags}->>'loggedWin')::boolean, false))`
+
+/** Every read that counts a result for anyone's standing adds this: the match was neither left early, played as practice, settled as never played, nor given up after the log already said the player won. */
+export const competitive = sql`${notLeft} and ${notPractice} and ${notUnplayed} and ${notLoggedWin}`
 
 /** Whether a stored match row was started as practice. */
 export function isPractice(flags: unknown): boolean {
@@ -64,12 +73,25 @@ export function isUnplayed(game: string, flags: unknown): boolean {
 
 const sealedTurnGames = sql.join(SEALED_TURN_GAMES.map((g) => sql`${g}`), sql`, `)
 
-/** The new filterFlags of a row that is being settled by a rewrite (abandoned): the given flags, plus the practice marker the row already had, plus the unplayed marker of a sealed row with no setup. */
+/**
+ * What a settling rewrite keeps of a sealed turn row's own flags: the hidden setup and shots (`sealedLog`, server only, kept so a later
+ * per-player memory can read them) and the logged-win marker. Other games carry nothing, so their flags are unchanged.
+ */
+export function keptSealedFlags(game: string, flags: unknown): Record<string, unknown> {
+  if (!SEALED_TURN_GAMES.some((g) => g === game) || typeof flags !== 'object' || flags === null) return {}
+  const f = flags as Record<string, unknown>
+  return { ...(f.sealedLog !== undefined ? { sealedLog: f.sealedLog } : {}), ...(f[LOGGED_WIN_FLAG] === true ? { [LOGGED_WIN_FLAG]: true } : {}) }
+}
+
+/** The new filterFlags of a row that is being settled by a rewrite (abandoned): the given flags, plus the practice marker the row already had, plus the unplayed marker of a sealed row with no setup, plus what keptSealedFlags keeps. */
 export const withPractice = (flags: Record<string, unknown>) =>
-  sql`${JSON.stringify(flags)}::jsonb || case when coalesce((${schema.match.filterFlags}->>'practice')::boolean, false) then '{"practice":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) <= ${SEALED_SETUP_TICKS} then '{"unplayed":true}'::jsonb else '{}'::jsonb end`
+  sql`${JSON.stringify(flags)}::jsonb || case when coalesce((${schema.match.filterFlags}->>'practice')::boolean, false) then '{"practice":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) <= ${SEALED_SETUP_TICKS} then '{"unplayed":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and ${schema.match.filterFlags}->'sealedLog' is not null then jsonb_build_object('sealedLog', ${schema.match.filterFlags}->'sealedLog') else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and coalesce((${schema.match.filterFlags}->>'loggedWin')::boolean, false) then '{"loggedWin":true}'::jsonb else '{}'::jsonb end`
 
 /** For RETURNING: whether the row was started as practice. */
 export const practiceColumn = sql<boolean>`coalesce((${schema.match.filterFlags}->>'practice')::boolean, false)`
 
 /** For RETURNING after withPractice: whether the row was a sealed match that never got its setup. */
 export const unplayedColumn = sql<boolean>`coalesce((${schema.match.filterFlags}->>'unplayed')::boolean, false)`
+
+/** For RETURNING after withPractice: whether the row was a sealed match the log said the player won. */
+export const loggedWinColumn = sql<boolean>`coalesce((${schema.match.filterFlags}->>'loggedWin')::boolean, false)`

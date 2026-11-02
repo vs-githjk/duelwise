@@ -6,7 +6,8 @@ import type { Caller, FinishOptions, HandlerResponse } from './match-handlers'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
-import { isPractice, isUnplayed, PRACTICE_FLAG, sealedLogStill, UNPLAYED_FLAG } from './competitive'
+import { loggedOutcome } from '@duelwise/core/src/sealed-log'
+import { isPractice, isUnplayed, keptSealedFlags, LOGGED_WIN_FLAG, PRACTICE_FLAG, sealedLogStill, UNPLAYED_FLAG } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -42,6 +43,7 @@ export async function resignMatchHandler(
   // stored log is still the one the decision read; otherwise it reads again. A sealed log grows by one shot per turn and each read sees the latest.
   let row: typeof schema.match.$inferSelect
   let unplayed: boolean
+  let wonBefore: boolean
   for (;;) {
     const read = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)).limit(1))[0]
     if (!read) return err(404, 'unknown match')
@@ -51,14 +53,17 @@ export async function resignMatchHandler(
 
     // A sealed match whose setup never reached the server was never played and revealed nothing: ending it costs no rating.
     const notPlayed = isUnplayed(read.game, read.filterFlags)
+    // The server's own log may already say the player won (the winning shot stored, the reply lost): giving up then costs nothing.
+    const won = loggedOutcome(read.game as GameId, read.seed, read.filterFlags)?.result?.winner === 0
     const updated = await db
       .update(schema.match)
-      .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(read.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(notPlayed ? { [UNPLAYED_FLAG]: true } : {}) }, finishedAt: new Date() })
+      .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(read.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(notPlayed ? { [UNPLAYED_FLAG]: true } : {}), ...keptSealedFlags(read.game, read.filterFlags), ...(won ? { [LOGGED_WIN_FLAG]: true } : {}) }, finishedAt: new Date() })
       .where(and(eq(schema.match.id, read.id), eq(schema.match.status, 'started'), sealedLogStill(read.filterFlags)))
       .returning({ id: schema.match.id })
     if (updated.length > 0) {
       row = read
       unplayed = notPlayed
+      wonBefore = won
       break
     }
     // Nothing was written: the row was settled (the next read says so) or the log grew (the next read decides again).
@@ -73,8 +78,8 @@ export async function resignMatchHandler(
     durationMs: Math.max(0, Date.now() - row.startedAt.getTime()),
   })
 
-  // A practice match moves no rating, so a resignation costs nothing.
-  if (!row.userId || isPractice(row.filterFlags) || unplayed) return { status: 200, body: { resigned: true, ...(unplayed ? { unplayed: true } : {}) } }
+  // A practice match moves no rating, so a resignation costs nothing; neither does one after the log says the player won.
+  if (!row.userId || isPractice(row.filterFlags) || unplayed || wonBefore) return { status: 200, body: { resigned: true, ...(unplayed ? { unplayed: true } : {}) } }
   const change = await applyRatingIfRanked(db, {
     userId: row.userId,
     game: row.game as GameId,

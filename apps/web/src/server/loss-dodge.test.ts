@@ -17,6 +17,7 @@ import { fakeAgent, play } from './agent-check-fixtures'
 import { finishMatchHandler, startMatchHandler, type FinishOptions } from './match-handlers'
 import { getUserRating } from './leaderboard'
 import { getPath } from './path'
+import { getMyRecord } from './landing'
 import { resignMatchHandler } from './resign'
 import { finishedResults } from './results'
 import { FLEET_SPEC, sealedTurnHandler, type SealedSpec, type SealedTurnBody } from './sealed-duel'
@@ -674,6 +675,94 @@ describe('Stormglass: the seed is revealed after a loss, so the server\'s own lo
     expect((await resignMatchHandler(db, { matchId: m.matchId, tick: 3 }, USER, CHECKED)).status).toBe(409)
     await abandonStale(db, new Date(Date.now() + 1e9), CHECKED)
     expect(await ratingOf('fleet')).toEqual(rating)
+  })
+
+  describe('a match the server\'s log says the player won is never charged by resign or either abandon sweep', () => {
+    /** The winning shot is stored but the player never learned it (tab closed, both replies lost, Resign pressed while thinking). */
+    async function wonUnseen(who: Who = USER, extra: Record<string, unknown> = {}) {
+      const m = await begin('fleet', who, 21, extra)
+      const { last } = await shoot(m, cellsOf(THEIRS), waterOf(MINE), 17, who)
+      expect(last.over).toBe(true)
+      return m
+    }
+    const FAR = () => new Date(Date.now() + 1e9)
+    /** The row keeps the hidden setup for later, and neither the record nor the competitive reads show it. */
+    async function expectKept(id: string, status: 'resigned' | 'abandoned') {
+      const row = await rowOf(id)
+      expect(row.status).toBe(status)
+      expect((row.filterFlags as { sealedLog?: { human: number[] } }).sealedLog?.human.length).toBeGreaterThan(5)
+      expect(row.filterFlags).toMatchObject({ loggedWin: true })
+      const rec = await getMyRecord(db, USER.userId)
+      expect(rec.perGame).toEqual([])
+      expect(rec.recent).toEqual([])
+      expect(JSON.stringify(rec)).not.toContain('sealedLog')
+    }
+
+    test('resign: no rating, no charge, the row says so', async () => {
+      const m = await wonUnseen()
+      const r = await resignMatchHandler(db, { matchId: m.matchId, tick: 40 }, USER, CHECKED)
+      expect(r.status).toBe(200)
+      expect(r.body).toEqual({ resigned: true })
+      await noRating()
+      await expectKept(m.matchId, 'resigned')
+    })
+
+    test('an honest win that was uploaded still counts on the record', async () => {
+      const { m, rec } = await wonGame()
+      expect((await rowOf(m.matchId)).filterFlags).toMatchObject({ loggedWin: true })
+      expect(((await finish(rec)).body as { valid: boolean }).valid).toBe(true)
+      expect((await getMyRecord(db, USER.userId)).perGame).toMatchObject([{ game: 'fleet', total: 1, won: 1 }])
+    })
+
+    test('resign still charges a match that is running, and keeps its log', async () => {
+      const price = await fleetPrice()
+      const m = await begin('fleet')
+      await shoot(m, waterOf(THEIRS), cellsOf(MINE), 2)
+      const r = await resignMatchHandler(db, { matchId: m.matchId, tick: 9 }, USER, CHECKED)
+      expect(r.body).toMatchObject({ resigned: true, elo: { before: 1000, after: price } })
+      const row = await rowOf(m.matchId)
+      expect(row.filterFlags).toMatchObject({ resigned: true, resignTick: 9 })
+      expect((row.filterFlags as Record<string, unknown>).loggedWin).toBeUndefined()
+      expect((row.filterFlags as { sealedLog?: unknown }).sealedLog).toBeDefined()
+    })
+
+    test('the stale abandon sweep: no rating, the row says so', async () => {
+      const m = await wonUnseen()
+      expect(await abandonStale(db, FAR(), CHECKED)).toBe(1)
+      await noRating()
+      await expectKept(m.matchId, 'abandoned')
+    })
+
+    test('the over-cap sweep (three new starts): no rating, the row says so', async () => {
+      const m = await wonUnseen()
+      for (let i = 0; i < 3; i++) await begin('word')
+      expect((await rowOf(m.matchId)).status).toBe('abandoned')
+      await noRating()
+      await expectKept(m.matchId, 'abandoned')
+    })
+
+    test('the sweeps still charge a match that is running, and keep its log', async () => {
+      const price = await fleetPrice()
+      const m = await begin('fleet')
+      await shoot(m, waterOf(THEIRS), cellsOf(MINE), 2)
+      expect(await abandonStale(db, FAR(), CHECKED)).toBe(1)
+      expect((await ratingOf('fleet'))!.elo).toBe(price)
+      const row = await rowOf(m.matchId)
+      expect(row.status).toBe('abandoned')
+      expect((row.filterFlags as { sealedLog?: unknown }).sealedLog).toBeDefined()
+      expect((row.filterFlags as Record<string, unknown>).loggedWin).toBeUndefined()
+      expect((await getMyRecord(db, USER.userId)).perGame).toMatchObject([{ game: 'fleet', total: 1, won: 0 }])
+    })
+
+    test('a practice win left behind and a flag-free game keep their old flags', async () => {
+      const p = await wonUnseen(USER, { practice: true })
+      await abandonStale(db, FAR(), CHECKED)
+      expect((await rowOf(p.matchId)).filterFlags).toMatchObject({ abandoned: true, practice: true })
+      const f = await begin('four')
+      await abandonStale(db, FAR(), CHECKED)
+      expect((await rowOf(f.matchId)).filterFlags).toEqual({ abandoned: true })
+      await resignMatchHandler(db, { matchId: (await begin('four')).matchId, tick: 2 }, USER, CHECKED)
+    })
   })
 
   describe('never charged', () => {

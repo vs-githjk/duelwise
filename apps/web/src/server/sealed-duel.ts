@@ -7,6 +7,7 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
 import { chooseFleetAction } from '@duelwise/agents/src/fleet/agent'
 import * as schema from '../db/schema'
+import { LOGGED_WIN_FLAG } from './competitive'
 import { sameCaller, type Caller, type HandlerResponse } from './match-handlers'
 
 export { recordMatchesLog } from '@duelwise/core/src/sealed-log'
@@ -116,7 +117,8 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
   // Compare-and-set on the stored length: parallel requests cannot each add a different action to the same turn.
   const written = await db
     .update(schema.match)
-    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent } satisfies SealedLog } })
+    // A terminal log the player won also gets a marker, so a settling rewrite (the abandon sweeps) can see it without playing the log.
+    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent } satisfies SealedLog, ...(core.terminal(run.state) && core.result(run.state)?.winner === 0 ? { [LOGGED_WIN_FLAG]: true } : {}) } })
     .where(
       and(
         eq(schema.match.id, row.id),
