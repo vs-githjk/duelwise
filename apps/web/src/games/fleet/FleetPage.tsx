@@ -620,9 +620,14 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
   const pageTurn = started ? turn : 'setup'
 
-  // Start match is tapped far down the setup page; the match page is a different layout, so start it from the top rather than wherever the scroll was left.
+  // Start match is tapped far down the setup page; the match page is a different layout, so start it at its HUD rather than wherever the scroll was
+  // left or at the very top: the header and the training notice above it would push the board below the fold on a phone. Instant, so reduced motion has nothing to skip.
+  const hudRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (started) window.scrollTo(0, 0)
+    if (!started) return
+    const hud = hudRef.current
+    if (hud) window.scrollTo({ top: Math.max(0, hud.getBoundingClientRect().top + window.scrollY), left: 0, behavior: 'instant' })
+    else window.scrollTo(0, 0)
   }, [started])
 
   const won = !!view && !resigned && viewWon(view)
@@ -816,7 +821,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         </>
       ) : (
         <>
-          <div data-testid="fleet-hud">
+          <div ref={hudRef} data-testid="fleet-hud">
             <PlayHud turn={turn} swatch="bg-hull" />
           </div>
 

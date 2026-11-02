@@ -580,13 +580,40 @@ test.describe('fleet play details', () => {
     await expect(page.getByTestId('fleet-left-line')).toHaveCount(0)
   })
 
+  test('a match opens at its HUD: HUD, board, Fire and your map are on the first screen of a phone, with the training notice shown and dismissed', async ({ page }) => {
+    // Needed on screen: the top of the HUD down through the bottom of Fire is the always-on part; your map fits whole at 844 and 740 tall and is within 24 px of it at 664.
+    const NEED: Array<[number, number, number]> = [[390, 844, 0], [390, 664, 24], [360, 740, 0]]
+    for (const [w, h, mapSlack] of NEED) {
+      for (const dismissed of [false, true]) {
+        await page.setViewportSize({ width: w, height: h })
+        await page.addInitScript((hide) => {
+          try {
+            if (hide) localStorage.setItem('duelwise.notice-hidden.fleet', '1')
+            else localStorage.removeItem('duelwise.notice-hidden.fleet')
+          } catch {}
+        }, dismissed)
+        await page.goto('/play/stormglass?hold=0')
+        await expect(page.getByTestId('fleet-ready')).toBeVisible()
+        await page.getByTestId('fleet-ready').click()
+        await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+        const box = async (id: string) => (await page.getByTestId(id).first().boundingBox())!
+        const hud = await box('fleet-hud')
+        const fire = await box('fleet-fire')
+        const own = await box('fleet-own')
+        expect.soft(hud.y, `${w}x${h} dismissed=${dismissed}: HUD at the top`).toBeLessThan(8)
+        expect.soft(fire.y + fire.height, `${w}x${h} dismissed=${dismissed}: Fire on screen`).toBeLessThanOrEqual(h)
+        expect.soft(own.y + own.height, `${w}x${h} dismissed=${dismissed}: your map on screen (at most ${mapSlack}px of its card below the fold)`).toBeLessThanOrEqual(h + mapSlack)
+      }
+    }
+  })
+
   test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     for (const path of ['/', '/play/chess']) {
       await page.goto(path)
       await page.waitForLoadState('networkidle')
       await context.setOffline(true)
-      await expect(page.getByTestId('offline-chip')).toBeVisible()
+      await expect(page.getByTestId('offline-chip')).toHaveText('Offline: matches will sync later')
       const chip = (await page.getByTestId('offline-chip').boundingBox())!
       expect(chip.x).toBeLessThan(20)
       expect(chip.y + chip.height).toBeGreaterThan(844 - 20)
@@ -600,7 +627,7 @@ test.describe('fleet play details', () => {
     await expect(page.getByTestId('fleet-ready')).toHaveText(/^Start match vs/)
     await context.setOffline(true)
     const ready = page.getByTestId('fleet-ready')
-    await expect(page.getByTestId('offline-chip')).toBeVisible()
+    await expect(page.getByTestId('offline-chip')).toHaveText('Offline: Practice only')
     await expect(page.getByTestId('fleet-offline-line')).toBeVisible()
     await expect(ready).toBeDisabled()
     await expect(ready).toHaveText('Rated needs a connection')

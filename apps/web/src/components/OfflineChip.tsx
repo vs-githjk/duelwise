@@ -32,7 +32,7 @@ export function OfflineChip() {
   if (online) return null
   return (
     <p role="status" data-testid="offline-chip" className={`fixed z-50 rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow ${onStormglass ? CHIP_TOP : CHIP_CORNER}`}>
-      Offline: matches will sync later
+      {onStormglass ? 'Offline: Practice only' : 'Offline: matches will sync later'}
     </p>
   )
 }

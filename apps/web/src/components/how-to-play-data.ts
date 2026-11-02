@@ -41,7 +41,7 @@ export const guides: Record<GameId, Guide> = {
   fleet: {
     goal: 'Sink all five of the other fleet before yours goes down.',
     steps: ['Place five ships on your grid: lengths 5, 4, 3, 3 and 2. Tap a ship, then tap where its front goes. Rotate switches across and down. Shuffle fleet does it in one tap.', 'Take turns firing at the other grid. Tap a square to aim, then tap it again or press Fire.', 'A flame means a hit, a grey dot means a miss. When every square of a ship is hit, it is sunk and shown in full.', 'The fleet tally shows which of their ships are still afloat.'],
-    controls: [{ keys: 'Touch or mouse', action: 'tap a square to aim, tap again or press Fire to shoot' }, { keys: 'Enter or Space', action: 'aim, then fire' }],
+    controls: [{ keys: 'Touch or mouse', action: 'tap a square to aim, tap again or press Fire to shoot' }, { keys: 'Enter or Space', action: 'aim, then fire' }, { keys: 'Arrow keys', action: 'move between squares on a grid' }, { keys: 'R', action: 'rotate the ship you are placing' }],
     win: 'Sink all five ships first. The first fleet to go down loses, so there are no draws.', tip: 'Their smallest ship is 2 long: when only it is left, it hides in the gaps you have not checked.',
   },
 }

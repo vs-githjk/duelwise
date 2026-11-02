@@ -23,6 +23,14 @@ describe('report copy', () => {
     }
   })
 
+  test('Stormglass is a scripted solver with nothing to train: no "yet"; other games keep it', () => {
+    const l = { state: 'not_used', reason: 'not_learning' } as const
+    expect(learningCopy(l, 'Vesper', 'fleet').text).toBe('Vesper is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.')
+    expect(learningCopy(l, 'Vesper', 'fleet').text).not.toMatch(/yet/)
+    expect(learningCopy(l, 'Pip', 'four').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
+    expect(learningCopy(l, 'Pip').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
+  })
+
   test('the share note says what the page and the card show, and what stays private', () => {
     const t = shareControlsNote('Marlow', { signedIn: true, linkPublic: true })
     expect(t).toMatch(/result/)

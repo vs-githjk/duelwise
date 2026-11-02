@@ -196,7 +196,7 @@ function PublicSide({ game }: { game: GameId }) {
 function OwnerSide({ view, delta, link }: { view: ReportView; delta: number | null; link: string }) {
   const owner = view.owner!
   const persona = personaFor(view.level)
-  const learn = learningCopy(owner.learning, persona.name)
+  const learn = learningCopy(owner.learning, persona.name, view.game)
   return (
     <>
       {owner.rating && delta !== null ? (

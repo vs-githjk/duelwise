@@ -20,7 +20,7 @@ export function duration(ms: number): string {
 }
 
 /** Plain words for what became of the match with respect to training. Never says more than the row proves. */
-export function learningCopy(l: Learning, persona: string): { title: string; text: string; tone: 'good' | 'neutral' | 'warn' } {
+export function learningCopy(l: Learning, persona: string, game?: GameId): { title: string; text: string; tone: 'good' | 'neutral' | 'warn' } {
   if (l.state === 'stored') {
     return {
       title: 'Stored for training',
@@ -34,6 +34,8 @@ export function learningCopy(l: Learning, persona: string): { title: string; tex
   if (l.state === 'stats_only') {
     return { title: 'Stats only', text: 'You turned training off, so this match is kept for your report and rating and never used to train. Change this in Settings.', tone: 'neutral' }
   }
+  // Stormglass is a scripted solver: it can never train, so "yet" would promise something that cannot happen.
+  if (l.reason === 'not_learning' && game === 'fleet') return { title: 'Not used for training', text: `${persona} is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'not_learning') return { title: 'Not used for training', text: `${persona} does not learn from human matches yet, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'resigned') return { title: 'Not used for training', text: 'Resigned matches are never used for training.', tone: 'warn' }
   if (l.reason === 'abandoned') return { title: 'Not used for training', text: 'Matches that were left unfinished are never used for training.', tone: 'warn' }

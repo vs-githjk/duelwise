@@ -139,10 +139,17 @@ export function learnsNote(f: { learns: boolean; hasLearned: boolean; pretrainin
 
 /** The privacy page sentence naming every game whose matches are not used for training, built from the registries. */
 export function notTrainedSentence(registries: Partial<Record<GameId, Pick<Registry, 'learnsFromHumans'> | null>>): string {
-  const names = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !recordsTrainable(g, registries[g] ?? null)).map((g) => PRODUCT.games[g].displayName)
-  if (names.length === 0) return 'Every game\'s agent learns from filtered human matches.'
-  const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-  return `${list} matches are not used for training at present: ${names.length === 1 ? 'that agent does' : 'those agents do'} not learn from human matches yet.`
+  const off = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !recordsTrainable(g, registries[g] ?? null))
+  if (off.length === 0) return 'Every game\'s agent learns from filtered human matches.'
+  const nameOf = (g: GameId) => PRODUCT.games[g].displayName
+  const join = (names: string[]) => (names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
+  // A scripted solver can never train, so it is not promised ("yet") like an agent that may learn later.
+  const later = off.filter((g) => !isScripted(g)).map(nameOf)
+  const solvers = off.filter(isScripted).map(nameOf)
+  const solver = solvers.length === 0 ? '' : `${join(solvers)} ${solvers.length === 1 ? 'is a scripted solver' : 'are scripted solvers'} with nothing to train.`
+  if (later.length === 0) return `${join(solvers)} matches are not used for training at present: ${solver}`
+  const head = `${join(later)} matches are not used for training at present: ${later.length === 1 ? 'that agent does' : 'those agents do'} not learn from human matches yet.`
+  return solver ? `${head} ${solver}` : head
 }
 
 const RECORD = 'a replayable record (the inputs and the result, never your name or email)'
