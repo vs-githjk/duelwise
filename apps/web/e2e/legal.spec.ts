@@ -2,6 +2,17 @@ import { expect, test } from '@playwright/test'
 
 const BANNED = /Beat Me|Street Fighter|Counter-Strike|Wordle|Connect Four|\u2014|\u2013/
 
+test('the terms and the landing page name every game the server holds, and say when Stormglass practice runs in the browser', async ({ page }) => {
+  await page.goto('/terms')
+  const hidden = page.getByTestId('terms-hidden-info')
+  await expect(hidden).toContainText('in a counted Word Duel match the server keeps')
+  await expect(hidden).toContainText('in a counted Stormglass match the server keeps the enemy fleet until the end')
+  await expect(hidden).toContainText('A connected Stormglass practice match is held on the server too')
+  await expect(hidden).toContainText('runs in your browser only when you are offline')
+  await page.goto('/')
+  await expect(page.getByText('in a counted Word Duel or Stormglass match the server holds the hidden side')).toBeVisible()
+})
+
 test.describe('privacy notice matches the legitimate-interest basis', () => {
   test('says what is stored and not, why, how to opt out, how to delete, and the hold\'em caveats', async ({ page }) => {
     await page.goto('/privacy')

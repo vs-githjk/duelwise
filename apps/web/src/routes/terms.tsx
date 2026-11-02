@@ -22,7 +22,7 @@ function Page() {
       <section className="grid gap-2" data-testid="terms-hidden-info">
         <h2 className="font-display text-display-sm">Hidden information and fair play</h2>
         <p className="text-muted">
-          In practice matches the agents run in your browser, so the page holds the full state of a match (in a counted Word Duel match the server keeps the opponent's words until the end). A determined person can read the agent's cards or position from memory. Do not do that and then count the result as a win: it is your game to enjoy. Matches that look automated or scripted may be left out of ratings and out of training.
+          In practice matches the agents run in your browser, so the page holds the full state of a match. Two games differ: in a counted Word Duel match the server keeps the opponent's words until the end, and in a counted Stormglass match the server keeps the enemy fleet until the end. A connected Stormglass practice match is held on the server too, and a Stormglass practice match runs in your browser only when you are offline. A determined person can read the agent's cards or position from memory. Do not do that and then count the result as a win: it is your game to enjoy. Matches that look automated or scripted may be left out of ratings and out of training.
         </p>
       </section>
 

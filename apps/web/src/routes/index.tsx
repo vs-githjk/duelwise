@@ -38,7 +38,7 @@ function Landing() {
             <GameInfoCard key={c.game} card={c} />
           ))}
         </ul>
-        <p className="text-sm text-muted">Press Step in above to choose one. Unrated matches run in your browser; in a counted Word Duel match the server picks the opponent's words so nobody can see them early. A level shows Practice until it passes our strength test.</p>
+        <p className="text-sm text-muted">Press Step in above to choose one. Unrated matches run in your browser; in a counted Word Duel or Stormglass match the server holds the hidden side, the opponent's words or the enemy fleet, so nobody can see it early. A level shows Practice until it passes our strength test.</p>
       </section>
       <section className="grid gap-4" aria-labelledby="path-h" data-testid="landing-path">
         <h2 id="path-h" className="font-display text-display-md">
