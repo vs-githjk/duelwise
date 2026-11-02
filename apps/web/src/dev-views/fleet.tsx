@@ -27,9 +27,9 @@ import {
   type FleetMatch,
 } from './fleet-match'
 
-// Stormglass (internal id fleet), the dev page. Served only at /dev/fleet on a dev server and never in the games list.
+// Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
-// The water and hull colours are the spec's section 1 tokens, scoped to this page until the tokens file gets them at promotion (F7).
+// The water and hull colours are the spec's section 1 tokens, now also in the tokens file (F7); kept here as the page's own fallbacks.
 
 const BASE = '/assets/ui/kenney'
 registerSounds({

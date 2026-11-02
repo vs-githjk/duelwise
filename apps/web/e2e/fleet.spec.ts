@@ -1,14 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// Stormglass dev page (internal id fleet): playable at /dev/fleet on a dev server, invisible to players.
+// Stormglass dev page (internal id fleet): playable at /dev/fleet on a dev server and, since promotion, at /play/stormglass for players.
 // ?hold=0 removes the opponent's 700 ms pause so a whole match fits in the test timeout.
 test.use({ viewport: { width: 360, height: 780 } })
 
-test.describe('fleet dev page', () => {
-  test('is not in the games list and has no play route', async ({ page }) => {
+test.describe('fleet dev page and promotion', () => {
+  test('is promoted: listed on /play, played at /play/stormglass, no route at the internal id', async ({ page }) => {
     await page.goto('/play')
     await expect(page.getByRole('heading', { name: 'Chess' }).first()).toBeVisible()
-    await expect(page.getByText(/stormglass/i)).toHaveCount(0)
+    await expect(page.getByText(/stormglass/i).first()).toBeVisible()
+    await page.goto('/play/stormglass')
+    await expect(page.getByTestId('fleet-page')).toBeVisible()
     await page.goto('/play/fleet')
     await expect(page.getByTestId('fleet-page')).toHaveCount(0)
   })
