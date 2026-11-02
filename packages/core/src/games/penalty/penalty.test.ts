@@ -105,6 +105,11 @@ describe('penalty core: roles and kicks', () => {
     const miss = (zone: Zone, dive: Zone): PenaltyState => ({ seed: 0, kicks: [{ kicker: 0, zone, dive, goal: false }] })
     expect(core.observe(miss(1, 1), 0).kicks[0].outcome).toBe('save')
     expect(core.observe(miss(0, 2), 0).kicks[0].outcome).toBe('wide')
+    // A goal with matching zones (table cells 50 and 100 per mille) is still a goal.
+    const hit = (zone: Zone, dive: Zone): PenaltyState => ({ seed: 0, kicks: [{ kicker: 0, zone, dive, goal: true }] })
+    expect(core.observe(hit(1, 1), 0).kicks[0].outcome).toBe('goal')
+    expect(core.observe(hit(0, 0), 0).kicks[0].outcome).toBe('goal')
+    expect(core.observe(hit(1, 1), 0).goals).toEqual([1, 0])
   })
 
   test('observe carries nothing about the seed or any roll', () => {
@@ -174,12 +179,37 @@ describe('penalty core: when it ends', () => {
 
   test('a draw after EXTRA_ROUNDS of sudden death', () => {
     const all = Array.from({ length: 2 * (KICKS + EXTRA_ROUNDS) }, () => F)
+    // 32 level kicks (one round short): not terminal, both seats still act.
+    const short = withGoals(all.slice(0, -2))
+    expect(short.kicks.length).toBe(2 * (KICKS + EXTRA_ROUNDS) - 2)
+    expect(core.terminal(short)).toBe(false)
+    expect(core.toAct(short)).toEqual([0, 1])
     const almost = withGoals(all.slice(0, -1))
     expect(core.terminal(almost)).toBe(false)
     const drawn = withGoals(all)
     expect(core.terminal(drawn)).toBe(true)
     expect(core.result(drawn)).toEqual({ winner: null, score: [0, 0], reason: 'level after sudden death' })
     expect(core.toAct(drawn)).toEqual([])
+  })
+
+  test('round and sudden at the boundaries', () => {
+    // 8 level kicks: round 5, not sudden.
+    const eight = withGoals([F, F, F, F, F, F, F, F])
+    expect(core.observe(eight, 0).round).toBe(KICKS)
+    expect(core.observe(eight, 0).sudden).toBe(false)
+    // A normal 10-kick win: round 5, not sudden.
+    const won = fromSeats([T, F, F, F, F], [F, F, F, F, F])
+    const ow = core.observe(won, 0)
+    expect(ow.over).toBe(true)
+    expect(ow.round).toBe(KICKS)
+    expect(ow.sudden).toBe(false)
+    // A 12-kick finish: round 6, sudden.
+    const level = fromSeats([T, F, F, F, F], [T, F, F, F, F])
+    const fin = withGoals([...level.kicks.map((k) => k.goal), T, F])
+    const of = core.observe(fin, 0)
+    expect(of.over).toBe(true)
+    expect(of.round).toBe(KICKS + 1)
+    expect(of.sudden).toBe(true)
   })
 
   test('result is null until over', () => {
@@ -236,10 +266,28 @@ describe('penalty core: goal table and seed', () => {
     expect(seqs.size).toBeGreaterThan(5)
   })
 
-  test('the roll belongs to the kick index: the same seed gives the same kick whatever came before', () => {
-    const a = play(core.init(42), 0, 0)
-    const b = play(core.init(42), 0, 0)
-    expect(a.kicks[0]).toEqual(b.kicks[0])
+  test('the roll belongs to the kick index: it follows the plan formula and ignores earlier kicks', () => {
+    const want = (seed: number, k: number, zone: Zone, dive: Zone) =>
+      makeRng((seed ^ Math.imul(k + 1, 0x85ebca6b)) | 0).int(1000) < GOAL_PER_MILLE[zone][dive]
+    for (const seed of [1, 42, 977, 123456, -5]) {
+      for (const k of [1, 3, 6, 9]) {
+        for (const zone of [0, 1, 2] as Zone[]) {
+          for (const dive of [0, 1, 2] as Zone[]) {
+            // Two different histories of k kicks with the same seed (zones and goal flags differ).
+            const histA: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal: false }))
+            const histB: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 2, dive: 2, goal: i % 2 === 0 }))
+            // Keep both live: only step when not over.
+            if (core.terminal({ seed, kicks: histA }) || core.terminal({ seed, kicks: histB })) continue
+            const kicker = (k % 2) as 0 | 1
+            const acts: [Zone, Zone] = kicker === 0 ? [zone, dive] : [dive, zone]
+            const a = core.step({ seed, kicks: histA }, acts).kicks[k]
+            const b = core.step({ seed, kicks: histB }, acts).kicks[k]
+            expect(a.goal).toBe(b.goal)
+            expect(a.goal).toBe(want(seed, k, zone, dive))
+          }
+        }
+      }
+    }
   })
 })
 
