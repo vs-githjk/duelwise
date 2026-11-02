@@ -14,8 +14,9 @@ const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
 
 /** The server, without a database: the same replay the real handler does (buildSealedLog), the same refusals the engine must never trigger. */
-function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; failFirstOf?: number; loseReplyAt?: number; refuseAt?: number } = {}) {
-  let stored: { human: number[]; agent: number[] } = { human: [], agent: [] }
+function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; failFirstOf?: number; loseReplyAt?: number; refuseAt?: number; agentSetup?: number[] } = {}) {
+  // The opponent's hiding places come from the CSPRNG, not the seed; a test that must know them hands the same setup to a second server.
+  let stored: { human: number[]; agent: number[] } = { human: [], agent: opts.agentSetup ?? [] }
   const calls: number[][] = []
   const replies: FleetTurnReply[] = []
   let failures = 0
@@ -326,6 +327,118 @@ describe('counted match through the engine', () => {
       expect(server.calls).toHaveLength(before)
     }
     expect(shotCode(10)).toBe(210)
+  })
+})
+
+describe('the final reply of a counted match paints before the record work', () => {
+  /** An engine whose "next paint" is a gate the test opens, over a server whose enemy fleet is known from a first full run. */
+  async function gated(opts: { hold?: number } = {}) {
+    // A pilot run learns where the fixed-seed enemy hides, so a win and a loss can both be scripted.
+    const pilot = fakeServer()
+    const p = engineFor(SEALED, pilot)
+    await p.engine.start('easy', FLEET)
+    await playOut(p.engine)
+    const enemy = p.engine.snapshot().view!.reveal as Placement[]
+    const ship = new Set(enemy.flatMap((q) => shipCells(q)))
+    const gate = { open: () => {}, waits: 0 }
+    const server = fakeServer({ agentSetup: pilot.stored().agent.slice(0, SHIPS.length) })
+    const r = fakeRecorder(SEALED)
+    const snaps: FleetSnapshot[] = []
+    const slept: number[] = []
+    const engine = createFleetEngine({
+      recorder: () => r.port,
+      fetchTurn: server.fetchTurn,
+      hold: opts.hold ?? 0,
+      sleep: async (ms) => { slept.push(ms) },
+      nextPaint: () => { gate.waits++; return new Promise<void>((res) => { gate.open = res }) },
+      onChange: (x) => snaps.push(x),
+      trainingAllowed: false,
+    })
+    return { engine, snaps, log: r.log, gate, server, slept, ship, water: Array.from({ length: 100 }, (_, c) => c).filter((c) => !ship.has(c)), hits: [...ship] }
+  }
+  const lastOf = async (g: Awaited<ReturnType<typeof gated>>, order: number[]) => {
+    await g.engine.start('easy', FLEET)
+    // All but the last shot go through with the gate open; the last one waits at the paint.
+    for (const cell of order.slice(0, -1)) {
+      const t = g.engine.fire(cell)
+      await Promise.resolve()
+      g.gate.open()
+      await t
+    }
+    return g.engine.fire(order.at(-1)!)
+  }
+
+  test('a winning last shot: the final board is emitted first with Fire still off and no reveal, the record waits for the paint, then the match is over', async () => {
+    const g = await gated()
+    const order = g.hits
+    const done = lastOf(g, order)
+    // Let the last request resolve and reach the paint wait.
+    for (let i = 0; i < 20 && g.gate.waits === 0; i++) await new Promise((r) => setTimeout(r, 0))
+    const mid = g.engine.snapshot()
+    expect(mid.phase).toBe('play')
+    expect(mid.thinking).toBe(true)
+    expect(mid.view!.shots).toHaveLength(order.length)
+    expect(mid.view!.sunk).toHaveLength(5)
+    expect(mid.view!.reveal).toBeNull()
+    expect(g.log.finished).toBeNull()
+    g.gate.open()
+    await done
+    expect(g.engine.snapshot().phase).toBe('over')
+    expect(g.engine.snapshot().view!.reveal).not.toBeNull()
+    expect(g.log.finished).not.toBeNull()
+  })
+
+  test('Resign pressed while it waits for the paint: nothing is recorded as finished, the recorder hears the resign once, and the screen stays resigned', async () => {
+    const g = await gated()
+    const done = lastOf(g, g.hits)
+    for (let i = 0; i < 20 && g.gate.waits === 0; i++) await new Promise((r) => setTimeout(r, 0))
+    await g.engine.resign()
+    g.gate.open()
+    await done
+    expect(g.log.finished).toBeNull()
+    expect(g.log.resigned).toBe(1)
+    expect(g.engine.snapshot()).toMatchObject({ phase: 'over', resigned: true })
+    expect(g.engine.snapshot().view!.reveal).toBeNull()
+  })
+
+  test('Back to setup (a rematch) or leaving the page while it waits: no record, no resign twice, the next match starts clean', async () => {
+    for (const leave of ['back', 'dispose'] as const) {
+      const g = await gated()
+      const done = lastOf(g, g.hits)
+      for (let i = 0; i < 20 && g.gate.waits === 0; i++) await new Promise((r) => setTimeout(r, 0))
+      if (leave === 'back') g.engine.backToSetup()
+      else g.engine.dispose()
+      g.gate.open()
+      await done
+      expect(g.log.finished).toBeNull()
+      expect(g.log.resigned).toBe(0)
+      expect(g.engine.snapshot().phase).toBe(leave === 'back' ? 'setup' : g.engine.snapshot().phase)
+    }
+  })
+
+  test('a lost last shot keeps the opponent hold: my shot lands first, the killing shot after the hold, and the record is finished before the hold ends', async () => {
+    const g = await gated({ hold: 700 })
+    const order = g.water
+    // Fire misses until the opponent sinks my fleet; each non-final reply is gated open by the helper.
+    await g.engine.start('easy', FLEET)
+    let guard = 0
+    while (g.engine.snapshot().phase === 'play' && guard++ < 100) {
+      const t = g.engine.fire(order[guard - 1]!)
+      for (let i = 0; i < 20 && g.gate.waits === 0 && g.engine.snapshot().phase === 'play' && !g.engine.snapshot().thinking === false; i++) await new Promise((r) => setTimeout(r, 0))
+      await new Promise((r) => setTimeout(r, 0))
+      g.gate.open()
+      await t
+    }
+    const final = g.engine.snapshot()
+    expect(final.phase).toBe('over')
+    expect(final.view!.incoming.length).toBeGreaterThan(0)
+    // Somewhere before the end an interim view held back the killing shot: one fewer incoming shot than the last, and no reveal.
+    const lastIncoming = final.view!.incoming.length
+    const held = g.snaps.filter((x) => x.phase === 'play' && x.view && x.view.incoming.length === lastIncoming - 1 && x.view.shots.length === final.view!.shots.length)
+    expect(held.length).toBeGreaterThan(0)
+    expect(held.every((x) => x.view!.reveal === null)).toBe(true)
+    expect(g.slept.filter((ms) => ms > 0).length).toBeGreaterThan(0)
+    expect(g.log.finished).not.toBeNull()
   })
 })
 

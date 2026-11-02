@@ -98,6 +98,8 @@ export interface EngineDeps {
   /** How long the opponent's shot is held back, in ms. */
   hold?: number
   sleep?: (ms: number) => Promise<void>
+  /** Resolves once the screen has painted what was just set; the default waits for a frame and a timer, and never longer than 100 ms (a hidden tab paints nothing). */
+  nextPaint?: () => Promise<void>
   input?: 'keyboard' | 'touch' | 'mouse'
   onChange: (s: FleetSnapshot) => void
 }
@@ -121,9 +123,20 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
  * server until the match is over, and the record is written from them then. An unrated match (fixed test seed, server
  * unreachable) plays on the local core with a local opponent.
  */
+/** After the browser has painted what was just set: a frame, then a timer; a page that cannot paint (hidden tab, no animation frames) waits at most 100 ms. */
+function defaultNextPaint(): Promise<void> {
+  if (typeof requestAnimationFrame !== 'function') return Promise.resolve()
+  return new Promise<void>((resolve) => {
+    const done = () => resolve()
+    requestAnimationFrame(() => setTimeout(done, 0))
+    setTimeout(done, 100)
+  })
+}
+
 export function createFleetEngine(deps: EngineDeps): FleetEngine {
   const hold = deps.hold ?? 700
   const sleep = deps.sleep ?? wait
+  const nextPaint = deps.nextPaint ?? defaultNextPaint
   const makeAgent = deps.createAgent ?? ((level: Level) => createGameAgent(level, { seat: AGENT }))
   const versionOf = deps.agentVersion ?? (() => 'preview')
   let snap: FleetSnapshot = INITIAL
@@ -169,7 +182,8 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
     }
   }
 
-  async function finishCounted(reply: FleetTurnReply) {
+  /** The record of a counted match that has just ended: built from what the server revealed and handed to the recorder. The screen is not touched here. */
+  async function recordCounted(reply: FleetTurnReply) {
     if (!reply.reveal) throw new Error('The server did not finish the match.')
     const { seed, agentActions } = reply.reveal
     const built = recordFromLists(seed, human, agentActions)
@@ -180,7 +194,6 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       rec().act(tick, seat, code, isShot ? humanMs[shotIx++] : undefined)
     }
     await rec().finish(fleetCore, built.state)
-    set({ phase: 'over', view: reply.view, thinking: false })
   }
 
   /** The opponent shoots on the local core until it is my turn or the game ends (unrated only). */
@@ -320,7 +333,24 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
           human = list
           humanMs.push(ms)
           if (reply.over) {
-            await finishCounted(reply)
+            // The last reply puts the final board on screen first, with Fire still off: the record work below (replay, hash) takes longer than a frame and must not hold the sink
+            // or the killing shot back. The reveal stays out of the view until the match is settled.
+            const heldAt = performance.now()
+            if (!reply.reveal) throw new Error('The server did not finish the match.')
+            const before = view.incoming.length
+            const interim = { ...reply.view, phase: 'play' as const, reveal: null }
+            // A loss: my last shot lands first, the opponent's killing shot after the same hold as on every other turn.
+            const killing = hold > 0 && reply.view.incoming.length > before
+            set({ view: killing ? { ...interim, incoming: reply.view.incoming.slice(0, before) } : interim })
+            await nextPaint()
+            // Resign, a rematch or leaving the page meanwhile has settled the match; settling it again here would record it twice.
+            if (mine !== epoch) return null
+            await recordCounted(reply)
+            if (killing) {
+              await sleep(Math.max(0, hold - (performance.now() - heldAt)))
+              if (mine !== epoch) return null
+            }
+            set({ phase: 'over', view: reply.view, thinking: false })
             return null
           }
           rec().reach(stepsPlayed(reply.view))
