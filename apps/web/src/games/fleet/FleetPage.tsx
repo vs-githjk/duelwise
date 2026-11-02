@@ -644,6 +644,15 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   // Start match is tapped far down the setup page; the match page is a different layout, so start it at its HUD rather than wherever the scroll was
   // left or at the very top: the header and the training notice above it would push the board below the fold on a phone. Instant, so reduced motion has nothing to skip.
   const hudRef = useRef<HTMLDivElement>(null)
+  // On setup the Start button is pinned to the bottom of a phone's screen. Anything scrolled into view (a focused control, the hint under the board) has to stop above it.
+  useEffect(() => {
+    if (started) return
+    const root = document.documentElement
+    root.style.scrollPaddingBottom = '80px'
+    return () => {
+      root.style.scrollPaddingBottom = ''
+    }
+  }, [started])
   useEffect(() => {
     if (!started) return
     const hud = hudRef.current

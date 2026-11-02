@@ -134,12 +134,12 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
     </fieldset>
     </div>
     {game ? (
-      // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column, or with `beside` it sits in the one column and only the Start button sticks.
+      // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column, or with `beside` it sits first in the one column, above the levels, so it covers none of them.
       <div className={beside ? 'contents' : 'contents lg:sticky lg:top-4 lg:grid lg:gap-4'}>
         <section className="grid gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5" aria-label="Before you play" data-testid="identity-card">
           <CallPicker game={game} path={path} />
         </section>
-        {action ? <div className={beside ? 'contents lg:sticky lg:bottom-4 lg:z-20 lg:grid lg:gap-2' : 'contents lg:grid lg:gap-2'} data-testid="setup-action">{action}</div> : null}
+        {action ? <div className={beside ? 'contents lg:order-first lg:grid lg:gap-2' : 'contents lg:grid lg:gap-2'} data-testid="setup-action">{action}</div> : null}
       </div>
     ) : (
       action ?? null

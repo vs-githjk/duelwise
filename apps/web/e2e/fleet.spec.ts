@@ -337,23 +337,23 @@ test.describe('fleet dev page at desktop width', () => {
         if (r.badgeRight !== null) expect(r.badgeRight, `${r.level} badge`).toBeLessThanOrEqual(r.right)
       }
       // The picker's blocks stay in their own places: none lands on another, and Ready keeps its button height.
-      // Ready is sticky, so by design it rides over the picker column it belongs to until the page reaches its own slot; it still never reaches the fleet card.
+      // Ready sits first in the picker column, above the path and the levels, and is not pinned over them: no block lands on another at any scroll.
       const blocks = await Promise.all(['fleet-placement', 'level-picker', 'identity-card', 'fleet-ready', 'learn-graph'].map(async (id) => ({ id, box: (await page.getByTestId(id).boundingBox())! })))
       for (const [i, a] of blocks.entries())
         for (const b of blocks.slice(i + 1)) {
-          if (a.id === 'fleet-ready' && b.id !== 'fleet-placement') continue
-          if (b.id === 'fleet-ready' && a.id !== 'fleet-placement') continue
           const overlap = a.box.x < b.box.x + b.box.width && b.box.x < a.box.x + a.box.width && a.box.y < b.box.y + b.box.height && b.box.y < a.box.y + a.box.height
           expect(overlap, `${a.id} over ${b.id}`).toBe(false)
         }
       expect(blocks.find((b) => b.id === 'fleet-ready')!.box.height).toBeLessThanOrEqual(64)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-      // At the foot of the page Ready is back in its own slot, clear of the blocks it rode over.
+      // Ready stays in its own slot at the top of the column, clear of the levels and the blocks after them, at the top of the page and at the foot.
+      const ready = (await page.getByTestId('fleet-ready').boundingBox())!
+      const levels = (await page.getByTestId('level-picker').boundingBox())!
+      expect(ready.y + ready.height).toBeLessThanOrEqual(levels.y)
+      const before = ready.y + (await page.evaluate(() => scrollY))
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-      const rest = async (id: string) => (await page.getByTestId(id).boundingBox())!
-      const [readyEnd, identityEnd, graphEnd] = [await rest('fleet-ready'), await rest('identity-card'), await rest('learn-graph')]
-      expect(readyEnd.y).toBeGreaterThanOrEqual(identityEnd.y + identityEnd.height)
-      expect(graphEnd.y).toBeGreaterThanOrEqual(readyEnd.y + readyEnd.height)
+      const after = (await page.getByTestId('fleet-ready').boundingBox())!.y + (await page.evaluate(() => scrollY))
+      expect(after).toBe(before)
     })
   }
 
@@ -666,6 +666,17 @@ test.describe('fleet play details', () => {
         expect.soft(own.y + own.height, `${w}x${h} dismissed=${dismissed}: your map on screen (at most ${mapSlack}px of its card below the fold)`).toBeLessThanOrEqual(h + mapSlack)
       }
     }
+  })
+
+  test('on a phone the hint under the placement board can be scrolled clear of the pinned Start button', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/play/stormglass')
+    await expect(page.getByTestId('fleet-ready')).toBeVisible()
+    const hint = page.getByText('Tap a ship to select it, tap it again')
+    await hint.evaluate((el) => el.scrollIntoView({ block: 'end' }))
+    const [h, start] = [(await hint.boundingBox())!, (await page.getByTestId('fleet-ready').boundingBox())!]
+    expect(h.y + h.height).toBeLessThanOrEqual(start.y)
+    expect(h.y).toBeGreaterThanOrEqual(0)
   })
 
   test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
