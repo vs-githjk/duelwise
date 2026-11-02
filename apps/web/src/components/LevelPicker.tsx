@@ -37,6 +37,8 @@ export interface LevelPickerProps {
   action?: ReactNode
   /** The page sets its own setup block beside the picker, so the picker has less width: one column of level cards and no side column at any width, with the Start button stuck to the bottom of the screen. */
   beside?: boolean
+  /** The page says why the last match ended itself, where a player will see it, so the picker's own notice stays away. */
+  ownResignNotice?: boolean
 }
 
 /**
@@ -44,7 +46,7 @@ export interface LevelPickerProps {
  * gate is shown "in training" with the reason and cannot be picked. Strength strings come from the
  * registry through `levels`; this component never makes one up.
  */
-export function LevelPicker({ value, onChange, levels = {}, disabled = false, statsSlug, className, descriptions, action, beside = false }: LevelPickerProps) {
+export function LevelPicker({ value, onChange, levels = {}, disabled = false, statsSlug, className, descriptions, action, beside = false, ownResignNotice = false }: LevelPickerProps) {
   const name = useId()
   const { game } = useOpponent()
   const state = usePath(game)
@@ -65,7 +67,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   return (
     <div className={cn('grid gap-4', game && (beside ? 'max-lg:contents' : 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start'))} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
-    {game ? <ResignedNotice game={game} /> : null}
+    {game && !ownResignNotice ? <ResignedNotice game={game} /> : null}
     {game ? <PathCard game={game} state={state} practice={practice} /> : null}
     <fieldset className={cn('grid gap-2', !beside && 'lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
       <legend className="sr-only">Opponent level</legend>

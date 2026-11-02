@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { publishedLevels } from './published-levels'
 
 // Stormglass dev page (internal id fleet): playable at /dev/fleet on a dev server and, since promotion, at /play/stormglass for players.
@@ -7,6 +10,8 @@ test.use({ viewport: { width: 360, height: 780 } })
 
 /** A new player's path: the shared e2e state opens every stop, so this takes that key away before the page loads. */
 const lockPath = (page: Page) => page.addInitScript(() => localStorage.removeItem('duelwise.any'))
+
+const shipCellsNow = (page: Page) => page.locator('[data-testid^="fleet-setup-"][data-state="ship"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')).join())
 
 test.describe('fleet dev page and promotion', () => {
   test('is promoted: listed on /play, played at /play/stormglass, no route at the internal id', async ({ page }) => {
@@ -24,8 +29,6 @@ test.describe('fleet dev page and promotion', () => {
     expect(res?.status()).toBe(404)
     await expect(page.getByTestId('fleet-page')).toHaveCount(0)
   })
-
-  const shipCellsNow = (page: Page) => page.locator('[data-testid^="fleet-setup-"][data-state="ship"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')).join())
 
   test('setup on a phone: Ready is on screen before any scroll, and the page runs intro, hidden-fleet line, play mode, fleet', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 })
@@ -206,6 +209,9 @@ test.describe('fleet dev page and promotion', () => {
     await expect(page.getByTestId('fleet-reveal')).toBeVisible()
     await expect(page.getByTestId('fleet-end-theirs-board')).toBeVisible()
     await expect(page.getByTestId('fleet-end-yours-board')).toBeVisible()
+    // Both reveal boards draw each ship as one hull, under the marks.
+    await expect(page.getByTestId('fleet-end-theirs-board').locator('[data-hull]')).toHaveCount(5)
+    await expect(page.getByTestId('fleet-end-yours-board').locator('[data-hull]')).toHaveCount(5)
     await expect(fire).toBeDisabled()
     expect(hits + misses).toBeGreaterThan(10)
     // The hit/miss feedback marks exist on the board; at the end the whole enemy fleet is shown.
@@ -377,5 +383,226 @@ test.describe('fleet dev page at desktop width', () => {
     expect(fire.x + fire.width).toBeLessThanOrEqual(theirs.x + theirs.width + 1)
     await expect(page.getByTestId('fleet-status-row')).toBeHidden()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  })
+})
+
+interface Ship { id: number; length: number; cell: number; vertical: boolean }
+
+/** The enemy fleet of a fixed-seed match, from the same agent and seed the page uses, so a test can sink a chosen ship on a chosen shot. */
+function enemyFleet(seed: number): Ship[] {
+  return JSON.parse(execFileSync('bun', [join(import.meta.dirname, 'fleet-enemy.bun.ts'), String(seed)], { encoding: 'utf8' })) as Ship[]
+}
+
+const shipCells = (p: Ship): number[] => Array.from({ length: p.length }, (_, i) => p.cell + i * (p.vertical ? 10 : 1))
+
+const SEED = 4242
+
+async function seededMatch(page: Page, hold: number) {
+  const fleet = enemyFleet(SEED)
+  await page.goto(`/play/stormglass?seed=${SEED}&hold=${hold}`)
+  await page.getByTestId('fleet-ready').click()
+  await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+  return fleet
+}
+
+async function fireAt(page: Page, cell: number) {
+  const c = page.getByTestId(`fleet-cell-${cell}`)
+  await c.click()
+  await c.click()
+}
+
+test.describe('the sink, the moment of the game', () => {
+  test('one hull surfaces across its cells, the sea darkens, the tally strikes through, and nothing moves', async ({ page }) => {
+    const fleet = await seededMatch(page, 0)
+    const small = fleet.find((p) => p.length === 2)!
+    const board = page.getByTestId('fleet-cell-board')
+    const before = await board.boundingBox()
+    const [first, last] = shipCells(small)
+    await fireAt(page, first!)
+    await expect(page.getByTestId(`fleet-cell-${first}`)).toHaveAttribute('data-state', 'hit')
+    await expect(page.getByTestId(`fleet-cell-${first}`).locator('[data-mark="flame"]')).toBeVisible()
+    await expect(board.locator('[data-hull]')).toHaveCount(0)
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    await fireAt(page, last!)
+    const hull = board.locator('[data-hull][data-surfacing]')
+    await expect(hull).toHaveCount(1)
+    await expect(board.locator('[data-sea-dark]')).toHaveCount(1)
+    await expect(page.getByTestId('fleet-tally-enemy').locator('[data-fresh]')).toHaveCount(1)
+    const animations = await page.evaluate(() => {
+      const name = (q: string) => getComputedStyle(document.querySelector(q)!).animationName
+      return { sea: name('[data-sea-dark]'), hull: name('[data-surfacing]'), strike: name('[data-fresh] .fleet-strike') }
+    })
+    expect(animations).toEqual({ sea: 'fleet-sea-dark', hull: 'fleet-surface', strike: 'fleet-strike' })
+    // The hull lies over exactly its two cells, in one piece.
+    const a = (await page.getByTestId(`fleet-cell-${first}`).boundingBox())!
+    await expect(board.locator('[data-sea-dark]')).toHaveCount(0)
+    const box = (await board.locator('[data-hull]').boundingBox())!
+    const z = (await page.getByTestId(`fleet-cell-${last}`).boundingBox())!
+    expect(Math.abs(box.x - a.x)).toBeLessThan(2)
+    expect(Math.abs(box.y - a.y)).toBeLessThan(2)
+    expect(Math.abs(box.x + box.width - (z.x + z.width))).toBeLessThan(2)
+    expect(Math.abs(box.y + box.height - (z.y + z.height))).toBeLessThan(2)
+    // The moment ends on the spec's end state: the silhouette at 70 percent, the strike still there.
+    await expect(board.locator('[data-hull][data-surfacing]')).toHaveCount(0)
+    await expect(board.locator('[data-hull]')).toHaveCSS('opacity', '0.7')
+    await expect(page.getByTestId('fleet-tally-enemy').locator('[data-sunk]')).toHaveCount(1)
+    expect(await board.boundingBox()).toEqual(before)
+  })
+
+  test('reduced motion keeps the end state and removes every movement', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const fleet = await seededMatch(page, 0)
+    const [first, last] = shipCells(fleet.find((p) => p.length === 2)!)
+    const board = page.getByTestId('fleet-cell-board')
+    await page.getByTestId(`fleet-cell-${first}`).click()
+    const noCrossMotion = await page.evaluate(() => getComputedStyle(document.querySelector('[data-cross]')!).transitionDuration)
+    expect(parseFloat(noCrossMotion)).toBeLessThan(0.001)
+    await page.getByTestId(`fleet-cell-${first}`).click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    await fireAt(page, last!)
+    await expect(board.locator('[data-hull]')).toHaveCount(1)
+    const motion = await page.evaluate(() =>
+      [...document.querySelectorAll('.fleet-land, [data-surfacing], [data-fresh], .fleet-strike, .fleet-ping, .play-hud-seat')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
+    )
+    expect(motion).toEqual([])
+    await expect(board.locator('[data-sea-dark]')).toBeHidden()
+    await expect(board.locator('[data-hull]')).toHaveCSS('opacity', '0.7')
+  })
+
+  test('the winning shot plays its sink before the result covers the board, and the reveal says how it ended', async ({ page }) => {
+    const fleet = await seededMatch(page, 1)
+    const cells = fleet.flatMap(shipCells)
+    for (const cell of cells.slice(0, -1)) {
+      await fireAt(page, cell)
+      await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    }
+    await fireAt(page, cells.at(-1)!)
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'over')
+    await expect(page.getByTestId('fleet-cell-board').locator('[data-hull][data-surfacing]')).toHaveCount(1)
+    await expect(page.getByTestId('result-panel')).toHaveCount(0)
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-reason')).toContainText('sank')
+    await expect(page.getByTestId('fleet-luck')).toContainText('a careful hunt needs about')
+  })
+})
+
+test.describe('fleet play details', () => {
+  test('the aside prints the mean shots the script measured, never a number a fleet cannot go down in', async ({ page }) => {
+    await seededMatch(page, 0)
+    const reg = JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', '..', 'packages', 'agents', 'registry', 'fleet.json'), 'utf8')) as { measured: { easy: { meanShots: { mean: number } } } }
+    const text = (await page.getByTestId('fleet-strength').textContent())!
+    const shown = Number(/in (\d+\.\d) shots/.exec(text)?.[1])
+    expect(shown).toBeGreaterThanOrEqual(17)
+    expect(shown).toBe(Number(reg.measured.easy.meanShots.mean.toFixed(1)))
+  })
+
+  test('the shared HUD with the hull swatch, a crosshair through the aim, and one hull per ship on setup', async ({ page }) => {
+    await page.goto('/play/stormglass?hold=0')
+    await expect(page.getByTestId('fleet-setup-board').locator('[data-hull]')).toHaveCount(5)
+    await expect(page.getByText('You fire first.')).toBeVisible()
+    await page.getByTestId('fleet-ready').click()
+    const hud = page.getByTestId('fleet-hud').getByTestId('play-hud')
+    await expect(hud.getByTestId('play-hud-clock')).toBeVisible()
+    await expect(hud.locator('[data-swatch="you"]')).toHaveClass(/bg-hull/)
+    const cross = page.locator('[data-cross][data-on]')
+    await expect(cross).toHaveCount(0)
+    await page.getByTestId('fleet-cell-34').click()
+    await expect(cross).toHaveCount(2)
+    await expect(cross.first()).toHaveCSS('opacity', '0.35')
+    const cell = (await page.getByTestId('fleet-cell-34').boundingBox())!
+    const row = (await page.locator('[data-cross="row"]').boundingBox())!
+    const col = (await page.locator('[data-cross="col"]').boundingBox())!
+    await expect.poll(async () => Math.abs((await page.locator('[data-cross="row"]').boundingBox())!.y - cell.y)).toBeLessThan(2)
+    await expect.poll(async () => Math.abs((await page.locator('[data-cross="col"]').boundingBox())!.x - cell.x)).toBeLessThan(2)
+    expect(row.height).toBeLessThan(cell.height + 2)
+    expect(col.width).toBeLessThan(cell.width + 2)
+  })
+
+  test('the grid is one tab stop, arrow keys walk it, and Enter aims then fires', async ({ page }) => {
+    await page.goto('/dev/fleet?hold=0')
+    const setup = page.getByTestId('fleet-setup-board')
+    await expect(setup).toHaveAttribute('role', 'grid')
+    await expect(setup.locator('[role="row"]')).toHaveCount(10)
+    await expect(setup.locator('[role="gridcell"]')).toHaveCount(100)
+    await expect(setup.locator('[tabindex="0"]')).toHaveCount(1)
+    await page.getByTestId('fleet-ready').click()
+    const board = page.getByTestId('fleet-cell-board')
+    await expect(board.locator('[tabindex="0"]')).toHaveCount(1)
+    await page.getByTestId('fleet-cell-0').focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(page.getByTestId('fleet-cell-1')).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByTestId('fleet-cell-11')).toBeFocused()
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowLeft')
+    await expect(page.getByTestId('fleet-cell-10')).toBeFocused()
+    await page.keyboard.press('ArrowUp')
+    await page.keyboard.press('ArrowUp')
+    await expect(page.getByTestId('fleet-cell-0')).toBeFocused()
+    await expect(board.locator('[tabindex="0"]')).toHaveCount(1)
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('fleet-cell-0')).toHaveAttribute('data-aimed', '')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('fleet-cell-0')).not.toHaveAttribute('data-state', 'open')
+    // Tab leaves the grid at once: the next stop is not another cell.
+    await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('role'))).not.toBe('gridcell')
+  })
+
+  test('R turns the selected ship from the keyboard', async ({ page }) => {
+    await page.goto('/dev/fleet?hold=0')
+    const ships = page.locator('[data-testid^="fleet-setup-"][data-state="ship"]')
+    let turned = false
+    for (let attempt = 0; attempt < 12 && !turned; attempt++) {
+      await page.getByTestId('fleet-shuffle').click()
+      const before = await shipCellsNow(page)
+      await ships.first().focus()
+      await page.keyboard.press('Enter')
+      await page.keyboard.press('r')
+      turned = (await shipCellsNow(page)) !== before
+    }
+    expect(turned).toBe(true)
+  })
+
+  test('a reload that ends a counted match says so at the top of setup, once', async ({ page }) => {
+    await page.goto('/play/stormglass')
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    await cell.click()
+    await cell.click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    await page.reload()
+    await expect(page.getByTestId('fleet-left-line')).toHaveText('Reloading ended the match. It counts as a loss.')
+    await expect(page.getByTestId('resigned-notice')).toHaveCount(0)
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+    await expect(page.getByTestId('fleet-left-line')).toHaveCount(0)
+  })
+
+  test('offline: Rated does not start, Practice does, and the chip stays off the sticky Start and never takes its tap', async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/play/stormglass')
+    await expect(page.getByTestId('fleet-ready')).toHaveText(/^Start match vs/)
+    await context.setOffline(true)
+    const ready = page.getByTestId('fleet-ready')
+    await expect(page.getByTestId('offline-chip')).toBeVisible()
+    await expect(page.getByTestId('fleet-offline-line')).toBeVisible()
+    await expect(ready).toBeDisabled()
+    await expect(ready).toHaveText('Rated needs a connection')
+    await page.getByTestId('play-mode').locator('[data-mode-option="practice"]').click()
+    await expect(ready).toBeEnabled()
+    await expect(ready).toHaveText(/^Start match vs/)
+    const chip = (await page.getByTestId('offline-chip').boundingBox())!
+    const start = (await ready.boundingBox())!
+    expect(chip.y + chip.height <= start.y || start.y + start.height <= chip.y).toBe(true)
+    const onTop = await ready.evaluate((el) => {
+      const b = el.getBoundingClientRect()
+      return document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) === el
+    })
+    expect(onTop).toBe(true)
+    await ready.click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+    await context.setOffline(false)
   })
 })

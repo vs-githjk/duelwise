@@ -20,6 +20,7 @@ import {
   shotKind,
   startMatch,
   statusLine,
+  unhitCells,
   whoseTurn,
 } from './fleet-match'
 
@@ -139,7 +140,7 @@ describe('fleet dev page match logic', () => {
       }
     }
     expect(shotKind(m, HUMAN)).toBe('sunk')
-    expect(describeShot(m, HUMAN, 'Pip')).toContain("You sank Pip's 2 ship")
+    expect(describeShot(m, HUMAN, 'Pip')).toContain("You sank Pip's 2-long ship")
     expect(shotKind(m, AGENT_SEAT)).not.toBe('sunk')
     expect(describeShot(m, AGENT_SEAT, 'Pip')).toContain('Pip fired at')
   })
@@ -183,4 +184,12 @@ describe('fleet dev page match logic', () => {
     const blocked = lone.map((p) => (p.id === 1 ? { ...p, cell: 25 } : p))
     expect(rotateShip(blocked, 0)).toBeNull()
   })
+})
+
+test('unhitCells counts what the fleet still needed: one means the next shot on target would have won', () => {
+  const fleet = [{ id: 0, length: 2, cell: 0, vertical: false }, { id: 1, length: 3, cell: 20, vertical: true }]
+  const shots = [{ cell: 0, hit: true }, { cell: 1, hit: true }, { cell: 20, hit: true }, { cell: 30, hit: true }, { cell: 99, hit: false }]
+  expect(unhitCells(fleet, shots)).toBe(1)
+  expect(unhitCells(fleet, [...shots, { cell: 40, hit: true }])).toBe(0)
+  expect(unhitCells(fleet, [])).toBe(5)
 })

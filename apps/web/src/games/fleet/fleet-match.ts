@@ -124,10 +124,10 @@ export function describeShotIn(shots: FleetObs, who: Seat, opponent: string): st
   if (!last) return ''
   const at = coord(last.cell)
   if (who === HUMAN) {
-    if (last.sunk !== null) return `You sank ${opponent}'s ${SHIPS[last.sunk]} ship at ${at}.`
+    if (last.sunk !== null) return `You sank ${opponent}'s ${SHIPS[last.sunk]}-long ship at ${at}.`
     return last.hit ? `Hit at ${at}.` : `Miss at ${at}.`
   }
-  if (last.sunk !== null) return `${opponent} sank your ${SHIPS[last.sunk]} ship at ${at}.`
+  if (last.sunk !== null) return `${opponent} sank your ${SHIPS[last.sunk]}-long ship at ${at}.`
   return `${opponent} fired at ${at}. ${last.hit ? 'Hit.' : 'Miss.'}`
 }
 
@@ -141,6 +141,12 @@ export function shotKindIn(v: FleetObs, who: Seat): 'sunk' | 'hit' | 'miss' | nu
 }
 
 export const shotKind = (m: FleetMatch, who: Seat): 'sunk' | 'hit' | 'miss' | null => shotKindIn(humanView(m), who)
+
+/** The hits a fleet still needed when the shots stopped: 1 means one more shot on target would have sunk it all. */
+export function unhitCells(fleet: Placement[], shots: Array<{ cell: number; hit: boolean }>): number {
+  const hit = new Set(shots.filter((s) => s.hit).map((s) => s.cell))
+  return fleet.flatMap((p) => shipCells(p)).filter((c) => !hit.has(c)).length
+}
 
 /** True when a finished view is a win for the person looking at it: every enemy ship is gone. */
 export const viewWon = (v: FleetObs): boolean => v.phase === 'over' && v.enemyLeft.length === 0
