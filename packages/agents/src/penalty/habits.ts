@@ -44,31 +44,40 @@ export function mix(a: readonly number[], b: readonly number[], w: number): Dist
   return [w * a[0]! + (1 - w) * b[0]!, w * a[1]! + (1 - w) * b[1]!, w * a[2]! + (1 - w) * b[2]!]
 }
 
-/** The dive that gives up the fewest goals against a predicted shooter mix; ties go to the lowest zone. */
-export function bestKeeper(p: readonly number[]): Dist {
+/** Left and right count as tied when their values are within this; the caller's side then decides (the table is mirror symmetric, so the gap is fictitious play noise). */
+const SIDE_TIE = 0.002
+
+/** The dive that gives up the fewest goals against a predicted shooter mix; a left/right near tie goes to `side`, other ties to the lowest zone. */
+export function bestKeeper(p: readonly number[], side: 0 | 2 = 0): Dist {
+  const vals: number[] = []
   let best = 0
   let bestV = Infinity
   for (let k = 0; k < 3; k++) {
     const v = p[0]! * M[0]![k]! + p[1]! * M[1]![k]! + p[2]! * M[2]![k]!
+    vals.push(v)
     if (v < bestV) {
       bestV = v
       best = k
     }
   }
+  if (best !== 1 && Math.abs(vals[0]! - vals[2]!) <= SIDE_TIE) best = side
   return one(best)
 }
 
-/** The zone that scores most against a predicted keeper mix; ties go to the lowest zone. */
-export function bestShooter(p: readonly number[]): Dist {
+/** The zone that scores most against a predicted keeper mix; a left/right near tie goes to `side`, other ties to the lowest zone. */
+export function bestShooter(p: readonly number[], side: 0 | 2 = 0): Dist {
+  const vals: number[] = []
   let best = 0
   let bestV = -Infinity
   for (let s = 0; s < 3; s++) {
     const v = p[0]! * M[s]![0]! + p[1]! * M[s]![1]! + p[2]! * M[s]![2]!
+    vals.push(v)
     if (v > bestV) {
       bestV = v
       best = s
     }
   }
+  if (best !== 1 && Math.abs(vals[0]! - vals[2]!) <= SIDE_TIE) best = side
   return one(best)
 }
 

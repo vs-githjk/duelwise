@@ -3,7 +3,14 @@ import { GOAL_PER_MILLE, penaltyCore, type KickView, type PenaltyObs, type Zone 
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { choosePenaltyAction, createGameAgent } from './agent'
+import { bestKeeper, bestShooter, DIVE_HABITS, KICK_HABITS, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER } from './levels'
+
+function one3(i: number): [number, number, number] {
+  const d: [number, number, number] = [0, 0, 0]
+  d[i] = 1
+  return d
+}
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 
@@ -107,8 +114,12 @@ describe('every level', () => {
     }
   })
 
-  test('Sable ignores the salt (it reads habits only); the others use it for a favourite side', () => {
-    const o = obs('keeper', [view(false, 0, 1), view(true, 2, 0)])
+  test('Sable uses the salt only to break a left/right tie; Pip uses it for a favourite side', () => {
+    // A clear read leaves nothing to break: the salt changes nothing.
+    const clear: KickView[] = []
+    for (let i = 0; i < 4; i++) clear.push(view(false, 0, 1), view(true, 1, 0))
+    clear.push(view(false, 0, 1))
+    const o = obs('keeper', clear)
     const a: number[] = []
     const b: number[] = []
     const r1 = makeRng(8)
@@ -146,6 +157,22 @@ describe('Pip', () => {
   })
 })
 
+/** Side a no-history opener picks, per salt, from many draws (0 or 2). */
+function openerSides(level: Level, role: 'shooter' | 'keeper', kicks: KickView[] = []): Set<number> {
+  const sides = new Set<number>()
+  for (let salt = 0; salt < 40; salt++) {
+    const c = draws(level, obs(role, kicks), 300, salt)
+    sides.add(c[0] > c[2] ? 0 : 2)
+  }
+  return sides
+}
+
+/** Shares of a draw count. */
+function shares(c: [number, number, number]): number[] {
+  const n = c[0] + c[1] + c[2]
+  return c.map((x) => x / n)
+}
+
 describe('Marlow', () => {
   test('as keeper dives to the last kick zone about 75% of the time', () => {
     for (const z of [0, 1, 2] as const) {
@@ -158,10 +185,25 @@ describe('Marlow', () => {
     }
   })
 
+  test('as keeper with no kick to read plays the equilibrium dive mix', () => {
+    const f = shares(draws('medium', obs('keeper'), 8000))
+    for (let i = 0; i < 3; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
+  })
+
   test('as shooter goes away from the side the keeper dived to most', () => {
     const hist = [view(true, 1, 0), view(false, 0, 1), view(true, 1, 0)]
     const c = draws('medium', obs('shooter', hist), 3000)
     expect(c[2] / 3000).toBeGreaterThan(0.74)
+  })
+
+  test('as shooter opens on the salt side, and keeps it when the keeper dived left and right equally', () => {
+    expect(openerSides('medium', 'shooter')).toEqual(new Set([0, 2]))
+    const tied = [view(true, 1, 0), view(true, 1, 2)]
+    expect(openerSides('medium', 'shooter', tied)).toEqual(new Set([0, 2]))
+    const c = shares(draws('medium', obs('shooter', tied), 3000))
+    // 0.75 on the salt side plus its share of the equilibrium 0.25.
+    expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.8)
+    expect(Math.max(c[0]!, c[2]!)).toBeLessThan(0.86)
   })
 })
 
@@ -173,9 +215,35 @@ describe('Vesper', () => {
     expect(d[0] / 3000).toBeGreaterThan(0.74)
   })
 
-  test('as keeper expects a swap when the last two kicks differ', () => {
-    const c = draws('hard', obs('keeper', [view(false, 0, 1), view(true, 1, 1), view(false, 2, 1)]), 3000)
-    expect(c[0] / 3000).toBeGreaterThan(0.74)
+  test('as shooter opens on the salt side, and after a middle kick picks a salt side again', () => {
+    expect(openerSides('hard', 'shooter')).toEqual(new Set([0, 2]))
+    expect(openerSides('hard', 'shooter', [view(true, 1, 0)])).toEqual(new Set([0, 2]))
+    const c = shares(draws('hard', obs('shooter', [view(true, 1, 0)]), 3000))
+    expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.8)
+    expect(Math.max(c[0]!, c[2]!)).toBeLessThan(0.86)
+  })
+
+  test('as keeper with no kick to read plays the equilibrium dive mix', () => {
+    const f = shares(draws('hard', obs('keeper'), 8000))
+    for (let i = 0; i < 3; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
+  })
+
+  test('as keeper expects a swap when the last two kicks differ: read 0.75 plus its equilibrium share', () => {
+    // Zones 2 then 0: the swap predicts 2, the most common of the two would say 0.
+    const c = draws('hard', obs('keeper', [view(false, 2, 1), view(true, 1, 1), view(false, 0, 1)]), 8000)
+    const want = 0.75 + 0.25 * EQ_KEEPER[2]!
+    expect(Math.abs(c[2] / 8000 - want)).toBeLessThan(0.02)
+    expect(c[0] / 8000).toBeLessThan(0.2)
+  })
+
+  test('as keeper takes the most common of the last three when the last two kicks match', () => {
+    // 2, 2, 2, 1, 0, 0: the last three are 1, 0, 0, so 0; all six would say 2.
+    const zones: Zone[] = [2, 2, 2, 1, 0, 0]
+    const hist = zones.map((z) => view(false, z, 1))
+    const c = draws('hard', obs('keeper', hist), 8000)
+    const want = 0.75 + 0.25 * EQ_KEEPER[0]!
+    expect(Math.abs(c[0] / 8000 - want)).toBeLessThan(0.02)
+    expect(c[2] / 8000).toBeLessThan(0.2)
   })
 })
 
@@ -203,7 +271,7 @@ describe('Sable', () => {
     }
   })
 
-  test('after five kicks to one side its keeper goes to that side over 80%', () => {
+  test('after five kicks to one side its keeper goes to that side over 97%', () => {
     for (const side of [0, 2] as const) {
       const hist: KickView[] = []
       for (let i = 0; i < 5; i++) {
@@ -211,9 +279,76 @@ describe('Sable', () => {
         hist.push(view(true, 1, 0))
       }
       const c = draws('champion', obs('keeper', hist.slice(0, 9)), 3000)
-      expect(c[side] / 3000).toBeGreaterThan(0.8)
+      expect(c[side] / 3000).toBeGreaterThan(0.97)
     }
   })
+
+  test('after five dives to one side its shooter goes to the other side over 95%', () => {
+    for (const side of [0, 2] as const) {
+      const hist: KickView[] = []
+      for (let i = 0; i < 5; i++) hist.push(view(true, 1, side), view(false, 1, 1))
+      const c = draws('champion', obs('shooter', hist.slice(0, 9)), 3000)
+      expect(c[2 - side] / 3000).toBeGreaterThan(0.95)
+    }
+  })
+
+  test('a keeper facing L R L R L dives right over 97%', () => {
+    const zones: Zone[] = [0, 2, 0, 2, 0]
+    const hist = zones.flatMap((z): KickView[] => [view(false, z, 1), view(true, 1, 1)]).slice(0, 9)
+    const c = draws('champion', obs('keeper', hist), 3000)
+    expect(c[2] / 3000).toBeGreaterThan(0.97)
+  })
+
+  test('with no history it opens on the salt side, and both sides turn up across salts', () => {
+    for (const role of ['shooter', 'keeper'] as const) {
+      expect(openerSides('champion', role)).toEqual(new Set([0, 2]))
+      for (const salt of [1, 2, 3]) {
+        const c = shares(draws('champion', obs(role), 4000, salt))
+        // 0.75 (after the weight) best response to the prior plus the equilibrium share: well above half, never all.
+        expect(Math.max(c[0]!, c[2]!)).toBeGreaterThan(0.75)
+      }
+    }
+  })
+
+  // One habit shape at a time: with that shape swapped for plain equilibrium play the answer would be a different zone.
+  // [name, opponent's stream, what I did alongside it, the zone that must come out].
+  const keeperShapes: [string, number[], number[], number][] = [
+    ['favourite left', [2, 0, 0, 2, 0], [0, 0, 0, 0, 0], 0],
+    ['favourite middle', [1, 1, 1, 1, 1, 2], [0, 0, 0, 0, 0, 0], 1],
+    ['favourite right', [2, 2, 2, 2, 2, 1], [0, 0, 0, 0, 0, 0], 2],
+    ['repeat', [2, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 0], 1],
+    ['alternate', [1, 2, 1, 2, 1, 2], [0, 0, 0, 0, 0, 0], 1],
+    ['mirror', [0, 2, 0, 2, 0, 0], [0, 0, 0, 0, 0, 0], 2],
+    ['copies my last', [0, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 0], 0],
+    ['avoids my last', [0, 2, 0, 2, 2], [0, 1, 0, 0, 0], 2],
+  ]
+  for (const [name, opp, mine, zone] of keeperShapes) {
+    test(`keeper reads the "${name}" habit`, () => {
+      const hist = opp.flatMap((z, i): KickView[] => [view(false, z as Zone, mine[i] as Zone)])
+      const s = streamsOf(hist)
+      expect(s.oppKicks).toEqual(opp)
+      expect(bestKeeper(predict(KICK_HABITS, s.oppKicks, s.myDives).out)).toEqual(one3(zone))
+    })
+  }
+
+  const shooterShapes: [string, number[], number[], number][] = [
+    ['favourite left', [0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 0], 2],
+    ['favourite middle', [1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 0, 0], 0],
+    ['favourite right', [2, 2, 2, 2, 2, 0], [0, 0, 0, 0, 0, 0], 0],
+    ['repeat', [1, 1, 1, 1, 1, 2], [0, 0, 0, 0, 0, 0], 0],
+    ['alternate', [1, 1, 1, 1, 0, 1], [0, 0, 0, 0, 0, 0], 2],
+    ['mirror', [1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 0, 0], 0],
+    ['copies my last', [1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 0], 2],
+    ['avoids my last', [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 2], 2],
+  ]
+  for (const [name, opp, mine, zone] of shooterShapes) {
+    test(`shooter reads the "${name}" habit`, () => {
+      const hist = opp.map((d, i) => view(true, mine[i] as Zone, d as Zone))
+      const s = streamsOf(hist)
+      expect(s.oppDives).toEqual(opp)
+      expect(bestShooter(predict(DIVE_HABITS, s.oppDives, s.myKicks).out)).toEqual(one3(zone))
+    })
+  }
 
   test('reads habits only inside the match it is given: an empty history is the same whatever came before', () => {
     const rngA = makeRng(21)
@@ -231,17 +366,25 @@ describe('Sable', () => {
     const hist: KickView[] = []
     for (let i = 0; i < 33; i++) hist.push(view(i % 2 === 0, (i % 3) as Zone, ((i + 1) % 3) as Zone))
     const rng = makeRng(2)
-    let worst = 0
-    for (const role of ['shooter', 'keeper'] as const) {
-      const o = obs(role, hist)
-      choosePenaltyAction('champion', o, rng, 0)
-      for (let i = 0; i < 200; i++) {
-        const t0 = performance.now()
+    // A real slow path is slow in every sweep; a scheduler or GC pause hits one. So the smallest sweep's worst is what counts.
+    const sweeps: number[] = []
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let worst = 0
+      for (const role of ['shooter', 'keeper'] as const) {
+        const o = obs(role, hist)
         choosePenaltyAction('champion', o, rng, 0)
-        worst = Math.max(worst, performance.now() - t0)
+        for (let i = 0; i < 200; i++) {
+          const t0 = performance.now()
+          choosePenaltyAction('champion', o, rng, 0)
+          worst = Math.max(worst, performance.now() - t0)
+        }
       }
+      sweeps.push(worst)
+      if (worst < 2) break
     }
-    expect(worst).toBeLessThan(2)
+    const best = Math.min(...sweeps)
+    console.log(`slowest choice, smallest sweep worst: ${best.toFixed(3)} ms (sweeps: ${sweeps.map((x) => x.toFixed(3)).join(', ')})`)
+    expect(best).toBeLessThan(2)
   })
 })
 
@@ -263,7 +406,7 @@ describe('createGameAgent', () => {
     }
   })
 
-  test('reset gives the same game for the same seed, and seats do not mirror each other', async () => {
+  test('reset gives the same game for the same seed', async () => {
     const play = async (seed: number) => {
       const a = await createGameAgent('easy', { seat: 0 })
       const b = await createGameAgent('easy', { seat: 1 })
@@ -275,7 +418,28 @@ describe('createGameAgent', () => {
       return out
     }
     expect(await play(5)).toEqual(await play(5))
-    const x = await play(5)
-    expect(x.filter((_, i) => i % 2 === 0)).not.toEqual(x.filter((_, i) => i % 2 === 1))
+  })
+
+  test('seats mix into both the rng and the salt; seeds change the favourite', async () => {
+    const o = obs('shooter')
+    const stream = async (seat: 0 | 1, seed: number, n: number) => {
+      const a = await createGameAgent('easy', { seat })
+      a.reset(seed)
+      const out: number[] = []
+      for (let i = 0; i < n; i++) out.push((await a.act(o))[0]!)
+      return out
+    }
+    const side = (xs: number[]) => (xs.filter((x) => x === 0).length > xs.filter((x) => x === 2).length ? 0 : 2)
+    // Same seed, role and observation: the seat alone must change the action stream.
+    expect(await stream(0, 5, 60)).not.toEqual(await stream(1, 5, 60))
+    const favs: [number[], number[]] = [[], []]
+    for (let seed = 1; seed <= 24; seed++) {
+      favs[0].push(side(await stream(0, seed, 300)))
+      favs[1].push(side(await stream(1, seed, 300)))
+    }
+    // The favourite differs between the seats for some seed, and between seeds for one seat.
+    expect(favs[0].some((f, i) => f !== favs[1][i])).toBe(true)
+    expect(new Set(favs[0]).size).toBe(2)
+    expect(new Set(favs[1]).size).toBe(2)
   })
 })

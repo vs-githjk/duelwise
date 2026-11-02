@@ -83,12 +83,12 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
     case 'sable': {
       const { out, eqP } = shooter ? predict(DIVE_HABITS, s.oppDives, s.myKicks) : predict(KICK_HABITS, s.oppKicks, s.myDives)
       const conf = Math.min(1, (1 - eqP) * cfg.weight)
-      return mix(shooter ? bestShooter(out) : bestKeeper(out), eq, conf)
+      return mix(shooter ? bestShooter(out, fav.shoot) : bestKeeper(out, fav.dive), eq, conf)
     }
   }
 }
 
-/** The zone (0 left, 1 middle, 2 right) this level picks now. Reads only `obs`; draws from `rng`; `salt` fixes Pip's, Marlow's and Vesper's favourite sides. */
+/** The zone (0 left, 1 middle, 2 right) this level picks now. Reads only `obs`; draws from `rng`; `salt` fixes the favourite sides of Pip, Marlow and Vesper, and breaks Sable's left/right ties. */
 export function choosePenaltyAction(level: Level, obs: PenaltyObs, rng: Rng, salt: number): 0 | 1 | 2 {
   if (obs.role === null) throw new Error('penalty: no action once the shootout is over')
   return pick(distFor(level, obs, salt), rng)
