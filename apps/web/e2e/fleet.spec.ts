@@ -580,6 +580,20 @@ test.describe('fleet play details', () => {
     await expect(page.getByTestId('fleet-left-line')).toHaveCount(0)
   })
 
+  test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    for (const path of ['/', '/play/chess']) {
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+      await context.setOffline(true)
+      await expect(page.getByTestId('offline-chip')).toBeVisible()
+      const chip = (await page.getByTestId('offline-chip').boundingBox())!
+      expect(chip.x).toBeLessThan(20)
+      expect(chip.y + chip.height).toBeGreaterThan(844 - 20)
+      await context.setOffline(false)
+    }
+  })
+
   test('offline: Rated does not start, Practice does, and the chip stays off the sticky Start and never takes its tap', async ({ page, context }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/play/stormglass')
