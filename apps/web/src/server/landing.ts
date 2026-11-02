@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
-import { competitive, PRACTICE_FLAG } from './competitive'
+import { competitive, LOGGED_WIN_FLAG, PRACTICE_FLAG } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
@@ -158,7 +158,7 @@ function learningOf(
   if (r.recordValid === false) return `Rejected: ${r.invalidReason ?? 'record did not replay'}`
   if (!learnsFromHumans(r.game)) return 'Stats only'
   // A practice match is unrated, not filtered: it is trained on when the player allowed it.
-  const flagged = r.filterFlags && Object.entries(r.filterFlags).some(([k, v]) => v === true && k !== PRACTICE_FLAG)
+  const flagged = r.filterFlags && Object.entries(r.filterFlags).some(([k, v]) => v === true && k !== PRACTICE_FLAG && k !== LOGGED_WIN_FLAG)
   return r.trainingAllowed && !flagged ? 'Eligible for training' : 'Stats only'
 }
 

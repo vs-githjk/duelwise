@@ -18,6 +18,8 @@ import { finishMatchHandler, startMatchHandler, type FinishOptions } from './mat
 import { getUserRating } from './leaderboard'
 import { getPath } from './path'
 import { getMyRecord } from './landing'
+import { getCardFacts, getReport } from './report'
+import { getGameStats } from './stats'
 import { resignMatchHandler } from './resign'
 import { finishedResults } from './results'
 import { FLEET_SPEC, sealedTurnHandler, type SealedSpec, type SealedTurnBody } from './sealed-duel'
@@ -752,6 +754,51 @@ describe('Stormglass: the seed is revealed after a loss, so the server\'s own lo
       expect((row.filterFlags as { sealedLog?: unknown }).sealedLog).toBeDefined()
       expect((row.filterFlags as Record<string, unknown>).loggedWin).toBeUndefined()
       expect((await getMyRecord(db, USER.userId)).perGame).toMatchObject([{ game: 'fleet', total: 1, won: 0 }])
+    })
+
+    test('an honest uploaded win is no filter reason: the public funnel shows no loggedWin and counts it as passed', async () => {
+      const { rec } = await wonGame()
+      expect(((await finish(rec)).body as { valid: boolean }).valid).toBe(true)
+      const stats = await getGameStats(db, 'fleet')
+      expect(stats.funnel.reasons).toEqual({})
+      expect(stats.funnel).toMatchObject({ finished: 1, passedFilters: 1 })
+      expect(JSON.stringify(stats)).not.toContain('loggedWin')
+      // The player's own list must not read the marker as a filter either (landing learningOf).
+      expect((await getMyRecord(db, USER.userId)).recent[0]!.learning).toBe('Eligible for training')
+    })
+
+    test('a logged win given up is no loss on the report or the card', async () => {
+      const m = await wonUnseen()
+      await resignMatchHandler(db, { matchId: m.matchId, tick: 40 }, USER, CHECKED)
+      const view = (await getReport(db, m.matchId, USER))!
+      expect(view.status).toBe('resigned')
+      expect(view.body!.outcome).toBe('win')
+      expect(view.body!.reason).not.toMatch(/resigned/i)
+      expect(view.owner!.rating).toBeNull()
+      expect(await getCardFacts(db, m.matchId)).toBeNull()
+      const other = await wonUnseen()
+      await abandonStale(db, FAR(), CHECKED)
+      expect((await getReport(db, other.matchId, USER))!.body!.outcome).toBe('win')
+      expect(await getCardFacts(db, other.matchId)).toBeNull()
+    })
+
+    test('a logged LOSS given up with no upload is charged by resign and by both sweeps, at the price of a resign', async () => {
+      const price = await fleetPrice()
+      await db.execute(sql`truncate table rating`)
+      const lost = await lostGame()
+      const r = await resignMatchHandler(db, { matchId: lost.m.matchId, tick: 40 }, USER, CHECKED)
+      expect(r.body).toMatchObject({ resigned: true, elo: { before: 1000, after: price } })
+      await db.execute(sql`truncate table rating`)
+      const stale = await lostGame()
+      expect(await abandonStale(db, FAR(), CHECKED)).toBe(1)
+      expect((await ratingOf('fleet'))!.elo).toBe(price)
+      expect((await rowOf(stale.m.matchId)).filterFlags).toMatchObject({ abandoned: true })
+      expect((await getMyRecord(db, USER.userId)).perGame).toMatchObject([{ game: 'fleet', total: 2, won: 0 }])
+      await db.execute(sql`truncate table rating`)
+      const capped = await lostGame()
+      for (let i = 0; i < 3; i++) await begin('word')
+      expect((await rowOf(capped.m.matchId)).status).toBe('abandoned')
+      expect((await ratingOf('fleet'))!.elo).toBe(price)
     })
 
     test('a practice win left behind and a flag-free game keep their old flags', async () => {

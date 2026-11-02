@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
-import { competitive } from './competitive'
+import { competitive, LOGGED_WIN_FLAG } from './competitive'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
@@ -161,6 +161,11 @@ export async function getReport(db: Db, id: string, viewer: Viewer, deps: Report
   if (row.status === 'started') return { ...base, status: 'writing', body: null }
   if (row.status === 'resigned' || row.status === 'abandoned') {
     const ms = row.status === 'resigned' && row.finishedAt ? Math.max(0, row.finishedAt.getTime() - row.startedAt.getTime()) : 0
+    // The server's own log says the player won before giving up: nothing was counted, and it was not a loss.
+    if ((row.filterFlags as Record<string, unknown> | null)?.[LOGGED_WIN_FLAG] === true) {
+      const body = simpleBody(game, level, 'Your last shot sank the fleet before you saw the result. Nothing was counted.', "The player's last shot sank the fleet before the result was seen. Nothing was counted.", 0, 'win')
+      return { ...base, status: row.status, body: mine ? body : publicBody(body) }
+    }
     const body = row.status === 'resigned' ? simpleBody(game, level, 'You resigned.', 'The player resigned.', ms) : simpleBody(game, level, 'The match was abandoned.', 'The match was abandoned.', ms)
     return { ...base, status: row.status, body: mine ? body : publicBody(body) }
   }
@@ -188,8 +193,8 @@ export async function getReport(db: Db, id: string, viewer: Viewer, deps: Report
 }
 
 /** A resigned or abandoned match has no replayable end: the report is the outcome and nothing else. */
-function simpleBody(game: GameId, level: Level, reason: string, publicReason: string, durationMs = 0): ReportBody {
-  return { game, level, outcome: 'loss', reason, publicReason, moves: 0, durationMs, blunders: null, evaluator: 'none', moments: [], series: null, wordRows: null, reaction: null, note: null }
+function simpleBody(game: GameId, level: Level, reason: string, publicReason: string, durationMs = 0, outcome: 'win' | 'loss' = 'loss'): ReportBody {
+  return { game, level, outcome, reason, publicReason, moves: 0, durationMs, blunders: null, evaluator: 'none', moments: [], series: null, wordRows: null, reaction: null, note: null }
 }
 
 /** The few facts the share card needs, for a report that is public. Null for anything the public may not see. */
@@ -201,6 +206,8 @@ export async function getCardFacts(db: Db, id: string): Promise<{ game: GameId; 
   if (meta && !meta.linkPublic) return null
   const game = row.game as GameId
   const level = row.level as Level
+  // A logged win given up is no loss and has no card: nothing was counted.
+  if ((row.filterFlags as Record<string, unknown> | null)?.[LOGGED_WIN_FLAG] === true && row.status !== 'finished') return null
   if (row.status === 'resigned' || row.status === 'abandoned') return { game, level, outcome: 'loss', moves: 0 }
   if (row.status !== 'finished' || row.recordValid !== true || !row.record) return null
   try {
