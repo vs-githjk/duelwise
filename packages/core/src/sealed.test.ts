@@ -3,9 +3,10 @@ import { PRODUCT, type GameId } from './product'
 import { isSealed, SEALED_GAMES } from './sealed'
 
 describe('sealed games', () => {
-  test('word is sealed, every other current game is not', () => {
-    expect(SEALED_GAMES).toEqual(['word'])
+  test('word and fleet are sealed, every other current game is not', () => {
+    expect(SEALED_GAMES).toEqual(['word', 'fleet'])
     expect(isSealed('word')).toBe(true)
-    for (const g of Object.keys(PRODUCT.games) as GameId[]) if (g !== 'word') expect(isSealed(g)).toBe(false)
+    expect(isSealed('fleet')).toBe(true)
+    for (const g of Object.keys(PRODUCT.games) as GameId[]) if (g !== 'word' && g !== 'fleet') expect(isSealed(g)).toBe(false)
   })
 })

@@ -92,7 +92,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   const { game, level, count: wanted } = input as { game?: unknown; level?: unknown; count?: unknown }
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
-  if (isSealed(game as GameId)) return err(400, 'Word Duel has no offline tickets')
+  if (isSealed(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets`)
   if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 0) return err(400, 'count must be a whole number, 0 or more')
   if (!who.userId && !who.guestId) return err(401, 'no player')
   const viewer = viewerOf(who)

@@ -5,6 +5,7 @@ import { optionsProblem, sameChoice, type MatchOptions } from '@duelwise/core/sr
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
 import { isSealed } from '@duelwise/core/src/sealed'
+import { recordMatchesLog } from '@duelwise/core/src/sealed-log'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import type { Result } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
@@ -376,6 +377,8 @@ export async function finishMatchHandler(
     result = out.result
     if (!out.ok) reason = out.error ?? 'replay failed'
     else if (row.game === 'word' && !wordRecordMatchesMarks(rec, row.seed, row.filterFlags)) reason = 'record does not match the marked rounds'
+    // Every other sealed game keeps a log of the server's own turns (server/sealed-duel.ts); the record must be exactly that, to the end.
+    else if (isSealed(row.game as GameId) && row.game !== 'word' && !recordMatchesLog(rec, row.filterFlags)) reason = 'record does not match the logged turns'
     else if (SERVER_CHECKED.includes(rec.game)) {
       // The check is the expensive step (seconds of CPU), so one request claims the match first; copies sent at the same time stop here.
       // 503, not 409: the match is still 'started', and the client keeps a record on any 5xx and retries it (lib/integrity.ts retryPending).
