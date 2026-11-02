@@ -16,12 +16,6 @@ export function ago(iso: string, nowIso: string): string {
   return `${Math.round(m / 1440)} d ago`
 }
 
-/** HH:MM in UTC. */
-export function utcTime(iso: string): string {
-  const d = new Date(iso)
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
-}
-
 const PROVIDER: Record<string, string> = { google: 'Google', github: 'GitHub', credential: 'Email' }
 export const providerName = (p: string | null): string => (p ? (PROVIDER[p] ?? p) : 'Guest')
 export const DEVICE_NAME: Record<string, string> = { desktop: 'Desktop', phone: 'Phone', tablet: 'Tablet', headless: 'Test (headless)', unknown: 'Unknown' }
@@ -33,6 +27,7 @@ const cell = (v: string | number | null) => {
 
 /** The recent-matches rows as CSV: ids only, never an email. */
 export function recentCsv(rows: RecentRow[]): string {
+  // The export keeps full ISO timestamps in UTC (they end in Z) so a file means the same thing wherever it is opened.
   const head = ['when_utc', 'match_id', 'player', 'game', 'level', 'opponent', 'result', 'length_seconds', 'device', 'training']
   const lines = rows.map((r) => [r.at, r.matchId, r.player, r.game, r.level, r.persona, r.result, r.durationMs === null ? null : Math.round(r.durationMs / 1000), r.device, r.training].map(cell).join(','))
   return [head.join(','), ...lines].join('\n') + '\n'

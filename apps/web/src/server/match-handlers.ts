@@ -16,7 +16,7 @@ import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { isPractice, LEFT_FLAG, PRACTICE_FLAG } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
-import { takeTicket } from './tickets'
+import { takeTicket, ticketUsed } from './tickets'
 import type { Traffic } from './traffic'
 
 type Db = PgDatabase<any, typeof schema>
@@ -53,7 +53,7 @@ export interface FinishBody {
   valid: boolean
   reason?: string
   result: Result | null
-  /** Set only for a valid match by a signed-in user; never for an invalid record or a guest. */
+  /** The signed-in player's rating move: a valid match, or the loss charged for a record that contradicts its match (never a gain for an invalid record); never a guest. */
   elo?: { before: number; after: number }
   /** True when the rating was earned against a level that has no measured site Elo yet. */
   provisional?: boolean
@@ -320,10 +320,14 @@ export async function sweepDeferredChecks(db: Db, now: Date = new Date()): Promi
   return rows.length
 }
 
+/** The loss for a record that contradicts its match. Only used to score the rating, like a resignation. */
+const INVALID_LOSS: Result = { winner: 1, score: [0, 1], reason: 'invalid record' }
+
 /**
  * Decodes an uploaded gzip record, replays it from the SEED THE SERVER ISSUED (never the one the
- * client claims), and stores the outcome. A record that does not replay is kept for inspection
- * with valid = false and a reason; it never reaches ratings or training.
+ * client claims), and stores the outcome. A record that does not replay is settled with valid = false
+ * and a reason; it is never rated as a win and never reaches training. Most such records cost nothing,
+ * because an honest failure looks the same; one that contradicts its own match is charged as a loss (see below).
  */
 export async function finishMatchHandler(
   db: Db,
@@ -372,6 +376,8 @@ export async function finishMatchHandler(
   else if (!sameChoice(rec.options, chosenOptions(row.filterFlags))) reason = `match length does not match the one chosen at the start (started ${describeChoice(chosenOptions(row.filterFlags))}, record says ${describeChoice(rec.options)})`
   else if (ticketed && rec.agent.version !== row.agentVersion) reason = `this offline match was played against agent ${rec.agent.version}, but its ticket was issued for ${row.agentVersion}`
   else if (ticketed && opts.currentAgentVersion && opts.currentAgentVersion(row.game as GameId, row.level as Level) !== row.agentVersion) reason = 'the opponent was updated after this offline ticket was issued, so the match cannot be checked'
+  // The player is always seat 0 in a real-time game and replay never reads this field, so a seat-1 upload would put a lost match on the board and the path as a win.
+  else if (PRODUCT.games[row.game as GameId].kind === 'realtime' && rec.humanSeat !== 0) reason = 'a real-time match is played from seat 0'
   else {
     const out = replay(rec)
     result = out.result
@@ -433,7 +439,28 @@ export async function finishMatchHandler(
     opts.deferCheck!(settleDeferredCheck(db, row.id, rec, trainable, opts, finishedEvent))
   } else await finishedEvent(reason)
 
-  if (!valid) return { status: 200, body: { valid, reason, result: null } }
+  if (!valid) {
+    // The game, level and seed are the server's own values and every build only echoes them, so a record that contradicts one was edited
+    // to throw the match away: a loss at this match's rating, as if resigned. The seat is the same in the games the server holds to seat 0:
+    // every page records the fixed seat 0, so a flip costs the loss instead of escaping free. The compare-and-set above makes it once only.
+    // Everything else stays free, because it cannot be told from an honest failure: a stale build (core version, match length), a client bug
+    // (the page uploads records its own replay failed), a model changed mid-match (agent check) and an offline ticket (played unseen).
+    const seatHeld = row.game === 'word' || SERVER_CHECKED.includes(row.game as GameId)
+    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed || (seatHeld && rec.humanSeat !== 0)
+    // The flag covers a retry: an earlier upload that died mid-check already moved the row to 'started', so `ticketed` is false here.
+    if (!contradicts || ticketed || ticketUsed(row.filterFlags) || !row.userId || isPractice(row.filterFlags)) return { status: 200, body: { valid, reason, result: null } }
+    const change = await applyRatingIfRanked(db, {
+      userId: row.userId,
+      game: row.game as GameId,
+      level: row.level as Level,
+      humanSeat: 0,
+      result: INVALID_LOSS,
+      siteElo: opts.siteElo?.(row.game as GameId, row.level as Level, row.agentVersion) ?? null,
+    })
+    if (!change) return { status: 200, body: { valid, reason, result: null } }
+    await saveRatingChange(db, row.id, change)
+    return { status: 200, body: { valid, reason, result: null, elo: { before: change.before, after: change.after }, provisional: change.provisional } }
+  }
   // Read from the row the server wrote at the start, never from the upload.
   if (isPractice(row.filterFlags)) return { status: 200, body: { valid, result, unranked: true, practice: true } }
   if (PRODUCT.games[row.game as GameId].kind === 'realtime') return { status: 200, body: { valid, result, unranked: true } }

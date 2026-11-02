@@ -191,8 +191,8 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const margin = facts ? marginOf(facts) : null
   const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
   const nextPlayable = !practice && (!firstClear || accepted) && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
-  const elo = eloProp ?? (upload?.status === 'counted' ? upload.elo : undefined)
-  const provisional = provProp ?? (upload?.status === 'counted' ? upload.provisional : undefined)
+  const elo = eloProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.elo : undefined)
+  const provisional = provProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.provisional : undefined)
   const delta = elo ? elo.after - elo.before : null
   const [animatedDelta, setAnimatedDelta] = useState<number | null>(delta)
   useEffect(() => {
@@ -233,7 +233,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
     : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
     : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
     : upload?.status === 'not-counted' ? <p className={warn} role="status" data-testid="result-upload">This offline match could not be counted: {upload.reason}.</p>
-    : upload?.status === 'rejected' ? <p className={warn} data-testid="result-upload">This match could not be verified, so it was not counted.</p>
+    : upload?.status === 'rejected' ? <p className={warn} data-testid="result-upload">{upload.elo ? 'This match could not be verified, so it was charged as a loss.' : 'This match could not be verified, so it was not counted.'}</p>
     : upload?.status === 'failed' ? <p className={warn} data-testid="result-upload">{upload.kind === 'resign' ? 'We could not tell the server you resigned. The match will still be scored as a loss.' : 'This match could not be saved yet. It will be sent the next time you open a game. If it never arrives, it counts as a loss once the game time limit has passed.'}</p>
     : null
   const primary = 'inline-flex min-h-12 items-center justify-center rounded-full bg-action px-6 font-semibold text-action-ink'
