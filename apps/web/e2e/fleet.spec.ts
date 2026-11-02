@@ -11,7 +11,8 @@ test.describe('fleet dev page and promotion', () => {
     await expect(page.getByText(/stormglass/i).first()).toBeVisible()
     await page.goto('/play/stormglass')
     await expect(page.getByTestId('fleet-page')).toBeVisible()
-    await page.goto('/play/fleet')
+    const res = await page.goto('/play/fleet')
+    expect(res?.status()).toBe(404)
     await expect(page.getByTestId('fleet-page')).toHaveCount(0)
   })
 

@@ -29,7 +29,7 @@ import {
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
-// The water and hull colours are the spec's section 1 tokens, now also in the tokens file (F7); kept here as the page's own fallbacks.
+// The water and hull colours are the spec's section 1 tokens, in tokens.css since F7.
 
 const BASE = '/assets/ui/kenney'
 registerSounds({
