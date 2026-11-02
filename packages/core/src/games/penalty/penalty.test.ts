@@ -270,14 +270,14 @@ describe('penalty core: goal table and seed', () => {
     const want = (seed: number, k: number, zone: Zone, dive: Zone) =>
       makeRng((seed ^ Math.imul(k + 1, 0x85ebca6b)) | 0).int(1000) < GOAL_PER_MILLE[zone][dive]
     for (const seed of [1, 42, 977, 123456, -5]) {
-      for (const k of [1, 3, 6, 9]) {
+      for (const k of [1, 3, 6, 9, 10, 11, 12, 21, 32, 33]) {
         for (const zone of [0, 1, 2] as Zone[]) {
           for (const dive of [0, 1, 2] as Zone[]) {
             // Two different histories of k kicks with the same seed (zones and goal flags differ).
             const histA: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 0, dive: 1, goal: false }))
-            const histB: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 2, dive: 2, goal: i % 2 === 0 }))
-            // Keep both live: only step when not over.
-            if (core.terminal({ seed, kicks: histA }) || core.terminal({ seed, kicks: histB })) continue
+            const histB: Kick[] = Array.from({ length: k }, (_, i) => ({ kicker: (i % 2) as 0 | 1, zone: 2, dive: 2, goal: i % 4 < 2 }))
+            expect(core.terminal({ seed, kicks: histA })).toBe(false)
+            expect(core.terminal({ seed, kicks: histB })).toBe(false)
             const kicker = (k % 2) as 0 | 1
             const acts: [Zone, Zone] = kicker === 0 ? [zone, dive] : [dive, zone]
             const a = core.step({ seed, kicks: histA }, acts).kicks[k]
