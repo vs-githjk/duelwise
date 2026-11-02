@@ -33,11 +33,13 @@ export interface FleetSnapshot {
   failure: string | null
   /** The square of a shot whose reply was lost: it stays aimed and locked, because Fire can only send that shot again. Null when none is waiting. */
   unsentCell: number | null
+  /** True from the moment the server's final reply is in: the match is over and being settled, so Resign is gone and does nothing. */
+  ending: boolean
   /** True when the server holds the enemy fleet (a counted match). */
   sealed: boolean
 }
 
-const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, sealed: false }
+const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, ending: false, sealed: false }
 
 /** The five setup actions, in ship order, as the server and the record expect them. */
 export function setupCodes(fleet: Placement[]): number[] {
@@ -168,7 +170,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
     human = []
     humanMs = []
     unsent = null
-    snap = { ...snap, unsentCell: null }
+    snap = { ...snap, unsentCell: null, ending: false }
   }
 
   /** One request, tried twice: the server answers an identical request with the same reply, so a repeat is safe. */
@@ -341,11 +343,12 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
             const interim = { ...reply.view, phase: 'play' as const, reveal: null }
             // A loss: my last shot lands first, the opponent's killing shot after the same hold as on every other turn.
             const killing = hold > 0 && reply.view.incoming.length > before
-            set({ view: killing ? { ...interim, incoming: reply.view.incoming.slice(0, before) } : interim })
+            set({ ending: true, view: killing ? { ...interim, incoming: reply.view.incoming.slice(0, before) } : interim })
             await nextPaint()
             // Resign, a rematch or leaving the page meanwhile has settled the match; settling it again here would record it twice.
             if (mine !== epoch) return null
             await recordCounted(reply)
+            if (mine !== epoch) return null
             if (killing) {
               await sleep(Math.max(0, hold - (performance.now() - heldAt)))
               if (mine !== epoch) return null
@@ -387,7 +390,8 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
     },
 
     async resign() {
-      if (snap.phase !== 'play') return
+      // Once the final reply is in the match is over and being recorded: a resignation now would settle it twice or lose the record.
+      if (snap.phase !== 'play' || snap.ending) return
       const tick = snap.view ? stepsPlayed(snap.view) : 0
       epoch++
       set({ phase: 'over', resigned: true, thinking: false, failure: null, unsentCell: null })
