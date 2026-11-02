@@ -704,6 +704,7 @@ export default function FleetView() {
           ) : null}
 
           {wide ? null : (
+            <>
             <div className="grid h-40 grid-cols-[130px_minmax(0,1fr)] gap-3 overflow-hidden rounded-card border border-line bg-surface p-3" data-testid="fleet-own">
               <div
                 className="relative"
@@ -720,9 +721,10 @@ export default function FleetView() {
                 <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
                   {event}
                 </p>
-                {!over ? <ResignButton onResign={resign} /> : null}
               </div>
             </div>
+            {!over ? <ResignButton onResign={resign} /> : null}
+            </>
           )}
         </>
       )}

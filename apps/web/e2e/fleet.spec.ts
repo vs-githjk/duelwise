@@ -62,7 +62,7 @@ test.describe('fleet dev page', () => {
     for (let attempt = 0; attempt < 40 && !proven; attempt++) {
       await page.getByTestId('fleet-shuffle').click()
       const before = await read()
-      const grab = Math.min(...before)
+      const grab = Math.max(...before)
       for (const delta of [10, -10, 1, -1]) {
         const to = grab + delta
         if (to < 0 || to > 99 || before.has(to)) continue
@@ -201,6 +201,8 @@ test.describe('fleet dev page', () => {
     // One tap only asks: the match goes on until the confirm is answered.
     await expect(page.getByTestId('fleet-result')).toHaveCount(0)
     await expect(page.getByTestId('fleet-resign-yes')).toHaveText('Yes, resign')
+    await expect(page.getByTestId('fleet-resign-keep')).toBeInViewport({ ratio: 1 })
+    await expect(page.getByTestId('fleet-resign-yes')).toBeInViewport({ ratio: 1 })
     await page.getByTestId('fleet-resign-keep').click()
     await expect(page.getByTestId('fleet-result')).toHaveCount(0)
     await expect(page.getByTestId('fleet-fire')).toBeEnabled()
