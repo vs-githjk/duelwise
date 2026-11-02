@@ -187,17 +187,30 @@ export function luckScore(shots: number[], target: Placement[]): LuckScore {
 }
 
 /**
- * The same score for a page: before every slice it awaits `pause` (a frame or a timer), so no task is longer than one shot. `live` stops it early
- * (returns null) when the page no longer wants the answer.
+ * The same score for a page. It awaits `pause` (a timer or a frame) once before any work, so the commit that asked for the score paints first, and
+ * then only when `budgetMs` have gone by since the last pause: chained zero timers clamp to about 4 ms each, which made a 60 shot match take seconds.
+ * `live` stops it early (returns null) when the page no longer wants the answer.
  */
-export async function luckScoreSliced(shots: number[], target: Placement[], pause: () => Promise<void>, live: () => boolean = () => true): Promise<LuckScore | null> {
+export async function luckScoreSliced(
+  shots: number[],
+  target: Placement[],
+  pause: () => Promise<void>,
+  live: () => boolean = () => true,
+  budgetMs = 8,
+  now: () => number = () => performance.now(),
+): Promise<LuckScore | null> {
   const run = scoreSteps(shots, target)
+  await pause()
+  if (!live()) return null
+  let last = now()
   for (;;) {
-    // Hand back first, so the commit that asked for the score has painted before any of the work.
-    await pause()
-    if (!live()) return null
     const step = run.next()
     if (step.done) return step.value
+    if (now() - last >= budgetMs) {
+      await pause()
+      if (!live()) return null
+      last = now()
+    }
   }
 }
 

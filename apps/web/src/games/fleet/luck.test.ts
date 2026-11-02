@@ -51,12 +51,20 @@ describe('the luck measure is skill neutral', () => {
     expect(s.expected).toBeLessThan(0.32)
   })
 
-  test('spread over timer ticks the score is exactly the synchronous one, a few ticks per shot, and it stops when the page leaves', async () => {
+  test('spread over pauses the score is exactly the synchronous one, pauses come only after the time budget, the first one before any work, and it stops when the page leaves', async () => {
     const hunt = shotsToSink('medium', 70_002)
+    // A clock that moves 1 ms per look: with an 8 ms budget a pause comes about every 8 slices, not after each one.
+    let t = 0
     let pauses = 0
-    const sliced = await luckScoreSliced(hunt.fired, hunt.fleet, async () => { pauses++ })
+    const sliced = await luckScoreSliced(hunt.fired, hunt.fleet, async () => { pauses++ }, () => true, 8, () => ++t)
     expect(sliced).toEqual(luckScore(hunt.fired, hunt.fleet))
-    expect(pauses).toBeGreaterThanOrEqual(hunt.fired.length)
+    expect(pauses).toBeGreaterThanOrEqual(2)
+    expect(pauses).toBeLessThan(hunt.fired.length * 2)
+    // The first pause precedes the first slice, so the commit that asked for the score paints before any of it.
+    let worked = false
+    const pausedBeforeWork: boolean[] = []
+    await luckScoreSliced([hunt.fired[0]!], hunt.fleet, async () => { pausedBeforeWork.push(!worked) }, () => true, 8, () => { worked = true; return 0 })
+    expect(pausedBeforeWork[0]).toBe(true)
     let alive = true
     const gone = await luckScoreSliced(hunt.fired, hunt.fleet, async () => { alive = false }, () => alive)
     expect(gone).toBeNull()

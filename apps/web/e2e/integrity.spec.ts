@@ -585,5 +585,8 @@ test('fleet: the match-ending reply is lost and the player resigns: a win in the
     expect(said.includes('nothing was counted') || (await elo.count()) > 0).toBe(true)
   }).toPass({ timeout: 20_000 })
   await expect(page.getByText('Sign in to get a rating')).toHaveCount(0)
+  // The heading agrees with the line under it: a win in the log reads as a win, a loss as a loss.
+  const wonInLog = (await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted')
+  await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', wonInLog ? 'win' : 'loss')
   expect((await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted') && (await elo.count()) > 0).toBe(false)
 })

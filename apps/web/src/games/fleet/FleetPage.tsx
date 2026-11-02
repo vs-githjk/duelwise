@@ -38,6 +38,13 @@ function firstSelectable(): Level {
 
 const COLS = 'ABCDEFGHIJ'
 
+/** Test seam: `?luckwait=1500` holds the luck line back that many ms before it starts scoring, so a spec can look at the page while the line is truly absent. */
+function luckWaitMs(): number {
+  const raw = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('luckwait')
+  const n = raw === null ? 0 : Number(raw)
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 10_000) : 0
+}
+
 /** Hold before the opponent's shot lands, in ms. `?hold=0` makes it instant (the e2e spec uses it). */
 function holdMs(): number {
   const raw = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('hold')
@@ -349,7 +356,11 @@ function LuckLine({ base, slot, shots, target, ready }: { base: LuckBase; slot: 
   useEffect(() => {
     if (!ready) return
     let live = true
-    void luckScoreSliced(shots, target, () => new Promise<void>((r) => setTimeout(r, 0)), () => live).then((score) => {
+    let first = true
+    const wait = luckWaitMs()
+    // One timer after the commit that asked for the score (so it paints first), then one whenever a slice has used its time budget.
+    const pause = () => new Promise<void>((r) => setTimeout(r, first ? ((first = false), wait) : 0))
+    void luckScoreSliced(shots, target, pause, () => live).then((score) => {
       if (live && score) setLine(fleetLuckLine({ ...base, score }))
     })
     return () => {
@@ -662,10 +673,13 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     document.querySelector<HTMLElement>('[data-testid="fleet-cell-0"]')?.focus({ preventScroll: true })
   }, [started])
 
-  const won = !!view && !resigned && viewWon(view)
+  const sunkWin = !!view && !resigned && viewWon(view)
+  // The server's log already had the player winning when they gave up (the last reply never came): the heading then agrees with the line under it that says nothing was counted.
+  const loggedWon = resigned && game.upload.status === 'counted' && game.upload.loggedWin === true
+  const won = sunkWin || loggedWon
   // The winning shot is the biggest sink of the match, and on a phone the result mounts above the board: let it play first.
   const [resultDue, setResultDue] = useState(false)
-  const holdResult = over && won && hold > 0
+  const holdResult = over && sunkWin && hold > 0
   useEffect(() => {
     if (!holdResult) return setResultDue(false)
     const t = setTimeout(() => setResultDue(true), LAST_SINK_HOLD_MS)
@@ -689,7 +703,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     return fleetLuckLine({ ...luckBase, score: { shots: view.shots.length, hits, expected: luckBase.won ? hits : hits - 10, variance: 1 } })
   }, [luckBase, view])
   const luckReady = over && (!holdResult || resultDue)
-  const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned ? 'resigned' : 'fleet sunk' } : null
+  const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned && !loggedWon ? 'resigned' : 'fleet sunk' } : null
   const resultNode =
     result && view && (!holdResult || resultDue) ? (
       <ResultPanel

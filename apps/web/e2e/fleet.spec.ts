@@ -485,30 +485,34 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
   })
 
-  test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their boxes', async ({ page, context, browserName }) => {
-    const fleet = await seededMatch(page, 0)
+  test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their sizes', async ({ page }) => {
+    // luckwait holds the score back for 2 s, so "before" is taken while the line is truly absent, on any machine and in any browser.
+    const fleet = enemyFleet(SEED)
+    await page.goto(`/play/stormglass?seed=${SEED}&hold=0&luckwait=2000`)
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
     const cells = fleet.flatMap(shipCells)
-    // A slow phone: scoring takes long enough that the page is seen without the line first (Chromium can slow its CPU; WebKit only checks the boxes).
-    const slow = browserName === 'chromium'
-    if (slow) await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: 6 })
     for (const cell of cells) {
       await fireAt(page, cell)
       if (cell !== cells.at(-1)) await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
     }
     const panel = page.getByTestId('result-panel')
     const slot = page.getByTestId('fleet-luck-slot')
+    const line = page.getByTestId('fleet-luck')
     await expect(slot).toBeAttached()
-    // Sizes and document height: the page may scroll the result into view meanwhile, which moves y but not what is laid out.
+    await expect(panel).toBeVisible()
+    expect(await line.textContent()).toBe('')
+    // Sizes and document height, rounded: the page may still be scrolling the result into view or rising in, which moves y and adds sub-pixel noise, not layout.
     const boxes = async () => {
       const [p, sl] = [await panel.boundingBox(), await slot.boundingBox()]
-      return { panel: [p!.width, p!.height], slot: [sl!.width, sl!.height], doc: await page.evaluate(() => document.documentElement.scrollHeight) }
+      return { panel: [p!.width, p!.height].map(Math.round), slot: [sl!.width, sl!.height].map(Math.round), doc: Math.round(await page.evaluate(() => document.documentElement.scrollHeight)) }
     }
-    await expect(panel).toBeVisible()
-    if (slow) expect(await page.getByTestId('fleet-luck').textContent()).toBe('')
+    // The rise animation of the panel ends before the line can arrive; wait for it so "before" is the settled layout.
+    await page.waitForTimeout(700)
+    expect(await line.textContent()).toBe('')
     const before = await boxes()
-    await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
-    // Let the fade finish, then compare: the line is in its reserved slot.
-    await expect(page.getByTestId('fleet-luck')).toHaveCSS('opacity', '1')
+    await expect(line).toContainText('should hit about', { timeout: 15_000 })
+    await expect(line).toHaveCSS('opacity', '1')
     expect(await boxes()).toEqual(before)
   })
 })
