@@ -1,0 +1,229 @@
+/*
+ * Twelve Yards dev page. The scene is drawn in a 328 x 240 box and scaled by --u (container width / 328), so it is exact at 360
+ * wide and grows to 520 on a desktop with the same proportions. Pitch and goal colours are object colours: the same in light
+ * and dark, since their contrast is against the grass, not the page. Promotion moves them to tokens.
+ * Only transforms and opacity change during a reveal; no box ever resizes.
+ */
+.pen {
+  --pitch: #2f7d46;
+  --pitch-stripe: #38904f;
+  --goal-post: #ffffff;
+  --goal-net: rgba(255, 255, 255, 0.28);
+  --game-penalty: #5f8f1f;
+}
+
+.pen-scene-wrap {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 520px;
+}
+
+.pen-scene {
+  --u: calc(100cqw / 328);
+  position: relative;
+  width: 100%;
+  height: calc(240 * var(--u));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: repeating-linear-gradient(90deg, var(--pitch) 0, var(--pitch) calc(41 * var(--u)), var(--pitch-stripe) calc(41 * var(--u)), var(--pitch-stripe) calc(82 * var(--u)));
+  box-shadow: var(--shadow-card, none);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pen-frame {
+  position: absolute;
+  left: calc(14 * var(--u));
+  top: calc(10 * var(--u));
+  width: calc(300 * var(--u));
+  height: calc(124 * var(--u));
+  border: calc(4 * var(--u)) solid var(--goal-post);
+  border-bottom-width: 0;
+  background:
+    repeating-linear-gradient(0deg, var(--goal-net) 0 1px, transparent 1px calc(10 * var(--u))),
+    repeating-linear-gradient(90deg, var(--goal-net) 0 1px, transparent 1px calc(10 * var(--u)));
+  pointer-events: none;
+}
+
+.pen-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(134 * var(--u));
+  height: 2px;
+  background: var(--goal-post);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.pen-spot {
+  position: absolute;
+  left: calc(161 * var(--u));
+  top: calc(202 * var(--u));
+  width: calc(6 * var(--u));
+  height: calc(6 * var(--u));
+  border-radius: 50%;
+  background: var(--goal-post);
+  pointer-events: none;
+}
+
+.pen-zone {
+  position: absolute;
+  top: 0;
+  height: calc(164 * var(--u));
+  width: 33.3334%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(4 * var(--u));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  /* a quiet outline so the target is visible before it is picked */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+.pen-zone:nth-of-type(1) { left: 0; }
+.pen-zone:nth-of-type(2) { left: 33.3333%; }
+.pen-zone:nth-of-type(3) { left: 66.6667%; }
+.pen-zone[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 3px var(--action), inset 0 0 0 calc(40 * var(--u)) rgba(33, 102, 240, 0.22);
+}
+.pen-zone:disabled { cursor: default; }
+.pen-zone:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; }
+
+/* who picked what, shown the moment a kick is committed */
+.pen-tag {
+  position: absolute;
+  top: calc(6 * var(--u));
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.pen-keeper {
+  position: absolute;
+  left: calc(146 * var(--u));
+  top: calc(78 * var(--u));
+  width: calc(36 * var(--u));
+  height: calc(56 * var(--u));
+  pointer-events: none;
+  transform-origin: 50% 80%;
+}
+.pen-keeper::before { /* head */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 38%;
+  height: 28%;
+  margin-left: -19%;
+  border-radius: 50%;
+  background: #f3ead8;
+  border: 2px solid #15181e;
+  box-sizing: border-box;
+}
+.pen-keeper::after { /* shirt and gloves */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 26%;
+  bottom: 0;
+  border-radius: 10px 10px 4px 4px;
+  background: #f2c94c;
+  border: 2px solid #15181e;
+  box-sizing: border-box;
+}
+
+.pen-ball {
+  position: absolute;
+  left: calc(157 * var(--u));
+  top: calc(198 * var(--u));
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #15181e;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* the reveal: transforms only, and only while data-reveal is set */
+.pen-scene[data-reveal='go'] .pen-ball {
+  transform: translate(calc(var(--bx) * var(--u)), calc(var(--by) * var(--u))) scale(0.8);
+  transition: transform var(--duration-slow, 360ms) var(--ease-out, ease-out);
+}
+.pen-scene[data-reveal='go'] .pen-keeper {
+  transform: translate(calc(var(--kx) * var(--u)), calc(var(--ky) * var(--u))) rotate(var(--kr)) scale(var(--ks));
+  transition: transform var(--duration-slow, 360ms) var(--ease-out, ease-out);
+}
+
+/* the outcome word: a slot that exists from the start; only its opacity changes */
+.pen-word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(138 * var(--u));
+  height: calc(40 * var(--u));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  pointer-events: none;
+}
+.pen-word[data-on] { opacity: 1; transition: opacity var(--duration-fast, 120ms) linear; }
+
+/* score row */
+.pen-score { height: 44px; display: grid; grid-template-rows: 22px 22px; }
+.pen-score-row { display: flex; align-items: center; gap: 8px; }
+.pen-score-name { width: 64px; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pen-dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+}
+.pen-dot[data-slot='goal'] { background: var(--ink); }
+.pen-dot[data-slot='none'] { border-color: var(--line); opacity: 0.5; }
+.pen-dot[data-slot='miss']::after { /* a strike through a hollow dot, so colour is never the only signal */
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--ink);
+  transform: rotate(-45deg);
+}
+
+.pen-role { height: 28px; line-height: 28px; font-family: var(--font-display); font-size: 18px; }
+.pen-bar { height: 56px; display: flex; gap: 8px; }
+.pen-chip {
+  width: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+}
+.pen-last { height: 3rem; font-size: 14px; line-height: 1.5rem; overflow: hidden; }
