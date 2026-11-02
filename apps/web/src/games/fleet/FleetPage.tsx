@@ -17,6 +17,7 @@ import fleetRegistryJson from '@duelwise/agents/registry/fleet.json'
 import { visibleRegistry } from '../../lib/strength-gates'
 import type { Result } from '@duelwise/core/src/types'
 import { playCue } from './sounds'
+import { strengthSentence } from './strength'
 import { expectedHunting, fleetLuckLine, huntingShots } from './luck'
 import { useFleetMatch } from './useFleetMatch'
 import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, viewWon } from './fleet-match'
@@ -602,13 +603,9 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         <p className="text-sm text-muted" data-testid="opponent-style">
           {styleLine(shownLevel, 'fleet')}
         </p>
-        {measured ? (
-          <p className="text-sm text-muted">
-            Sinks a random fleet in <span className="font-mono tabular text-ink">{measured.value.toFixed(1)}</span> shots on average.
-          </p>
-        ) : (
-          <p className="text-sm text-muted">No measured strength yet.</p>
-        )}
+        <p className="text-sm text-muted" data-testid="fleet-strength">
+          {strengthSentence(measured)}
+        </p>
         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" data-testid="fleet-legend">
           <span className="inline-flex items-center gap-1.5">
             <i aria-hidden="true" className="inline-block size-4 rounded-full border-2 border-muted" style={{ background: 'var(--hull)' }} /> You
