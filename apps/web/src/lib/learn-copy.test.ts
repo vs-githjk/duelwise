@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { axisMax, learnCopy, pointsFor } from './learn-copy'
+import { axisMax, gateLine, learnCopy, learnHeading, pointsFor } from './learn-copy'
 
 test('a game that does not learn says self-play and test bots, never that every match trains', () => {
   const c = learnCopy({ game: 'word', learns: false, champion: null, sinceCount: 9, sinceEligible: 0 })
@@ -29,4 +29,19 @@ test('points are thin under 30 matches, gaps are null, the axis grows in steps o
   expect(axisMax(pts)).toBe(100)
   expect(axisMax(pts.slice(0, 1))).toBe(60)
   expect(axisMax([])).toBe(30)
+})
+
+test('the graph heading: Stormglass has nothing to learn, every other game reads as before', () => {
+  expect(learnHeading('fleet')).not.toMatch(/learn|\byet\b/i)
+  for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(learnHeading(game)).toBe('Watch the AI learn')
+})
+
+test('a gate with its own summary shows it whole; without one the old first clause stands', () => {
+  const rule = 'adjacent levels: the stronger level, and Pip against random legal play, each need a 95% Wilson lower bound'
+  expect(gateLine({ rule, summary: 'Each level beat the level below from both seats.' })).toBe('Each level beat the level below from both seats.')
+  expect(gateLine({ rule })).toBe('adjacent levels')
+  expect(gateLine({ rule: 'R15: 400 matches per bot on each seat, bots under the same limits; a level publishes' })).toBe('400 matches per bot on each seat, bots under the same limits')
+  expect(gateLine({ rule: 'x'.repeat(120) })).toBe(`${'x'.repeat(107)}...`)
+  expect(gateLine({})).toBeNull()
+  expect(gateLine(null)).toBeNull()
 })

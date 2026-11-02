@@ -10,6 +10,24 @@ export interface ChampionFacts {
 
 const f2 = (v: number) => v.toFixed(2)
 
+/** The graph's heading. A scripted game has nothing to learn, so it names what the graph really shows. */
+export function learnHeading(game: GameId): string {
+  return game === 'fleet' ? `${PRODUCT.games.fleet.displayName} against people` : 'Watch the AI learn'
+}
+
+/**
+ * The gate in one line for the version list. A gate may carry a `summary` the measurement wrote to be shown whole; otherwise this is the
+ * rule's first clause, which is the line every older registry has always shown.
+ */
+export function gateLine(gate: unknown): string | null {
+  if (typeof gate !== 'object' || gate === null) return null
+  const { summary, rule } = gate as { summary?: unknown; rule?: unknown }
+  if (typeof summary === 'string') return summary
+  if (typeof rule !== 'string') return null
+  const first = rule.replace(/^R\d+:\s*/, '').split(/[;:]/)[0]!.trim()
+  return first.length > 110 ? `${first.slice(0, 107)}...` : first
+}
+
 /**
  * The words next to the graph. Where a game learns from people it says exactly what the newest version used and beat; where it does not,
  * it says so and names the real sources (self-play and test bots, or a scripted solver for Word Duel and Stormglass). It never says every match trains the AI.
