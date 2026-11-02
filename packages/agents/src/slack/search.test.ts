@@ -107,6 +107,37 @@ function brute(b: Int8Array, me: number, passed: boolean): number {
   return best
 }
 
+describe('evaluate', () => {
+  const cellsOf = (mine: number[], theirs: number[]) => {
+    const c = new Array<number>(64).fill(0)
+    for (const i of mine) c[i] = 1
+    for (const i of theirs) c[i] = 2
+    return c
+  }
+
+  test('hand-computed values above 20 empties: weights plus 6 per placement of mobility', () => {
+    // Seat 0 on 27 and 36, seat 1 on 26, 28 and 35: all four cells weigh 3, so weights give 3+3-3-3-3 = -3.
+    // Seat 0 can place on 20, 25, 29, 34, 43 (5); seat 1 can place on 19, 37, 44 (3). 59 empties, so weight 6.
+    const b = fromCells(cellsOf([27, 36], [26, 28, 35]))
+    expect(evaluate(b, 1, false)).toBe(-3)
+    expect(evaluate(b, 1, true)).toBe(-3 + 6 * (5 - 3))
+    expect(evaluate(b, -1, false)).toBe(3)
+    expect(evaluate(b, -1, true)).toBe(3 - 6 * (5 - 3))
+  })
+
+  test('hand-computed values at 20 empties or fewer: mobility weighs 3', () => {
+    // Cells 0..43 filled (44 discs, 20 empties). Seat 0 holds all but the corner 0 and cell 1.
+    // Weights of cells 0..43 sum to 233, so 233 - 2*(120-20) = 33 for seat 0.
+    // Seat 0 has no placement. Seat 1 can place on 45, 46, 48, 49 (4), all flanking toward 0 or 1.
+    const mine = Array.from({ length: 44 }, (_, i) => i).filter((i) => i > 1)
+    const b = fromCells(cellsOf(mine, [0, 1]))
+    expect(emptyCount(b)).toBe(20)
+    expect(evaluate(b, 1, false)).toBe(33)
+    expect(evaluate(b, 1, true)).toBe(33 - 3 * 4)
+    expect(evaluate(b, -1, true)).toBe(-33 + 3 * 4)
+  })
+})
+
 describe('search', () => {
   test('alpha-beta at depth 4 returns the plain negamax value on 50 positions', () => {
     let checked = 0
@@ -129,6 +160,39 @@ describe('search', () => {
     expect(checked).toBe(50)
   })
 
+  test('a pass inside the horizon costs no depth: late positions match plain negamax at depth 4', () => {
+    // Positions 4 to 14 plies before the end of random games, where passes are common.
+    let withPass = 0
+    let checked = 0
+    for (let seed = 1; seed <= 250; seed++) {
+      const states = randomGame(seed)
+      const s = states[states.length - 1 - (4 + (seed % 11))]
+      if (!s || slackCore.terminal(s) || slackCore.legal(s, s.turn).includes(PASS)) continue
+      const seat = s.turn
+      const b = fromCells(s.cells)
+      for (const mobility of [false, true]) {
+        const r = searchMove(s.cells, seat, { maxDepth: 4, mobility })
+        const evalFn = (x: Int8Array, me: number) => evaluate(x, me, mobility)
+        expect(r.value).toBe(plainNegamax(b, sign(seat), 4, false, evalFn))
+      }
+      checked++
+      // Does a pass occur in a 4 ply line from here? Count positions where it does.
+      const hasPass = (x: Int8Array, me: number, d: number): boolean => {
+        if (d === 0) return false
+        const ms = legalMoves(x, me)
+        if (ms.length === 0) return true
+        return ms.some((m) => {
+          const c = x.slice()
+          make(c, m, me, new Int8Array(64))
+          return hasPass(c, -me, d - 1)
+        })
+      }
+      if (hasPass(b, sign(seat), 4)) withPass++
+    }
+    expect(checked).toBeGreaterThan(150)
+    expect(withPass).toBeGreaterThan(20)
+  })
+
   test('the exact solve agrees with brute force on 30 positions at 8 empties', () => {
     const ps = positionsWithEmpties(8, 30, 1000)
     expect(ps.length).toBe(30)
@@ -146,6 +210,43 @@ describe('search', () => {
         return -brute(c, -sign(seat), false)
       })
       expect(values[slackCore.legal(s, seat).indexOf(r.move)]).toBe(Math.max(...values))
+    }
+  })
+
+  test('the exact stage still runs with noise on (Sable: noise 1, exact 8) and ignores the noise', () => {
+    const ps = positionsWithEmpties(8, 30, 1000)
+    expect(ps.length).toBe(30)
+    let i = 0
+    for (const s of ps) {
+      const seat = s.turn
+      const b = fromCells(s.cells)
+      const truth = brute(b, sign(seat), false)
+      const r = searchMove(s.cells, seat, { maxDepth: 2, noise: 1, rng: makeRng(500 + i++), exactEmpties: 8 })
+      expect(r.exact).toBe(true)
+      expect(r.value).toBe(truth * 10000)
+      const values = slackCore.legal(s, seat).map((m) => {
+        const c = b.slice()
+        make(c, m, sign(seat), new Int8Array(64))
+        return -brute(c, -sign(seat), false)
+      })
+      expect(values[slackCore.legal(s, seat).indexOf(r.move)]).toBe(Math.max(...values))
+    }
+  })
+
+  test('a cap hit inside the exact stage answers with the last finished depth and is not marked exact', () => {
+    const ps = positionsWithEmpties(8, 6, 1000)
+    for (const s of ps) {
+      const seat = s.turn
+      const plain = searchMove(s.cells, seat, { maxDepth: 2 })
+      const full = searchMove(s.cells, seat, { maxDepth: 2, exactEmpties: 20 })
+      const cap = plain.nodes + 3
+      // The cap is enough for depth 2 but not for the solve (exactEmpties above the empties count).
+      expect(full.nodes).toBeGreaterThan(cap)
+      const r = searchMove(s.cells, seat, { maxDepth: 2, exactEmpties: 20, nodeCap: cap })
+      expect(r.exact).toBe(false)
+      expect(r.depth).toBe(2)
+      expect(r.move).toBe(plain.move)
+      expect(r.value).toBe(plain.value)
     }
   })
 
@@ -185,6 +286,37 @@ describe('search', () => {
     const moves = new Set<number>()
     for (let seed = 1; seed <= 60; seed++) moves.add(searchMove(s.cells, s.turn, opts(seed)).move)
     expect(moves.size).toBeGreaterThan(1)
+  })
+
+  test('with noise the move maximises the plain value plus its draw, and the value is the plain value', () => {
+    let checked = 0
+    for (let seed = 1; checked < 36 && seed < 400; seed++) {
+      const s = randomGame(seed)[4 + (seed % 40)]
+      if (!s || slackCore.terminal(s) || slackCore.legal(s, s.turn).includes(PASS)) continue
+      const seat = s.turn
+      const me = sign(seat)
+      const b = fromCells(s.cells)
+      const depth = 2 + (checked % 3)
+      const noise = [1, 1, 5, 40][checked % 4]!
+      const mobility = checked % 2 === 0
+      const r = searchMove(s.cells, seat, { maxDepth: depth, noise, rng: makeRng(900 + seed), mobility })
+      // Same draws, rebuilt in cell order.
+      const rng = makeRng(900 + seed)
+      const evalFn = (x: Int8Array, m: number) => evaluate(x, m, mobility)
+      const scored = new Map<number, { raw: number; total: number }>()
+      for (const m of [...legalMoves(b, me)].sort((p, q) => p - q)) {
+        const draw = rng.int(noise + 1)
+        const c = b.slice()
+        make(c, m, me, new Int8Array(64))
+        const raw = -plainNegamax(c, -me, depth - 1, false, evalFn)
+        scored.set(m, { raw, total: raw + draw })
+      }
+      const bestTotal = Math.max(...[...scored.values()].map((x) => x.total))
+      expect(scored.get(r.move)!.total).toBe(bestTotal)
+      expect(r.value).toBe(scored.get(r.move)!.raw)
+      checked++
+    }
+    expect(checked).toBe(36)
   })
 
   test('noise with no rng is refused', () => {

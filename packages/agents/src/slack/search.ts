@@ -112,6 +112,10 @@ function rootPass(ctx: Ctx, cells: readonly number[], me: number, roots: number[
   return { move: bestMove, value: bestRaw }
 }
 
+/**
+ * `cells` are core cells (0 empty, 1 seat 0, 2 seat 1) and `seat` is the mover's real seat. A SlackObs
+ * stores cells relative to the viewer (1 mine, 2 theirs): with an observation pass seat 0, not obs.seat.
+ */
 export function searchMove(cells: readonly number[], seat: Seat, opts: SearchOpts): SearchResult {
   const me = seat === 0 ? 1 : -1
   const mobility = opts.mobility ?? false
