@@ -145,7 +145,8 @@ export type Upload =
   | { status: 'uploading'; matchId?: string }
   /** `matchId` is the counted match, which is also the id of its report page. */
   | { status: 'counted'; matchId?: string; elo?: { before: number; after: number }; provisional?: boolean }
-  | { status: 'rejected'; reason: string }
+  /** `elo` is set when the server charged the refused record as a loss. */
+  | { status: 'rejected'; reason: string; elo?: { before: number; after: number }; provisional?: boolean }
   /** `kind: 'resign'` marks a failed give-up call; otherwise the finished record could not be uploaded. */
   | { status: 'failed'; message: string; kind?: 'resign' }
   /** An offline match saved on this device; it is uploaded and checked when the connection is back. */
@@ -224,7 +225,7 @@ export async function uploadMatch(api: MatchApi, finished: FinishedMatch): Promi
     try {
       const r = await api.finish(finished.bytes)
       if (r.valid) return { status: 'counted', matchId: finished.record.matchId, elo: r.elo, provisional: r.provisional }
-      return { status: 'rejected', reason: r.reason ?? finished.error ?? 'The server could not verify this match.' }
+      return { status: 'rejected', reason: r.reason ?? finished.error ?? 'The server could not verify this match.', ...(r.elo ? { elo: r.elo, provisional: r.provisional } : {}) }
     } catch (e) {
       if (attempt >= 1) return { status: 'failed', message: e instanceof Error ? e.message : 'Upload failed.' }
     }

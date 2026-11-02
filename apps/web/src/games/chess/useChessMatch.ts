@@ -178,6 +178,7 @@ export function useChessMatch(agentVersion: (level: Level) => string, learnsFrom
       setLastMove(null)
       setSans([])
       recorder.start({
+        matchId: opened.session.matchId,
         seed: s,
         humanSeat: HUMAN,
         agent: { version: agentVersion(lvl), level: lvl },

@@ -68,6 +68,23 @@ test('a rejected, failed, not-counted or unrated (fixed seed) win never says it 
   }
 })
 
+test('a refused record that moved the rating says it was charged as a loss and shows the fall, never that it was not counted', () => {
+  const html = renderWith({ status: 'rejected', reason: 'seed does not match the one issued for this match', elo: { before: 1000, after: 980 }, provisional: true })
+  expect(html).toContain('This match could not be verified, so it was charged as a loss.')
+  expect(html).not.toContain('not counted')
+  expect(html).toContain('data-testid="result-elo"')
+  expect(html).toContain('Rating 1000 to 980')
+  expect(html).toContain('data-testid="result-elo-provisional"')
+  expect(html).not.toContain('is unlocked')
+})
+
+test('a refused record that moved no rating still says it was not counted', () => {
+  const html = renderWith({ status: 'rejected', reason: 'replay failed' })
+  expect(html).toContain('This match could not be verified, so it was not counted.')
+  expect(html).not.toContain('charged')
+  expect(html).not.toContain('data-testid="result-elo"')
+})
+
 test('mayClear: only an accepted, rated, played-out win moves the path', () => {
   const base = { left: false, practice: false, outcome: 'win' as const, status: 'counted' }
   expect(mayClear(base)).toBe(true)

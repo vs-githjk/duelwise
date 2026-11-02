@@ -226,6 +226,7 @@ export function useHoldemMatch(agentVersion: (level: Level) => string, opponentN
       setHistory([])
       setLog('')
       recorder.start({
+        matchId: opened.session.matchId,
         seed: s,
         humanSeat: HUMAN,
         agent: { version: agentVersion(lvl), level: lvl },

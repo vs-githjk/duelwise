@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { decodeRecord, encodeRecord } from '@duelwise/core/src/match-record'
 import { replay } from '@duelwise/core/src/replay'
 import { createCounterGame, createDriftGame } from '@duelwise/core/src/testing/counter-game'
 import { openMatch } from './open-match'
 import { listPending, retryPending, savePending, type KeyValueStore } from './integrity'
-import { beginSession, createMatchRecorder, offlineReason, uploadMatch, type MatchApi, type RecorderInit } from './match-recorder'
+import { beginSession, createMatchRecorder, offlineReason, uploadMatch, useMatchRecorder, type MatchApi, type RecorderInit } from './match-recorder'
 
 const clock = () => {
   let t = Date.UTC(2026, 9, 21, 12, 0, 0)
@@ -231,6 +234,8 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     const bytes = new Uint8Array(20)
     const f = { record: {} as never, bytes, ok: true }
     expect(await uploadMatch(fakeApi({ finish: async () => ({ valid: false, reason: 'seed', result: null }) }), f)).toEqual({ status: 'rejected', reason: 'seed' })
+    const charged = await uploadMatch(fakeApi({ finish: async () => ({ valid: false, reason: 'seed', result: null, elo: { before: 1000, after: 980 }, provisional: true }) }), f)
+    expect(charged).toEqual({ status: 'rejected', reason: 'seed', elo: { before: 1000, after: 980 }, provisional: true })
     let calls = 0
     const flaky = fakeApi({ finish: async () => { calls++; throw new Error('net') } })
     expect(await uploadMatch(flaky, f)).toEqual({ status: 'failed', message: 'net' })
@@ -248,6 +253,51 @@ function fakeStore(): KeyValueStore {
     removeItem: (k) => void m.delete(k),
   }
 }
+
+describe('a stale begin never pairs one match with another', () => {
+  /** The hook's own callbacks, taken from one server render: refs work and a state update after the render is a no-op, so no DOM is needed. */
+  function hook(api: MatchApi) {
+    let got!: ReturnType<typeof useMatchRecorder>
+    const Probe = () => {
+      got = useMatchRecorder('four', api)
+      return null
+    }
+    renderToStaticMarkup(createElement(Probe))
+    return got
+  }
+  const twoStarts = () => {
+    const issued = [{ matchId: 'srv-a', seed: 5, agentVersion: 'v0' }, { matchId: 'srv-b', seed: 9, agentVersion: 'v0' }]
+    return fakeApi({ start: async () => issued.shift()! })
+  }
+  /** A later begin answered first, so the hook's current session is B while the page starts A. Returns the record the page would upload. */
+  async function recordOfA(matchId: string) {
+    const r = hook(twoStarts())
+    const a = await r.begin('easy', undefined, undefined, false)
+    await r.begin('easy', undefined, undefined, false)
+    r.start({ seed: a.seed, humanSeat: 0, agent: { version: 'v0', level: 'easy' }, trainingAllowed: true, device: 'desktop', matchId })
+    const core = createCounterGame('four')
+    let s = core.init(a.seed)
+    for (let tick = 0; !core.terminal(s); tick++) {
+      const seat = core.toAct(s)[0]!
+      const action = seat === 0 ? 3 : 1
+      r.act(tick, seat, action)
+      s = core.step(s, seat === 0 ? [action, null] : [null, action])
+    }
+    return (await r.finish(core, s)).record
+  }
+
+  test('the id the page passes wins over the session a later begin left behind, so the id and seed stay one match', async () => {
+    expect(await recordOfA('srv-a')).toMatchObject({ matchId: 'srv-a', seed: 5 })
+  })
+
+  for (const file of ['chess/useChessMatch.ts', 'four/useFourMatch.ts', 'holdem/useHoldemMatch.ts', 'word/useWordMatch.ts']) {
+    test(`${file} hands the recorder the id of the session it opened`, () => {
+      const source = readFileSync(new URL(`../games/${file}`, import.meta.url), 'utf8')
+      const call = source.slice(source.indexOf('recorder.start({'))
+      expect(call.slice(0, call.indexOf('})'))).toContain('matchId: opened.session.matchId,')
+    })
+  }
+})
 
 describe('a finished match is never left started', () => {
   test('a record whose upload failed is kept, and the next load delivers it and drops it', async () => {

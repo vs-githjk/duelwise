@@ -152,6 +152,7 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
       setSeed(s)
       setState(view.current)
       recorder.start({
+        matchId: opened.session.matchId,
         seed: sealed ? 0 : s,
         humanSeat: HUMAN,
         agent: { version: agentVersion(lvl), level: lvl },
