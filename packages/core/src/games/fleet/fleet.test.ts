@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createFleetCore, fleetCore, FLEET_SIZE, SHIPS, type FleetAction, type FleetState } from './index'
+import { createFleetCore, fleetCore, FLEET_SIZE, SHIPS, shipCells, type FleetAction, type FleetState } from './index'
 import { makeRng } from '../../rng'
 
 type Pair = [number | null, number | null]
@@ -267,5 +267,107 @@ describe('fleet core: factory, purity and hash coverage', () => {
     const moved = clone()
     moved.ships[1][4]!.cell += 1
     expect(fleetCore.hash(moved)).not.toBe(h)
+  })
+})
+
+describe('fleet core: observation hides the enemy fleet', () => {
+  const placementJson = (p: { id: number; length: number; cell: number; vertical: boolean }): string =>
+    JSON.stringify({ id: p.id, length: p.length, cell: p.cell, vertical: p.vertical })
+
+  /** Every ship of `other` that none of `seat`'s shots touched, so it is still entirely hidden. */
+  function untouched(s: FleetState, seat: 0 | 1): FleetState['ships'][0] {
+    const fired = new Set(s.shots[seat])
+    return s.ships[(1 - seat) as 0 | 1].filter((p) => !shipCells(p).some((c) => fired.has(c)))
+  }
+
+  /** Same state, but one untouched enemy ship sits somewhere else that is also unshot. Null when no such spot exists. */
+  function moveHidden(s: FleetState, seat: 0 | 1, rng: ReturnType<typeof makeRng>): FleetState | null {
+    const other = (1 - seat) as 0 | 1
+    const hidden = untouched(s, seat)
+    if (hidden.length === 0) return null
+    const ship = hidden[rng.int(hidden.length)]!
+    const fired = new Set(s.shots[seat])
+    const others = new Set<number>()
+    for (const p of s.ships[other]) if (p.id !== ship.id) for (const c of shipCells(p)) others.add(c)
+    const spots: { cell: number; vertical: boolean }[] = []
+    for (const vertical of [false, true]) {
+      for (let cell = 0; cell < FLEET_SIZE * FLEET_SIZE; cell++) {
+        if (cell === ship.cell && vertical === ship.vertical) continue
+        const row = Math.floor(cell / FLEET_SIZE)
+        const col = cell % FLEET_SIZE
+        if (vertical ? row + ship.length > FLEET_SIZE : col + ship.length > FLEET_SIZE) continue
+        const cells = shipCells({ cell, vertical, length: ship.length })
+        if (cells.some((c) => fired.has(c) || others.has(c))) continue
+        spots.push({ cell, vertical })
+      }
+    }
+    if (spots.length === 0) return null
+    const to = spots[rng.int(spots.length)]!
+    const ships: FleetState['ships'] = [s.ships[0].slice(), s.ships[1].slice()]
+    ships[other] = s.ships[other].map((p) => (p.id === ship.id ? { ...p, cell: to.cell, vertical: to.vertical } : p))
+    return { ships, shots: s.shots }
+  }
+
+  test('over 500 random matches no hidden enemy ship leaks and unshot cells do not change the observation', () => {
+    let checks = 0
+    let moved = 0
+    for (let seed = 1; seed <= 500; seed++) {
+      const rng = makeRng(seed * 7919)
+      let s = fleetCore.init(seed)
+      const visit = (st: FleetState): void => {
+        const over = fleetCore.terminal(st)
+        for (const seat of [0, 1] as const) {
+          const o = fleetCore.observe(st, seat)
+          const json = JSON.stringify(o)
+          checks++
+          if (over) {
+            expect(o.reveal).not.toBeNull()
+            continue
+          }
+          expect(o.reveal).toBeNull()
+          // 1. No placement of an enemy ship with any unhit cell appears anywhere in the serialised observation.
+          const fired = new Set(st.shots[seat])
+          const sunkIds = new Set(o.sunk.map((p) => p.id))
+          for (const p of st.ships[(1 - seat) as 0 | 1]) {
+            const fullyHit = shipCells(p).every((c) => fired.has(c))
+            if (fullyHit) continue
+            // An identical placement of the seat's own is legitimately visible; only a different one proves a leak.
+            if (st.ships[seat].some((m) => placementJson(m) === placementJson(p))) continue
+            expect(sunkIds.has(p.id)).toBe(false)
+            expect(json.includes(placementJson(p))).toBe(false)
+          }
+          // 2. Moving an untouched enemy ship to another unshot spot leaves the observation byte-identical.
+          const alt = moveHidden(st, seat, rng)
+          if (alt !== null) {
+            moved++
+            expect(JSON.stringify(fleetCore.observe(alt, seat))).toBe(json)
+          }
+        }
+      }
+      visit(s)
+      while (!fleetCore.terminal(s)) {
+        const acts: ObjPair = [null, null]
+        for (const seat of fleetCore.toAct(s)) {
+          const l = fleetCore.legal(s, seat)
+          acts[seat] = l[rng.int(l.length)]!
+        }
+        s = fleetCore.step(s, acts)
+        visit(s)
+      }
+    }
+    expect(checks).toBeGreaterThan(50000)
+    expect(moved).toBeGreaterThan(20000)
+  }, 60000)
+
+  test('setup observations never carry the other seat placements', () => {
+    let s = fleetCore.init(3)
+    for (let t = 0; t < SHIPS.length; t++) {
+      s = step(s, [place(t * 2 * FLEET_SIZE), place(t, true)])
+      const o = fleetCore.observe(s, 0)
+      expect(o.phase).toBe(t === SHIPS.length - 1 ? 'play' : 'setup')
+      expect(o.ships).toHaveLength(t + 1)
+      expect(o.sunk).toEqual([])
+      expect(o.reveal).toBeNull()
+    }
   })
 })
