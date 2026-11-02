@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-02T04:00:00.000Z",
-      "promotedAt": "2026-11-02T13:18:38.327Z",
+      "promotedAt": "2026-11-02T13:23:18.016Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -199,9 +199,9 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "measuredAt": "2026-11-02T13:23:18.016Z",
       "harness": "bun",
-      "commit": "43cafce"
+      "commit": "d5362fb"
     },
     "medium": {
       "metric": "score vs easy",
@@ -213,9 +213,9 @@
       "n": 800,
       "opponents": "easy",
       "siteElo": 1350.270739,
-      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "measuredAt": "2026-11-02T13:23:18.016Z",
       "harness": "bun",
-      "commit": "43cafce"
+      "commit": "d5362fb"
     },
     "hard": {
       "metric": "score vs medium",
@@ -227,9 +227,9 @@
       "n": 800,
       "opponents": "medium",
       "siteElo": 1521.954267,
-      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "measuredAt": "2026-11-02T13:23:18.016Z",
       "harness": "bun",
-      "commit": "43cafce"
+      "commit": "d5362fb"
     },
     "champion": {
       "metric": "score vs hard",
@@ -241,9 +241,9 @@
       "n": 800,
       "opponents": "hard",
       "siteElo": 1637.180275,
-      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "measuredAt": "2026-11-02T13:23:18.016Z",
       "harness": "bun",
-      "commit": "43cafce"
+      "commit": "d5362fb"
     }
   },
   "unpublished": {},
