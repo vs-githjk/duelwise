@@ -1,0 +1,148 @@
+/*
+ * Slackwater dev page. The board is drawn in a 328 x 328 box and scaled by --u (container width / 328), so it is exact at 360
+ * wide and grows to 520 on a desktop with the same proportions: a 16 unit gutter for A to H and 1 to 8, then 312 units of grid,
+ * 39 per cell. Sea and disc colours are object colours: the same in light and dark, since their contrast is against the board,
+ * not the page. Promotion moves them to tokens. Only transforms and opacity change during a move; no box ever resizes.
+ */
+.sl {
+  --slack-water: #4f8580;
+  --slack-water-deep: #477a75;
+  --slack-line: #3a6763;
+  --slack-dark: #1f2a30;
+  --slack-pale: #f6efe3;
+  --game-slack: #2f7f78;
+}
+
+.sl-board-wrap {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 520px;
+}
+
+.sl-board {
+  /* the 1px border sits outside the padding box the children are placed in, so 2px come off the width */
+  --u: calc((100cqw - 2px) / 328);
+  position: relative;
+  width: 100%;
+  height: calc(328 * var(--u) + 2px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card, none);
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sl-coord {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+  pointer-events: none;
+}
+.sl-coord-file { top: 0; height: calc(16 * var(--u)); left: calc((16 + var(--k) * 39) * var(--u)); width: calc(39 * var(--u)); }
+.sl-coord-rank { left: 0; width: calc(16 * var(--u)); top: calc((16 + var(--k) * 39) * var(--u)); height: calc(39 * var(--u)); }
+
+.sl-grid {
+  position: absolute;
+  left: calc(16 * var(--u));
+  top: calc(16 * var(--u));
+  width: calc(312 * var(--u));
+  height: calc(312 * var(--u));
+  display: flex;
+  flex-direction: column;
+  background: var(--slack-water);
+  border-top-left-radius: 8px;
+  overflow: hidden;
+}
+.sl-row { display: grid; grid-template-columns: repeat(8, 1fr); flex: 1; }
+
+.sl-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--slack-water);
+  box-shadow: inset 0 0 0 0.5px var(--slack-line);
+  cursor: pointer;
+}
+.sl-cell[data-alt] { background: var(--slack-water-deep); }
+.sl-cell:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; z-index: 2; }
+.sl-cell[data-selected] {
+  box-shadow: inset 0 0 0 3px var(--action), inset 0 0 0 calc(20 * var(--u)) rgba(33, 102, 240, 0.28);
+}
+
+.sl-disc {
+  grid-area: 1 / 1;
+  width: 79.5%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+.sl-disc[data-owner='you'] { background: var(--slack-dark); --ring: var(--slack-pale); --from: var(--slack-pale); --to: var(--slack-dark); }
+.sl-disc[data-owner='them'] { background: var(--slack-pale); --ring: var(--slack-dark); --from: var(--slack-dark); --to: var(--slack-pale); }
+/* the last placed disc keeps a 2px ring until the next move */
+.sl-disc[data-last] { box-shadow: inset 0 0 0 2px var(--ring), inset 0 -2px 3px rgba(0, 0, 0, 0.22); }
+
+/* a legal cell: a hollow ring so it never reads as a disc */
+.sl-ring {
+  grid-area: 1 / 1;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--slack-pale);
+  opacity: 0.9;
+  pointer-events: none;
+}
+/* a disc the selected pick would flip: a small dot in the other colour */
+.sl-dot {
+  grid-area: 1 / 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--slack-dark);
+  box-shadow: 0 0 0 1px var(--slack-pale);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes sl-flip {
+  0% { transform: scaleX(1); background: var(--from); }
+  49.9% { transform: scaleX(0); background: var(--from); }
+  50% { transform: scaleX(0); background: var(--to); }
+  100% { transform: scaleX(1); background: var(--to); }
+}
+@keyframes sl-land {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.sl-disc[data-flip] { animation: sl-flip 200ms var(--ease-out, ease-out) var(--d, 0ms) both; }
+.sl-disc[data-placed] { animation: sl-land var(--duration-base, 200ms) var(--ease-out, ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .sl-disc[data-flip], .sl-disc[data-placed] { animation: none; }
+}
+
+/* status row: fixed 44px, text swaps and the box does not move */
+.sl-status { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sl-counts { display: flex; gap: 12px; font-family: var(--font-mono, monospace); font-size: 16px; white-space: nowrap; }
+.sl-line { flex: 1; min-width: 0; text-align: right; font-size: 14px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
+
+.sl-bar { height: 56px; display: flex; gap: 8px; }
+.sl-chip {
+  width: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+}

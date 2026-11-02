@@ -1,0 +1,33 @@
+/// <reference lib="webworker" />
+// Slackwater agent host, dev only. The search runs here so the page's HUD pulse and taps stay live during Sable's search,
+// the way the shipped agents run. One request at a time: the page sends 'reset' once, then one 'act' per agent turn.
+import type { Level } from '@duelwise/core/src/product'
+import { createGameAgent } from '@duelwise/agents/src/slack/agent'
+import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
+
+export type ToWorker = { type: 'reset'; level: Level; seed: number } | { type: 'act'; id: number; obs: unknown }
+export type FromWorker = { type: 'ready' } | { type: 'acted'; id: number; action: number } | { type: 'failed'; id: number; message: string }
+
+let agent: PreviewAgent | null = null
+let ready: Promise<void> = Promise.resolve()
+
+self.onmessage = (e: MessageEvent<ToWorker>) => {
+  const msg = e.data
+  if (msg.type === 'reset') {
+    ready = (async () => {
+      agent?.dispose()
+      agent = await createGameAgent(msg.level, { seat: 1 })
+      agent.reset(msg.seed)
+      ;(self as unknown as Worker).postMessage({ type: 'ready' } satisfies FromWorker)
+    })()
+    return
+  }
+  void ready.then(async () => {
+    try {
+      const [action] = await agent!.act(msg.obs)
+      ;(self as unknown as Worker).postMessage({ type: 'acted', id: msg.id, action: action! } satisfies FromWorker)
+    } catch (err) {
+      ;(self as unknown as Worker).postMessage({ type: 'failed', id: msg.id, message: String(err) } satisfies FromWorker)
+    }
+  })
+}
