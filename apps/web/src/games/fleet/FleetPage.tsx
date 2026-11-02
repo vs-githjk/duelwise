@@ -4,20 +4,14 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { FLEET_LEVELS } from '@duelwise/agents/src/fleet/levels'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
-import { play, registerSounds } from '../../lib/audio'
+import { playCue, setFleetMusic } from './sounds'
+import { expectedHunting, fleetLuckLine, huntingShots } from './luck'
 import { useFleetMatch } from './useFleetMatch'
 import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, statusLineIn, viewWon } from './fleet-match'
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
 // The water and hull colours are the spec's section 1 tokens, in tokens.css since F7.
-
-const BASE = '/assets/ui/kenney'
-registerSounds({
-  'fleet-miss': `${BASE}/impact-sounds/impactPlate_light_000.ogg`,
-  'fleet-hit': `${BASE}/impact-sounds/impactPlate_medium_000.ogg`,
-  'fleet-sunk': `${BASE}/interface-sounds/confirmation_002.ogg`,
-})
 
 const LEVELS: Array<{ id: Level; label: string }> = [
   { id: 'easy', label: 'Easy' },
@@ -49,7 +43,7 @@ function useWide(): boolean {
 }
 
 function cue(kind: 'sunk' | 'hit' | 'miss' | null, gain = 1): void {
-  if (kind) play(`fleet-${kind}`, { gain })
+  if (kind) playCue(kind, gain)
 }
 
 // ---- Board drawing ---------------------------------------------------------------------------
@@ -418,6 +412,35 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     await game.start(level, fleet, seed)
   }
 
+  // Match music runs from Start until the result; the win or loss stinger plays once when the match ends (not on a resign).
+  useEffect(() => setFleetMusic(started && !over), [started, over])
+  const stingered = useRef(false)
+  useEffect(() => {
+    if (!over) {
+      stingered.current = false
+      return
+    }
+    if (stingered.current || resigned || !view) return
+    stingered.current = true
+    playCue(viewWon(view) ? 'win' : 'lose', 1, 400)
+  }, [over, resigned, view])
+
+  // The luck line (spec 2.6) needs their whole fleet, which the server sends only once the match is over.
+  const luck = useMemo(() => {
+    if (!over || resigned || !view?.reveal) return null
+    const found = view.sunk.length
+    if (found === 0) return null
+    const won = viewWon(view)
+    return fleetLuckLine({
+      won,
+      winnerShots: won ? view.shots.length : view.incoming.length,
+      found,
+      hunting: huntingShots(view.shots.map((s) => s.cell), view.reveal),
+      expected: expectedHunting(view.reveal, found),
+      opponent,
+    })
+  }, [over, resigned, view, opponent])
+
   // The result card mounts below Fire; on a phone that can be under the fold, so bring it into view (instant, no motion).
   useEffect(() => {
     if (over) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
@@ -447,6 +470,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     (cell: number) => {
       if (turn !== 'you') return
       setAimed(null)
+      playCue('fire')
       void game.fire(cell)
     },
     [game, turn],
@@ -456,7 +480,10 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     if (!view || turn !== 'you') return
     if (view.shots.some((s) => s.cell === cell)) return
     if (aimed === cell) fire(cell)
-    else setAimed(cell)
+    else {
+      setAimed(cell)
+      playCue('aim')
+    }
   }
 
   const resign = () => {
@@ -687,6 +714,11 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 </p>
               ) : null}
               {view?.reveal ? <p className="text-sm text-muted">Their whole fleet is shown on their waters above.</p> : null}
+              {luck ? (
+                <p className="text-sm text-muted" data-testid="fleet-luck">
+                  {luck}
+                </p>
+              ) : null}
               <div className="flex gap-2">
                 <button type="button" onClick={backToSetup} data-testid="fleet-again" className="min-h-11 rounded-control bg-action px-4 font-semibold text-action-ink">
                   Play again

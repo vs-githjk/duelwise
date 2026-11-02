@@ -10,6 +10,7 @@ import type { Moment, ReportBody } from './types'
 import { wordReport } from './word'
 import { walk, humanActionCount } from './walk'
 import { holdemMoments } from './holdem'
+import { fleetMoments } from './fleet'
 import { realtimeFacts, realtimeMoments, realtimeCoaching } from './realtime'
 
 export interface BuildOptions {
@@ -96,8 +97,8 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     return { ...base, moves: steps.length, moments: r.moments, wordRows: r.rows }
   }
   const end: Moment = { kind: 'end', label: kind === 'realtime' ? 'Final score' : 'Result', tag: 'result', text: sentence }
-  // Fleet: result only until its own report lands (F10); it must never fall to the Hold'em path below.
-  if (rec.game === 'fleet') return { ...base, moments: [end] }
+  // Fleet has its own report and must never fall to the Hold'em path below.
+  if (rec.game === 'fleet') return { ...base, moments: fleetMoments(rec, sentence, opponent) }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)

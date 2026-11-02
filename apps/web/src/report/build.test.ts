@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { replay } from '@duelwise/core/src/replay'
+import { getCore } from '@duelwise/core/src/games/index'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import { buildReportBody } from './build'
 import { MATERIAL } from './chess'
+import { huntingShots, luckVerdict } from '../games/fleet/luck'
+import { publicBody } from './copy'
 import { playRandom, playScript } from './testing'
 
 // 1. f3 e5 2. g4 Qh4#: Black checkmates in two.
@@ -127,11 +130,86 @@ describe("Hold'em has its own report", () => {
   })
 })
 
-describe('Fleet report (result only until F10)', () => {
-  test('a fleet record is not read as a Hold\'em hand', () => {
-    const r = buildReportBody(playRandom('fleet', 3, 0))
+describe('Fleet report', () => {
+  const rec = playRandom('fleet', 3, 0)
+  const core = getCore('fleet')
+
+  test("a fleet record is not read as a Hold'em hand", () => {
+    const r = buildReportBody(rec)
     expect(r.game).toBe('fleet')
-    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
     expect(r.evaluator).toBe('none')
+    expect(r.moments.map((m) => m.label)).toContain('Shots used')
+    expect(r.moments.some((m) => /hand|chip|fold/i.test(m.text))).toBe(false)
+    expect(r.moments.at(-1)!.kind).toBe('end')
+  })
+
+  test('shots used and ships left match the record', () => {
+    const r = buildReportBody(rec)
+    const mine = rec.actions.filter((a) => a[1] === 0 && core.decodeAction(a[2] as number).kind === 'shot').length
+    const theirs = rec.actions.filter((a) => a[1] === 1 && core.decodeAction(a[2] as number).kind === 'shot').length
+    expect(r.moments.find((m) => m.label === 'Shots used')!.text).toBe(`You fired ${mine} shots; Marlow fired ${theirs}.`)
+    const left = r.moments.find((m) => m.label === 'Ships left')!
+    expect(left.value).toMatch(/^\d of 5$/)
+    // Exactly one side lost every ship.
+    expect(left.text.includes('0.') || left.text.startsWith('You finished with 0')).toBe(true)
+  })
+
+  test('the stored record keeps all five setup actions of both seats, and they decode as ships', () => {
+    for (const seat of [0, 1]) {
+      const placed = rec.actions.filter((a) => a[1] === seat && core.decodeAction(a[2] as number).kind === 'place')
+      expect(placed).toHaveLength(5)
+      expect(placed.map((a) => a[0])).toEqual([0, 1, 2, 3, 4])
+    }
+  })
+
+  test('the luck line ends with the verdict and stays under 180 characters', () => {
+    for (const seed of [3, 4, 5, 6, 7, 8]) {
+      for (const seat of [0, 1] as const) {
+        const r = buildReportBody(playRandom('fleet', seed, seat))
+        const luck = r.moments.find((m) => m.label === 'Luck')
+        if (!luck) continue
+        expect(luck.text.length).toBeLessThan(180)
+        expect(luck.text).toMatch(/You ran (lucky|unlucky|about even)(, and still lost on the chase)?\.$/)
+        expect(luck.publicText!).not.toMatch(/\b(You|Your|you|your)\b/)
+      }
+    }
+  })
+
+  test('luck verdict thresholds are 15 percent either side', () => {
+    expect(luckVerdict(23, 31)).toBe('lucky')
+    expect(luckVerdict(31, 31)).toBe('about even')
+    expect(luckVerdict(35, 31)).toBe('about even')
+    expect(luckVerdict(36, 31)).toBe('unlucky')
+    expect(luckVerdict(26.4, 31)).toBe('about even')
+    expect(luckVerdict(26.3, 31)).toBe('lucky')
+  })
+
+  test('the report rebuilds identically and the record replays', () => {
+    expect(replay(rec).ok).toBe(true)
+    const r1 = buildReportBody(rec)
+    const r2 = buildReportBody(rec)
+    expect(r1).toEqual(r2)
+  })
+
+  test('hunting shots skip the finishing shots after a hit', () => {
+    const ship = [{ id: 0, length: 2, cell: 0, vertical: false }]
+    // Miss, hit, finish: two hunting shots (the miss and the first hit), the finish does not count.
+    expect(huntingShots([50, 0, 1], ship)).toBe(2)
+    expect(huntingShots([0, 1], ship)).toBe(1)
+  })
+
+  test('a public report holds no setup: no coordinates, no ship cells, no first person', () => {
+    const body = publicBody(buildReportBody(rec))
+    const text = JSON.stringify(body)
+    expect(text).not.toMatch(/\b[A-J](10|[1-9])\b/)
+    expect(text).not.toMatch(/vertical|"cells?"|ships":/)
+    expect(text).not.toMatch(/\b(You|Your|you|your)\b/)
+    // The public wording still names the player.
+    expect(body.moments.find((m) => m.label === 'Shots used')!.text).toMatch(/^The player fired/)
+  })
+
+  test('a resigned match with no shots still reports, with no luck line', () => {
+    const r = buildReportBody(playScript('fleet', 9, [], 0, 'medium', true))
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
   })
 })
