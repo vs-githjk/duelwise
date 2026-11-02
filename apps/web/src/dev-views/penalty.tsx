@@ -25,6 +25,7 @@ import {
   flightOf,
   lastKickLine,
   outcomeWord,
+  pastDeadZone,
   pickLabel,
   playTick,
   pressAction,
@@ -278,6 +279,8 @@ export default function PenaltyView() {
 
   // Drag from the ball: the aim follows the thumb and snaps to a cell, a lift commits it, a lift by the ball cancels. Speed does nothing.
   const onPadDown = (e: PointerEvent<HTMLButtonElement>) => {
+    // A new press is a new gesture. Touch sends no click after a drag, so the flag from the last drag must not outlive it.
+    swallowClick.current = false
     if (revealing || over || !e.isPrimary) return
     e.currentTarget.setPointerCapture(e.pointerId)
     // One scene unit in CSS pixels: the same thumb travel at every width.
@@ -288,12 +291,14 @@ export default function PenaltyView() {
   const onPadMove = (e: PointerEvent<HTMLButtonElement>) => {
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
-    const aim = aimFromDrag((e.clientX - d.x) / d.scale, (e.clientY - d.y) / d.scale, pickRole)
+    const dx = (e.clientX - d.x) / d.scale
+    const dy = (e.clientY - d.y) / d.scale
+    if (pastDeadZone(dx, dy)) d.moved = true
+    const aim = aimFromDrag(dx, dy, pickRole)
     if (aim === null) {
       if (d.moved) setSelected(null)
       return
     }
-    d.moved = true
     if (aim !== selected) setSelected(aim)
   }
   const onPadUp = (e: PointerEvent<HTMLButtonElement>) => {
@@ -363,7 +368,8 @@ export default function PenaltyView() {
   return (
     <OpponentContext.Provider value={{ level: playing }}>
       <section className="pen grid max-w-5xl gap-3 py-4" data-testid="penalty-page">
-        <h1 className={`font-display ${view ? 'text-display-sm' : 'text-display-md'}`}>Twelve Yards (dev)</h1>
+        {/* In a match the title gives its line to the scene, so the action button fits above Safari's bar. */}
+        <h1 className={view ? 'sr-only' : 'font-display text-display-md'}>Twelve Yards (dev)</h1>
         {!view && (
           <>
             <p className="text-muted">Drag from the ball to a spot in the goal and lift. Or tap a spot, then tap it again. You and {personaFor(level).name} choose at the same moment. Dev only: this page is the groundwork, not a released game.</p>

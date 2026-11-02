@@ -455,7 +455,8 @@
 }
 
 .pen-role { height: 28px; line-height: 28px; font-family: var(--font-display); font-size: 18px; white-space: nowrap; overflow: hidden; }
-.pen-bar { height: 56px; display: flex; gap: 8px; }
+/* Sticks to the visible bottom on a phone too short for the whole column, so Shoot is never under the browser's bar. */
+.pen-bar { position: sticky; bottom: env(safe-area-inset-bottom, 0px); z-index: 1; height: 56px; display: flex; gap: 8px; background: var(--canvas); }
 .pen-chip {
   width: 124px;
   display: grid;

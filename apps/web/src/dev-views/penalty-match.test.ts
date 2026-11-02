@@ -19,6 +19,7 @@ import {
   flightOf,
   lastKickLine,
   outcomeWord,
+  pastDeadZone,
   pressAction,
   resultLine,
   roleLine,
@@ -234,6 +235,15 @@ describe('penalty match logic', () => {
     expect(lastKickLine(withKick(wide), 'Pip')).toBe('You went bottom right. Pip dived left high. Wide.')
     expect(lastKickLine(withKick(over), 'Pip')).toBe('You went top right. Pip dived left high. Over.')
     expect(lastKickLine(withKick(goalIntoDive), 'Pip')).toBe('Pip went down the middle. You stayed. Goal.')
+  })
+
+  test('the dead zone is a distance: leaving it counts in every direction, pulling away from the goal too', () => {
+    expect(pastDeadZone(0, 0)).toBe(false)
+    expect(pastDeadZone(8, -12)).toBe(false)
+    expect(pastDeadZone(17.9, 0)).toBe(false)
+    for (const [dx, dy] of [[18, 0], [-18, 0], [0, 18], [0, -18], [0, 60], [40, 30]] as const) expect(pastDeadZone(dx, dy)).toBe(true)
+    // A pull away from the goal is past the dead zone with no aim, and that pair is what makes its lift a cancel.
+    expect(aimFromDrag(0, 60, 'shooter')).toBeNull()
   })
 
   test('a drag maps to the cell it points at, a short drag or a pull back is no pick', () => {

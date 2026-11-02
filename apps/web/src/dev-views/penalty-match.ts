@@ -81,9 +81,14 @@ export const GOAL = { left: 24, top: 16, cell: { w: 280 / 3, h: 50 } } as const
 const DRAG_GAIN = 1.7
 const DRAG_DEAD = 18
 
-/** The pick a drag from the ball points at, or null while it is still inside the dead zone around the ball (lifting there cancels). Clamped to the goal, so a long drag stays on the edge cell. */
+/** The thumb has left the dead zone around the ball, by distance, in any direction. From then on a lift is a shot or a cancel, never a tap. */
+export function pastDeadZone(dx: number, dy: number): boolean {
+  return Math.hypot(dx, dy) >= DRAG_DEAD
+}
+
+/** The pick a drag from the ball points at, or null inside the dead zone around the ball or pulled away from the goal (lifting there cancels). Clamped to the goal, so a long drag stays on the edge cell. */
 export function aimFromDrag(dx: number, dy: number, role: Role): Zone | null {
-  if (Math.hypot(dx, dy) < DRAG_DEAD || dy > 0) return null
+  if (!pastDeadZone(dx, dy) || dy > 0) return null
   const x = SPOT.x + dx * DRAG_GAIN - GOAL.left
   const y = SPOT.y + dy * DRAG_GAIN - GOAL.top
   const col = Math.max(0, Math.min(2, Math.floor(x / GOAL.cell.w)))

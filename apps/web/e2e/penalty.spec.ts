@@ -84,19 +84,65 @@ async function start(page: Page, seed: number) {
   await expect(page.getByTestId('penalty-scene')).toBeVisible()
 }
 
+/**
+ * Runs the input that commits and waits until that kick has landed. data-reveal lasts 1.4 s, so a polled wait can sleep through it on a
+ * slow run. The wait is on the last-kick line instead: it changes for good when a reveal ends, and always changes, since the shooter
+ * alternates. A page-side log taken on every change to the scene still proves the phases ran in order, and hands back what the reveal showed.
+ */
+async function kicked(page: Page, commit: () => Promise<void>): Promise<{ tags: string; word: string }> {
+  const line = page.getByTestId('penalty-last')
+  const before = (await line.textContent()) ?? ''
+  await page.getByTestId('penalty-scene').evaluate((scene) => {
+    const log = { phases: [] as Array<string | null>, tags: '', word: '' }
+    const read = () => {
+      const phase = scene.getAttribute('data-reveal')
+      if ((phase !== null || log.phases.length) && log.phases[log.phases.length - 1] !== phase) log.phases.push(phase)
+      const tags = Array.from(scene.querySelectorAll<HTMLElement>('.pen-tag'))
+      if (tags.length === 2) log.tags = tags.map((t) => t.style.left).join('|')
+      log.word = scene.querySelector('.pen-word')?.textContent || log.word
+    }
+    const watcher = new MutationObserver(read)
+    watcher.observe(scene, { attributes: true, childList: true, characterData: true, subtree: true })
+    ;(window as unknown as { __kick: { log: typeof log; watcher: MutationObserver } }).__kick = { log, watcher }
+  })
+  await commit()
+  await expect(line).not.toHaveText(before, { timeout: 5000 })
+  await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
+  const log = await page.evaluate(() => {
+    const k = (window as unknown as { __kick: { log: { phases: Array<string | null>; tags: string; word: string }; watcher: MutationObserver } }).__kick
+    k.watcher.disconnect()
+    return k.log
+  })
+  expect(log.phases, 'the reveal ran set, then go, then ended').toEqual(['set', 'go', null])
+  expect(log.tags, 'both choice tags showed').not.toBe('')
+  expect(log.word, 'the outcome word showed').toMatch(/^(Goal|Saved|Wide|Over)/)
+  return log
+}
+
 /** Tap a zone twice (select, then commit) and wait for the whole reveal to finish. */
 async function kick(page: Page, zone: number) {
-  const scene = page.getByTestId('penalty-scene')
-  await expect(scene).not.toHaveAttribute('data-reveal', /set|go/)
+  await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /set|go/)
   const z = page.getByTestId(`penalty-zone-${zone}`)
   await z.click()
   await expect(z).toHaveAttribute('aria-pressed', 'true')
-  await z.click()
-  await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-  await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+  await kicked(page, () => z.click())
 }
 
 const over = (page: Page) => page.getByTestId('penalty-result').isVisible()
+
+/** The whole control sits on screen with nothing over it, at this viewport, with the page where it is. */
+async function expectOnScreen(locator: Locator, label: string) {
+  const r = await locator.evaluate((el) => {
+    const b = el.getBoundingClientRect()
+    const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)
+    return { top: b.top, bottom: b.bottom, height: b.height, room: window.innerHeight, ours: hit === el || el.contains(hit) }
+  })
+  console.log(`${label}: top ${r.top} bottom ${r.bottom} of ${r.room}`)
+  expect(r.height, `${label}: height`).toBeGreaterThanOrEqual(MIN)
+  expect(r.top, `${label}: top on screen`).toBeGreaterThanOrEqual(0)
+  expect(r.bottom, `${label}: bottom on screen`).toBeLessThanOrEqual(r.room)
+  expect(r.ours, `${label}: nothing covers its centre`).toBe(true)
+}
 
 test.describe('Twelve Yards at 360 wide', () => {
   test('the scene stays put through a whole match, roles change, no overflow, targets are big enough', async ({ page }) => {
@@ -170,11 +216,7 @@ test.describe('Twelve Yards at 360 wide', () => {
     await hidden('after a tap on another zone')
 
     // The second tap commits; the first kick's choices appear only now.
-    await page.getByTestId('penalty-zone-2').tap()
-    await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-    await expect(page.locator('.pen-tag')).toHaveCount(2)
-    await expect(page.getByTestId('penalty-word')).toHaveText(/Goal|Saved|Wide|Over/)
-    await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+    await kicked(page, () => page.getByTestId('penalty-zone-2').tap())
     // Between kicks the previous kick's choices are cleared again before the next commit.
     await hidden('between kicks', true)
     await expect(page.getByTestId('penalty-last')).toContainText(/Goal\.|Saved\.|Wide\.|Over\./)
@@ -204,7 +246,6 @@ test.describe('Twelve Yards at 360 wide', () => {
     const kickTwo: string[] = []
     const picks = new Set<string>()
     const picksTwo = new Set<string>()
-    const tags = () => page.locator('.pen-tag').evaluateAll((els) => els.map((e) => (e as HTMLElement).style.left).join('|'))
     for (const seed of seeds) {
       await start(page, seed)
       const scene = page.getByTestId('penalty-scene')
@@ -213,21 +254,13 @@ test.describe('Twelve Yards at 360 wide', () => {
       await page.getByTestId('penalty-zone-0').tap()
       await expect(page.getByTestId('penalty-zone-0')).toHaveAttribute('aria-pressed', 'true')
       afterTap.push(await html())
-      await page.getByTestId('penalty-zone-0').tap()
-      await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-      await expect(page.locator('.pen-tag')).toHaveCount(2)
-      picks.add(await tags())
-      await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+      picks.add((await kicked(page, () => page.getByTestId('penalty-zone-0').tap())).tags)
       afterKick.push(await htmlNoHistory())
       // Kick two: select a zone and compare again, then commit and read the second pick.
       await page.getByTestId('penalty-zone-0').tap()
       await expect(page.getByTestId('penalty-zone-0')).toHaveAttribute('aria-pressed', 'true')
       kickTwo.push(await htmlNoHistory())
-      await page.getByTestId('penalty-zone-0').tap()
-      await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-      await expect(page.locator('.pen-tag')).toHaveCount(2)
-      picksTwo.add(await tags())
-      await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+      picksTwo.add((await kicked(page, () => page.getByTestId('penalty-zone-0').tap())).tags)
       // Between kicks the scene is back to bare too (the next pick may already exist in the core, never in the markup).
       expect((await scene.getAttribute('style')) ?? '', `seed ${seed}: scene has no inline style between kicks`).toBe('')
     }
@@ -243,11 +276,8 @@ test.describe('Twelve Yards at 360 wide', () => {
 
   test('the action button commits the selected zone', async ({ page }) => {
     await start(page, 2)
-    const scene = page.getByTestId('penalty-scene')
     await page.getByTestId('penalty-zone-0').tap()
-    await page.getByTestId('penalty-action').tap()
-    await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-    await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+    await kicked(page, () => page.getByTestId('penalty-action').tap())
     await expect(page.getByTestId('penalty-last')).toContainText(/Goal\.|Saved\.|Wide\.|Over\./)
   })
 
@@ -294,9 +324,7 @@ test.describe('Twelve Yards at 360 wide', () => {
       await expect(page.getByTestId(`penalty-zone-${z}`)).toHaveAttribute('aria-pressed', 'true')
       await expect(page.locator('.pen-zone[aria-pressed=true]')).toHaveCount(1)
     }
-    await page.getByTestId('penalty-zone-8').tap()
-    await expect(page.getByTestId('penalty-scene')).toHaveAttribute('data-reveal', /set|go/)
-    await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
+    await kicked(page, () => page.getByTestId('penalty-zone-8').tap())
     await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
     await expect(page.locator('.pen-zone')).toHaveCount(5)
     await expectTargets(page, 'five dives')
@@ -320,9 +348,7 @@ test.describe('Twelve Yards at 360 wide', () => {
       )
     expect(await afterTwoFrames('penalty-zone-3', 'aria-pressed')).toBe('true')
     await expect(page.getByTestId('penalty-aim')).toBeVisible()
-    await page.getByTestId('penalty-zone-3').tap()
-    await expect(page.getByTestId('penalty-scene')).toHaveAttribute('data-reveal', /set|go/)
-    await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
+    await kicked(page, () => page.getByTestId('penalty-zone-3').tap())
     expect(await afterTwoFrames('penalty-zone-1', 'aria-pressed')).toBe('true')
     await expect(page.locator('.pen-keeper-lean')).toHaveAttribute('data-lean', 'l')
   })
@@ -338,9 +364,7 @@ test.describe('Twelve Yards at 360 wide', () => {
     const scale = (await scene.boundingBox())!.width / 328
     await page.mouse.move(x + 60 * scale, y - 70 * scale, { steps: 3 })
     await expect(page.getByTestId('penalty-zone-8')).toHaveAttribute('aria-pressed', 'true')
-    await page.mouse.up()
-    await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-    await expect(scene).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
+    await kicked(page, () => page.mouse.up())
     await expect(page.getByTestId('penalty-last')).toContainText(/^You went bottom right\./)
     await expect(page.locator('.pen-dot[data-slot=none]')).toHaveCount(9)
   })
@@ -362,8 +386,69 @@ test.describe('Twelve Yards at 360 wide', () => {
     await expect(scene).not.toHaveAttribute('data-reveal', /.+/)
     // With a zone chosen, a tap on the ball is the one confirm.
     await page.getByTestId('penalty-zone-2').tap()
-    await page.getByTestId('penalty-pad').tap()
-    await expect(scene).toHaveAttribute('data-reveal', /set|go/)
+    await kicked(page, () => page.getByTestId('penalty-pad').tap())
+  })
+
+  test('a pull away from the goal cancels: a selected shot does not fire on the lift', async ({ page }) => {
+    await start(page, 2)
+    const scene = page.getByTestId('penalty-scene')
+    await page.getByTestId('penalty-zone-0').tap()
+    await expect(page.getByTestId('penalty-chip')).toHaveText('Top left')
+    const pad = (await page.getByTestId('penalty-pad').boundingBox())!
+    const x = pad.x + pad.width / 2
+    const y = pad.y + pad.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x, y + 60, { steps: 4 })
+    await page.mouse.up()
+    await page.waitForTimeout(1700) // longer than a whole reveal: a kick taken by the click after the lift would have landed by now
+    await expect(scene).not.toHaveAttribute('data-reveal', /.+/)
+    await expect(page.getByTestId('penalty-last')).toHaveText('')
+    await expect(page.locator('.pen-dot[data-slot=none]')).toHaveCount(10)
+    await expect(page.locator('.pen-zone[aria-pressed=true]')).toHaveCount(0)
+    await expect(page.getByTestId('penalty-action')).toBeDisabled()
+    // The cancel took nothing from the page: a real kick still plays.
+    await kick(page, 0)
+    await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
+  })
+
+  test('a press by the ball that never leaves the dead zone stays a tap: it takes the selected shot', async ({ page }) => {
+    await start(page, 2)
+    await page.getByTestId('penalty-zone-0').tap()
+    const pad = (await page.getByTestId('penalty-pad').boundingBox())!
+    const x = pad.x + pad.width / 2
+    const y = pad.y + pad.height / 2
+    await kicked(page, async () => {
+      await page.mouse.move(x, y)
+      await page.mouse.down()
+      await page.mouse.move(x + 4, y + 6, { steps: 2 })
+      await page.mouse.up()
+    })
+    await expect(page.getByTestId('penalty-last')).toContainText(/^You went top left\./)
+  })
+
+  test('a real touch drag kicks once, and the next tap on the ball is not eaten (no click follows a touch drag)', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Input.dispatchTouchEvent is a Chromium DevTools call')
+    await start(page, 2)
+    const cdp = await page.context().newCDPSession(page)
+    const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number, y?: number) =>
+      cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y: y!, id: 1 }] })
+    const pad = (await page.getByTestId('penalty-pad').boundingBox())!
+    const scale = (await page.getByTestId('penalty-scene').boundingBox())!.width / 328
+    const x = pad.x + pad.width / 2
+    const y = pad.y + pad.height / 2
+    await touch('touchStart', x, y)
+    for (const f of [0.25, 0.5, 0.75, 1]) await touch('touchMove', x + 60 * scale * f, y - 130 * scale * f)
+    await expect(page.getByTestId('penalty-chip')).toHaveText('Top right')
+    await kicked(page, () => touch('touchEnd'))
+    await expect(page.getByTestId('penalty-last')).toContainText(/^You went top right\./)
+
+    // Next kick, in goal: tap a dive, then tap the ball to lock it. A flag left over from the drag would swallow this tap.
+    await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
+    await page.getByTestId('penalty-zone-1').tap()
+    await expect(page.getByTestId('penalty-zone-1')).toHaveAttribute('aria-pressed', 'true')
+    await kicked(page, () => page.getByTestId('penalty-pad').tap())
+    await expect(page.getByTestId('penalty-last')).toContainText(/You dived left low\./)
   })
 
   test('a kick never double fires: every input at once, in one tick, plays the same match as a single commit', async ({ page }) => {
@@ -503,5 +588,55 @@ test.describe('Twelve Yards at 360 wide', () => {
     )
     await page.waitForTimeout(150)
     await expect(expectNoFrameShift(page, 'planted')).rejects.toThrow(/moved during a frame/)
+  })
+})
+
+test.describe('Twelve Yards in the height Safari leaves on an iPhone', () => {
+  test.use({ viewport: { width: 393, height: 659 } })
+
+  test('the whole Shoot button shows without a scroll, through a kick and at full time, and the scene never moves', async ({ page }) => {
+    test.setTimeout(120_000)
+    await start(page, 2)
+    const scene = page.getByTestId('penalty-scene')
+    const action = page.getByTestId('penalty-action')
+    const pad = page.getByTestId('penalty-pad')
+    await expectNoOverflow(page, 'start')
+    await watchFrames(scene)
+    await watchScreen(scene)
+    const first = await spot(scene)
+    expect(first.y, 'the page has not scrolled').toBe(0)
+
+    await page.getByTestId('penalty-zone-0').tap()
+    await expectOnScreen(action, 'Shoot enabled')
+    await expect(action).toHaveText('Shoot')
+    await expectOnScreen(pad, 'the ball')
+    const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
+    expect(gap, 'the bar covers no part of the scene at this height').toBeGreaterThanOrEqual(0)
+    await kicked(page, () => action.tap())
+    await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
+    await expectOnScreen(action, 'Save')
+    await expectOnScreen(pad, 'the ball in goal')
+    await expectStill(scene, first, 'after a kick')
+
+    let kicks = 1
+    while (!(await over(page)) && kicks < 30) {
+      await kick(page, 0)
+      kicks++
+    }
+    await expect(action).toHaveText('Play again')
+    await expectOnScreen(action, 'Play again')
+    await expectStill(scene, first, 'full time')
+    await expectNoFrameShift(page, 'whole match at 393x659')
+    await expectNoScreenShift(page, 'whole match at 393x659')
+    await expectNoOverflow(page, 'full time')
+  })
+
+  test('on a shorter phone the bar sticks to the bottom, so the button still shows whole', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 553 })
+    await start(page, 2)
+    await page.getByTestId('penalty-zone-0').tap()
+    await expectOnScreen(page.getByTestId('penalty-action'), 'Shoot at 375x553')
+    await page.getByTestId('penalty-action').tap()
+    await expect(page.getByTestId('penalty-last')).toContainText(/^You went top left\./, { timeout: 5000 })
   })
 })
