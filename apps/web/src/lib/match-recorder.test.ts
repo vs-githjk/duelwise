@@ -198,6 +198,7 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     const real = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true })
     try {
+      expect(offlineReason('word')).toBe('You are offline, so this Word Duel is unranked. It counts on your record on this device only.')
       expect(offlineReason('word')).toMatch(/unranked/)
       expect(offlineReason('word')).toMatch(/this device only/)
       expect(offlineReason('fleet')).toBe('You are offline, so this Stormglass match is unranked. It counts on your record on this device only.')
