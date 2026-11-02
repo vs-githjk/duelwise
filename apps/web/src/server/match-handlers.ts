@@ -14,7 +14,7 @@ import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { isPractice, LEFT_FLAG, PRACTICE_FLAG } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
-import { takeTicket } from './tickets'
+import { takeTicket, ticketUsed } from './tickets'
 import type { Traffic } from './traffic'
 
 type Db = PgDatabase<any, typeof schema>
@@ -437,11 +437,14 @@ export async function finishMatchHandler(
 
   if (!valid) {
     // The game, level and seed are the server's own values and every build only echoes them, so a record that contradicts one was edited
-    // to throw the match away: a loss at this match's rating, as if resigned. The compare-and-set above makes it once only. Everything
-    // else stays free, because it cannot be told from an honest failure: a stale build (core version, match length), a client bug (the
-    // page uploads records its own replay failed), a model changed mid-match (agent check) and an offline ticket (played unseen).
-    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed
-    if (!contradicts || ticketed || !row.userId || isPractice(row.filterFlags)) return { status: 200, body: { valid, reason, result: null } }
+    // to throw the match away: a loss at this match's rating, as if resigned. The seat is the same in the games the server holds to seat 0:
+    // every page records the fixed seat 0, so a flip costs the loss instead of escaping free. The compare-and-set above makes it once only.
+    // Everything else stays free, because it cannot be told from an honest failure: a stale build (core version, match length), a client bug
+    // (the page uploads records its own replay failed), a model changed mid-match (agent check) and an offline ticket (played unseen).
+    const seatHeld = row.game === 'word' || SERVER_CHECKED.includes(row.game as GameId)
+    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed || (seatHeld && rec.humanSeat !== 0)
+    // The flag covers a retry: an earlier upload that died mid-check already moved the row to 'started', so `ticketed` is false here.
+    if (!contradicts || ticketed || ticketUsed(row.filterFlags) || !row.userId || isPractice(row.filterFlags)) return { status: 200, body: { valid, reason, result: null } }
     const change = await applyRatingIfRanked(db, {
       userId: row.userId,
       game: row.game as GameId,

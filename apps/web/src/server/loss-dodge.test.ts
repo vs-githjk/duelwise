@@ -52,9 +52,9 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const finish = (rec: MatchRecordV1, who: { userId?: string; guestId?: string } = USER) => finishMatchHandler(db, encodeRecord(rec), who, CHECKED)
 
 /** What a resignation costs a new player at this level: the amount a charged record must cost, to the point. */
-async function resignPrice(game: GameId): Promise<number> {
+async function resignPrice(game: GameId, opts: FinishOptions = CHECKED): Promise<number> {
   const m = await begin(game, CONTROL)
-  expect((await resignMatchHandler(db, { matchId: m.matchId, tick: 3 }, CONTROL, CHECKED)).status).toBe(200)
+  expect((await resignMatchHandler(db, { matchId: m.matchId, tick: 3 }, CONTROL, opts)).status).toBe(200)
   const after = (await ratingOf(game, CONTROL.userId))!.elo
   expect(after).toBeLessThan(1000)
   return after
@@ -127,6 +127,28 @@ describe('a record that contradicts its match is charged as a loss, like a resig
     expect(r.body).toMatchObject({ elo: { before: 1000, after: price } })
   })
 
+  test('the level is the row\'s with no measured Elo too: a record claiming Easy on a Hard match costs the Hard provisional price', async () => {
+    const unmeasured: FinishOptions = { ...CHECKED, siteElo: () => null }
+    const price = await resignPrice('four', unmeasured)
+    expect(price).toBe(996)
+    const m = await begin('four')
+    const rec = await played('four', m)
+    const r = await finishMatchHandler(db, encodeRecord({ ...rec, agent: { ...rec.agent, level: 'easy' } }), USER, unmeasured)
+    expect((r.body as { reason: string }).reason).toContain('level mismatch')
+    expect(r.body).toMatchObject({ elo: { before: 1000, after: price }, provisional: true })
+    expect(await ratingOf('four')).toMatchObject({ elo: price, games: 1 })
+  })
+
+  test('the seat is the server\'s: a wrong seed sent from seat 1 is a loss, never the win that seat would score', async () => {
+    const price = await resignPrice('four')
+    const m = await begin('four')
+    const rec = await played('four', m)
+    const r = await finish({ ...rec, seed: rec.seed + 1, humanSeat: 1 })
+    expect((r.body as { reason: string }).reason).toContain('seed')
+    expect(r.body).toMatchObject({ valid: false, elo: { before: 1000, after: price } })
+    expect((await ratingOf('four'))!.elo).toBeLessThan(1000)
+  })
+
   test('the game is the row\'s: a Four match uploaded as chess costs Four rating and leaves chess alone', async () => {
     const price = await resignPrice('four')
     const m = await begin('four')
@@ -151,6 +173,60 @@ describe('a record that contradicts its match is charged as a loss, like a resig
     const r = await finishMatchHandler(db, encodeRecord({ ...rec, seed: rec.seed + 1 }), USER, { ...CHECKED, siteElo: () => null })
     expect(r.body).toMatchObject({ valid: false, provisional: true })
     expect((await ratingOf('four'))?.elo).toBeLessThan(1000)
+  })
+})
+
+describe('a seat flip costs the loss: the server holds the player to seat 0', () => {
+  test('word: real rounds uploaded from seat 1: the same loss as a resign', async () => {
+    const price = await resignPrice('word')
+    const m = await begin('word')
+    const r = await finish({ ...(await playedWord(m)), humanSeat: 1 })
+    expect((r.body as { reason: string }).reason).toBe('a sealed match is played from seat 0')
+    expect(r.body).toMatchObject({ valid: false, result: null, elo: { before: 1000, after: price } })
+    expect(await ratingOf('word')).toMatchObject({ elo: price, games: 1 })
+    expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, record: null, trainingAllowed: false })
+  })
+
+  for (const game of ['chess', 'four', 'holdem'] as const) {
+    test(`${game}: the agent check refuses seat 1: the same loss as a resign`, async () => {
+      const price = await resignPrice(game)
+      const m = await begin(game)
+      const r = await finish({ ...(await played(game, m)), humanSeat: 1 })
+      expect((r.body as { reason: string }).reason).toContain('only a human in seat 0 can be checked')
+      expect(r.body).toMatchObject({ valid: false, result: null, elo: { before: 1000, after: price } })
+      expect(await ratingOf(game)).toMatchObject({ elo: price, games: 1 })
+    })
+  }
+
+  test('charged once: the same seat 1 record again is 409', async () => {
+    const m = await begin('four')
+    const flipped = { ...(await played('four', m)), humanSeat: 1 as const }
+    await finish(flipped)
+    const rating = await ratingOf('four')
+    expect((await finish(flipped)).status).toBe(409)
+    expect(await ratingOf('four')).toEqual(rating)
+  })
+
+  test('honest seat 0 records are not touched: a loss is the real loss and a refused record stays free', async () => {
+    const m = await begin('four')
+    const rec = await played('four', m)
+    expect(rec.humanSeat).toBe(0)
+    const r = await finish({ ...rec, coreVersion: 'four-0' })
+    expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+    expect(await ratingOf('four')).toBeUndefined()
+  })
+
+  test('a practice match, a guest and an offline ticket stay free from seat 1', async () => {
+    const practice = await begin('four', USER, 21, { practice: true })
+    expect((await finish({ ...(await played('four', practice)), humanSeat: 1 })).body).toMatchObject({ valid: false })
+    const guest = await begin('four', GUEST)
+    expect((await finish({ ...(await played('four', guest)), humanSeat: 1 }, GUEST)).body).toMatchObject({ valid: false })
+    const t = (await issueTicketsHandler(db, { game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1' })).body as { tickets: Ticket[] }
+    const ticket = t.tickets[0]!
+    const r = await finish({ ...(await played('four', { matchId: ticket.matchId, seed: ticket.seed })), humanSeat: 1 })
+    expect(r.body).toMatchObject({ valid: false, result: null })
+    expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+    expect(await db.select().from(schema.rating)).toEqual([])
   })
 })
 
@@ -258,6 +334,15 @@ describe('never charged: an honest failure looks the same', () => {
     test('its record is refused for any reason, the seed included, and costs nothing: it was played out of the server\'s sight', async () => {
       const t = await ticket()
       const rec = await ticketed(t)
+      await freeOfCharge('four', t.matchId, await finish({ ...rec, seed: rec.seed + 1 }))
+    })
+
+    test('a copy sent after the first upload died in the agent check is still a ticket: free of charge', async () => {
+      const t = await ticket()
+      const rec = await ticketed(t)
+      const dies: FinishOptions = { ...CHECKED, verifyAgent: async () => { throw new Error('the check died') } }
+      await expect(finishMatchHandler(db, encodeRecord(rec), USER, dies)).rejects.toThrow('the check died')
+      expect(await rowOf(t.matchId)).toMatchObject({ status: 'started' })
       await freeOfCharge('four', t.matchId, await finish({ ...rec, seed: rec.seed + 1 }))
     })
 

@@ -115,8 +115,9 @@ async function lostWord(who: Caller, from = 100) {
 }
 
 describe('Word Duel: the player is seat 0', () => {
-  test('eight lost Champion matches uploaded from seat 1 are invalid and move no rating', async () => {
+  test('eight lost Champion matches uploaded from seat 1 are invalid and each costs the loss', async () => {
     const out: Array<boolean> = []
+    const elos: number[] = [1000]
     let from = 100
     for (let i = 0; i < 8; i++) {
       const m = await lostWord(USER, from)
@@ -124,31 +125,36 @@ describe('Word Duel: the player is seat 0', () => {
       const r = await finishMatchHandler(db, wordBytes(m, 1), USER)
       expect(r.status).toBe(200)
       out.push(body(r).valid)
+      expect(body(r).elo!.before).toBe(elos.at(-1)!)
+      expect(body(r).elo!.after).toBeLessThan(elos.at(-1)!)
+      elos.push(body(r).elo!.after)
     }
-    expect<unknown>({ valid: out, rating: (await ratingOf('word'))?.elo ?? null }).toEqual({ valid: Array(8).fill(false), rating: null })
+    expect<unknown>({ valid: out, rating: await ratingOf('word') }).toMatchObject({ valid: Array(8).fill(false), rating: { elo: elos.at(-1)!, games: 8 } })
   })
 
   test('a seat 1 record says why, stores nothing, and shows as a win nowhere', async () => {
     const m = await lostWord(USER)
     const r = await finishMatchHandler(db, wordBytes(m, 1), USER)
-    expect(r.body).toEqual({ valid: false, reason: 'a sealed match is played from seat 0', result: null })
+    expect(r.body).toMatchObject({ valid: false, reason: 'a sealed match is played from seat 0', result: null, elo: { before: 1000 } })
     expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, record: null, trainingAllowed: false, invalidReason: 'a sealed match is played from seat 0' })
-    expect(await ratingOf('word')).toBeUndefined()
+    expect((await ratingOf('word'))!.elo).toBeLessThan(1000)
     expect(await standing('word', 'champion', USER)).toEqual({ ...NOT_A_WIN })
   })
 
-  test('a player already on the leaderboard does not climb it with a seat 1 record', async () => {
+  test('a player already on the leaderboard falls on it with a seat 1 record', async () => {
     await db.insert(schema.rating).values({ userId: 'u-1', game: 'word', elo: 1000, games: MIN_GAMES })
     const m = await lostWord(USER)
     await finishMatchHandler(db, wordBytes(m, 1), USER)
-    expect(await getLeaderboard(db, 'word')).toEqual([{ rank: 1, name: 'Rival', elo: 1000, games: MIN_GAMES }])
+    const [entry] = await getLeaderboard(db, 'word')
+    expect(entry).toMatchObject({ rank: 1, name: 'Rival', games: MIN_GAMES + 1 })
+    expect(entry!.elo).toBeLessThan(1000)
   })
 
-  test('a seat 1 record of a match the player won is refused the same way', async () => {
+  test('a seat 1 record of a match the player won is refused the same way, and costs the same loss', async () => {
     const m = await playWord(USER, 500, 'easy', {}, 0)
     expect(m.winner).toBe(0)
     expect(body(await finishMatchHandler(db, wordBytes(m, 1), USER))).toMatchObject({ valid: false, reason: 'a sealed match is played from seat 0' })
-    expect(await ratingOf('word')).toBeUndefined()
+    expect((await ratingOf('word'))!.elo).toBeLessThan(1000)
   })
 
   test("a lost match uploaded with the seats' words swapped is refused by the marked rounds", async () => {
@@ -272,13 +278,13 @@ for (const [game, seeds] of [['chess', { win: 11, loss: 4 }], ['four', { win: 1,
       return rec
     }
 
-    test('a lost match uploaded from seat 1 is invalid: no rating, no stored bytes, no win', async () => {
+    test('a lost match uploaded from seat 1 is invalid: the loss is charged, no stored bytes, no win', async () => {
       const { matchId } = await begin(game, 'hard', USER, seeds.loss)
       const r = await finishMatchHandler(db, encodeRecord({ ...(await lost(matchId)), humanSeat: 1 }), USER, CHECKED)
       expect(body(r).valid).toBe(false)
       expect(body(r).reason).toContain('only a human in seat 0 can be checked')
       expect(await rowOf(matchId)).toMatchObject({ recordValid: false, record: null, trainingAllowed: false })
-      expect(await ratingOf(game)).toBeUndefined()
+      expect((await ratingOf(game))!.elo).toBeLessThan(1000)
       expect(await standing(game, 'hard', USER)).toEqual({ ...NOT_A_WIN })
     })
 
@@ -294,7 +300,7 @@ for (const [game, seeds] of [['chess', { win: 11, loss: 4 }], ['four', { win: 1,
     test('with no check configured the seat 1 record does not count either', async () => {
       const { matchId } = await begin(game, 'hard', USER, seeds.loss)
       expect(body(await finishMatchHandler(db, encodeRecord({ ...(await lost(matchId)), humanSeat: 1 }), USER))).toMatchObject({ valid: false })
-      expect(await ratingOf(game)).toBeUndefined()
+      expect((await ratingOf(game))!.elo).toBeLessThan(1000)
     })
 
     test('a lost match with the seat of every action swapped is invalid', async () => {
