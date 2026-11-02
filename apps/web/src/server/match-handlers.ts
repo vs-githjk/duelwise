@@ -374,10 +374,14 @@ export async function finishMatchHandler(
   else if (!sameChoice(rec.options, chosenOptions(row.filterFlags))) reason = `match length does not match the one chosen at the start (started ${describeChoice(chosenOptions(row.filterFlags))}, record says ${describeChoice(rec.options)})`
   else if (ticketed && rec.agent.version !== row.agentVersion) reason = `this offline match was played against agent ${rec.agent.version}, but its ticket was issued for ${row.agentVersion}`
   else if (ticketed && opts.currentAgentVersion && opts.currentAgentVersion(row.game as GameId, row.level as Level) !== row.agentVersion) reason = 'the opponent was updated after this offline ticket was issued, so the match cannot be checked'
+  // The player is always seat 0 in a real-time game and replay never reads this field, so a seat-1 upload would put a lost match on the board and the path as a win.
+  else if (PRODUCT.games[row.game as GameId].kind === 'realtime' && rec.humanSeat !== 0) reason = 'a real-time match is played from seat 0'
   else {
     const out = replay(rec)
     result = out.result
     if (!out.ok) reason = out.error ?? 'replay failed'
+    // The player is always seat 0 in a sealed game; replay and the log compare never read this field, so a seat-1 upload would turn a loss into a win.
+    else if (row.game === 'word' && rec.humanSeat !== 0) reason = 'a sealed match is played from seat 0'
     else if (row.game === 'word' && !wordRecordMatchesMarks(rec, row.seed, row.filterFlags)) reason = 'record does not match the marked rounds'
     else if (SERVER_CHECKED.includes(rec.game)) {
       // The check is the expensive step (seconds of CPU), so one request claims the match first; copies sent at the same time stop here.
