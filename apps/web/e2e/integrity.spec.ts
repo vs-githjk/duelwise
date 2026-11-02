@@ -427,14 +427,18 @@ test.describe('fleet: a counted match', () => {
     const { matchId } = sero(JSON.parse(started[0]!)).result as { matchId: string }
     const settled = await page.request.post('/api/resign', { data: { matchId, tick: 0 } })
     expect(settled.status()).toBe(200)
-    // The player is mid-match with the HUD at the top of the screen, as the design's fit test holds it.
-    await page.getByTestId('fleet-hud').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY))
-    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    // The player is mid-match, scrolled down to the last row of the target grid.
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').last()
+    await cell.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 8))
+    const scrolled = await page.evaluate(() => scrollY)
     await cell.click()
     await cell.click()
     await expect(root).toHaveAttribute('data-phase', 'setup')
     const line = page.getByTestId('fleet-failure')
     await expect(line).toHaveText('This match has ended. Place your fleet to start a new one.')
+    // Where the line sits on the page is above that scroll, so only bringing it into view can put it on screen.
+    const lineBottom = await line.evaluate((el) => el.getBoundingClientRect().bottom + window.scrollY)
+    expect(lineBottom).toBeLessThan(scrolled)
     await expect(line).toBeInViewport({ ratio: 1 })
     expect(statuses).toEqual([200, 200, 409])
   })
