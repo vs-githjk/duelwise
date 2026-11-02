@@ -34,10 +34,15 @@ const MAX_ACTIONS = 400
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })
 
+const secureWord = (): number => crypto.getRandomValues(new Int32Array(1))[0]!
+
 export const FLEET_SPEC: SealedSpec = {
   game: 'fleet' as GameId,
   setupTicks: 5,
   agentAction(level, seed, obs, seat, tick) {
+    // The agent's fleet must not be a function of the row seed: its visible shots share this mix, so a client could scan seeds against them and rebuild the
+    // fleet. Setup draws from the system CSPRNG instead. Nothing recomputes it: the first request stores the actions (buildSealedLog reuses stored ones).
+    if ((obs as { phase?: string }).phase === 'setup') return chooseFleetAction(level, obs as never, makeRng(secureWord()))
     // A fresh stream per tick keeps a retried request on the same move (the same mix word-marks uses).
     const rng = makeRng((seed ^ Math.imul(seat + 1, 0x9e3779b1) ^ Math.imul(tick + 1, 0x85ebca6b)) | 0)
     return chooseFleetAction(level, obs as never, rng)

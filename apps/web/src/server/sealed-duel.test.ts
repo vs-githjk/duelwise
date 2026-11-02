@@ -2,9 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { eq, sql } from 'drizzle-orm'
-import { fleetCore, shipCells, type FleetObs } from '@duelwise/core/src/games/fleet'
+import { fleetCore, shipCells, type FleetObs, type FleetState } from '@duelwise/core/src/games/fleet'
 import { decodeRecord, encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { makeRng } from '@duelwise/core/src/rng'
+import { chooseFleetAction } from '@duelwise/agents/src/fleet/agent'
 import { randomFleet, spotsFor } from '@duelwise/agents/src/fleet/placer'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
@@ -117,6 +118,28 @@ describe('setup', () => {
     const log = await storedLog(m.matchId)
     expect(log.human).toEqual(SETUP)
     expect(log.agent).toHaveLength(5)
+  })
+
+  test("the agent's fleet does not depend on the row seed: two setups on one seed differ, and the seed-mix fleet is not the stored one", async () => {
+    const a = await startFleet()
+    const b = await startFleet()
+    await ask(a.matchId, SETUP)
+    await ask(b.matchId, SETUP)
+    const fa = (await storedLog(a.matchId)).agent.slice(0, 5)
+    const fb = (await storedLog(b.matchId)).agent.slice(0, 5)
+    expect(fa).toHaveLength(5)
+    expect(fa).not.toEqual(fb)
+    // What the old seed mix would have placed, replayed the way an offline scanner would: same seed, same public agent code.
+    let s = fleetCore.init(SEED)
+    const derived: number[] = []
+    for (let i = 0; i < 5; i++) {
+      const rng = makeRng((SEED ^ Math.imul(2, 0x9e3779b1) ^ Math.imul(i + 1, 0x85ebca6b)) | 0)
+      const code = chooseFleetAction('easy', fleetCore.observe(s, 1) as FleetObs, rng)
+      derived.push(code)
+      s = fleetCore.step(s, [fleetCore.decodeAction(SETUP[i]!), fleetCore.decodeAction(code)] as never)
+    }
+    expect(fa).not.toEqual(derived)
+    expect(fb).not.toEqual(derived)
   })
 
   test('a second, different setup is a 409 and changes nothing', async () => {
@@ -260,7 +283,8 @@ describe('turns', () => {
     await ask(b.matchId, [...setupB, shot(0)])
     await ask(b.matchId, [...setupB, shot(0), shot(1)])
     await ask(b.matchId, [...setupB, shot(0), shot(1), shot(2)])
-    expect((await storedLog(b.matchId)).agent).toEqual((await storedLog(a.matchId)).agent)
+    // Setup is random per match; the shots are the part that must not move with the human's unhit cells.
+    expect((await storedLog(b.matchId)).agent.slice(5)).toEqual((await storedLog(a.matchId)).agent.slice(5))
   })
 })
 
@@ -395,11 +419,22 @@ describe('the record has to be the logged match: forged but replayable records',
     const m = await startFleet()
     const { human } = await playOut(m.matchId)
     const other = build(human)
-    let built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other)
+    // The agent's fleet is random per match now, so a forger who saw the reveal replays with the stored one.
+    const fleet = (await storedLog(m.matchId)).agent.slice(0, 5)
+    // A moved fleet can end the game earlier than the honest shots do: drop the shots left over after the end.
+    let built: ReturnType<typeof buildSealedLog<FleetState>> | undefined
+    while (!built) {
+      try {
+        built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other, fleet)
+      } catch (e) {
+        if (!(e instanceof Error) || !e.message.includes('after the game ended') || other.length <= SETUP.length) throw e
+        other.pop()
+      }
+    }
     for (let cell = 0; !fleetCore.terminal(built.state); cell++) {
       expect(cell).toBeLessThan(100)
       if (!other.includes(shot(cell))) other.push(shot(cell))
-      built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other)
+      built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other, fleet)
     }
     return { m, human, done: await finishMatchHandler(db, recordOf(m.matchId, SEED, other.slice(0, built.humanUsed), built.agent), ME) }
   }
