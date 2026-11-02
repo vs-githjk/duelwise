@@ -6,6 +6,7 @@ import { playCue as four } from './four/sounds'
 import { playCue as fighter } from './fighter/sounds'
 import { playCue as holdem } from './holdem/sounds'
 import { playCue as word } from './word/sounds'
+import { playCue as fleet } from './fleet/sounds'
 
 // Every game's win and lose cue is the shared result stinger (lib/music.ts), so the music ducks under it. The draw cue stays the game's own.
 const g = globalThis as unknown as Record<string, unknown>
@@ -30,7 +31,7 @@ afterEach(() => {
   g.window = saved.window; g.Audio = saved.Audio; g.localStorage = saved.localStorage
 })
 
-const games = { chess, four, fighter, holdem, word } as Record<string, (cue: 'win' | 'lose') => void>
+const games = { chess, four, fighter, holdem, word, fleet } as Record<string, (cue: 'win' | 'lose') => void>
 for (const [name, cue] of Object.entries(games)) {
   test(`${name}: win and lose play the shared stingers`, () => {
     cue('win')

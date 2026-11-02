@@ -11,6 +11,11 @@ test.describe('fleet dev page and promotion', () => {
     await expect(page.getByText(/stormglass/i).first()).toBeVisible()
     await page.goto('/play/stormglass')
     await expect(page.getByTestId('fleet-page')).toBeVisible()
+    // The play page sits in the shared shell: back link, guide button and sound control.
+    await expect(page.getByTestId('game-shell')).toHaveAttribute('data-game', 'fleet')
+    await expect(page.getByTestId('game-back')).toBeVisible()
+    await expect(page.getByTestId('game-sound-button')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'How to play' })).toBeVisible()
     const res = await page.goto('/play/fleet')
     expect(res?.status()).toBe(404)
     await expect(page.getByTestId('fleet-page')).toHaveCount(0)
@@ -166,16 +171,20 @@ test.describe('fleet dev page and promotion', () => {
         expect(now.own).toEqual(start.own)
       }
     }
-    await expect(page.getByTestId('fleet-result')).toBeVisible()
-    await expect(page.getByTestId('fleet-result-reason')).toContainText(/sank/)
-    // The result card brings itself into view: no manual scroll is needed to reach Play again.
-    await expect(page.getByTestId('fleet-again')).toBeInViewport()
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-reason')).toContainText(/sank/)
+    // The result panel brings itself into view: no manual scroll is needed to reach the rematch button.
+    await expect(page.getByTestId('rematch')).toBeInViewport()
+    // The reveal holds the two-board strip.
+    await expect(page.getByTestId('fleet-reveal')).toBeVisible()
+    await expect(page.getByTestId('fleet-end-theirs-board')).toBeVisible()
+    await expect(page.getByTestId('fleet-end-yours-board')).toBeVisible()
     await expect(fire).toBeDisabled()
     expect(hits + misses).toBeGreaterThan(10)
     // The hit/miss feedback marks exist on the board; at the end the whole enemy fleet is shown.
     await expect(page.locator('[data-testid^="fleet-cell-"][data-state="hit"]').first()).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-    await page.getByTestId('fleet-again').click()
+    await page.getByTestId('rematch').click()
     await expect(root).toHaveAttribute('data-phase', 'setup')
   })
 
@@ -202,21 +211,21 @@ test.describe('fleet dev page and promotion', () => {
     await expect(page.getByTestId('fleet-fire')).toBeEnabled()
     await page.getByTestId('fleet-resign').click()
     // One tap only asks: the match goes on until the confirm is answered.
-    await expect(page.getByTestId('fleet-result')).toHaveCount(0)
+    await expect(page.getByTestId('result-panel')).toHaveCount(0)
     await expect(page.getByTestId('fleet-resign-yes')).toHaveText('Yes, resign')
     await expect(page.getByTestId('fleet-resign-keep')).toBeInViewport({ ratio: 1 })
     await expect(page.getByTestId('fleet-resign-yes')).toBeInViewport({ ratio: 1 })
     await page.getByTestId('fleet-resign-keep').click()
-    await expect(page.getByTestId('fleet-result')).toHaveCount(0)
+    await expect(page.getByTestId('result-panel')).toHaveCount(0)
     await expect(page.getByTestId('fleet-fire')).toBeEnabled()
     await expect(page.getByTestId('fleet-resign')).toBeVisible()
     await page.getByTestId('fleet-resign').click()
     await page.getByTestId('fleet-resign-yes').click()
-    await expect(page.getByTestId('fleet-result')).toContainText('You resigned.')
+    await expect(page.getByTestId('result-panel')).toContainText('You resigned.')
     await expect(page.getByTestId('fleet-fire')).toBeDisabled()
     await expect(page.getByTestId('fleet-aim-chip')).toBeEmpty()
     await expect(page.getByTestId('fleet-shot-count')).toHaveText('Shot 0')
-    await expect(page.getByTestId('fleet-result')).not.toContainText('whole fleet is shown')
+    await expect(page.getByTestId('fleet-reveal')).toHaveCount(0)
     await page.getByTestId('fleet-fire').click({ force: true })
     await cell.click({ force: true })
     await expect(page.getByTestId('fleet-shot-count')).toHaveText('Shot 0')

@@ -93,7 +93,7 @@ export function reportTiles(view: { game: GameId; mode: 'owner' | 'public'; stat
       out.push({ value: `${view.mode === 'owner' ? 'You' : 'Player'} ${body.rounds.you}, ${(view.level ? personaFor(view.level).name : 'Opponent')} ${body.rounds.ai}`, label: 'Rounds won' })
       out.push({ value: String(body.moves), label: 'Recorded inputs' })
     }
-    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
+    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.game === 'fleet' ? (view.mode === 'owner' ? 'Your shots' : 'Shots fired') : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
     if (body.blunders !== null) out.push({ value: String(body.blunders), label: 'Costly moves', sub: body.evaluator === 'value-net' ? "by the AI's own position score" : 'by material count' })
     if (hasKeyMoments(body)) out.push({ value: String(body.moments.filter((m) => m.kind !== 'end').length), label: 'Named moments' })
   }

@@ -4,14 +4,20 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { FLEET_LEVELS } from '@duelwise/agents/src/fleet/levels'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
-import { playCue, setFleetMusic } from './sounds'
+import { GameShell } from '../../components/GameShell'
+import { ResultPanel } from '../../components/ResultPanel'
+import { levelInfoFromRegistry } from '../../lib/level-info'
+import type { Result } from '@duelwise/core/src/types'
+import { playCue } from './sounds'
 import { expectedHunting, fleetLuckLine, huntingShots } from './luck'
 import { useFleetMatch } from './useFleetMatch'
-import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, statusLineIn, viewWon } from './fleet-match'
+import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, viewWon } from './fleet-match'
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
 // The water and hull colours are the spec's section 1 tokens, in tokens.css since F7.
+
+const levelInfo = levelInfoFromRegistry(null)
 
 const LEVELS: Array<{ id: Level; label: string }> = [
   { id: 'easy', label: 'Easy' },
@@ -330,7 +336,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   const [event, setEvent] = useState('')
   const [flashIn, setFlashIn] = useState<number | null>(null)
   const dragFrom = useRef<number | null>(null)
-  const resultRef = useRef<HTMLDivElement | null>(null)
   const wide = useWide()
   const opponent = FLEET_LEVELS[level].name
   const hold = useMemo(holdMs, [])
@@ -412,8 +417,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     await game.start(level, fleet, seed)
   }
 
-  // Match music runs from Start until the result; the win or loss stinger plays once when the match ends (not on a resign).
-  useEffect(() => setFleetMusic(started && !over), [started, over])
+  // The match music is GameShell's (matchActive below); the win or loss stinger plays once when the match ends (not on a resign).
   const stingered = useRef(false)
   useEffect(() => {
     if (!over) {
@@ -440,11 +444,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       opponent,
     })
   }, [over, resigned, view, opponent])
-
-  // The result card mounts below Fire; on a phone that can be under the fold, so bring it into view (instant, no motion).
-  useEffect(() => {
-    if (over) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
-  }, [over])
 
   // Cues, the live line and the flash on my small map follow what the view gained: a shot of mine, or a shot at me.
   const seen = useRef({ shots: 0, incoming: 0 })
@@ -530,15 +529,64 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
   const pageTurn = started ? turn : 'setup'
 
+  const won = !!view && !resigned && viewWon(view)
+  const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned ? 'resigned' : 'fleet sunk' } : null
+  const resultNode =
+    result && view ? (
+      <ResultPanel
+        result={result}
+        humanSeat={0}
+        recordOk={game.finished ? game.finished.ok : true}
+        upload={game.upload}
+        unratedReason={game.unratedReason}
+        onRematch={backToSetup}
+        onPlayLevel={(l) => {
+          setLevel(l)
+          backToSetup()
+        }}
+        onChangeLevel={backToSetup}
+        levels={levelInfo}
+        moves={view.shots.length}
+        reveal={
+          view.reveal ? (
+            <div className="grid gap-2" data-testid="fleet-reveal">
+              <div className="flex items-start gap-3">
+                <figure className="m-0 grid w-[150px] gap-1">
+                  <Board views={enemyViews} label="Their waters, the whole fleet" testId="fleet-end-theirs" size="mini" />
+                  <figcaption className="text-xs text-muted">Their waters</figcaption>
+                </figure>
+                <figure className="m-0 grid w-[150px] gap-1">
+                  <Board views={ownViews} label="Your waters, as the match ended" testId="fleet-end-yours" size="mini" />
+                  <figcaption className="text-xs text-muted">Your waters</figcaption>
+                </figure>
+              </div>
+              {luck ? (
+                <p className="text-sm text-muted" data-testid="fleet-luck">
+                  {luck}
+                </p>
+              ) : null}
+            </div>
+          ) : null
+        }
+      />
+    ) : null
+
   return (
+    <GameShell
+      game="fleet"
+      level={started || starting ? level : undefined}
+      thinking={game.thinking}
+      matchActive={started && !over}
+      result={resultNode}
+    >
     <section
-      className="mx-auto grid w-full max-w-md gap-3 py-4 lg:max-w-[764px]"
+      className={`mx-auto grid w-full max-w-md ${started ? 'gap-2' : 'gap-3'} lg:max-w-[764px]`}
       data-testid="fleet-page"
       data-turn={pageTurn}
       data-phase={started ? 'play' : 'setup'}
       data-counted={game.sealed ? 'true' : 'false'}
     >
-      <h1 className="font-display text-display-md">{forceUnrated ? 'Stormglass (dev page)' : 'Stormglass'}</h1>
+      {forceUnrated && !started ? <p className="text-xs font-semibold text-muted">Dev page: matches here are never counted.</p> : null}
 
       {!started ? (
         <>
@@ -699,34 +747,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
             {event}
           </p>
 
-          {over ? (
-            <div ref={resultRef} className="grid gap-2 rounded-card border border-line bg-surface p-3" data-testid="fleet-result">
-              <h2 className="font-display text-display-sm">{resigned ? 'You resigned.' : view && viewWon(view) ? 'You win.' : 'You lose.'}</h2>
-              <p data-testid="fleet-result-reason">{resigned ? 'The match ended at your request.' : view ? statusLineIn(view, opponent, false) : ''}</p>
-              {game.upload.status === 'counted' && game.upload.elo ? (
-                <p data-testid="fleet-result-elo">
-                  Rating {game.upload.elo.before} to {game.upload.elo.after}
-                </p>
-              ) : null}
-              {game.unratedReason ? (
-                <p className="text-sm text-muted" data-testid="fleet-result-unrated">
-                  {game.unratedReason}
-                </p>
-              ) : null}
-              {view?.reveal ? <p className="text-sm text-muted">Their whole fleet is shown on their waters above.</p> : null}
-              {luck ? (
-                <p className="text-sm text-muted" data-testid="fleet-luck">
-                  {luck}
-                </p>
-              ) : null}
-              <div className="flex gap-2">
-                <button type="button" onClick={backToSetup} data-testid="fleet-again" className="min-h-11 rounded-control bg-action px-4 font-semibold text-action-ink">
-                  Play again
-                </button>
-              </div>
-            </div>
-          ) : null}
-
           {wide ? null : (
             <>
             <div className="grid h-40 grid-cols-[130px_minmax(0,1fr)] gap-3 overflow-hidden rounded-card border border-line bg-surface p-3" data-testid="fleet-own">
@@ -751,5 +771,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         </>
       )}
     </section>
+    </GameShell>
   )
 }

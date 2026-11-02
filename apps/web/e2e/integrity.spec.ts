@@ -261,9 +261,11 @@ test.describe('fleet: a counted match', () => {
       if (!(await fireNext(page))) break
       shots++
     }
-    await expect(page.getByTestId('fleet-result')).toBeVisible()
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    // A counted match links to its report (F10), and the panel names shots, not moves.
+    await expect(page.getByTestId('result-report-link')).toHaveAttribute('href', /\/report\//)
     // The browser-built record was accepted by the local server: the page shows the rating it moved, and the board counts the match.
-    await expect(page.getByTestId('fleet-result-elo')).toContainText(/Rating 1000 to \d+/)
+    await expect(page.getByTestId('result-elo')).toContainText(/Rating 1000 to \d+/)
     await page.goto('/leaderboard/stormglass')
     await expect(page.getByTestId('leaderboard-me')).toContainText('after 1 counted match')
 
@@ -310,7 +312,7 @@ test.describe('fleet: a counted match', () => {
     await page.getByTestId('fleet-ready').click()
     await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-counted', 'true')
     for (let i = 0; i < 100; i++) if (!(await fireNext(page))) break
-    await expect(page.getByTestId('fleet-result')).toBeVisible()
+    await expect(page.getByTestId('result-panel')).toBeVisible()
     const pending = await page.evaluate(() => {
       const k = Object.keys(localStorage).find((x) => x.startsWith('duelwise.pending-finish.'))
       return k ? localStorage.getItem(k) : null

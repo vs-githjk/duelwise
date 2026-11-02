@@ -40,5 +40,10 @@ export function walk<S = any, A = any>(rec: MatchRecordV1): Array<Step<S, A>> {
 
 /** How many actions the human played in a record. Turn-based games: one per move; the share card and the report read this same count. */
 export function humanActionCount(rec: MatchRecordV1): number {
+  // Stormglass records open with five placements per seat; they are setup, not moves, so only shots count.
+  if (rec.game === 'fleet') {
+    const core = getCore('fleet')
+    return rec.actions.filter((a) => a[1] === rec.humanSeat && (core.decodeAction(a[2] as number) as { kind: string }).kind === 'shot').length
+  }
   return rec.actions.filter((a) => a[1] === rec.humanSeat).length
 }

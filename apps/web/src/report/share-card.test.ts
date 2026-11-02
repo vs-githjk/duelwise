@@ -18,6 +18,11 @@ describe('share card', () => {
     expect(svg.startsWith('<svg')).toBe(true)
   })
 
+  test('a Stormglass card counts shots, not moves', () => {
+    expect(shareCardSvg({ game: 'fleet', level: 'easy', outcome: 'win', moves: 40, link: 'x.test/r/1' })).toContain('40 shots')
+    expect(shareCardSvg({ game: 'fleet', level: 'easy', outcome: 'win', moves: 40, link: 'x.test/r/1' })).not.toContain('moves')
+  })
+
   test('escapes markup in the link', () => {
     const svg = shareCardSvg({ game: 'chess', level: 'easy', outcome: 'loss', moves: 0, link: 'a"<b>&' })
     expect(svg).toContain('a&quot;&lt;b&gt;&amp;')
