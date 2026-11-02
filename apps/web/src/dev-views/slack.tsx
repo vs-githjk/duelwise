@@ -11,7 +11,6 @@ import {
   MIN_HOLD_MS,
   PASS_DELAY_MS,
   agentChoose,
-  announce,
   applyMove,
   cellName,
   discCounts,
