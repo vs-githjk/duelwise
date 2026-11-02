@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
@@ -6,7 +6,7 @@ import type { Caller, FinishOptions, HandlerResponse } from './match-handlers'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
-import { isPractice, isUnplayed, PRACTICE_FLAG, UNPLAYED_FLAG } from './competitive'
+import { isPractice, isUnplayed, PRACTICE_FLAG, sealedLogLength, UNPLAYED_FLAG } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -38,20 +38,31 @@ export async function resignMatchHandler(
   const resignTick = typeof tick === 'number' && Number.isFinite(tick) ? Math.min(Math.max(Math.trunc(tick), 0), 10_000_000) : 0
   if (!who.userId && !who.guestId) return err(401, 'no player')
 
-  const row = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)).limit(1))[0]
-  if (!row) return err(404, 'unknown match')
-  const mine = who.userId ? row.userId === who.userId : row.guestId === who.guestId && row.userId === null
-  if (!mine) return err(403, 'not your match')
-  if (row.status !== 'started') return err(409, `match is already ${row.status}`)
+  // A shot may land between the read and the write, and whether the match was played decides the rating. So the write holds only if the
+  // stored log is still the one the decision read; otherwise it reads again. A sealed log grows by one shot per turn and each read sees the latest.
+  let row: typeof schema.match.$inferSelect
+  let unplayed: boolean
+  for (;;) {
+    const read = (await db.select().from(schema.match).where(eq(schema.match.id, matchId)).limit(1))[0]
+    if (!read) return err(404, 'unknown match')
+    const mine = who.userId ? read.userId === who.userId : read.guestId === who.guestId && read.userId === null
+    if (!mine) return err(403, 'not your match')
+    if (read.status !== 'started') return err(409, `match is already ${read.status}`)
 
-  // A sealed match whose setup never reached the server was never played and revealed nothing: ending it costs no rating.
-  const unplayed = isUnplayed(row.game, row.filterFlags)
-  const updated = await db
-    .update(schema.match)
-    .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(row.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(unplayed ? { [UNPLAYED_FLAG]: true } : {}) }, finishedAt: new Date() })
-    .where(and(eq(schema.match.id, row.id), eq(schema.match.status, 'started')))
-    .returning({ id: schema.match.id })
-  if (updated.length === 0) return err(409, 'match was settled by another request')
+    // A sealed match whose setup never reached the server was never played and revealed nothing: ending it costs no rating.
+    const notPlayed = isUnplayed(read.game, read.filterFlags)
+    const updated = await db
+      .update(schema.match)
+      .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(read.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(notPlayed ? { [UNPLAYED_FLAG]: true } : {}) }, finishedAt: new Date() })
+      .where(and(eq(schema.match.id, read.id), eq(schema.match.status, 'started'), sql`coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) = ${sealedLogLength(read.filterFlags)}`))
+      .returning({ id: schema.match.id })
+    if (updated.length > 0) {
+      row = read
+      unplayed = notPlayed
+      break
+    }
+    // Nothing was written: the row was settled (the next read says so) or the log grew (the next read decides again).
+  }
 
   await recordEvent(db, {
     kind: 'match_resigned',

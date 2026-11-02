@@ -516,6 +516,35 @@ describe('a sealed match that never got its setup was not played', () => {
     expect(await ratingGames()).toBeUndefined()
   })
 
+  test('a resign that read the row before a shot was stored is still a loss: the unplayed call is checked against the log it writes over', async () => {
+    const a = await startAs()
+    expect((await ask(a, SETUP, USER)).status).toBe(200)
+    // The first read returns the row as it stood, then the first shot lands before the resign writes.
+    let raced = false
+    const racing = new Proxy(db, {
+      get(target, key, receiver) {
+        if (key !== 'select' || raced) return Reflect.get(target, key, receiver)
+        raced = true
+        return () => ({
+          from: () => ({
+            where: () => ({
+              limit: async () => {
+                const rows = await db.select().from(schema.match).where(eq(schema.match.id, a)).limit(1)
+                expect((await ask(a, [...SETUP, shot(0)], USER)).status).toBe(200)
+                return rows
+              },
+            }),
+          }),
+        })
+      },
+    })
+    const r = await resignMatchHandler(racing, { matchId: a, tick: 5 }, USER)
+    expect(raced).toBe(true)
+    expect(r.status).toBe(200)
+    expect(r.body).not.toHaveProperty('unplayed')
+    expect(await ratingGames()).toBe(1)
+  })
+
   test('once a shot is stored the match was played: resigning and abandoning still cost a loss', async () => {
     const a = await startAs()
     expect((await ask(a, SETUP, USER)).status).toBe(200)

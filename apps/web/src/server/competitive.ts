@@ -46,12 +46,17 @@ const SEALED_TURN_GAMES = SEALED_GAMES.filter((g) => g !== 'word')
  */
 export const SEALED_SETUP_TICKS = 5
 
+/** How many of the player's actions a row's sealed log holds; 0 for a row with no log. */
+export function sealedLogLength(flags: unknown): number {
+  const log = typeof flags === 'object' && flags !== null ? (flags as Record<string, unknown>).sealedLog : undefined
+  const human = typeof log === 'object' && log !== null ? (log as Record<string, unknown>).human : undefined
+  return Array.isArray(human) ? human.length : 0
+}
+
 /** Whether a started row of this game has no stored shot yet (no setup, or the setup only), so it was never played. */
 export function isUnplayed(game: string, flags: unknown): boolean {
   if (!SEALED_TURN_GAMES.some((g) => g === game)) return false
-  const log = typeof flags === 'object' && flags !== null ? (flags as Record<string, unknown>).sealedLog : undefined
-  const human = typeof log === 'object' && log !== null ? (log as Record<string, unknown>).human : undefined
-  return !Array.isArray(human) || human.length <= SEALED_SETUP_TICKS
+  return sealedLogLength(flags) <= SEALED_SETUP_TICKS
 }
 
 const sealedTurnGames = sql.join(SEALED_TURN_GAMES.map((g) => sql`${g}`), sql`, `)
