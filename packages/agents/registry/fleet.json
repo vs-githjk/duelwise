@@ -6,13 +6,148 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-02T04:00:00.000Z",
-      "promotedAt": null,
-      "status": "preview",
+      "promotedAt": "2026-11-02T13:18:38.327Z",
+      "status": "measured",
       "artifacts": {},
       "sha256": {},
       "trainedSteps": 0,
       "humanMatchesUsed": 0,
-      "gate": null
+      "gate": {
+        "rule": "adjacent levels: the stronger level, and Pip against random legal play, each need a 95% Wilson lower bound above 0.5 over 400 games on each seat, not only pooled",
+        "strengthSource": "scripted solver: each level is a hand-written algorithm (fleet/shooter.ts, fleet/levels.ts), with no trained model, no self-play and no human games",
+        "seats": "seat 0 shoots first; setups are uniform random valid fleets at every level, so this measures shooting and not placement against people",
+        "gamesPerSeat": 400,
+        "seeds": "pair: 30000000 + 1000000 * (index of the upper level) + game index; baseline: 39000000 + game index; the two sides swap seats every game",
+        "baseline": {
+          "label": "random",
+          "n": 800,
+          "points": 782,
+          "score": 0.9775,
+          "ci95": [
+            0.964715,
+            0.985721
+          ],
+          "passed": true,
+          "bySeat": [
+            {
+              "seat": 0,
+              "n": 400,
+              "points": 390,
+              "ci95": [
+                0.9545984119236168,
+                0.9863649083175973
+              ]
+            },
+            {
+              "seat": 1,
+              "n": 400,
+              "points": 392,
+              "ci95": [
+                0.9610365840355962,
+                0.9898316132607885
+              ]
+            }
+          ]
+        },
+        "pairs": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 800,
+            "points": 706,
+            "score": 0.8825,
+            "ci95": [
+              0.858336,
+              0.903008
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 355,
+                "ci95": [
+                  0.8527764303733716,
+                  0.9148515414023556
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 351,
+                "ci95": [
+                  0.8417313726716424,
+                  0.9060868449937434
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 800,
+            "points": 583,
+            "score": 0.72875,
+            "ci95": [
+              0.696902,
+              0.758412
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 291,
+                "ci95": [
+                  0.6818568082481709,
+                  0.7688150977620949
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 292,
+                "ci95": [
+                  0.6844571283551331,
+                  0.771167216182718
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 800,
+            "points": 528,
+            "score": 0.66,
+            "ci95": [
+              0.626479,
+              0.691992
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 265,
+                "ci95": [
+                  0.6148101416775835,
+                  0.7070983626154634
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 263,
+                "ci95": [
+                  0.6096946454033335,
+                  0.7023089818345427
+                ]
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "levels": {
@@ -53,7 +188,64 @@
       }
     }
   },
-  "measured": {},
+  "measured": {
+    "easy": {
+      "metric": "score vs random",
+      "value": 0.9775,
+      "ci95": [
+        0.964715,
+        0.985721
+      ],
+      "n": 800,
+      "opponents": "random",
+      "siteElo": 1000,
+      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "harness": "bun",
+      "commit": "43cafce"
+    },
+    "medium": {
+      "metric": "score vs easy",
+      "value": 0.8825,
+      "ci95": [
+        0.858336,
+        0.903008
+      ],
+      "n": 800,
+      "opponents": "easy",
+      "siteElo": 1350.270739,
+      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "harness": "bun",
+      "commit": "43cafce"
+    },
+    "hard": {
+      "metric": "score vs medium",
+      "value": 0.72875,
+      "ci95": [
+        0.696902,
+        0.758412
+      ],
+      "n": 800,
+      "opponents": "medium",
+      "siteElo": 1521.954267,
+      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "harness": "bun",
+      "commit": "43cafce"
+    },
+    "champion": {
+      "metric": "score vs hard",
+      "value": 0.66,
+      "ci95": [
+        0.626479,
+        0.691992
+      ],
+      "n": 800,
+      "opponents": "hard",
+      "siteElo": 1637.180275,
+      "measuredAt": "2026-11-02T13:18:38.327Z",
+      "harness": "bun",
+      "commit": "43cafce"
+    }
+  },
   "unpublished": {},
   "unpublishedConfig": {},
   "learnsFromHumans": false
