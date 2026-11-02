@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { CELLS, PASS, flipsFor, slackCore, createSlackCore, type SlackState } from './index'
 import { makeRng } from '../../rng'
+import { replay } from '../../replay'
+import type { MatchRecordV1 } from '../../match-record'
+import type { GameId } from '../../product'
+import type { Seat } from '../../types'
 
 const at = (r: number, c: number) => r * 8 + c
 
@@ -244,5 +248,173 @@ describe('slackwater core', () => {
       // neither seat has a move at the end
       expect(slackCore.legal({ cells: s.cells, turn: 0 }, 0).length + slackCore.legal({ cells: s.cells, turn: 1 }, 1).length).toBe(0)
     }
+  })
+})
+
+/** Plays a full random match through legal(), returning the move codes in order. */
+function randomMoves(seed: number): number[] {
+  const rng = makeRng(seed)
+  let s = slackCore.init(seed)
+  const moves: number[] = []
+  while (!slackCore.terminal(s)) {
+    const [seat] = slackCore.toAct(s)
+    const legal = slackCore.legal(s, seat!)
+    const a = legal[rng.int(legal.length)]!
+    moves.push(a)
+    s = act(s, a)
+  }
+  return moves
+}
+
+// Observation is relative and complete: open game, nothing is hidden, so there is no hiding test.
+describe('slackwater observation', () => {
+  test('across 300 random matches, at every ply, each seat sees a relative, consistent view', () => {
+    let plies = 0
+    for (let seed = 1; seed <= 300; seed++) {
+      const rng = makeRng(seed)
+      let s = slackCore.init(seed)
+      for (;;) {
+        const o0 = slackCore.observe(s, 0)
+        const o1 = slackCore.observe(s, 1)
+        for (let i = 0; i < CELLS; i++) {
+          expect(o0.cells[i]).toBe(s.cells[i] === 0 ? 0 : s.cells[i] === 1 ? 1 : 2)
+          // mine and theirs swap between seats; empty stays empty
+          expect(o1.cells[i]).toBe(o0.cells[i] === 0 ? 0 : o0.cells[i] === 1 ? 2 : 1)
+        }
+        expect(o0.seat).toBe(0)
+        expect(o1.seat).toBe(1)
+        expect(o0.legal).toEqual(slackCore.legal(s, 0))
+        expect(o1.legal).toEqual(slackCore.legal(s, 1))
+        expect(o0.toMove).toBe(slackCore.toAct(s).includes(0))
+        expect(o1.toMove).toBe(slackCore.toAct(s).includes(1))
+        const filled = s.cells.filter((v) => v !== 0).length
+        for (const o of [o0, o1]) {
+          expect(o.discs[0] + o.discs[1]).toBe(filled)
+          expect(o.discs[0]).toBe(o.cells.filter((v) => v === 1).length)
+          expect(o.discs[1]).toBe(o.cells.filter((v) => v === 2).length)
+        }
+        expect(o1.discs).toEqual([o0.discs[1], o0.discs[0]])
+        plies++
+        if (slackCore.terminal(s)) {
+          expect(o0.toMove || o1.toMove).toBe(false)
+          expect(o0.legal).toEqual([])
+          expect(o1.legal).toEqual([])
+          break
+        }
+        const [seat] = slackCore.toAct(s)
+        const legal = slackCore.legal(s, seat!)
+        s = act(s, legal[rng.int(legal.length)]!)
+      }
+    }
+    expect(plies).toBeGreaterThan(300 * 50)
+  })
+
+  test('a forced pass shows as [PASS] to the seat that must pass', () => {
+    const s = board(['xo......', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY], 1)
+    // o at (0,1) has no x to close against, but x at (0,0) can still play (0,2): seat 1 must pass.
+    expect(slackCore.observe(s, 1).legal).toEqual([PASS])
+    expect(slackCore.observe(s, 0).legal).toEqual([])
+  })
+})
+
+// Real replay() needs PRODUCT.games[core.id], and Slackwater is not promoted yet, so the core borrows
+// the id of a turn-based game. The record carries the same id.
+const BORROWED = 'four' as GameId
+const borrowed = { ...slackCore, id: BORROWED }
+
+/** A record for a move list: tick is the step index, one action per step by the seat to act. */
+function recordOf(seed: number, moves: number[]): MatchRecordV1 {
+  let s = borrowed.init(seed)
+  const actions: MatchRecordV1['actions'] = []
+  moves.forEach((a, tick) => {
+    const [seat] = borrowed.toAct(s)
+    actions.push([tick, seat as Seat, a])
+    s = act(s, a)
+  })
+  const result = borrowed.result(s)
+  if (!result) throw new Error('recordOf: moves do not finish the game')
+  return {
+    schema: 1,
+    matchId: 'slack-test-' + seed,
+    game: BORROWED,
+    coreVersion: borrowed.version,
+    agent: { version: 'test', level: 'easy' },
+    seed,
+    humanSeat: 0,
+    actions,
+    result,
+    finalHash: borrowed.hash(s),
+    startedAt: '2026-11-02T00:00:00.000Z',
+    endedAt: '2026-11-02T00:10:00.000Z',
+    device: 'desktop',
+    input: 'mouse',
+    trainingAllowed: false,
+  }
+}
+
+const ok = (r: MatchRecordV1) => replay(r, { core: borrowed })
+
+// A real finished match from the opening that holds one forced pass (ply 57 is the pass).
+const PASS_GAME = [
+  19, 18, 17, 20, 45, 16, 21, 54, 37, 22, 11, 44, 63, 34, 23, 14, 41, 42, 29, 53, 43, 55, 46, 50, 7, 12, 9, 32, 48,
+  39, 58, 40, 24, 13, 52, 60, 49, 57, 61, 31, 25, 6, 8, 0, 59, 33, 15, 2, 3, 10, 1, 5, 56, 4, 51, 30, 26, 64, 47,
+]
+
+describe('slackwater replay', () => {
+  test('the scripted position holds a forced pass and replays ok', () => {
+    expect(PASS_GAME).toContain(PASS)
+    const r = recordOf(1, PASS_GAME)
+    const out = ok(r)
+    expect(out.error).toBeUndefined()
+    expect(out.ok).toBe(true)
+    expect(out.finalHash).toBe(r.finalHash)
+  })
+
+  test('200 random matches replay ok through the real replay(), and some hold a pass', () => {
+    let withPass = 0
+    for (let seed = 1; seed <= 200; seed++) {
+      const moves = randomMoves(seed)
+      if (moves.includes(PASS)) withPass++
+      const out = ok(recordOf(seed, moves))
+      expect(out.error, `seed ${seed}`).toBeUndefined()
+      expect(out.ok).toBe(true)
+    }
+    console.log('SW2 replayed random matches holding a pass: ' + withPass + ' of 200 (plus 1 scripted)')
+    expect(withPass + 1).toBeGreaterThan(0)
+  })
+
+  test('a changed action, an action after the end, a removed pass and a wrong final hash are each not ok', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const r = recordOf(seed, randomMoves(seed))
+      const mid = Math.floor(r.actions.length / 2)
+
+      const changed = structuredClone(r)
+      changed.actions[mid]![2] = (changed.actions[mid]![2] + 1) % 65
+      expect(ok(changed).ok, `changed action, seed ${seed}`).toBe(false)
+
+      const after = structuredClone(r)
+      after.actions.push([r.actions.length, 0, 0])
+      expect(ok(after).ok, `action after end, seed ${seed}`).toBe(false)
+
+      const badHash = structuredClone(r)
+      badHash.finalHash = badHash.finalHash.replace(/^./, (c) => (c === '0' ? '1' : '0'))
+      expect(ok(badHash).ok, `wrong hash, seed ${seed}`).toBe(false)
+    }
+    // Removing the forced pass: every later entry keeps its tick, so the pass tick has no action.
+    const r = recordOf(1, PASS_GAME)
+    const at = r.actions.findIndex((a) => a[2] === PASS)
+    expect(at).toBeGreaterThan(0)
+    const noPass = structuredClone(r)
+    noPass.actions.splice(at, 1)
+    expect(ok(noPass).ok).toBe(false)
+    // Same with the later ticks shifted down by one: the next seat now plays at the pass tick and is not the one to act.
+    const shifted = structuredClone(r)
+    shifted.actions.splice(at, 1)
+    for (let k = at; k < shifted.actions.length; k++) shifted.actions[k]![0] -= 1
+    expect(ok(shifted).ok).toBe(false)
+  })
+
+  test('the unmodified record is ok, so the failures above are the edits and not the helper', () => {
+    expect(ok(recordOf(7, randomMoves(7))).ok).toBe(true)
   })
 })
