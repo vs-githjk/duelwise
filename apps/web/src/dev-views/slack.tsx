@@ -26,6 +26,7 @@ import {
   statusLine,
   tapCell,
   type Session,
+  type SlackMatch,
 } from './slack-match'
 import type { FromWorker, ToWorker } from './slack-worker'
 import './slack.css'
@@ -109,6 +110,27 @@ function seedFromUrl(): number {
   return (Math.random() * 2 ** 32) >>> 0
 }
 
+/**
+ * Test-only start position: /dev/slack?moves=D3,C3,pass reads cell names (file A to H, rank 1 to 8, A1 top left) or "pass", each played
+ * by whoever is to act, from the opening. It sets up the first match of the page only, so Play again is a normal new match. Nothing is read when the list is missing, and an illegal list is ignored whole.
+ */
+function presetMatch(): SlackMatch | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('moves')
+    if (!raw) return null
+    let m = startMatch()
+    for (const token of raw.split(',')) {
+      const t = token.trim().toUpperCase()
+      const code = t === 'PASS' ? PASS : /^[A-H][1-8]$/.test(t) ? (Number(t[1]) - 1) * SIZE + FILES.indexOf(t[0]!) : -1
+      if (code < 0) return null
+      m = applyMove(m, m.state.turn, code)
+    }
+    return m
+  } catch {
+    return null
+  }
+}
+
 function cellLabel(i: number, v: number, legal: boolean, name: string): string {
   const where = `${FILES[i % SIZE]}, ${Math.floor(i / SIZE) + 1}`
   if (v === 1) return `${where}, yours`
@@ -181,7 +203,7 @@ export default function SlackView() {
   const begin = () => {
     agent.current?.dispose()
     agent.current = createWorkerAgent(level, seedFromUrl())
-    const m = startMatch()
+    const m = (matchNo === 0 ? presetMatch() : null) ?? startMatch()
     setPlaying(level)
     setSession({ level, match: m })
     setStarted(true)
