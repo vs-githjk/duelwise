@@ -576,6 +576,10 @@ test('fleet: the match-ending reply is lost and the player resigns: a win in the
   await expect(page.getByTestId('fleet-failure')).toContainText(/not sent/i)
   await page.getByTestId('fleet-resign').click()
   await page.getByTestId('fleet-resign-yes').click()
+  // The panel mounts only once the resign reply is in, so its heading is final the first time it can be seen: it never shows a loss and then flips.
+  const panel = page.getByTestId('result-panel')
+  await expect(panel).toBeVisible()
+  const firstOutcome = await panel.getAttribute('data-outcome')
   await expect(root).toHaveAttribute('data-turn', 'over')
   // Settled either way: won in the log, so nothing was counted and the line says so; lost in the log, so charged like a resign with its rating shown.
   const upload = page.getByTestId('result-upload')
@@ -588,5 +592,12 @@ test('fleet: the match-ending reply is lost and the player resigns: a win in the
   // The heading agrees with the line under it: a win in the log reads as a win, a loss as a loss.
   const wonInLog = (await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted')
   await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', wonInLog ? 'win' : 'loss')
+  expect(firstOutcome).toBe(wonInLog ? 'win' : 'loss')
+  if (wonInLog) {
+    // A win the server never counted claims no progress: no next level, no ladder clear, nothing written to the path.
+    await expect(page.getByTestId('play-next')).toHaveCount(0)
+    const path = JSON.parse((await page.evaluate(() => localStorage.getItem('duelwise.path'))) ?? '{}') as { fleet?: Record<string, boolean> }
+    expect(path.fleet?.easy ?? false).toBe(false)
+  }
   expect((await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted') && (await elo.count()) > 0).toBe(false)
 })

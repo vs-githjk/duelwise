@@ -391,8 +391,10 @@ function EventLine({ event, failure }: { event: string; failure: string | null }
   )
 }
 
-function ResignButton({ onResign }: { onResign: () => void }) {
+function ResignButton({ onResign, locked = false }: { onResign: () => void; locked?: boolean }) {
   const [confirming, setConfirming] = useState(false)
+  // The final reply is in and the match is being recorded: Resign would do nothing, so it goes quiet but keeps its place (nothing moves when the result arrives).
+  if (locked) return <span aria-hidden="true" className="invisible inline-block min-h-11 min-w-11 justify-self-start" data-testid="fleet-resign-locked" />
   if (confirming) {
     return (
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm resign">
@@ -704,8 +706,16 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   }, [luckBase, view])
   const luckReady = over && (!holdResult || resultDue)
   const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned && !loggedWon ? 'resigned' : 'fleet sunk' } : null
+  // A resignation is answered by the server within moments, and the answer can turn the heading (a win its log already had): the panel waits for it, so it never flips or speaks the wrong line.
+  const resignPending = resigned && game.upload.status === 'uploading'
+  const [resignWaitOver, setResignWaitOver] = useState(false)
+  useEffect(() => {
+    if (!resignPending) return setResignWaitOver(false)
+    const t = setTimeout(() => setResignWaitOver(true), 2500)
+    return () => clearTimeout(t)
+  }, [resignPending])
   const resultNode =
-    result && view && (!holdResult || resultDue) ? (
+    result && view && (!resignPending || resignWaitOver) && (!holdResult || resultDue) ? (
       <ResultPanel
         result={result}
         humanSeat={0}
@@ -719,7 +729,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         }}
         onChangeLevel={backToSetup}
         levels={levelInfo}
-        moves={view.shots.length}
+        // The winning shot of a win the server's log had is not in this view (its reply never came), so it counts one more.
+        moves={view.shots.length + (loggedWon ? 1 : 0)}
         {...(view.reveal ? { shortBy: unhitCells(view.reveal, view.shots) } : {})}
         reveal={
           view.reveal ? (
@@ -945,7 +956,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 </div>
                 <Board views={ownViews} hulls={ownHulls} sinking={sinkingOurs} landed={landedOurs} ping label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" />
                 <EventLine event={event} failure={game.failure} />
-                {!over ? <ResignButton onResign={resign} /> : null}
+                {!over ? <ResignButton onResign={resign} locked={game.ending} /> : null}
               </div>
             ) : null}
           </div>
@@ -964,7 +975,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 <EventLine event={event} failure={game.failure} />
               </div>
             </div>
-            {!over ? <ResignButton onResign={resign} /> : null}
+            {!over ? <ResignButton onResign={resign} locked={game.ending} /> : null}
             </>
           )}
         </>

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Result } from '@duelwise/core/src/types'
 import { OpponentContext } from '../personas/context'
-import { mayClear, ResultPanel, toggleSpeaksNow } from './ResultPanel'
+import { mayClear, progressCounts, ResultPanel, toggleSpeaksNow } from './ResultPanel'
 import type { Upload } from '../lib/match-recorder'
 
 const won: Result = { winner: 0, score: [1, 0], reason: 'ahead by 300 chips after 4 hands' }
@@ -57,6 +57,21 @@ test('a win is announced as a clear only after the server accepts it; until then
     expect(html).toContain('play-next')
     expect(html).not.toContain('Checking your result')
   }
+})
+
+test('a win the server never counted (its log had it won before the player gave up) claims no progress: no clear, no next level, no counted line, no share', () => {
+  const counted = renderWith({ status: 'counted', matchId: 'm' })
+  const html = renderWith({ status: 'counted', matchId: 'm', loggedWin: true })
+  expect(counted).toContain('Beaten')
+  expect(counted).toContain('up next')
+  for (const bad of ['is unlocked', 'Checking your result', 'play-next', 'Play Marlow', 'share-block', 'Beaten', 'up next', 'Sign in to get a rating']) expect(html).not.toContain(bad)
+  expect(html).toContain('Your last shot had already sunk their fleet, so nothing was counted.')
+  expect(html).toContain('data-testid="rematch"')
+  expect(progressCounts({ status: 'counted', matchId: 'm', loggedWin: true })).toBe(false)
+  expect(progressCounts({ status: 'counted', matchId: 'm' })).toBe(true)
+  expect(progressCounts({ status: 'synced', matchId: 'm' })).toBe(true)
+  expect(progressCounts({ status: 'uploading' })).toBe(false)
+  expect(progressCounts(undefined)).toBe(false)
 })
 
 test('a rejected, failed, not-counted or unrated (fixed seed) win never says it unlocked anything', () => {

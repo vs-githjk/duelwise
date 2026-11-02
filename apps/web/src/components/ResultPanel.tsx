@@ -21,6 +21,11 @@ const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem']
 
 export type Outcome = 'win' | 'loss' | 'draw'
 
+/** Whether the server's answer to this match counts toward progress: counted or synced, and not a win its own log had decided before the player gave up. */
+export function progressCounts(upload: Upload | undefined): boolean {
+  return (upload?.status === 'counted' && upload.loggedWin !== true) || upload?.status === 'synced'
+}
+
 /** Whether a result may clear a stop on the path: a played-out, rated win, and only after the server has accepted it (counted, or a queued match now synced). */
 export function mayClear(i: { left: boolean; practice: boolean; outcome: Outcome; status: string | undefined }): boolean {
   return !i.left && !i.practice && i.outcome === 'win' && (i.status === 'counted' || i.status === 'synced')
@@ -112,14 +117,16 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const called = game && !left ? calledFor(game) : null
   const pathState = usePath(game)
   // Whether this stop was already cleared before this match, read once, so "unlocked" is only said for a new clear.
-  const [firstClear] = useState(() => !left && !practice && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  // A win the server never counted (its log had it won before the player gave up) claims no progress at all: no clear, no next level, no rank, no share.
+  const notCounted = upload?.status === 'counted' && upload.loggedWin === true
+  const [firstClear] = useState(() => !left && !practice && !notCounted && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
   // A clear is recorded, and announced, only once the server has accepted the result: not for a practice win, a left match, a fixed-seed or
   // otherwise unrated win, nor one the server rejects. A queued offline win waits here and settles when its final status arrives.
-  const clearable = !left && !practice && outcome === 'win' && game !== undefined && level !== undefined
-  const accepted = upload?.status === 'counted' || upload?.status === 'synced'
+  const clearable = !left && !practice && !notCounted && outcome === 'win' && game !== undefined && level !== undefined
+  const accepted = progressCounts(upload)
   const checking = clearable && (upload?.status === 'uploading' || upload?.status === 'queued')
   useEffect(() => {
-    if (mayClear({ left, practice, outcome, status: upload?.status }) && game && level) noteCleared(game, level)
+    if (mayClear({ left, practice, outcome, status: accepted ? upload?.status : undefined }) && game && level) noteCleared(game, level)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearable, accepted])
   // Only the Champion's loss line quotes its record against people, so only that loss asks the server for it. 'wait' lasts until the answer or a short timeout, so the spoken line and the written one match.
@@ -172,7 +179,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }
   // The player's place at this level, once the server has counted the win. Practice levels are never ranked.
   const [rank, setRank] = useState<{ place: number; of: number } | null>(null)
-  const counted = upload?.status === 'counted' || upload?.status === 'synced'
+  const counted = progressCounts(upload)
   useEffect(() => {
     if (practice || !counted || outcome !== 'win' || !game || !level) return
     let alive = true
@@ -189,7 +196,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }, [counted, outcome, game, level])
   const facts: ShareFacts | null = game && level && !left ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
   const margin = facts ? marginOf(facts) : null
-  const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
+  const next = !left && !notCounted && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
   const nextPlayable = !practice && (!firstClear || accepted) && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
   const elo = eloProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.elo : undefined)
   const provisional = provProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.provisional : undefined)
@@ -302,7 +309,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
             {hasReport ? <a href={`/report/${upload!.matchId}`} className={textLink} data-testid="result-report-link">View match report</a> : null}
           </div>
         ) : null}
-        {facts && game && !practice ? <ShareBlock facts={facts} game={game} /> : null}
+        {facts && game && !practice && !notCounted ? <ShareBlock facts={facts} game={game} /> : null}
         <div className="grid gap-1.5">
           {uploadLine}
           {unratedReason ? <p className="text-xs text-muted" data-testid="result-unrated">{unratedReason}</p> : null}
