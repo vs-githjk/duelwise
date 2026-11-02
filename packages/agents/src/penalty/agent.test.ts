@@ -223,6 +223,19 @@ describe('Marlow', () => {
     expect((d[TL]! + d[BL]!) / 3000).toBeGreaterThan(0.74)
   })
 
+  test('as shooter keeps the height of its favourite corner when it goes away, in both rows', () => {
+    const rows = new Set<number>()
+    const away = [view(true, C, LH), view(true, C, LL)]
+    for (let salt = 0; salt < 40; salt++) {
+      const open = draws('medium', obs('shooter'), 300, salt)
+      const row = Math.floor(open.indexOf(Math.max(...open)) / 3)
+      rows.add(row)
+      const c = draws('medium', obs('shooter', away), 300, salt)
+      expect(c.indexOf(Math.max(...c))).toBe(row * 3 + 2)
+    }
+    expect(rows).toEqual(new Set([0, 2]))
+  })
+
   test('as shooter opens on the salt corner, and keeps it when the keeper dived left and right equally', () => {
     expect(openerSides('medium')).toEqual(new Set([0, 2]))
     const tied = [view(true, C, LH), view(true, C, RL)]

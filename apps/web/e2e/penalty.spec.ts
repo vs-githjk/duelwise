@@ -366,22 +366,41 @@ test.describe('Twelve Yards at 360 wide', () => {
     await expect(scene).toHaveAttribute('data-reveal', /set|go/)
   })
 
-  test('a kick never double fires: every input at once, in one tick, makes one kick', async ({ page }) => {
-    await start(page, 2)
-    await page.getByTestId('penalty-zone-5').tap()
-    // Three commits in one tick from three inputs, then again straight after; the first alone may count.
-    await page.evaluate(() => {
-      const zone = document.querySelector<HTMLElement>('[data-testid=penalty-zone-5]')!
-      const action = document.querySelector<HTMLElement>('[data-testid=penalty-action]')!
-      const pad = document.querySelector<HTMLElement>('[data-testid=penalty-pad]')!
-      zone.click()
-      action.click()
-      pad.click()
-      zone.click()
-    })
-    await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
-    await expect(page.locator('.pen-dot[data-slot=none]')).toHaveCount(9)
-    await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
+  test('a kick never double fires: every input at once, in one tick, plays the same match as a single commit', async ({ page }) => {
+    test.setTimeout(120_000)
+    // A second commit would ask the agent again and move its random stream, so every later agent pick would differ from the clean run.
+    const line = page.getByTestId('penalty-last')
+    const scene = page.getByTestId('penalty-scene')
+    const playSix = async (mash: boolean) => {
+      await start(page, 3)
+      const lines: string[] = []
+      for (let i = 0; i < 6; i++) {
+        await page.getByTestId('penalty-zone-3').tap()
+        await expect(page.getByTestId('penalty-zone-3')).toHaveAttribute('aria-pressed', 'true')
+        if (mash) {
+          await page.evaluate(() => {
+            const zone = document.querySelector<HTMLElement>('[data-testid=penalty-zone-3]')!
+            const action = document.querySelector<HTMLElement>('[data-testid=penalty-action]')!
+            const pad = document.querySelector<HTMLElement>('[data-testid=penalty-pad]')!
+            zone.click()
+            action.click()
+            pad.click()
+            zone.click()
+          })
+        } else {
+          await page.getByTestId('penalty-action').tap()
+        }
+        await expect(scene).toHaveAttribute('data-reveal', /.+/)
+        await expect(scene).not.toHaveAttribute('data-reveal', /.+/, { timeout: 5000 })
+        lines.push((await line.textContent()) ?? '')
+        if (await over(page)) break
+      }
+      return lines
+    }
+    const clean = await playSix(false)
+    const mashed = await playSix(true)
+    expect(clean.length).toBeGreaterThanOrEqual(6)
+    expect(mashed).toEqual(clean)
   })
 
   test('a whole kick runs under 1.6 s, the ball flies a curve, the keeper moves with it, and nothing on the page shifts', async ({ page }) => {
