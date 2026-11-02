@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { publishedLevels } from './published-levels'
 
 // Stormglass dev page (internal id fleet): playable at /dev/fleet on a dev server and, since promotion, at /play/stormglass for players.
 // ?hold=0 removes the opponent's 700 ms pause so a whole match fits in the test timeout.
@@ -272,14 +273,32 @@ test.describe('fleet dev page at desktop width', () => {
       expect(Math.abs(card.width - 420)).toBeLessThan(1)
       expect(picker.x).toBeGreaterThanOrEqual(card.x + card.width)
       expect(Math.abs(picker.y - card.y)).toBeLessThan(2)
+      // Every published level shows its measured strength in the card's right-hand slot (the In training badge is gone once a level is published); it must sit inside the card, unclipped.
+      const published = publishedLevels('fleet')
+      expect(published.length).toBeGreaterThan(0)
       const rows = await page.locator('label[data-persona]').evaluateAll((els) =>
         els.map((row) => {
-          const badge = row.querySelector('[data-testid="preview-badge"]')
-          const text = badge?.getBoundingClientRect()
-          return { level: row.getAttribute('data-persona'), right: row.getBoundingClientRect().right, badgeRight: text?.right ?? null, badgeClipped: badge ? badge.scrollWidth > badge.clientWidth : false }
+          const slot = row.querySelector(':scope > span:last-child')!
+          const range = document.createRange()
+          range.selectNodeContents(slot)
+          const text = range.getBoundingClientRect()
+          const card = row.getBoundingClientRect()
+          const badge = slot.querySelector('[data-testid="preview-badge"]')
+          const badgeBox = badge?.getBoundingClientRect()
+          return {
+            level: row.getAttribute('data-persona'),
+            strength: (slot.textContent ?? '').trim(),
+            left: card.left,
+            right: card.right,
+            textLeft: text.left,
+            textRight: text.right,
+            textEmpty: text.width === 0,
+            slotClipped: slot.scrollWidth > slot.clientWidth,
+            badgeRight: badgeBox?.right ?? null,
+          }
         }),
       )
-      expect(rows).toHaveLength(4)
+      expect(rows.map((r) => r.level)).toEqual(published)
       // The locked path has the longest labels, and its four portraits and their labels each keep clear of the next stop.
       const stops = await page.getByTestId('path-stops').evaluate((ol) => {
         const textRect = (el: Element) => {
@@ -303,11 +322,13 @@ test.describe('fleet dev page at desktop width', () => {
         expect(stops.names[i + 1]!.left - stops.names[i]!.right, `name gap after stop ${i}`).toBeGreaterThan(0)
         expect(stops.states[i + 1]!.left - stops.states[i]!.right, `state label gap after stop ${i}`).toBeGreaterThan(0)
       }
-      const badged = rows.filter((r) => r.badgeRight !== null)
-      expect(badged.length).toBeGreaterThan(0)
-      for (const r of badged) {
-        expect(r.badgeRight!, `${r.level} badge`).toBeLessThanOrEqual(r.right)
-        expect(r.badgeClipped, `${r.level} badge text`).toBe(false)
+      for (const r of rows) {
+        expect(r.strength, `${r.level} shows its published strength`).toMatch(/^(In training)?\s*site Elo \d+$/)
+        expect(r.textEmpty, `${r.level} strength text has a box`).toBe(false)
+        expect(r.textLeft, `${r.level} strength starts inside its card`).toBeGreaterThanOrEqual(r.left)
+        expect(r.textRight, `${r.level} strength`).toBeLessThanOrEqual(r.right)
+        expect(r.slotClipped, `${r.level} strength text clipped`).toBe(false)
+        if (r.badgeRight !== null) expect(r.badgeRight, `${r.level} badge`).toBeLessThanOrEqual(r.right)
       }
       // The picker's blocks stay in their own places: none lands on another, and Ready keeps its button height.
       // Ready is sticky, so by design it rides over the picker column it belongs to until the page reaches its own slot; it still never reaches the fleet card.
