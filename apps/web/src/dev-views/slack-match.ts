@@ -38,9 +38,9 @@ export function startMatch(): SlackMatch {
   return { state: slackCore.init(0), log: [], last: null }
 }
 
-/** Choosing another level starts a fresh match; choosing the current one changes nothing. */
+/** Choosing a level only stores the choice. The match on screen (even a finished one) is untouched; only Play starts a fresh one. */
 export function setLevel(s: Session, level: Level): Session {
-  return level === s.level ? s : { level, match: startMatch() }
+  return level === s.level ? s : { ...s, level }
 }
 
 /** The player's cells to offer: only on the player's own turn, and never the pass code. */
@@ -134,4 +134,10 @@ export function announce(m: SlackMatch, name: string): string {
   if (last.cell === null) return `${who} had no move and passed.`
   const n = last.flips.length
   return `${who} placed at ${cellName(last.cell)}, flipped ${n}.`
+}
+
+/** Live-region text: every move is announced, and when the match is over the verdict follows the closing move. */
+export function liveText(m: SlackMatch, name: string, over: boolean, verdict: string): string {
+  const move = announce(m, name)
+  return over ? [move, verdict].filter(Boolean).join(' ') : move
 }

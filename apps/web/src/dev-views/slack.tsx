@@ -21,6 +21,7 @@ import {
   mustPass,
   pressPlace,
   resultLine,
+  liveText,
   setLevel,
   startMatch,
   statusLine,
@@ -202,6 +203,7 @@ export default function SlackView() {
 
   const onCell = (i: number) => {
     setFocus(i)
+    if (!humanTurn) return
     const r = tapCell(match, selected, i)
     setSelected(r.selected)
     if (r.commit) commit(i)
@@ -237,7 +239,7 @@ export default function SlackView() {
   const preview = selected !== null && humanTurn ? flipPreview(match, selected) : []
   const verdict = resigned ? 'You resigned.' : slackCore.terminal(match.state) ? statusLine(match, name) : ''
   const status = failure || (over ? verdict : statusLine(match, name))
-  const live = over ? '' : announce(match, name)
+  const live = liveText(match, name, over, verdict)
 
   const levelRow = (
     <div role="radiogroup" aria-label="Level" className="flex flex-wrap gap-2">

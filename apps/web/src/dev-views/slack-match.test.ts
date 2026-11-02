@@ -7,6 +7,7 @@ import {
   AGENT_SEAT,
   HUMAN,
   agentChoose,
+  announce,
   applyMove,
   cellName,
   flipPreview,
@@ -14,6 +15,7 @@ import {
   legalCells,
   mustPass,
   resultLine,
+  liveText,
   setLevel,
   startMatch,
   statusLine,
@@ -125,7 +127,8 @@ describe('slackwater dev match logic', () => {
         seen[1]! += passes[1]!
       }
     }
-    expect(seen[0]! + seen[1]!).toBeGreaterThan(0)
+    expect(seen[0]!).toBeGreaterThan(0)
+    expect(seen[1]!).toBeGreaterThan(0)
   })
 
   test('a tap on a legal cell selects, a second tap on it commits', () => {
@@ -185,15 +188,22 @@ describe('slackwater dev match logic', () => {
     expect(JSON.stringify(m)).toBe(before)
   })
 
-  test('changing the level starts a fresh match; choosing the same level keeps the match', () => {
+  test('choosing a level only stores it: the board, log and result on screen stay', () => {
     const played = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
     const s0 = { level: 'easy' as Level, match: played }
-    const same = setLevel(s0, 'easy')
-    expect(same).toBe(s0)
+    expect(setLevel(s0, 'easy')).toBe(s0)
     const s1 = setLevel(s0, 'hard')
     expect(s1.level).toBe('hard')
-    expect(s1.match.log).toEqual([])
-    expect(s1.match.state.cells).toEqual(startMatch().state.cells)
+    expect(s1.match).toBe(played)
+    expect(s1.match.log.length).toBe(1)
+  })
+
+  test('the live region carries the closing move and then the verdict', () => {
+    const m = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
+    expect(liveText(m, 'Pip', false, '')).toBe(announce(m, 'Pip'))
+    const end = liveText(m, 'Pip', true, 'You win.')
+    expect(end).toBe(`${announce(m, 'Pip')} You win.`)
+    expect(liveText(startMatch(), 'Pip', true, 'You resigned.')).toBe('You resigned.')
   })
 
   test('the agent choice is made from its own observation: the same obs gives the same code, and the page never passes a player pick', async () => {
