@@ -189,6 +189,49 @@ describe('turns', () => {
     expect(await storedLog(m.matchId)).toEqual(log1)
   })
 
+  test('two identical parallel requests both get 200 with the same body and one stored action', async () => {
+    const m = await startFleet()
+    await ask(m.matchId, SETUP)
+    const [a, b] = await Promise.all([ask(m.matchId, [...SETUP, shot(10)]), ask(m.matchId, [...SETUP, shot(10)])])
+    expect([a.status, b.status]).toEqual([200, 200])
+    expect(a.body).toEqual(b.body)
+    const log = await storedLog(m.matchId)
+    expect(log.human).toEqual([...SETUP, shot(10)])
+    expect(log.agent).toHaveLength(6)
+  })
+
+  test('a changed agent spec mid-match does not move agent actions already stored or shown', async () => {
+    const m = await startFleet()
+    await ask(m.matchId, SETUP)
+    let human = [...SETUP]
+    let last = bodyOf(await ask(m.matchId, human))
+    for (let cell = 0; cell < 6; cell++) {
+      human = [...human, shot(cell)]
+      last = bodyOf(await ask(m.matchId, human))
+    }
+    const before = await storedLog(m.matchId)
+    const incomingBefore = (last.view as FleetObs).incoming.map((x) => x.cell)
+    // A deploy changes the agent while the match is open: it now answers every earlier tick with an illegal code, so any recompute would fail or differ.
+    const changed = { ...FLEET_SPEC, agentAction: (level: never, seed: number, obs: unknown, seat: 0 | 1, tick: number) => (tick < before.agent.length ? 99999 : FLEET_SPEC.agentAction(level, seed, obs, seat, tick)) }
+    const next = bodyOf(await sealedTurnHandler(db, { matchId: m.matchId, actions: [...human, shot(6)] }, ME, changed))
+    const after = await storedLog(m.matchId)
+    expect(after.agent.slice(0, before.agent.length)).toEqual(before.agent)
+    expect((next.view as FleetObs).incoming.map((x) => x.cell).slice(0, incomingBefore.length)).toEqual(incomingBefore)
+    // A retry of the same request under the changed spec returns the stored view too.
+    const retry = bodyOf(await sealedTurnHandler(db, { matchId: m.matchId, actions: [...human, shot(6)] }, ME, changed))
+    expect(retry).toEqual(next)
+  })
+
+  test('a turn keeps the other filterFlags keys (a practice match stays practice)', async () => {
+    const r = await startMatchHandler(db, { game: 'fleet', level: 'easy', practice: true }, ME, { agentVersion: () => 'v1', seed: () => SEED })
+    const id = (r.body as { matchId: string }).matchId
+    await ask(id, SETUP)
+    await ask(id, [...SETUP, shot(0)])
+    const row = (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
+    expect((row.filterFlags as { practice?: boolean }).practice).toBe(true)
+    expect((row.filterFlags as { sealedLog?: unknown }).sealedLog).toBeDefined()
+  })
+
   test("the agent's move does not depend on human cells it has not hit", async () => {
     const a = await startFleet()
     await ask(a.matchId, SETUP)
@@ -292,6 +335,16 @@ describe('the record has to be the logged match', () => {
     const { human, last } = await playOut(m.matchId)
     const done = await finishMatchHandler(db, recordOf(m.matchId, SEED, human, last.reveal!.agentActions), ME)
     expect(done.body).toMatchObject({ valid: true })
+  })
+
+  test('the honest record with humanSeat 1 is invalid and moves no rating', async () => {
+    const m = await startFleet()
+    const { human, last } = await playOut(m.matchId)
+    const rec = decodeRecord(recordOf(m.matchId, SEED, human, last.reveal!.agentActions))
+    rec.humanSeat = 1
+    const done = await finishMatchHandler(db, encodeRecord(rec), ME)
+    expect(done.body).toMatchObject({ valid: false, reason: 'a sealed match is played from seat 0' })
+    expect(await db.select().from(schema.rating)).toHaveLength(0)
   })
 
   test('a self-built record for a match that was never played through the server is invalid', async () => {

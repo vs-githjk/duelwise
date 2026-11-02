@@ -45,11 +45,12 @@ export const FLEET_SPEC: SealedSpec = {
 }
 
 /**
- * Rebuilds a match from the player's actions alone. The agent's actions are recomputed from the seed and what its
- * seat can see, so the same player actions always give the same log and the player never supplies the agent's play.
+ * Rebuilds a match from the player's actions and the agent actions already stored. New agent actions are computed from the seed and what its
+ * seat can see, so the player never supplies the agent's play and a stored action never changes.
  */
-export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[]): LogRun<S> {
-  return runLog(core, seed, human, (s, i) => spec.agentAction(level, seed, core.observe(s, 1), 1, i))
+export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[], storedAgent: number[] = []): LogRun<S> {
+  // An agent action already stored is final: it was shown to the player, so a code change must not move it. Only new indexes are computed.
+  return runLog(core, seed, human, (s, i) => (i < storedAgent.length ? storedAgent[i] : spec.agentAction(level, seed, core.observe(s, 1), 1, i)))
 }
 
 const startsWith = (list: number[], prefix: number[]): boolean => prefix.every((n, i) => list[i] === n)
@@ -98,12 +99,12 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
   }
 
   // A request equal to the stored list is a retry (a dropped reply): the same answer, and the agent does not move again.
-  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human))
+  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent))
 
-  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human).state)) return err(409, 'the game is over')
+  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent).state)) return err(409, 'the game is over')
   let run: LogRun<unknown>
   try {
-    run = buildSealedLog(spec, core, level, row.seed, actions)
+    run = buildSealedLog(spec, core, level, row.seed, actions, stored.agent)
   } catch (e) {
     return err(400, e instanceof Error ? e.message : 'illegal action')
   }
@@ -119,7 +120,13 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
       ),
     )
     .returning({ id: schema.match.id })
-  if (written.length === 0) return err(409, 'another request played this turn first')
+  if (written.length === 0) {
+    // An identical request that overlapped this one may have won: it gets the same answer a later retry would.
+    const now = (await db.select().from(schema.match).where(eq(schema.match.id, row.id)).limit(1))[0]
+    const log = sealedLogOf(now?.filterFlags ?? null)
+    if (log && log.human.length === actions.length && startsWith(log.human, actions)) return reply(buildSealedLog(spec, core, level, row.seed, log.human, log.agent))
+    return err(409, 'another request played this turn first')
+  }
   return reply(run)
 }
 

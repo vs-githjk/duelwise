@@ -376,6 +376,8 @@ export async function finishMatchHandler(
     const out = replay(rec)
     result = out.result
     if (!out.ok) reason = out.error ?? 'replay failed'
+    // The player is always seat 0 in a sealed game; replay and the log compare never read this field, so a seat-1 upload would turn a loss into a win.
+    else if (isSealed(row.game as GameId) && rec.humanSeat !== 0) reason = 'a sealed match is played from seat 0'
     else if (row.game === 'word' && !wordRecordMatchesMarks(rec, row.seed, row.filterFlags)) reason = 'record does not match the marked rounds'
     // Every other sealed game keeps a log of the server's own turns (server/sealed-duel.ts); the record must be exactly that, to the end.
     else if (isSealed(row.game as GameId) && row.game !== 'word' && !recordMatchesLog(rec, row.filterFlags)) reason = 'record does not match the logged turns'
