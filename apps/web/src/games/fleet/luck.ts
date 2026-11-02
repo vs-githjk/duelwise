@@ -18,7 +18,7 @@ function partlyHit(hits: Set<number>, target: Placement[]): boolean {
 /**
  * Hunting shots: shots fired while no ship stood partly hit, counted only up to and including the shot that sank the last ship
  * the shooter found. Finishing shots (after a hit, before the sink) are not counted, and neither are shots after the last sink,
- * because the random hunt it is compared with (`expectedHunting`) stops at that sink too. With no sink, every shot counts.
+ * because the careful hunt it is compared with (`expectedHunting`) stops at that sink too. With no sink, every shot counts.
  */
 export function huntingShots(shots: number[], target: Placement[]): number {
   const hits = new Set<number>()
@@ -38,7 +38,10 @@ export function huntingShots(shots: number[], target: Placement[]): number {
   return hunting
 }
 
-/** One random hunt against this exact fleet: uniform cells while hunting, a random neighbour of a hit once a ship is partly hit. Returns the hunting shots used to sink `want` ships. */
+/**
+ * One careful hunt against this exact fleet: a random square of one checkerboard colour while hunting, a random neighbour of a hit once a
+ * ship is partly hit. Good technique is the bar, not luck, so the comparison is with this and not with uniform shots. Returns the hunting shots used to sink `want` ships.
+ */
 function simulateHunt(target: Placement[], want: number, rng: Rng): number {
   const owner = new Array<number>(CELLS).fill(-1)
   target.forEach((p, i) => shipCells(p).forEach((c) => (owner[c] = i)))
@@ -47,6 +50,7 @@ function simulateHunt(target: Placement[], want: number, rng: Rng): number {
   const hitCells: number[] = []
   let sunk = 0
   let hunting = 0
+  const colour = rng.int(2)
   while (sunk < want) {
     const open = left.some((n, i) => n > 0 && n < target[i]!.length)
     let pool: number[] = []
@@ -64,7 +68,8 @@ function simulateHunt(target: Placement[], want: number, rng: Rng): number {
       pool = [...seen].filter((c) => !fired[c])
     }
     if (pool.length === 0) {
-      for (let c = 0; c < CELLS; c++) if (!fired[c]) pool.push(c)
+      for (let c = 0; c < CELLS; c++) if (!fired[c] && (Math.floor(c / FLEET_SIZE) + c) % 2 === colour) pool.push(c)
+      if (pool.length === 0) for (let c = 0; c < CELLS; c++) if (!fired[c]) pool.push(c)
       if (!open) hunting++
     }
     if (pool.length === 0) break
@@ -80,7 +85,7 @@ function simulateHunt(target: Placement[], want: number, rng: Rng): number {
   return hunting
 }
 
-/** Mean hunting shots of a uniform random hunt to sink `want` ships of this fleet (400 runs). */
+/** Mean hunting shots of a careful hunt to sink `want` ships of this fleet (400 runs). */
 export function expectedHunting(target: Placement[], want: number): number {
   // Seeded from the fleet itself, so the card and the report agree and a rebuilt report never changes.
   let seed = 0x57a6
@@ -121,5 +126,5 @@ export function fleetLuckLine(i: LuckInput): string {
   const head = i.won ? `${You} sank all five in ${i.winnerShots} shots.` : `${i.opponent} sank ${i.third ? "the player's" : 'your'} fleet in ${i.winnerShots} shots.`
   const found = i.won ? 'for all five ships' : `for ${COUNT_WORDS[i.found] ?? i.found} ${i.found === 1 ? 'ship' : 'ships'} found`
   const tail = verdict === 'lucky' && !i.won ? `${You} ran lucky, and still lost on the chase.` : `${You} ran ${verdict}.`
-  return `${head} ${Your} hunting shots: ${i.hunting} ${found}; a random hunt needs about ${e}. ${tail}`
+  return `${head} ${Your} hunting shots: ${i.hunting} ${found}; a careful hunt needs about ${e}. ${tail}`
 }
