@@ -34,6 +34,24 @@ async function expectNoFrameShift(page: Page, label: string) {
   expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
 }
 
+/** The same, but the top on the screen alone (no scrollY added), so a page that scrolls under the board is caught. */
+async function watchScreen(locator: Locator) {
+  await locator.evaluate((el) => {
+    const w = window as unknown as { __screen: number[] }
+    w.__screen = []
+    const tick = () => {
+      w.__screen.push(el.getBoundingClientRect().top)
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+}
+async function expectNoScreenShift(page: Page, label: string) {
+  const tops = await page.evaluate(() => (window as unknown as { __screen: number[] }).__screen)
+  expect(tops.length, `${label}: screen frames were recorded`).toBeGreaterThan(10)
+  expect(Math.max(...tops) - Math.min(...tops), `${label}: moved on screen during a frame`).toBeLessThanOrEqual(2)
+}
+
 async function expectNoOverflow(page: Page, label: string) {
   const w = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth, x: window.scrollX }))
   expect(w.scroll, `${label}: page is wider than the screen`).toBeLessThanOrEqual(w.client)
@@ -114,7 +132,14 @@ test('a whole match at 360: board still, no overflow, 44 px targets, two taps to
   await page.waitForTimeout(300)
   await expectNoOverflow(page, 'in play')
   await expectTargets(page, 'in play')
+  // The resign confirm row: both of its buttons are measured, then Keep playing puts the row back.
+  await page.getByTestId('slack-resign').click()
+  await expectTargets(page, 'confirm')
+  await expectNoOverflow(page, 'confirm')
+  await page.getByRole('button', { name: 'Keep playing' }).click()
+  await expect(page.getByTestId('slack-resign')).toBeVisible()
   await watchFrames(board)
+  await watchScreen(board)
 
   // One tap never plays: it only selects. A tap on a cell with no ring does nothing at all.
   const first = legalCells(page).first()
@@ -152,6 +177,7 @@ test('a whole match at 360: board still, no overflow, 44 px targets, two taps to
   await expect(page.getByTestId('slack-result')).toContainText(/^You \d+, Pip \d+$/)
   await expect(page.getByTestId('slack-action')).toHaveText('Play again')
   await expectNoFrameShift(page, 'slack whole match')
+  await expectNoScreenShift(page, 'slack whole match')
   await expectNoOverflow(page, 'result')
   await expectTargets(page, 'result')
 })
@@ -166,12 +192,14 @@ test('a forced pass for the player does not move the board', async ({ page }) =>
   await board.evaluate((el) => el.scrollIntoView({ block: 'center' }))
   await page.waitForTimeout(300)
   await watchFrames(board)
+  await watchScreen(board)
   // The page sends the pass itself after a beat, then Pip replies, then the turn is back.
   await expect(page.getByTestId('slack-live')).toContainText('You had no move and passed.')
   await expect(page.getByTestId('slack-live')).toContainText('Pip placed at', { timeout: 20_000 })
   await expect(hud(page)).toHaveAttribute('data-turn', 'you')
   await page.waitForTimeout(400)
   await expectNoFrameShift(page, 'slack forced pass')
+  await expectNoScreenShift(page, 'slack forced pass')
   await expectNoOverflow(page, 'pass')
 })
 
