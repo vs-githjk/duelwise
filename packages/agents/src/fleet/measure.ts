@@ -49,7 +49,8 @@ export function seatsPass(rows: SeatRow[]): boolean {
   return rows.length === 2 && rows.every((s) => s.n >= GAMES_PER_SEAT && s.ci95[0] > 0.5)
 }
 
-const seated = (stats: PairStats, games: GameRecord[]): Seated => {
+/** A pair's result with its seats: it passes only when the pooled score and both seats pass. */
+export function seated(stats: PairStats, games: GameRecord[]): Seated {
   const bySeat = seatRows(games)
   return { ...stats, bySeat, passed: stats.passed && seatsPass(bySeat) }
 }

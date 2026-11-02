@@ -33,7 +33,7 @@ import { join } from 'node:path'
 import fighterLaneC from './fixtures/lane-c-fighter-registry.json'
 import type { Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
-import { GAMES_PER_SEAT as FLEET_GAMES_PER_SEAT, buildFleetRegistry, seatRows, seatsPass } from '@duelwise/agents/src/fleet/measure'
+import { GAMES_PER_SEAT as FLEET_GAMES_PER_SEAT, buildFleetRegistry, seated, seatRows, seatsPass } from '@duelwise/agents/src/fleet/measure'
 import type { GameRecord } from '@duelwise/agents/src/measure/harness'
 import type { LadderResult } from '@duelwise/agents/src/measure/ladder'
 
@@ -175,10 +175,7 @@ describe('what the Stormglass measurement writes reaches the gate', () => {
     const floor = wilsonFloor(points, n)
     return { points, n, score: points / n, ci95: [floor, 1] as [number, number], stoppedEarly: false, passed: floor > 0.5 }
   }
-  const row = (first: number, second: number) => {
-    const bySeat = seatRows(rows(first, second))
-    return { ...stats(first + second), bySeat, passed: stats(first + second).passed && seatsPass(bySeat) }
-  }
+  const row = (first: number, second: number) => seated(stats(first + second), rows(first, second))
   const ladder = (hard = row(300, 300), baseline = row(380, 380)): LadderResult => ({
     game: 'fleet',
     levels: [...LEVELS],
