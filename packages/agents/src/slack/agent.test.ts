@@ -134,8 +134,10 @@ describe('level parameters', () => {
     const at51 = empties(51)
     const at50 = empties(50)
     const rng = makeRng(1)
-    expect(slackSearchOpts(SLACK_LEVELS.champion, obsOf(at51), rng).noise).toBe(30)
-    expect(slackSearchOpts(SLACK_LEVELS.champion, obsOf(at50), rng).noise).toBe(1)
+    const cfg = SLACK_LEVELS.champion
+    if (cfg.kind !== 'search') throw new Error('champion is a search level')
+    expect(slackSearchOpts(cfg, obsOf(at51), rng).noise).toBe(30)
+    expect(slackSearchOpts(cfg, obsOf(at50), rng).noise).toBe(1)
   })
 })
 
