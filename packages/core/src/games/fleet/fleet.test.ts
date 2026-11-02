@@ -141,7 +141,7 @@ describe('fleet core: play', () => {
     expect(fleetCore.toAct(s)).toEqual([])
     expect(legal(s, 0)).toEqual([])
     expect(legal(s, 1)).toEqual([])
-    expect(() => shoot(s, 50)).toThrow()
+    expect(() => step(s, [null, 250])).toThrow('the game is over')
   })
 
   test('seat 1 can win too', () => {
@@ -274,6 +274,16 @@ describe('fleet core: observation hides the enemy fleet', () => {
   const placementJson = (p: { id: number; length: number; cell: number; vertical: boolean }): string =>
     JSON.stringify({ id: p.id, length: p.length, cell: p.cell, vertical: p.vertical })
 
+  function marksOf(fired: number[], target: FleetState['ships'][0]) {
+    const sofar = new Set<number>()
+    return fired.map((cell) => {
+      sofar.add(cell)
+      const ship = target.find((p) => shipCells(p).includes(cell))
+      if (ship === undefined) return { cell, hit: false, sunk: null }
+      return { cell, hit: true, sunk: shipCells(ship).every((c) => sofar.has(c)) ? ship.id : null }
+    })
+  }
+
   /** Same state, but one unsunk enemy ship sits somewhere else covering exactly the same fired cells. Null when no such spot exists. */
   function moveHidden(s: FleetState, seat: 0 | 1, rng: ReturnType<typeof makeRng>): FleetState | null {
     const other = (1 - seat) as 0 | 1
@@ -319,7 +329,9 @@ describe('fleet core: observation hides the enemy fleet', () => {
           const enemy = st.ships[(1 - seat) as 0 | 1]
           const fired = new Set(st.shots[seat])
           expect(Object.keys(o)).toEqual(['phase', 'ships', 'shots', 'incoming', 'sunk', 'enemyLeft', 'reveal'])
-          expect(o.incoming).toEqual(fleetCore.observe(st, (1 - seat) as 0 | 1).shots)
+          expect(o.ships).toEqual(st.ships[seat])
+          expect(o.shots).toEqual(marksOf(st.shots[seat], enemy))
+          expect(o.incoming).toEqual(marksOf(st.shots[(1 - seat) as 0 | 1], st.ships[seat]))
           expect(o.sunk).toEqual(enemy.filter((p) => shipCells(p).every((c) => fired.has(c))))
           expect(o.enemyLeft).toEqual(SHIPS.filter((_, i) => !o.sunk.some((p) => p.id === i)))
           if (over) {
