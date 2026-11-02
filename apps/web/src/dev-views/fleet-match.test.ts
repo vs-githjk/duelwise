@@ -3,7 +3,25 @@ import { SHIPS, fleetCore, shipCells } from '@duelwise/core/src/games/fleet'
 import { makeRng } from '@duelwise/core/src/rng'
 import { createGameAgent } from '@duelwise/agents/src/fleet/agent'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
-import { AGENT_SEAT, CELLS, HUMAN, applyShot, coord, coordLabel, describeShot, fleetIsValid, humanView, isOver, moveShip, rotateShip, shipAt, shotKind, startMatch, statusLine, whoseTurn } from './fleet-match'
+import {
+  AGENT_SEAT,
+  CELLS,
+  HUMAN,
+  applyShot,
+  coord,
+  coordLabel,
+  describeShot,
+  fleetIsValid,
+  humanView,
+  isOver,
+  moveShip,
+  rotateShip,
+  shipAt,
+  shotKind,
+  startMatch,
+  statusLine,
+  whoseTurn,
+} from './fleet-match'
 
 describe('fleet dev page match logic', () => {
   test('a whole match against Sable ends with a shot log that replays to the same hash', async () => {
@@ -29,7 +47,10 @@ describe('fleet dev page match logic', () => {
     let s = fleetCore.init(0)
     for (let i = 0; i < SHIPS.length; i++) {
       const [h, a] = [m.state.ships[0][i]!, m.state.ships[1][i]!]
-      s = fleetCore.step(s, [{ kind: 'place', cell: h.cell, vertical: h.vertical }, { kind: 'place', cell: a.cell, vertical: a.vertical }])
+      s = fleetCore.step(s, [
+        { kind: 'place', cell: h.cell, vertical: h.vertical },
+        { kind: 'place', cell: a.cell, vertical: a.vertical },
+      ])
     }
     for (const [seat, cell] of m.log) s = fleetCore.step(s, seat === 0 ? [{ kind: 'shot', cell }, null] : [null, { kind: 'shot', cell }])
     expect(fleetCore.hash(s)).toBe(fleetCore.hash(m.state))
@@ -54,10 +75,42 @@ describe('fleet dev page match logic', () => {
     agent.reset(3)
     const m = await startMatch(randomFleet(makeRng(9)), agent)
     const after = applyShot(m, HUMAN, 4)
-    expect(() => applyShot(after, HUMAN, 4)).toThrow()
-    expect(after.log).toEqual([[HUMAN, 4]])
+    // Out of turn is its own error; let the agent reply first so the repeat is the only thing wrong.
+    expect(() => applyShot(after, HUMAN, 5)).toThrow(/only seat 1 may act/)
+    const code = (await agent.act(fleetCore.observe(after.state, AGENT_SEAT), after.state))[0]!
+    const a = fleetCore.decodeAction(code)
+    if (a.kind !== 'shot') throw new Error('agent must shoot')
+    const replied = applyShot(after, AGENT_SEAT, a.cell)
+    expect(whoseTurn(replied)).toBe('you')
+    expect(() => applyShot(replied, HUMAN, 4)).toThrow(/already fired/)
+    expect(replied.log).toEqual([
+      [HUMAN, 4],
+      [AGENT_SEAT, a.cell],
+    ])
     expect(m.log).toEqual([])
-    expect(whoseTurn(after)).toBe('ai')
+  })
+
+  test('a lost match names how many of their ships were still afloat', async () => {
+    const agent = await createGameAgent('champion', { seat: AGENT_SEAT })
+    agent.reset(11)
+    let m = await startMatch(randomFleet(makeRng(5)), agent)
+    // Sink their 2 ship, then fire only into open water so the agent wins with four of its ships afloat.
+    const enemy = m.state.ships[AGENT_SEAT]
+    const hull = new Set(enemy.flatMap((p) => shipCells(p)))
+    const targets = [...shipCells(enemy[4]!), ...[...Array(CELLS).keys()].filter((c) => !hull.has(c))]
+    let i = 0
+    while (!isOver(m)) {
+      if (whoseTurn(m) === 'you') m = applyShot(m, HUMAN, targets[i++]!)
+      else {
+        const code = (await agent.act(fleetCore.observe(m.state, AGENT_SEAT), m.state))[0]!
+        const a = fleetCore.decodeAction(code)
+        if (a.kind !== 'shot') throw new Error('agent must shoot')
+        m = applyShot(m, AGENT_SEAT, a.cell)
+      }
+    }
+    expect(fleetCore.result(m.state)?.winner).toBe(AGENT_SEAT)
+    expect(humanView(m).enemyLeft).toHaveLength(4)
+    expect(statusLine(m, 'Sable')).toBe(`Sable sank your fleet in ${humanView(m).incoming.length} shots; Sable still had 4 ships afloat.`)
   })
 
   test('an invalid fleet is refused at the start', async () => {

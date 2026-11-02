@@ -66,6 +66,19 @@ function holdMs(): number {
   return Number.isFinite(n) && n >= 0 ? Math.min(n, 3000) : 700
 }
 
+/** True at the lg breakpoint (1024 px), where the two boards sit side by side. */
+function useWide(): boolean {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const q = window.matchMedia('(min-width: 1024px)')
+    const sync = () => setWide(q.matches)
+    sync()
+    q.addEventListener('change', sync)
+    return () => q.removeEventListener('change', sync)
+  }, [])
+  return wide
+}
+
 function cue(kind: 'sunk' | 'hit' | 'miss' | null, gain = 1): void {
   if (kind) play(`fleet-${kind}`, { gain })
 }
@@ -103,7 +116,7 @@ function hullStyle(h: NonNullable<CellView['hull']>, sunk: boolean): CSSProperti
     ...(h.first ? bow : {}),
     ...(h.last ? stern : {}),
     position: 'absolute',
-    inset: '12%',
+    inset: 3,
     opacity: sunk ? 0.75 : 1,
   }
 }
@@ -114,7 +127,14 @@ function Mark({ view, mini }: { view: CellView; mini?: boolean }) {
       {view.hull ? <span aria-hidden="true" style={hullStyle(view.hull, !!view.sunk)} /> : null}
       {view.shot === 'miss' ? <span aria-hidden="true" className="relative size-2 rounded-full" style={{ background: 'var(--miss)' }} /> : null}
       {view.shot === 'hit' ? (
-        <span aria-hidden="true" className={`relative rotate-45 rounded-sm ${mini ? 'size-2' : 'size-4'}`} style={{ background: 'var(--hit)', boxShadow: '0 0 0 2px var(--sea)' }} />
+        <span
+          aria-hidden="true"
+          className={`relative rotate-45 rounded-sm ${mini ? 'size-2' : 'size-4'}`}
+          style={{
+            background: 'var(--hit)',
+            boxShadow: '0 0 0 2px var(--sea)',
+          }}
+        />
       ) : null}
     </>
   )
@@ -123,7 +143,17 @@ function Mark({ view, mini }: { view: CellView; mini?: boolean }) {
 function shipViews(ships: Placement[], sunkIds: Set<number>): Map<number, CellView> {
   const map = new Map<number, CellView>()
   for (const p of ships) {
-    shipCells(p).forEach((c, i) => map.set(c, { hull: { id: p.id, first: i === 0, last: i === p.length - 1, vertical: p.vertical }, sunk: sunkIds.has(p.id) }))
+    shipCells(p).forEach((c, i) =>
+      map.set(c, {
+        hull: {
+          id: p.id,
+          first: i === 0,
+          last: i === p.length - 1,
+          vertical: p.vertical,
+        },
+        sunk: sunkIds.has(p.id),
+      }),
+    )
   }
   return map
 }
@@ -214,7 +244,8 @@ function Board({ views, label, testId, size = 'full', onCell, isDisabled, aimed,
           data-aimed={aimed === cell ? '' : undefined}
           aria-disabled={dis || undefined}
           aria-label={`${coordLabel(cell)}, ${describe?.(cell) ?? 'open water'}`}
-          onClick={() => !pointer && onCell(cell)}
+          // Real taps arrive through the pointer handlers; a keyboard or assistive click has detail 0 and goes straight to onCell.
+          onClick={(e) => (!pointer || e.detail === 0) && onCell(cell)}
           onPointerDown={pointer ? () => pointer.down(cell) : undefined}
           onPointerUp={pointer ? () => pointer.up(cell) : undefined}
         >
@@ -237,7 +268,13 @@ function Board({ views, label, testId, size = 'full', onCell, isDisabled, aimed,
     )
   }
   return (
-    <div role="group" aria-label={label} data-testid={`${testId}-board`} className="aspect-square w-full border border-line shadow-card" style={{ ...grid, touchAction: 'manipulation' }}>
+    <div
+      role="group"
+      aria-label={label}
+      data-testid={`${testId}-board`}
+      className="aspect-square w-full border border-line shadow-card"
+      style={{ ...grid, touchAction: 'manipulation' }}
+    >
       {content}
     </div>
   )
@@ -250,12 +287,26 @@ function Tally({ sunk, testId }: { sunk: Set<number>; testId: string }) {
       {SHIPS.map((len, id) => (
         <span key={id} className="relative flex gap-px" data-sunk={sunk.has(id) ? '' : undefined}>
           {Array.from({ length: len }, (_, i) => (
-            <span key={i} className="size-1.5 rounded-sm" style={{ background: sunk.has(id) ? 'var(--sunk)' : 'var(--hull)' }} />
+            <span
+              key={i}
+              className="size-1.5 rounded-sm"
+              style={{
+                background: sunk.has(id) ? 'var(--sunk)' : 'var(--hull)',
+              }}
+            />
           ))}
           {sunk.has(id) ? <span className="absolute inset-x-0 top-1/2 h-px bg-ink" /> : null}
         </span>
       ))}
     </span>
+  )
+}
+
+function ResignButton({ onResign }: { onResign: () => void }) {
+  return (
+    <button type="button" onClick={onResign} data-testid="fleet-resign" className="min-h-11 justify-self-start text-sm font-semibold text-action">
+      Resign
+    </button>
   )
 }
 
@@ -265,7 +316,10 @@ export default function FleetView() {
   const [level, setLevel] = useState<Level>('easy')
   const [fleet, setFleet] = useState<Placement[]>(() => randomFleet(makeRng((Math.random() * 2 ** 32) >>> 0)))
   const [selected, setSelected] = useState<number | null>(null)
-  const [flash, setFlash] = useState<{ cell: number; kind: 'bad' | 'in' } | null>(null)
+  const [flash, setFlash] = useState<{
+    cell: number
+    kind: 'bad' | 'in'
+  } | null>(null)
   const [match, setMatch] = useState<FleetMatch | null>(null)
   const [starting, setStarting] = useState(false)
   const [aimed, setAimed] = useState<number | null>(null)
@@ -274,6 +328,8 @@ export default function FleetView() {
   const [resigned, setResigned] = useState(false)
   const agent = useRef<PreviewAgent | null>(null)
   const dragFrom = useRef<number | null>(null)
+  const resultRef = useRef<HTMLDivElement | null>(null)
+  const wide = useWide()
   const opponent = FLEET_LEVELS[level].name
   const hold = useMemo(holdMs, [])
 
@@ -360,16 +416,21 @@ export default function FleetView() {
   const turn = match ? whoseTurn(match) : null
   const over = match ? isOver(match) || resigned : false
 
+  // The result card mounts below Fire; on a phone that can be under the fold, so bring it into view (instant, no motion).
+  useEffect(() => {
+    if (over) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }, [over])
+
   const fire = useCallback(
     (cell: number) => {
-      if (!match || whoseTurn(match) !== 'you') return
+      if (!match || resigned || whoseTurn(match) !== 'you') return
       const next = applyShot(match, HUMAN, cell)
       cue(shotKind(next, HUMAN))
       setEvent(describeShot(next, HUMAN, opponent))
       setMatch(next)
       setAimed(null)
     },
-    [match, opponent],
+    [match, opponent, resigned],
   )
 
   const tapTarget = (cell: number) => {
@@ -399,6 +460,11 @@ export default function FleetView() {
     }
   }, [match, turn, hold, opponent, resigned])
 
+  const resign = () => {
+    setResigned(true)
+    setAimed(null)
+  }
+
   const backToSetup = () => {
     setMatch(null)
     setAimed(null)
@@ -414,7 +480,11 @@ export default function FleetView() {
     const reveal = view.reveal ?? view.sunk
     const sunkIds = new Set(view.sunk.map((p) => p.id))
     for (const [c, v] of shipViews(reveal, view.reveal ? new Set(view.reveal.map((p) => p.id).filter((id) => sunkIds.has(id))) : sunkIds)) map.set(c, v)
-    for (const s of view.shots) map.set(s.cell, { ...(map.get(s.cell) ?? {}), shot: s.hit ? 'hit' : 'miss' })
+    for (const s of view.shots)
+      map.set(s.cell, {
+        ...(map.get(s.cell) ?? {}),
+        shot: s.hit ? 'hit' : 'miss',
+      })
     return map
   }, [view])
   const ownViews = useMemo(() => {
@@ -422,7 +492,11 @@ export default function FleetView() {
     if (!view) return map
     const incomingSunk = new Set(view.incoming.filter((x) => x.sunk !== null).map((x) => x.sunk as number))
     for (const [c, v] of shipViews(view.ships, incomingSunk)) map.set(c, v)
-    for (const s of view.incoming) map.set(s.cell, { ...(map.get(s.cell) ?? {}), shot: s.hit ? 'hit' : 'miss' })
+    for (const s of view.incoming)
+      map.set(s.cell, {
+        ...(map.get(s.cell) ?? {}),
+        shot: s.hit ? 'hit' : 'miss',
+      })
     return map
   }, [view])
   const enemySunk = useMemo(() => new Set(view?.sunk.map((p) => p.id) ?? []), [view])
@@ -432,7 +506,13 @@ export default function FleetView() {
   const pageTurn = match ? (over ? 'over' : turn) : 'setup'
 
   return (
-    <section className="mx-auto grid w-full max-w-md gap-3 py-4" data-testid="fleet-page" data-turn={pageTurn} data-phase={match ? 'play' : 'setup'} style={PALETTE}>
+    <section
+      className="mx-auto grid w-full max-w-md gap-3 py-4 lg:max-w-[764px]"
+      data-testid="fleet-page"
+      data-turn={pageTurn}
+      data-phase={match ? 'play' : 'setup'}
+      style={PALETTE}
+    >
       <h1 className="font-display text-display-md">Stormglass (dev page)</h1>
 
       {!match ? (
@@ -480,7 +560,11 @@ export default function FleetView() {
                   if (selected === null) return
                   const turned = rotateShip(fleet, selected)
                   if (turned) setFleet(turned)
-                  else setFlash({ cell: fleet.find((p) => p.id === selected)!.cell, kind: 'bad' })
+                  else
+                    setFlash({
+                      cell: fleet.find((p) => p.id === selected)!.cell,
+                      kind: 'bad',
+                    })
                 }}
                 data-testid="fleet-rotate"
                 className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold disabled:opacity-60"
@@ -511,7 +595,7 @@ export default function FleetView() {
             </span>
           </div>
 
-          <div className="flex h-11 items-center justify-between gap-3" data-testid="fleet-status-row">
+          <div className="flex h-11 items-center justify-between gap-3 lg:hidden" data-testid="fleet-status-row">
             <div className="grid gap-1">
               <span className="text-xs text-muted">{opponent}'s fleet</span>
               <Tally sunk={enemySunk} testId="fleet-tally-enemy" />
@@ -521,42 +605,75 @@ export default function FleetView() {
             </span>
           </div>
 
-          <Board
-            views={enemyViews}
-            label="Their waters"
-            testId="fleet-cell"
-            onCell={tapTarget}
-            isDisabled={(c) => !!match.state.shots[HUMAN].includes(c) || turn !== 'you'}
-            aimed={aimed}
-            lastShot={lastShot}
-            describe={(c) => {
-              const s = view?.shots.find((x) => x.cell === c)
-              return s ? (s.hit ? 'hit' : 'miss') : 'open water'
-            }}
-          />
+          <div className="grid gap-3 lg:grid-cols-2 lg:items-start lg:gap-6">
+            <div className="grid gap-3">
+              {wide ? (
+                <div className="flex items-center justify-between gap-3" data-testid="fleet-caption-enemy">
+                  <span className="text-sm font-semibold text-muted">Their waters</span>
+                  <Tally sunk={enemySunk} testId="fleet-tally-enemy" />
+                  <span className="tabular font-mono text-sm text-muted" data-testid="fleet-shot-count">
+                    Shot {view?.shots.length ?? 0}
+                  </span>
+                </div>
+              ) : null}
+              <Board
+                views={enemyViews}
+                label="Their waters"
+                testId="fleet-cell"
+                onCell={tapTarget}
+                isDisabled={(c) => !!match.state.shots[HUMAN].includes(c) || turn !== 'you'}
+                aimed={aimed}
+                lastShot={lastShot}
+                describe={(c) => {
+                  const s = view?.shots.find((x) => x.cell === c)
+                  return s ? (s.hit ? 'hit' : 'miss') : 'open water'
+                }}
+              />
 
-          <button
-            type="button"
-            disabled={aimed === null || turn !== 'you'}
-            onClick={() => aimed !== null && fire(aimed)}
-            data-testid="fleet-fire"
-            className="flex h-14 items-center justify-center gap-3 rounded-control bg-action font-semibold text-action-ink disabled:opacity-60"
-          >
-            <span>Fire</span>
-            <span className="grid h-10 min-w-10 place-items-center font-mono" data-testid="fleet-aim-chip">
-              {aimed !== null ? coord(aimed) : ''}
-            </span>
-          </button>
+              <button
+                type="button"
+                disabled={aimed === null || turn !== 'you' || over}
+                onClick={() => aimed !== null && fire(aimed)}
+                data-testid="fleet-fire"
+                className="flex h-14 items-center justify-center gap-3 rounded-control bg-action font-semibold text-action-ink disabled:opacity-60"
+              >
+                <span>Fire</span>
+                <span className="grid h-10 min-w-10 place-items-center font-mono" data-testid="fleet-aim-chip">
+                  {aimed !== null ? coord(aimed) : ''}
+                </span>
+              </button>
+            </div>
+            {wide ? (
+              <div className="grid gap-3" data-testid="fleet-own">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-muted">Your waters</span>
+                  <Tally sunk={ownSunk} testId="fleet-tally-own" />
+                </div>
+                <div
+                  style={{
+                    boxShadow: flashIn !== null ? '0 0 0 3px var(--action-soft)' : undefined,
+                    transition: 'box-shadow 360ms var(--ease-out, ease-out)',
+                  }}
+                >
+                  <Board views={ownViews} label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" />
+                </div>
+                <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
+                  {event}
+                </p>
+                {!over ? <ResignButton onResign={resign} /> : null}
+              </div>
+            ) : null}
+          </div>
 
           <p className="sr-only" role="status" aria-live="polite" data-testid="fleet-live">
             {event}
           </p>
 
           {over ? (
-            <div className="grid gap-2 rounded-card border border-line bg-surface p-3" data-testid="fleet-result">
+            <div ref={resultRef} className="grid gap-2 rounded-card border border-line bg-surface p-3" data-testid="fleet-result">
               <h2 className="font-display text-display-sm">{resigned ? 'You resigned.' : fleetCore.result(match.state)?.winner === HUMAN ? 'You win.' : 'You lose.'}</h2>
               <p data-testid="fleet-result-reason">{resigned ? 'The match ended at your request.' : statusLine(match, opponent)}</p>
-              <p className="text-sm text-muted">Their whole fleet is shown on their waters above.</p>
+              {view?.reveal ? <p className="text-sm text-muted">Their whole fleet is shown on their waters above.</p> : null}
               <div className="flex gap-2">
                 <button type="button" onClick={backToSetup} data-testid="fleet-again" className="min-h-11 rounded-control bg-action px-4 font-semibold text-action-ink">
                   Play again
@@ -565,28 +682,27 @@ export default function FleetView() {
             </div>
           ) : null}
 
-          <div className="grid h-40 grid-cols-[130px_minmax(0,1fr)] gap-3 overflow-hidden rounded-card border border-line bg-surface p-3" data-testid="fleet-own">
-            <div className="relative" style={{ boxShadow: flashIn !== null ? '0 0 0 3px var(--action-soft)' : undefined, transition: 'box-shadow 360ms var(--ease-out, ease-out)' }}>
-              <Board views={ownViews} label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" size="mini" />
+          {wide ? null : (
+            <div className="grid h-40 grid-cols-[130px_minmax(0,1fr)] gap-3 overflow-hidden rounded-card border border-line bg-surface p-3" data-testid="fleet-own">
+              <div
+                className="relative"
+                style={{
+                  boxShadow: flashIn !== null ? '0 0 0 3px var(--action-soft)' : undefined,
+                  transition: 'box-shadow 360ms var(--ease-out, ease-out)',
+                }}
+              >
+                <Board views={ownViews} label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" size="mini" />
+              </div>
+              <div className="grid content-start gap-1">
+                <span className="text-xs text-muted">Your fleet</span>
+                <Tally sunk={ownSunk} testId="fleet-tally-own" />
+                <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
+                  {event}
+                </p>
+                {!over ? <ResignButton onResign={resign} /> : null}
+              </div>
             </div>
-            <div className="grid content-start gap-1">
-              <span className="text-xs text-muted">Your fleet</span>
-              <Tally sunk={ownSunk} testId="fleet-tally-own" />
-              <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
-                {event}
-              </p>
-              {!over ? (
-                <button
-                  type="button"
-                  onClick={() => setResigned(true)}
-                  data-testid="fleet-resign"
-                  className="min-h-11 justify-self-start text-sm font-semibold text-action"
-                >
-                  Resign
-                </button>
-              ) : null}
-            </div>
-          </div>
+          )}
         </>
       )}
     </section>

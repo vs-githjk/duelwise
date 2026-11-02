@@ -101,10 +101,7 @@ export async function startMatch(humanFleet: Placement[], agent: Pick<PreviewAge
   let state = fleetCore.init(0)
   for (const p of humanFleet) {
     const [code] = await agent.act(fleetCore.observe(state, AGENT_SEAT), state)
-    state = fleetCore.step(state, [
-      { kind: 'place', cell: p.cell, vertical: p.vertical },
-      fleetCore.decodeAction(code!),
-    ])
+    state = fleetCore.step(state, [{ kind: 'place', cell: p.cell, vertical: p.vertical }, fleetCore.decodeAction(code!)])
   }
   return { state, log: [] }
 }
@@ -117,8 +114,7 @@ export function applyShot(m: FleetMatch, seat: Seat, cell: number): FleetMatch {
 }
 
 export const isOver = (m: FleetMatch): boolean => fleetCore.terminal(m.state)
-export const whoseTurn = (m: FleetMatch): 'you' | 'ai' | 'over' =>
-  isOver(m) ? 'over' : fleetCore.toAct(m.state)[0] === HUMAN ? 'you' : 'ai'
+export const whoseTurn = (m: FleetMatch): 'you' | 'ai' | 'over' => (isOver(m) ? 'over' : fleetCore.toAct(m.state)[0] === HUMAN ? 'you' : 'ai')
 export const humanView = (m: FleetMatch): FleetObs => fleetCore.observe(m.state, HUMAN)
 
 /** What a shot did, in words. `who` is the shooter; the pronoun side is the person looking at the page. */
@@ -150,11 +146,7 @@ export function statusLine(m: FleetMatch, opponent: string): string {
   if (result) {
     return result.winner === HUMAN
       ? `You sank all five ships in ${v.shots.length} shots.`
-      : `${opponent} sank your fleet in ${v.incoming.length} shots; you had ${SHIPS.length - sunkCount(v.incoming)} ships left.`
+      : `${opponent} sank your fleet in ${v.incoming.length} shots; ${opponent} still had ${v.enemyLeft.length} ${v.enemyLeft.length === 1 ? 'ship' : 'ships'} afloat.`
   }
   return whoseTurn(m) === 'you' ? 'Your shot: tap a square, then tap it again or press Fire.' : `${opponent} is firing`
-}
-
-function sunkCount(marks: FleetObs['incoming']): number {
-  return marks.filter((x) => x.sunk !== null).length
 }
