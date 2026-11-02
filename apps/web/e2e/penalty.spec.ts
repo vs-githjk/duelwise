@@ -431,8 +431,9 @@ test.describe('Twelve Yards at 360 wide', () => {
     test.skip(browserName !== 'chromium', 'Input.dispatchTouchEvent is a Chromium DevTools call')
     await start(page, 2)
     const cdp = await page.context().newCDPSession(page)
-    const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number, y?: number) =>
-      cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y: y!, id: 1 }] })
+    const touch = async (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number, y?: number) => {
+      await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y: y!, id: 1 }] })
+    }
     const pad = (await page.getByTestId('penalty-pad').boundingBox())!
     const scale = (await page.getByTestId('penalty-scene').boundingBox())!.width / 328
     const x = pad.x + pad.width / 2
