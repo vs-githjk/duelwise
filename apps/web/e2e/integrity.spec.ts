@@ -400,9 +400,11 @@ test.describe('fleet: a counted match', () => {
     // A changed shot and a moved fleet are pinned in server/sealed-duel.test.ts (they reach the same log check, each on its own match).
     const r = await page.request.post('/api/finish', { data: Buffer.from(encodeRecord(fabricated)), headers: { 'content-type': 'application/gzip' } })
     expect(r.status()).toBe(200)
-    const body = (await r.json()) as { valid: boolean; reason?: string; elo?: unknown }
+    const body = (await r.json()) as { valid: boolean; reason?: string; elo?: { before: number; after: number } }
     expect(body).toMatchObject({ valid: false, reason: 'record does not match the logged turns' })
-    expect(body.elo).toBeUndefined()
+    // The forgery never gains. The server's log settles the rating: the real game's loss is charged and a real win moves nothing (server/loss-dodge.test.ts pins both).
+    if (honest.result.winner === 1) expect(body.elo!.after).toBeLessThan(body.elo!.before)
+    else expect(body.elo).toBeUndefined()
   })
 
   test('a shot refused because the match was settled returns to setup, once, and the phone shows why', async ({ page }) => {
