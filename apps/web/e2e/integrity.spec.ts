@@ -403,6 +403,56 @@ test.describe('fleet: a counted match', () => {
     expect(body.elo).toBeUndefined()
   })
 
+  test('a shot refused because the match was settled returns to setup, once, and the phone shows why', async ({ page }) => {
+    test.setTimeout(60_000)
+    await devSignIn(page, 'settled')
+    await page.setViewportSize({ width: 360, height: 740 })
+    const statuses: number[] = []
+    const started: string[] = []
+    page.on('response', async (res) => {
+      const m = /\/_serverFn\/([^?]+)/.exec(res.url())
+      if (!m) return
+      if (Buffer.from(m[1]!, 'base64').toString().includes('fleetTurn')) statuses.push(res.status())
+      const t = await res.text().catch(() => '')
+      if (t.includes('"sealed"')) started.push(t)
+    })
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-phase', 'play')
+    await fireNext(page)
+    await expect(root).toHaveAttribute('data-turn', 'you')
+    await expect.poll(() => statuses).toEqual([200, 200])
+    // Anything that settles the row while the page is open, such as the abandon sweep after a long pause.
+    const { matchId } = sero(JSON.parse(started[0]!)).result as { matchId: string }
+    const settled = await page.request.post('/api/resign', { data: { matchId, tick: 0 } })
+    expect(settled.status()).toBe(200)
+    // The player is mid-match with the HUD at the top of the screen, as the design's fit test holds it.
+    await page.getByTestId('fleet-hud').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY))
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    await cell.click()
+    await cell.click()
+    await expect(root).toHaveAttribute('data-phase', 'setup')
+    const line = page.getByTestId('fleet-failure')
+    await expect(line).toHaveText('This match has ended. Place your fleet to start a new one.')
+    await expect(line).toBeInViewport({ ratio: 1 })
+    expect(statuses).toEqual([200, 200, 409])
+  })
+
+  test('a signed-in player who resigns before the first shot is told the match does not count', async ({ page }) => {
+    test.setTimeout(60_000)
+    await devSignIn(page, 'noshot')
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-counted', 'true')
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+    await page.getByTestId('fleet-resign').click()
+    await page.getByTestId('fleet-resign-yes').click()
+    await expect(page.getByTestId('result-upload')).toHaveText('No shot was fired, so this match does not count.')
+    await expect(page.getByTestId('result-panel')).not.toContainText('Sign in')
+    await expect(page.getByTestId('result-elo')).toHaveCount(0)
+  })
+
   test('a setup or a shot that fails twice shows a line on the page, and the next try recovers', async ({ page }) => {
     test.setTimeout(120_000)
     await devSignIn(page, 'flaky')

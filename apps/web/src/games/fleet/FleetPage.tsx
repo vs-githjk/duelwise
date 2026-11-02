@@ -585,6 +585,12 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       />
     ) : null
 
+  // A failure on the setup screen may land anywhere the page was scrolled to, so bring its line into view.
+  const failureRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (!started && game.failure) failureRef.current?.scrollIntoView({ block: 'center' })
+  }, [started, game.failure])
+
   const measured = registry.measured[shownLevel]
   const asideNode = (
     <div className="grid gap-4">
@@ -633,7 +639,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       aside={started ? asideNode : undefined}
     >
     <section
-      className={`mx-auto grid w-full max-w-md ${started ? 'gap-2' : 'gap-3'} lg:max-w-[764px]`}
+      className={`mx-auto grid w-full max-w-md ${started ? 'gap-2 lg:max-w-[764px]' : 'gap-3 lg:max-w-none'}`}
       data-testid="fleet-page"
       data-turn={pageTurn}
       data-phase={started ? 'play' : 'setup'}
@@ -644,81 +650,83 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       {!started ? (
         <>
           <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first.</p>
+          <p className="text-sm text-muted">In counted matches the server keeps both fleets hidden until the match ends.</p>
+          {/* Up here, not by Ready: Ready is pinned to a phone's screen while its place in the page is far below, and a refused shot lands the player at the top of setup. */}
+          {game.failure ? (
+            <p ref={failureRef} role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
+              {game.failure}
+            </p>
+          ) : null}
           {offline ? (
             <p className="text-sm text-muted" data-testid="fleet-offline-line">
               Rated Stormglass needs a connection, because the server keeps the hidden fleets. Practice works offline.
             </p>
           ) : null}
-          <div className="grid gap-3 rounded-card border border-line bg-surface p-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="font-display text-display-sm">Your fleet</h2>
-              <button type="button" onClick={shuffle} data-testid="fleet-shuffle" className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold">
-                Shuffle fleet
-              </button>
-            </div>
-            <Board
-              views={setupViews}
-              label="Your fleet"
-              testId="fleet-setup"
-              onCell={tapSetup}
-              pointer={setupPointer}
-              flash={flash}
-              selectedShip={selected}
-              describe={(c) => {
-                const id = shipAt(fleet, c)
-                return id >= 0 ? `ship of length ${SHIPS[id]}` : 'open water'
-              }}
-            />
-            <p className="text-sm text-muted">Tap a ship to select it, tap it again to turn it, or tap open water to move its front there. On a computer you can drag it.</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={selected === null}
-                onClick={() => {
-                  if (selected === null) return
-                  const turned = rotateShip(fleet, selected)
-                  if (turned) setFleet(turned)
-                  else
-                    setFlash({
-                      cell: fleet.find((p) => p.id === selected)!.cell,
-                      kind: 'bad',
-                    })
-                }}
-                data-testid="fleet-rotate"
-                className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold disabled:opacity-60"
-              >
-                {selected === null ? 'Rotate' : `Rotate: ${fleet.find((p) => p.id === selected)!.vertical ? 'down' : 'across'}`}
-              </button>
-            </div>
-          </div>
           <PlayMode disabled={starting} />
+          {/* Below lg this wrapper disappears too, so Ready stays a child of the whole setup column and its sticky bar holds from the first paint. */}
+          <div className="max-lg:contents lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-6">
+            <div className="grid gap-3 rounded-card border border-line bg-surface p-3" data-testid="fleet-placement">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-display text-display-sm">Your fleet</h2>
+                <button type="button" onClick={shuffle} data-testid="fleet-shuffle" className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold">
+                  Shuffle fleet
+                </button>
+              </div>
+              <Board
+                views={setupViews}
+                label="Your fleet"
+                testId="fleet-setup"
+                onCell={tapSetup}
+                pointer={setupPointer}
+                flash={flash}
+                selectedShip={selected}
+                describe={(c) => {
+                  const id = shipAt(fleet, c)
+                  return id >= 0 ? `ship of length ${SHIPS[id]}` : 'open water'
+                }}
+              />
+              <p className="text-sm text-muted">Tap a ship to select it, tap it again to turn it, or tap open water to move its front there. On a computer you can drag it.</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={selected === null}
+                  onClick={() => {
+                    if (selected === null) return
+                    const turned = rotateShip(fleet, selected)
+                    if (turned) setFleet(turned)
+                    else
+                      setFlash({
+                        cell: fleet.find((p) => p.id === selected)!.cell,
+                        kind: 'bad',
+                      })
+                  }}
+                  data-testid="fleet-rotate"
+                  className="min-h-11 rounded-control border border-line bg-surface px-4 font-semibold disabled:opacity-60"
+                >
+                  {selected === null ? 'Rotate' : `Rotate: ${fleet.find((p) => p.id === selected)!.vertical ? 'down' : 'across'}`}
+                </button>
+              </div>
+            </div>
           <LevelPicker
+            beside
             value={level}
             onChange={setLevel}
             levels={levelInfo}
             statsSlug={PRODUCT.games.fleet.slug}
             disabled={starting}
             action={
-              <>
-          <div className="h-14" data-testid="fleet-failure-slot">
-            {game.failure ? (
-              <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
-                {game.failure}
-              </p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={ready}
-            disabled={starting}
-            data-testid="fleet-ready"
-            className="min-h-14 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-60"
-          >
-            Ready: start match vs {opponent}
-          </button>
-              </>
+              <button
+                type="button"
+                onClick={ready}
+                disabled={starting}
+                data-testid="fleet-ready"
+                className="start-match min-h-14 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-60"
+              >
+                Ready: start match vs {opponent}
+              </button>
             }
           />
+          </div>
         </>
       ) : (
         <>

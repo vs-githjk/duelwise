@@ -23,6 +23,21 @@ test.describe('fleet dev page and promotion', () => {
 
   const shipCellsNow = (page: Page) => page.locator('[data-testid^="fleet-setup-"][data-state="ship"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')).join())
 
+  test('setup on a phone: Ready is on screen before any scroll, and the page runs intro, hidden-fleet line, play mode, fleet', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 })
+    await page.goto('/play/stormglass')
+    const ready = page.getByTestId('fleet-ready')
+    await expect(ready).toBeVisible()
+    expect(await page.evaluate(() => scrollY)).toBe(0)
+    await expect(ready).toBeInViewport({ ratio: 1 })
+    const y = async (l: ReturnType<Page['getByTestId']>) => (await l.boundingBox())!.y
+    const intro = page.getByText('Hide five ships on your grid')
+    const hidden = page.getByText('In counted matches the server keeps both fleets hidden until the match ends.')
+    await expect(hidden).toBeVisible()
+    const order = [await y(intro), await y(hidden), await y(page.getByTestId('play-mode')), await y(page.getByTestId('fleet-placement'))]
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+  })
+
   test('setup: shuffle changes the fleet and Ready starts the match', async ({ page }) => {
     await page.goto('/dev/fleet?hold=0')
     const ships = page.locator('[data-testid^="fleet-setup-"][data-state="ship"]')
@@ -80,7 +95,12 @@ test.describe('fleet dev page and promotion', () => {
         await page.mouse.down()
         await page.mouse.move(b.x, b.y, { steps: 4 })
         await page.mouse.up()
-        const after = await read()
+        // WebKit paints the moved ship after mouse.up resolves. A refused drop never changes the cells, so the wait is bounded and that case still falls through below.
+        let after = await read()
+        for (let wait = 0; wait < 10 && [...before].every((x) => after.has(x)); wait++) {
+          await page.waitForTimeout(30)
+          after = await read()
+        }
         if ([...before].every((x) => after.has(x))) break
         // Exactly one straight ship through the grabbed cell moved by the drag offset; every other cell stayed.
         const shifted = (ship: number[]) => new Set([...before].filter((x) => !ship.includes(x)).concat(ship.map((x) => x + delta)))
@@ -236,6 +256,48 @@ test.describe('fleet dev page and promotion', () => {
 
 test.describe('fleet dev page at desktop width', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
+
+  for (const [width, height] of [[1024, 768], [1280, 800], [1440, 900]] as const) {
+    test(`setup at ${width}: the fleet card sits left at 420 px, the picker to its right, and no badge leaves its card`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await page.goto('/play/stormglass')
+      const card = (await page.getByTestId('fleet-placement').boundingBox())!
+      const picker = (await page.getByTestId('setup-picker').boundingBox())!
+      expect(Math.abs(card.width - 420)).toBeLessThan(1)
+      expect(picker.x).toBeGreaterThanOrEqual(card.x + card.width)
+      expect(Math.abs(picker.y - card.y)).toBeLessThan(2)
+      const rows = await page.locator('label[data-persona]').evaluateAll((els) =>
+        els.map((row) => {
+          const badge = row.querySelector('[data-testid="preview-badge"]')
+          const text = badge?.getBoundingClientRect()
+          return { level: row.getAttribute('data-persona'), right: row.getBoundingClientRect().right, badgeRight: text?.right ?? null, badgeClipped: badge ? badge.scrollWidth > badge.clientWidth : false }
+        }),
+      )
+      expect(rows).toHaveLength(4)
+      const badged = rows.filter((r) => r.badgeRight !== null)
+      expect(badged.length).toBeGreaterThan(0)
+      for (const r of badged) {
+        expect(r.badgeRight!, `${r.level} badge`).toBeLessThanOrEqual(r.right)
+        expect(r.badgeClipped, `${r.level} badge text`).toBe(false)
+      }
+      // The picker's blocks stay in their own places: none lands on another, and Ready keeps its button height.
+      const blocks = await Promise.all(['fleet-placement', 'level-picker', 'identity-card', 'fleet-ready', 'learn-graph'].map(async (id) => ({ id, box: (await page.getByTestId(id).boundingBox())! })))
+      for (const [i, a] of blocks.entries())
+        for (const b of blocks.slice(i + 1)) {
+          const overlap = a.box.x < b.box.x + b.box.width && b.box.x < a.box.x + a.box.width && a.box.y < b.box.y + b.box.height && b.box.y < a.box.y + a.box.height
+          expect(overlap, `${a.id} over ${b.id}`).toBe(false)
+        }
+      expect(blocks.find((b) => b.id === 'fleet-ready')!.box.height).toBeLessThanOrEqual(64)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    })
+  }
+
+  test('setup at 1440 x 900: Ready is above the fold', async ({ page }) => {
+    await page.goto('/play/stormglass')
+    await expect(page.getByTestId('fleet-ready')).toBeVisible()
+    expect(await page.evaluate(() => scrollY)).toBe(0)
+    await expect(page.getByTestId('fleet-ready')).toBeInViewport({ ratio: 1 })
+  })
 
   test('two boards sit side by side with Fire under the left one', async ({ page }) => {
     await page.goto('/dev/fleet?hold=0')

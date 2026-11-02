@@ -35,6 +35,8 @@ export interface LevelPickerProps {
   descriptions?: Partial<Record<Level, string>>
   /** The page's own Start button (and its failure message). It sits under the name and the call, in the side column on a wide screen. */
   action?: ReactNode
+  /** The page sets its own setup block beside the picker, so the picker has less width: one column of level cards, and the side column only from xl. */
+  beside?: boolean
 }
 
 /**
@@ -42,7 +44,7 @@ export interface LevelPickerProps {
  * gate is shown "in training" with the reason and cannot be picked. Strength strings come from the
  * registry through `levels`; this component never makes one up.
  */
-export function LevelPicker({ value, onChange, levels = {}, disabled = false, statsSlug, className, descriptions, action }: LevelPickerProps) {
+export function LevelPicker({ value, onChange, levels = {}, disabled = false, statsSlug, className, descriptions, action, beside = false }: LevelPickerProps) {
   const name = useId()
   const { game } = useOpponent()
   const state = usePath(game)
@@ -61,11 +63,11 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   }, [gated, current, value])
   const practice = new Set(LEVELS.filter((l) => levels[l]?.practice || (levels[l]?.preview && !levels[l]?.inTraining)))
   return (
-    <div className={cn('grid gap-4', game && 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start')} data-testid="setup-picker">
+    <div className={cn('grid gap-4', game && (beside ? 'max-lg:contents xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start' : 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start'))} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
     {game ? <ResignedNotice game={game} /> : null}
     {game ? <PathCard game={game} state={state} practice={practice} /> : null}
-    <fieldset className={cn('grid gap-2 lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
+    <fieldset className={cn('grid gap-2', !beside && 'lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
       <legend className="sr-only">Opponent level</legend>
       {LEVELS.map((level) => {
         const info = levels[level] ?? { preview: true }
@@ -126,12 +128,12 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
           </label>
         )
       })}
-      {LEVELS.some((level) => levels[level]?.strength?.startsWith('site Elo ')) ? <div className="lg:col-span-2"><EloExplainer /></div> : null}
+      {LEVELS.some((level) => levels[level]?.strength?.startsWith('site Elo ')) ? <div className={beside ? undefined : 'lg:col-span-2'}><EloExplainer /></div> : null}
     </fieldset>
     </div>
     {game ? (
       // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column.
-      <div className="contents lg:sticky lg:top-4 lg:grid lg:gap-4">
+      <div className={beside ? 'contents lg:grid lg:gap-4 xl:sticky xl:top-4' : 'contents lg:sticky lg:top-4 lg:grid lg:gap-4'}>
         <section className="grid gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5" aria-label="Before you play" data-testid="identity-card">
           <CallPicker game={game} path={path} />
         </section>
@@ -140,7 +142,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
     ) : (
       action ?? null
     )}
-    {game ? <div className="lg:col-span-2"><LearnGraph game={game} compact defaultLevel={current} /></div> : null}
+    {game ? <div className={beside ? 'xl:col-span-2' : 'lg:col-span-2'}><LearnGraph game={game} compact defaultLevel={current} /></div> : null}
     </div>
   )
 }
