@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { PRODUCT } from '@duelwise/core/src/product.ts'
 
 /**
- * Reloading in the middle of a match, for all six games, and a page that was opened before a new deploy.
+ * Reloading in the middle of a match, for every game, and a page that was opened before a new deploy.
  * Bug report: "my friend reloaded the app in the middle of a game and it just died". A reload must always come back to a clean,
  * working setup screen (the unfinished counted match is given up by the page-hide beacon), and a script that a deploy removed must
  * end in one fresh load, never a dead page.

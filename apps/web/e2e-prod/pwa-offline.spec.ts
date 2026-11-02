@@ -10,7 +10,8 @@ import { expect, test, type Page } from '@playwright/test'
 const FOUR = '/play/four-in-a-row'
 const TINDERBOX = '/play/tinderbox'
 
-test.use({ serviceWorkers: 'allow' })
+// No x-dw-test header here: the prod config sends it, which tags the match as test traffic and the landing board drops it.
+test.use({ serviceWorkers: 'allow', extraHTTPHeaders: {} })
 
 async function queued(page: Page): Promise<number> {
   return page.evaluate(

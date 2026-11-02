@@ -106,7 +106,7 @@ const slug = (game: GameId) => PRODUCT.games[game].slug
 
 test.describe.configure({ mode: 'serial' })
 
-test.describe('seven games, end to end', () => {
+test.describe(`${GAMES.length} games, end to end`, () => {
   test('lists the games without a page module with the registry reason', async () => {
     const lines = MISSING.map((g) => `${g}: ${missingReason(g)}`)
     test.info().annotations.push({ type: 'not-playable', description: lines.length ? lines.join(' | ') : 'none' })
@@ -244,6 +244,7 @@ test.describe('seven games, end to end', () => {
     }
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('result-upload')).toContainText('Saved')
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('fleet').includes('easy') ? 0 : 1)
     expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
     expect(errors).toEqual([])
     await expectStatsPage(page, 'fleet')

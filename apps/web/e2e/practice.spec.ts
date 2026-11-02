@@ -75,7 +75,9 @@ test.describe("Hold'em practice", () => {
    */
   async function playOut(page: Page, opts: { stopAtOffer?: boolean } = {}): Promise<number> {
     let buys = 0
-    for (let guard = 0; guard < 900; guard++) {
+    // A wall-clock budget, not a poll count: ten staged hands take longer than 900 polls of 40 ms.
+    const deadline = Date.now() + 150_000
+    while (Date.now() < deadline) {
       if (await page.getByTestId('buyback').isVisible()) {
         if (opts.stopAtOffer) return buys
         await page.getByTestId('buy-back').click()

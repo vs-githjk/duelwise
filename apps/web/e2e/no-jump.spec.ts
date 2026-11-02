@@ -14,21 +14,27 @@ async function bringIntoView(page: Page, board: Locator) {
   return spot(page, board)
 }
 /** Records the element's position on every frame, so a shift that undoes itself between two checks (a line that appears while the AI thinks) still counts. */
-async function watchFrames(locator: Locator) {
-  await locator.evaluate((el) => {
-    const w = window as unknown as { __tops: number[] }
-    w.__tops = []
-    const tick = () => {
-      w.__tops.push(el.getBoundingClientRect().top + window.scrollY)
-      requestAnimationFrame(tick)
-    }
-    tick()
-  })
+async function watchFrames(...locators: Locator[]) {
+  for (const [i, locator] of locators.entries()) {
+    await locator.evaluate((el, n) => {
+      const w = window as unknown as { __tops: Record<number, number[]> }
+      w.__tops ??= {}
+      w.__tops[n] = []
+      const tick = () => {
+        w.__tops[n].push(el.getBoundingClientRect().top + window.scrollY)
+        requestAnimationFrame(tick)
+      }
+      tick()
+    }, i)
+  }
 }
 async function expectNoFrameShift(page: Page, label: string) {
-  const tops = await page.evaluate(() => (window as unknown as { __tops: number[] }).__tops)
-  expect(tops.length, `${label}: frames were recorded`).toBeGreaterThan(10)
-  expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
+  const all = await page.evaluate(() => Object.values((window as unknown as { __tops: Record<number, number[]> }).__tops))
+  expect(all.length, `${label}: something was watched`).toBeGreaterThan(0)
+  for (const tops of all) {
+    expect(tops.length, `${label}: frames were recorded`).toBeGreaterThan(10)
+    expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
+  }
 }
 async function expectStill(page: Page, board: Locator, start: { y: number; x: number; top: number }, label: string) {
   const now = await spot(page, board)
@@ -129,7 +135,7 @@ test('stormglass: the board and the Fire bar stay put on every frame across six 
   const fire = page.getByTestId('fleet-fire')
   const start = await bringIntoView(page, board)
   const fireStart = await spot(page, fire)
-  await watchFrames(board)
+  await watchFrames(board, fire)
   for (let i = 0; i < 6; i++) {
     await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
     if ((await root.getAttribute('data-turn')) === 'over') break
