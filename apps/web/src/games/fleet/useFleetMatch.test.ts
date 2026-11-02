@@ -7,8 +7,8 @@ import { makeRng } from '@duelwise/core/src/rng'
 import type { Level } from '@duelwise/core/src/product'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { buildSealedLog, FLEET_SPEC } from '../../server/sealed-duel'
-import type { FetchTurn, FleetTurnReply } from './api'
-import { createFleetEngine, recordFromLists, setupCodes, SETUP_FAILED, SHOT_FAILED, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
+import { TurnRefused, type FetchTurn, type FleetTurnReply } from './api'
+import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, SETUP_FAILED, SHOT_FAILED, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
 
 const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
@@ -232,6 +232,29 @@ describe('counted match through the engine', () => {
     await engine.fire(10)
     expect(engine.snapshot().failure).toBeNull()
     expect(engine.snapshot().view!.shots.map((x) => x.cell)).toEqual([10])
+  })
+
+  test('a server refusal of a shot is final: no retry, no unsent shot, and the page says the match ended and returns to setup', async () => {
+    const server = fakeServer()
+    const refusing: FetchTurn = async (id, actions) => {
+      if (actions.length > SHIPS.length) throw new TurnRefused('match is already abandoned')
+      return server.fetchTurn(id, actions)
+    }
+    const r = fakeRecorder(SEALED)
+    const engine = createFleetEngine({ recorder: () => r.port, fetchTurn: refusing, hold: 0, onChange: () => {}, trainingAllowed: false })
+    await engine.start('easy', FLEET)
+    expect(engine.snapshot().phase).toBe('play')
+    expect(await engine.fire(10)).toBeNull()
+    const snap = engine.snapshot()
+    expect(snap.phase).toBe('setup')
+    expect(snap.failure).toBe(MATCH_ENDED)
+    expect(snap.thinking).toBe(false)
+    expect(server.calls).toHaveLength(1)
+    expect(r.log.discards).toBe(1)
+    // A new match starts clean: the refused shot is not resent.
+    await engine.start('easy', FLEET)
+    expect(engine.snapshot().phase).toBe('play')
+    expect(server.calls.at(-1)).toEqual(setupCodes(FLEET))
   })
 
   test('a setup request that fails twice returns to setup with plain copy and tells the recorder to drop the match', async () => {

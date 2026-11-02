@@ -7,7 +7,7 @@ import { createGameAgent } from '@duelwise/agents/src/fleet/agent'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
 import { openMatch } from '../../lib/open-match'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
-import { serverFetchTurn, type FetchTurn, type FleetTurnReply } from './api'
+import { serverFetchTurn, TurnRefused, type FetchTurn, type FleetTurnReply } from './api'
 
 export type Phase = 'setup' | 'starting' | 'play' | 'over'
 
@@ -18,6 +18,7 @@ const SHOT_BASE = 200
 /** What the page says when the server could not be reached for a request; never the server's own wording. */
 export const SETUP_FAILED = 'The match could not start. Check your connection and press Ready again.'
 export const SHOT_FAILED = 'Shot not sent. Fire again.'
+export const MATCH_ENDED = 'This match has ended. Place your fleet to start a new one.'
 
 /** What the page shows. In a counted match `view` is only what the server sent: my fleet, my shots, theirs at me, ships already sunk. */
 export interface FleetSnapshot {
@@ -162,7 +163,9 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
   async function turn(list: number[]): Promise<FleetTurnReply> {
     try {
       return await deps.fetchTurn(matchId!, list)
-    } catch {
+    } catch (e) {
+      // A refusal is final: the same request would get the same answer.
+      if (e instanceof TurnRefused) throw e
       return await deps.fetchTurn(matchId!, list)
     }
   }
@@ -297,7 +300,15 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
           let reply: FleetTurnReply
           try {
             reply = await turn(list)
-          } catch {
+          } catch (e) {
+            if (mine !== epoch) return null
+            if (e instanceof TurnRefused) {
+              // The server settled this match (abandoned, over its cap): resending can never work. It closed the row itself, so no beacon is needed.
+              clearMatch()
+              rec().discard()
+              set({ phase: 'setup', view: null, thinking: false, failure: MATCH_ENDED })
+              return null
+            }
             if (mine === epoch) {
               unsent = { list, ms }
               set({ failure: SHOT_FAILED, thinking: false })
