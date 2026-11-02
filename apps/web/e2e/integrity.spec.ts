@@ -296,6 +296,55 @@ test.describe('fleet: a counted match', () => {
     expect(shots).toBeGreaterThan(10)
   })
 
+  test('the aside tells a counted-match player that leaving resigns, and the result strip fits the panel at 360', async ({ page }) => {
+    test.setTimeout(180_000)
+    await devSignIn(page, 'asider')
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-counted', 'true')
+    await expect(page.getByTestId('agent-card')).toBeVisible()
+    await expect(page.getByTestId('leaving-notice')).toContainText(/resigns a counted match/)
+    await expect(page.getByTestId('opponent-style')).not.toBeEmpty()
+    await expect(page.getByTestId('fleet-legend')).toContainText('Sunk')
+    // Fire still fits the 360 x 780 screen with the aside present.
+    await expect(page.getByTestId('fleet-fire')).toBeInViewport({ ratio: 1 })
+    for (let i = 0; i < 100; i++) if (!(await fireNext(page))) break
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('fleet-reveal')).toBeVisible()
+    const fit = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid="result-panel"]') as HTMLElement
+      const reveal = document.querySelector('[data-testid="fleet-reveal"]') as HTMLElement
+      const cs = getComputedStyle(panel)
+      const pr = panel.getBoundingClientRect()
+      return {
+        scrollWidth: panel.scrollWidth,
+        clientWidth: panel.clientWidth,
+        contentRight: pr.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight),
+        revealRight: reveal.getBoundingClientRect().right,
+      }
+    })
+    expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth)
+    expect(fit.revealRight).toBeLessThanOrEqual(fit.contentRight + 0.5)
+  })
+
+  test('while a match is starting the level buttons are off and the header keeps the match\'s opponent', async ({ page }) => {
+    test.setTimeout(60_000)
+    await devSignIn(page, 'slowstart')
+    await page.goto('/play/stormglass?hold=0')
+    await page.route(/_serverFn/, async (route) => {
+      await new Promise((r) => setTimeout(r, 800))
+      await route.continue()
+    })
+    await page.getByTestId('fleet-ready').click()
+    const champion = page.getByRole('group', { name: 'Level' }).getByRole('button', { name: 'Champion' })
+    await expect(champion).toBeDisabled()
+    await champion.click({ force: true }).catch(() => undefined)
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+    await expect(page.getByTestId('header-persona')).toContainText('Pip (Easy)')
+    await expect(page.getByTestId('agent-card')).toContainText('Pip')
+  })
+
   test('a record of a game nobody played through the server is refused, with the log reason', async ({ page }) => {
     test.setTimeout(180_000)
     await devSignIn(page, 'forger')

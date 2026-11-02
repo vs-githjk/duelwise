@@ -15,13 +15,25 @@ function partlyHit(hits: Set<number>, target: Placement[]): boolean {
   })
 }
 
-/** Hunting shots: shots fired while no ship stood partly hit. Finishing shots (after a hit, before the sink) are not counted. */
+/**
+ * Hunting shots: shots fired while no ship stood partly hit, counted only up to and including the shot that sank the last ship
+ * the shooter found. Finishing shots (after a hit, before the sink) are not counted, and neither are shots after the last sink,
+ * because the random hunt it is compared with (`expectedHunting`) stops at that sink too. With no sink, every shot counts.
+ */
 export function huntingShots(shots: number[], target: Placement[]): number {
   const hits = new Set<number>()
-  let hunting = 0
-  for (const cell of shots) {
-    if (!partlyHit(hits, target)) hunting++
+  let end = shots.length
+  let last = -1
+  shots.forEach((cell, i) => {
     if (target.some((p) => shipCells(p).includes(cell))) hits.add(cell)
+    if (target.some((p) => shipCells(p).includes(cell) && shipCells(p).every((c) => hits.has(c)))) last = i
+  })
+  if (last >= 0) end = last + 1
+  const seen = new Set<number>()
+  let hunting = 0
+  for (const cell of shots.slice(0, end)) {
+    if (!partlyHit(seen, target)) hunting++
+    if (target.some((p) => shipCells(p).includes(cell))) seen.add(cell)
   }
   return hunting
 }

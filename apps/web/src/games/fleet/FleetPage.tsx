@@ -6,7 +6,12 @@ import { FLEET_LEVELS } from '@duelwise/agents/src/fleet/levels'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { GameShell } from '../../components/GameShell'
 import { ResultPanel } from '../../components/ResultPanel'
-import { levelInfoFromRegistry } from '../../lib/level-info'
+import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
+import { LeavingNotice } from '../../components/LeavingNotice'
+import { personaFor, styleLine } from '../../personas'
+import { parseRegistry } from '@duelwise/agents/src/registry'
+import fleetRegistryJson from '@duelwise/agents/registry/fleet.json'
+import { visibleRegistry } from '../../lib/strength-gates'
 import type { Result } from '@duelwise/core/src/types'
 import { playCue } from './sounds'
 import { expectedHunting, fleetLuckLine, huntingShots } from './luck'
@@ -18,6 +23,7 @@ import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt,
 // The water and hull colours are the spec's section 1 tokens, in tokens.css since F7.
 
 const levelInfo = levelInfoFromRegistry(null)
+const registry = visibleRegistry(parseRegistry(fleetRegistryJson))
 
 const LEVELS: Array<{ id: Level; label: string }> = [
   { id: 'easy', label: 'Easy' },
@@ -337,10 +343,12 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   const [flashIn, setFlashIn] = useState<number | null>(null)
   const dragFrom = useRef<number | null>(null)
   const wide = useWide()
-  const opponent = FLEET_LEVELS[level].name
   const hold = useMemo(holdMs, [])
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(() => (typeof window === 'undefined' ? undefined : seedFromUrl()))
   const game = useFleetMatch({ hold })
+  // Once a match is starting or running, every label names the match's own level (game.level), never the picker's.
+  const shownLevel: Level = game.phase === 'setup' ? level : game.level
+  const opponent = FLEET_LEVELS[shownLevel].name
   const view = game.view
   const started = game.phase === 'play' || game.phase === 'over'
   const starting = game.phase === 'starting'
@@ -529,6 +537,11 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
   const pageTurn = started ? turn : 'setup'
 
+  // Ready is tapped far down the setup page; the match page is a different layout, so start it from the top rather than wherever the scroll was left.
+  useEffect(() => {
+    if (started) window.scrollTo(0, 0)
+  }, [started])
+
   const won = !!view && !resigned && viewWon(view)
   const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned ? 'resigned' : 'fleet sunk' } : null
   const resultNode =
@@ -550,12 +563,12 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         reveal={
           view.reveal ? (
             <div className="grid gap-2" data-testid="fleet-reveal">
-              <div className="flex items-start gap-3">
-                <figure className="m-0 grid w-[150px] gap-1">
+              <div className="flex items-start gap-2">
+                <figure className="m-0 grid min-w-0 max-w-[150px] flex-1 gap-1">
                   <Board views={enemyViews} label="Their waters, the whole fleet" testId="fleet-end-theirs" size="mini" />
                   <figcaption className="text-xs text-muted">Their waters</figcaption>
                 </figure>
-                <figure className="m-0 grid w-[150px] gap-1">
+                <figure className="m-0 grid min-w-0 max-w-[150px] flex-1 gap-1">
                   <Board views={ownViews} label="Your waters, as the match ended" testId="fleet-end-yours" size="mini" />
                   <figcaption className="text-xs text-muted">Your waters</figcaption>
                 </figure>
@@ -571,13 +584,50 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       />
     ) : null
 
+  const measured = registry.measured[shownLevel]
+  const asideNode = (
+    <div className="grid gap-4">
+      <section className="grid gap-1 rounded-card border border-line bg-surface p-4" data-testid="agent-card">
+        <b className="font-display text-display-sm">
+          {personaFor(shownLevel).name}, {LEVEL_LABEL[shownLevel]}
+        </b>
+        {game.counted ? <LeavingNotice /> : null}
+        <p className="text-sm text-muted" data-testid="opponent-style">
+          {styleLine(shownLevel, 'fleet')}
+        </p>
+        {measured ? (
+          <p className="text-sm text-muted">
+            Sinks a random fleet in <span className="font-mono tabular text-ink">{measured.value.toFixed(1)}</span> shots on average.
+          </p>
+        ) : (
+          <p className="text-sm text-muted">No measured strength yet.</p>
+        )}
+        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" data-testid="fleet-legend">
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="inline-block size-4 rounded-full border-2 border-muted" style={{ background: 'var(--hull)' }} /> You
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="inline-block size-3 rotate-45 rounded-sm" style={{ background: 'var(--hit)' }} /> Hit
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="inline-block size-2 rounded-full" style={{ background: 'var(--miss)' }} /> Miss
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="inline-block size-4 rounded-full border-2 border-muted opacity-75" style={{ background: 'var(--sunk)' }} /> Sunk
+          </span>
+        </p>
+      </section>
+    </div>
+  )
+
   return (
     <GameShell
       game="fleet"
-      level={started || starting ? level : undefined}
+      level={started || starting ? shownLevel : undefined}
       thinking={game.thinking}
       matchActive={started && !over}
       result={resultNode}
+      aside={started ? asideNode : undefined}
     >
     <section
       className={`mx-auto grid w-full max-w-md ${started ? 'gap-2' : 'gap-3'} lg:max-w-[764px]`}
@@ -598,7 +648,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 type="button"
                 aria-pressed={level === l.id}
                 onClick={() => setLevel(l.id)}
-                className={`min-h-11 rounded-control border px-4 font-semibold ${level === l.id ? 'border-action bg-action text-action-ink' : 'border-line bg-surface'}`}
+                disabled={starting}
+                className={`min-h-11 rounded-control border px-4 font-semibold disabled:opacity-60 ${level === l.id ? 'border-action bg-action text-action-ink' : 'border-line bg-surface'}`}
               >
                 {l.label}
               </button>

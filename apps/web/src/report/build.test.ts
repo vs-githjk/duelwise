@@ -208,6 +208,14 @@ describe('Fleet report', () => {
     expect(huntingShots([0, 1], ship)).toBe(1)
   })
 
+  test('hunting shots stop at the last sink: trailing misses after it are not counted', () => {
+    const ship = [{ id: 0, length: 2, cell: 0, vertical: false }]
+    // Miss, hit, sink, then three misses the loser fired before the opponent finished: only the first two shots plus the opening hit count.
+    expect(huntingShots([50, 0, 1, 60, 61, 62], ship)).toBe(2)
+    // A stray hit-free tail never raises the count.
+    expect(huntingShots([0, 1, 60, 61, 62], ship)).toBe(1)
+  })
+
   test('a public report holds no setup: no coordinates, no ship cells, no first person', () => {
     const body = publicBody(buildReportBody(rec))
     const text = JSON.stringify(body)
