@@ -125,7 +125,7 @@ describe('Word Duel: the player is seat 0', () => {
       expect(r.status).toBe(200)
       out.push(body(r).valid)
     }
-    expect({ valid: out, rating: (await ratingOf('word'))?.elo ?? null }).toEqual({ valid: Array(8).fill(false), rating: null })
+    expect<unknown>({ valid: out, rating: (await ratingOf('word'))?.elo ?? null }).toEqual({ valid: Array(8).fill(false), rating: null })
   })
 
   test('a seat 1 record says why, stores nothing, and shows as a win nowhere', async () => {
