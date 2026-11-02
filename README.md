@@ -111,7 +111,7 @@ The registry files are the source for the strength results in this README.
 
 ## What's coming next
 
-Three new games are in progress: **Stormglass** (a hidden-fleet naval duel on a 10 by 10 grid), **Number Bingo** and **8-Ball**.
+Two new games are in progress: **Stormglass** (a hidden-fleet naval duel on a 10 by 10 grid) and **8-Ball**.
 
 Also planned:
 
