@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord, type GameId, type Level } from '@duelwise/core/src/product'
 import { gameBySlug } from '../../games/registry'
 import { getAgentsView, type AgentsView, type OverviewRow } from '../../server/stats-fns'
 import type { Funnel, JobRow } from '../../server/stats'
@@ -74,7 +74,7 @@ function Pips({ published }: { published: number }) {
 
 function Strip({ rows, current }: { rows: OverviewRow[]; current: GameId }) {
   return (
-    <ul className="hidden lg:grid lg:gap-0 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-surface lg:shadow-card" data-testid="agent-strip" aria-label="All six agents">
+    <ul className="hidden lg:grid lg:gap-0 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-surface lg:shadow-card" data-testid="agent-strip" aria-label={`All ${gameCountWord().toLowerCase()} agents`}>
       <li className="hidden grid-cols-[1.4fr_0.8fr_1.4fr_1.6fr_1.5fr_1.6fr] gap-4 border-b border-line px-5 py-3 text-sm text-muted lg:grid" aria-hidden>
         <span>Agent</span>
         <span>Version</span>

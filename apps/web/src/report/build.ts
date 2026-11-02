@@ -96,6 +96,8 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     return { ...base, moves: steps.length, moments: r.moments, wordRows: r.rows }
   }
   const end: Moment = { kind: 'end', label: kind === 'realtime' ? 'Final score' : 'Result', tag: 'result', text: sentence }
+  // Fleet: result only until its own report lands (F10); it must never fall to the Hold'em path below.
+  if (rec.game === 'fleet') return { ...base, moments: [end] }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)

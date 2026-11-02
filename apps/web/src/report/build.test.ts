@@ -126,3 +126,12 @@ describe("Hold'em has its own report", () => {
     expect(r.moments.at(-1)!.kind).toBe('end')
   })
 })
+
+describe('Fleet report (result only until F10)', () => {
+  test('a fleet record is not read as a Hold\'em hand', () => {
+    const r = buildReportBody(playRandom('fleet', 3, 0))
+    expect(r.game).toBe('fleet')
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+    expect(r.evaluator).toBe('none')
+  })
+})

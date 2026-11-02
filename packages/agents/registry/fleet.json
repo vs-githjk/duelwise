@@ -1,0 +1,60 @@
+{
+  "game": "fleet",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-11-02T04:00:00.000Z",
+      "promotedAt": null,
+      "status": "preview",
+      "artifacts": {},
+      "sha256": {},
+      "trainedSteps": 0,
+      "humanMatchesUsed": 0,
+      "gate": null
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "algorithm": "random-with-follow",
+        "hunt": "random",
+        "target": "follow",
+        "followRate": 0.35
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "algorithm": "checkerboard-with-neighbours",
+        "hunt": "checkerboard",
+        "target": "neighbours",
+        "followRate": 1
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "algorithm": "map-hunt-with-neighbours",
+        "hunt": "map",
+        "target": "neighbours",
+        "followRate": 1
+      }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "algorithm": "map-hunt-and-finish",
+        "hunt": "map",
+        "target": "map",
+        "followRate": 1
+      }
+    }
+  },
+  "measured": {},
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": false
+}

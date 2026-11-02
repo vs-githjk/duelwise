@@ -109,9 +109,9 @@ test.describe('agent stats', () => {
     await expect(page.getByTestId('level-row-easy')).toContainText(`${reg.measured.easy.n} words`)
   })
 
-  test('the six-agent strip matches the registries and adapters file', async ({ page }) => {
+  test('the seven-agent strip matches the registries and adapters file', async ({ page }) => {
     await page.goto('/agents/word-duel')
-    await expect(page.getByTestId('agent-strip').locator('li[data-testid^="strip-"]')).toHaveCount(6)
+    await expect(page.getByTestId('agent-strip').locator('li[data-testid^="strip-"]')).toHaveCount(7)
     for (const game of GAMES) {
       const reg = registryOf(game)
       await expect(page.getByTestId(`strip-version-${game}`)).toContainText(reg?.champion ?? 'none')

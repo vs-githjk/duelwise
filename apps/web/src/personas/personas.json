@@ -17,7 +17,8 @@
         "holdem": "Calls often and raises cautiously.",
         "word": "Guesses any word that fits what it knows, and sometimes overlooks a clue.",
         "fighter": "Short strings, blocks late, never punishes.",
-        "arena": "Walks open lanes and aims after you do."
+        "arena": "Walks open lanes and aims after you do.",
+        "fleet": "Fires at random and sometimes forgets to follow up a hit."
       }
     },
     "medium": {
@@ -31,7 +32,8 @@
         "holdem": "Calls often and avoids going all in with weaker starting hands.",
         "word": "Guesses the most common word that fits every clue.",
         "fighter": "Anti-airs on reaction, drops long combos.",
-        "arena": "Holds angles, trades evenly in open fights."
+        "arena": "Holds angles, trades evenly in open fights.",
+        "fleet": "Hunts every other square, then works around a hit."
       }
     },
     "hard": {
@@ -45,7 +47,8 @@
         "holdem": "Mixes bets and protects strong starting hands.",
         "word": "Picks the guess from the remaining candidates that splits them best.",
         "fighter": "Whiff punishes and full combos on counter hit.",
-        "arena": "Pre-aims common peeks and wins first contact."
+        "arena": "Pre-aims common peeks and wins first contact.",
+        "fleet": "Hunts where ships fit best, then works around a hit."
       }
     },
     "champion": {
@@ -59,7 +62,8 @@
         "holdem": "Mixes choices and protects strong starting hands.",
         "word": "Looks a further guess ahead, choosing from every allowed word.",
         "fighter": "Reacts at the minimum delay; still blocks like a person.",
-        "arena": "Quick counter-aim at any range."
+        "arena": "Quick counter-aim at any range.",
+        "fleet": "Fires at the most likely square every time, hunting or finishing."
       }
     }
   },

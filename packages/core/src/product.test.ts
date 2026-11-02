@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { PRODUCT, gameCountWord } from './product'
 
 test('tagline is exact', () => {
-  expect(PRODUCT.tagline).toBe('Six games. Learning from you, starting with Four in a Row. Beat them if you can.')
+  expect(PRODUCT.tagline).toBe('Seven games. Learning from you, starting with Four in a Row. Beat them if you can.')
 })
 
 test('tagline count word follows the game count', () => {
@@ -17,9 +17,9 @@ test('tagline count word follows the game count', () => {
   expect(() => gameCountWord(11)).toThrow()
 })
 
-test('six games with display name and slug, no enabled flag', () => {
+test('seven games with display name and slug, no enabled flag', () => {
   const ids = Object.keys(PRODUCT.games).sort()
-  expect(ids).toEqual(['arena', 'chess', 'fighter', 'four', 'holdem', 'word'])
+  expect(ids).toEqual(['arena', 'chess', 'fighter', 'fleet', 'four', 'holdem', 'word'])
   for (const g of Object.values(PRODUCT.games)) {
     expect(g.displayName.length).toBeGreaterThan(0)
     expect(g.slug).toMatch(/^[a-z0-9-]+$/)
@@ -29,6 +29,9 @@ test('six games with display name and slug, no enabled flag', () => {
   expect(PRODUCT.games.four.displayName).toBe('Four in a Row')
   expect(PRODUCT.games.holdem.displayName).toBe("Heads-Up Hold'em")
   expect(PRODUCT.games.word.displayName).toBe('Word Duel')
+  expect(PRODUCT.games.fleet.displayName).toBe('Stormglass')
+  expect(PRODUCT.games.fleet.slug).toBe('stormglass')
+  expect(PRODUCT.games.fleet.kind).toBe('turn')
 })
 
 test('name never matches the rejected name', () => {

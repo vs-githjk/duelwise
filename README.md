@@ -2,7 +2,7 @@
 
 **Can you beat my agents?**
 
-Six games. Four opponents. Agents that learn.
+Seven games. Four opponents. Agents that learn.
 
 Pick a game and sit down across from Pip, Marlow, Vesper or Sable. Pip is easy to beat. Sable is not. Every match runs in your browser, every strength number comes from matches we actually played, and a level we could not prove is stronger than the one below it is labelled Practice instead of getting a number.
 
@@ -10,7 +10,7 @@ Duelwise is a working name. It lives in one file, `packages/core/src/product.ts`
 
 ## What it is
 
-Six games, each with a built-in opponent at four levels:
+Seven games, each with a built-in opponent at four levels:
 
 | Game | What it is |
 |---|---|
@@ -20,6 +20,7 @@ Six games, each with a built-in opponent at four levels:
 | Word Duel | Guess the hidden word in a duel. |
 | Tinderbox | A 2.5D fighter. Real time. |
 | Coldstore | A first-person arena shooter. Real time. |
+| Stormglass | Hidden fleets on a ten by ten grid. Find theirs first. |
 
 The four opponents are the same four people in every game, one per level:
 
@@ -53,7 +54,7 @@ On a phone, Tinderbox and Coldstore have touch controls, and the app installs an
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. | No |
 | Coldstore | The same method as Tinderbox. | No |
 
-"Learning from you, starting with Four in a Row", the line on the product, is where this stands. Making human matches train all six is on the roadmap.
+"Learning from you, starting with Four in a Row", the line on the product, is where this stands. Making human matches train all seven is on the roadmap.
 
 ## How it works
 
@@ -75,7 +76,7 @@ flowchart LR
   Registry --> Page
 ```
 
-- **`packages/core`** (TypeScript): six deterministic, seeded, headless game simulations behind one `GameCore` interface, the match record format, replay, Elo and the human input limiter. The same code runs in the browser, on the server and in training.
+- **`packages/core`** (TypeScript): seven deterministic, seeded, headless game simulations behind one `GameCore` interface, the match record format, replay, Elo and the human input limiter. The same code runs in the browser, on the server and in training.
 - **`packages/agents`** (TypeScript): the browser agent runtime, search and strategy code per game, level configs, the measurement harness, and `registry/<game>.json`, the file every strength number is read from.
 - **`apps/web`**: TanStack Start on Vite and Nitro, React 19, Tailwind 4. Drizzle on PGlite locally and Neon in production, Better Auth for Google and GitHub sign-in (optional, play works as a guest), Sentry in the browser. An installable offline app (service worker, queued uploads) is described in `docs/offline.md`.
 - **`training`** (Python 3.12, PyTorch): one supervisor that runs resumable, niced jobs under a CPU and GPU budget, a trainer per game, ONNX export, and the evaluation ladder that writes the registry.
@@ -142,7 +143,7 @@ Built in this repo, not yet proven on real devices or at launch scale:
 
 Planned:
 
-- Human matches train all six games, with the same filter and promote-only-if-it-wins gate Four in a Row has.
+- Human matches train all seven games, with the same filter and promote-only-if-it-wins gate Four in a Row has.
 - Tournament mode.
 - Community games: open the platform so anyone can add a game and have agents learn it (the guide above is the first step).
 - A native app.

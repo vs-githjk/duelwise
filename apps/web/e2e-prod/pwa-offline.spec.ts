@@ -58,7 +58,7 @@ async function boardCount(page: Page): Promise<number> {
 test('installs, plays Four in a Row offline on a ticket, and the match counts once back online', async ({ page, context }) => {
   test.setTimeout(240_000)
   await context.addInitScript(() => {
-    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
+    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
   })
 
   // 1. Online: the worker installs and takes over the page.

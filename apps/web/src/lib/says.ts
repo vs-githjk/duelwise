@@ -10,7 +10,7 @@ import { personaFor } from '../personas'
  */
 export type Situation = 'win' | 'loss' | 'closeLoss' | 'draw' | 'callWrong' | 'callRight'
 
-const UNIT: Record<GameId, string> = { word: 'guess', chess: 'move', four: 'move', fighter: 'round', arena: 'round', holdem: 'hand' }
+const UNIT: Record<GameId, string> = { word: 'guess', chess: 'move', four: 'move', fighter: 'round', arena: 'round', holdem: 'hand', fleet: 'shot' }
 
 export interface SaysInput {
   game: GameId
@@ -43,6 +43,8 @@ export function isCloseLoss(i: Pick<SaysInput, 'game' | 'result' | 'humanSeat' |
       return i.humanMoves > 30
     case 'four':
       return i.humanMoves > 15
+    case 'fleet':
+      return false
     case 'fighter':
     case 'arena':
       return typeof me === 'number' && typeof them === 'number' && them - me === 1
