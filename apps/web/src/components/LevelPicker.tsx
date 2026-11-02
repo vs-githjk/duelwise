@@ -35,7 +35,7 @@ export interface LevelPickerProps {
   descriptions?: Partial<Record<Level, string>>
   /** The page's own Start button (and its failure message). It sits under the name and the call, in the side column on a wide screen. */
   action?: ReactNode
-  /** The page sets its own setup block beside the picker, so the picker has less width: one column of level cards, and the side column only from xl. */
+  /** The page sets its own setup block beside the picker, so the picker has less width: one column of level cards and no side column at any width, with the Start button stuck to the bottom of the screen. */
   beside?: boolean
 }
 
@@ -63,7 +63,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   }, [gated, current, value])
   const practice = new Set(LEVELS.filter((l) => levels[l]?.practice || (levels[l]?.preview && !levels[l]?.inTraining)))
   return (
-    <div className={cn('grid gap-4', game && (beside ? 'max-lg:contents xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start' : 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start'))} data-testid="setup-picker">
+    <div className={cn('grid gap-4', game && (beside ? 'max-lg:contents' : 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start'))} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
     {game ? <ResignedNotice game={game} /> : null}
     {game ? <PathCard game={game} state={state} practice={practice} /> : null}
@@ -132,17 +132,17 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
     </fieldset>
     </div>
     {game ? (
-      // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column.
-      <div className={beside ? 'contents lg:grid lg:gap-4 xl:sticky xl:top-4' : 'contents lg:sticky lg:top-4 lg:grid lg:gap-4'}>
+      // Below lg this wrapper and the picker's own root disappear (display: contents), so the Start button is a child of the whole setup column and can stay stuck to the bottom of the screen from the first paint; on a wide screen it is the side column, or with `beside` it sits in the one column and only the Start button sticks.
+      <div className={beside ? 'contents' : 'contents lg:sticky lg:top-4 lg:grid lg:gap-4'}>
         <section className="grid gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5" aria-label="Before you play" data-testid="identity-card">
           <CallPicker game={game} path={path} />
         </section>
-        {action ? <div className="contents lg:grid lg:gap-2" data-testid="setup-action">{action}</div> : null}
+        {action ? <div className={beside ? 'contents lg:sticky lg:bottom-4 lg:z-20 lg:grid lg:gap-2' : 'contents lg:grid lg:gap-2'} data-testid="setup-action">{action}</div> : null}
       </div>
     ) : (
       action ?? null
     )}
-    {game ? <div className={beside ? 'xl:col-span-2' : 'lg:col-span-2'}><LearnGraph game={game} compact defaultLevel={current} /></div> : null}
+    {game ? <div className={beside ? undefined : 'lg:col-span-2'}><LearnGraph game={game} compact defaultLevel={current} /></div> : null}
     </div>
   )
 }

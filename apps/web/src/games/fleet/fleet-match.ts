@@ -25,7 +25,7 @@ export interface FleetMatch {
   log: Array<[Seat, number]>
 }
 
-// ---- Setup: the human's fleet, edited on the page before Ready -------------------------------
+// ---- Setup: the human's fleet, edited on the page before the start --------------------------
 
 type Spot = { cell: number; vertical: boolean }
 

@@ -16,7 +16,7 @@ const AGENT: Seat = 1
 const SHOT_BASE = 200
 
 /** What the page says when the server could not be reached for a request; never the server's own wording. */
-export const SETUP_FAILED = 'The match could not start. Check your connection and press Ready again.'
+export const SETUP_FAILED = 'The match could not start. Check your connection and press Start match again.'
 export const SHOT_FAILED = 'Shot not sent. Fire again.'
 export const MATCH_ENDED = 'This match has ended. Place your fleet to start a new one.'
 

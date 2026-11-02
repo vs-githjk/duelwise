@@ -4,6 +4,9 @@ import { expect, test, type Page } from '@playwright/test'
 // ?hold=0 removes the opponent's 700 ms pause so a whole match fits in the test timeout.
 test.use({ viewport: { width: 360, height: 780 } })
 
+/** A new player's path: the shared e2e state opens every stop, so this takes that key away before the page loads. */
+const lockPath = (page: Page) => page.addInitScript(() => localStorage.removeItem('duelwise.any'))
+
 test.describe('fleet dev page and promotion', () => {
   test('is promoted: listed on /play, played at /play/stormglass, no route at the internal id', async ({ page }) => {
     await page.goto('/play')
@@ -28,6 +31,7 @@ test.describe('fleet dev page and promotion', () => {
     await page.goto('/play/stormglass')
     const ready = page.getByTestId('fleet-ready')
     await expect(ready).toBeVisible()
+    await expect(ready).toHaveText(/^Start match vs \S+$/)
     expect(await page.evaluate(() => scrollY)).toBe(0)
     await expect(ready).toBeInViewport({ ratio: 1 })
     const y = async (l: ReturnType<Page['getByTestId']>) => (await l.boundingBox())!.y
@@ -260,7 +264,9 @@ test.describe('fleet dev page at desktop width', () => {
   for (const [width, height] of [[1024, 768], [1280, 800], [1440, 900]] as const) {
     test(`setup at ${width}: the fleet card sits left at 420 px, the picker to its right, and no badge leaves its card`, async ({ page }) => {
       await page.setViewportSize({ width, height })
+      await lockPath(page)
       await page.goto('/play/stormglass')
+      await expect(page.getByTestId('path-stop-champion')).toHaveAttribute('data-state', 'locked')
       const card = (await page.getByTestId('fleet-placement').boundingBox())!
       const picker = (await page.getByTestId('setup-picker').boundingBox())!
       expect(Math.abs(card.width - 420)).toBeLessThan(1)
@@ -274,6 +280,29 @@ test.describe('fleet dev page at desktop width', () => {
         }),
       )
       expect(rows).toHaveLength(4)
+      // The locked path has the longest labels, and its four portraits and their labels each keep clear of the next stop.
+      const stops = await page.getByTestId('path-stops').evaluate((ol) => {
+        const textRect = (el: Element) => {
+          const range = document.createRange()
+          range.selectNodeContents(el)
+          return range.getBoundingClientRect()
+        }
+        const items = [...ol.querySelectorAll(':scope > li')]
+        return {
+          scrollWidth: ol.scrollWidth,
+          clientWidth: ol.clientWidth,
+          portraits: items.map((li) => li.querySelector('[data-testid^="persona-avatar-"]')!.getBoundingClientRect().toJSON() as DOMRect),
+          names: items.map((li) => textRect(li.querySelector(':scope > b')!).toJSON() as DOMRect),
+          states: items.map((li) => textRect(li.querySelector(':scope > span:last-child')!).toJSON() as DOMRect),
+        }
+      })
+      expect(stops.portraits).toHaveLength(4)
+      expect(stops.scrollWidth).toBeLessThanOrEqual(stops.clientWidth)
+      for (const i of [0, 1, 2]) {
+        expect(stops.portraits[i + 1]!.left - stops.portraits[i]!.right, `portrait gap after stop ${i}`).toBeGreaterThanOrEqual(16)
+        expect(stops.names[i + 1]!.left - stops.names[i]!.right, `name gap after stop ${i}`).toBeGreaterThan(0)
+        expect(stops.states[i + 1]!.left - stops.states[i]!.right, `state label gap after stop ${i}`).toBeGreaterThan(0)
+      }
       const badged = rows.filter((r) => r.badgeRight !== null)
       expect(badged.length).toBeGreaterThan(0)
       for (const r of badged) {
@@ -281,23 +310,36 @@ test.describe('fleet dev page at desktop width', () => {
         expect(r.badgeClipped, `${r.level} badge text`).toBe(false)
       }
       // The picker's blocks stay in their own places: none lands on another, and Ready keeps its button height.
+      // Ready is sticky, so by design it rides over the picker column it belongs to until the page reaches its own slot; it still never reaches the fleet card.
       const blocks = await Promise.all(['fleet-placement', 'level-picker', 'identity-card', 'fleet-ready', 'learn-graph'].map(async (id) => ({ id, box: (await page.getByTestId(id).boundingBox())! })))
       for (const [i, a] of blocks.entries())
         for (const b of blocks.slice(i + 1)) {
+          if (a.id === 'fleet-ready' && b.id !== 'fleet-placement') continue
+          if (b.id === 'fleet-ready' && a.id !== 'fleet-placement') continue
           const overlap = a.box.x < b.box.x + b.box.width && b.box.x < a.box.x + a.box.width && a.box.y < b.box.y + b.box.height && b.box.y < a.box.y + a.box.height
           expect(overlap, `${a.id} over ${b.id}`).toBe(false)
         }
       expect(blocks.find((b) => b.id === 'fleet-ready')!.box.height).toBeLessThanOrEqual(64)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+      // At the foot of the page Ready is back in its own slot, clear of the blocks it rode over.
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+      const rest = async (id: string) => (await page.getByTestId(id).boundingBox())!
+      const [readyEnd, identityEnd, graphEnd] = [await rest('fleet-ready'), await rest('identity-card'), await rest('learn-graph')]
+      expect(readyEnd.y).toBeGreaterThanOrEqual(identityEnd.y + identityEnd.height)
+      expect(graphEnd.y).toBeGreaterThanOrEqual(readyEnd.y + readyEnd.height)
     })
   }
 
-  test('setup at 1440 x 900: Ready is above the fold', async ({ page }) => {
-    await page.goto('/play/stormglass')
-    await expect(page.getByTestId('fleet-ready')).toBeVisible()
-    expect(await page.evaluate(() => scrollY)).toBe(0)
-    await expect(page.getByTestId('fleet-ready')).toBeInViewport({ ratio: 1 })
-  })
+  for (const [width, height] of [[1024, 768], [1280, 800], [1440, 900]] as const) {
+    test(`setup at ${width} x ${height}: Ready is above the fold`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await lockPath(page)
+      await page.goto('/play/stormglass')
+      await expect(page.getByTestId('fleet-ready')).toBeVisible()
+      expect(await page.evaluate(() => scrollY)).toBe(0)
+      await expect(page.getByTestId('fleet-ready')).toBeInViewport({ ratio: 1 })
+    })
+  }
 
   test('two boards sit side by side with Fire under the left one', async ({ page }) => {
     await page.goto('/dev/fleet?hold=0')

@@ -266,7 +266,7 @@ describe('counted match through the engine', () => {
     expect(snap.failure).toBe(SETUP_FAILED)
     expect(log.discards).toBe(1)
     expect(log.resigned).toBe(0)
-    // Ready again starts a fresh match.
+    // Start match again starts a fresh match.
     await engine.start('easy', FLEET)
     expect(engine.snapshot().phase).toBe('play')
     expect(engine.snapshot().failure).toBeNull()

@@ -14,7 +14,7 @@ interface Game {
   inMatch: (page: Page) => ReturnType<Page['locator']>
   /** Real-time games keep their stage on screen at setup; the phase tells setup from play. */
   phased?: boolean
-  /** The setup screen's start button when it is not the shared "Start match" one (Stormglass places a fleet, then Ready). */
+  /** The setup screen's start button when it is not the shared "Start match" one (Stormglass places a fleet, then its own start button). */
   startButton?: (page: Page) => ReturnType<Page['locator']>
   /** A few inputs a player would make. */
   play: (page: Page) => Promise<void>

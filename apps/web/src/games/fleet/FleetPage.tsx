@@ -538,7 +538,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
   const pageTurn = started ? turn : 'setup'
 
-  // Ready is tapped far down the setup page; the match page is a different layout, so start it from the top rather than wherever the scroll was left.
+  // Start match is tapped far down the setup page; the match page is a different layout, so start it from the top rather than wherever the scroll was left.
   useEffect(() => {
     if (started) window.scrollTo(0, 0)
   }, [started])
@@ -651,7 +651,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         <>
           <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first.</p>
           <p className="text-sm text-muted">In counted matches the server keeps both fleets hidden until the match ends.</p>
-          {/* Up here, not by Ready: Ready is pinned to a phone's screen while its place in the page is far below, and a refused shot lands the player at the top of setup. */}
+          {/* Up here, not by Start match: that button is pinned to a phone's screen while its place in the page is far below, and a refused shot lands the player at the top of setup. */}
           {game.failure ? (
             <p ref={failureRef} role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
               {game.failure}
@@ -663,7 +663,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
             </p>
           ) : null}
           <PlayMode disabled={starting} />
-          {/* Below lg this wrapper disappears too, so Ready stays a child of the whole setup column and its sticky bar holds from the first paint. */}
+          {/* Below lg this wrapper disappears too, so Start match stays a child of the whole setup column and its sticky bar holds from the first paint. */}
           <div className="max-lg:contents lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-6">
             <div className="grid gap-3 rounded-card border border-line bg-surface p-3" data-testid="fleet-placement">
               <div className="flex items-center justify-between gap-2">
@@ -722,7 +722,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 data-testid="fleet-ready"
                 className="start-match min-h-14 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-60"
               >
-                Ready: start match vs {opponent}
+                Start match vs {opponent}
               </button>
             }
           />
