@@ -360,7 +360,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       if (snap.phase !== 'play') return
       const tick = snap.view ? stepsPlayed(snap.view) : 0
       epoch++
-      set({ phase: 'over', resigned: true, thinking: false, failure: null })
+      set({ phase: 'over', resigned: true, thinking: false, failure: null, unsentCell: null })
       await rec().resign(tick)
       clearMatch()
     },

@@ -226,6 +226,16 @@ describe('counted match through the engine', () => {
     expect(engine.snapshot().phase).toBe('over')
   })
 
+  test('resigning after a lost shot clears the lost square, so the over screen keeps no aim', async () => {
+    const { engine, snaps } = engineFor(SEALED, fakeServer({ loseReplyAt: 2 }))
+    await engine.start('easy', FLEET)
+    await engine.fire(10)
+    expect(engine.snapshot().unsentCell).toBe(10)
+    await engine.resign()
+    // What the page sees is what the engine emitted, not what it holds silently.
+    expect(snaps.at(-1)).toMatchObject({ phase: 'over', resigned: true, unsentCell: null, failure: null })
+  })
+
   test('a request that fails twice shows plain copy, never the server text, and the line goes with the next good reply', async () => {
     const server = fakeServer({ refuseAt: 2 })
     const { engine } = engineFor(SEALED, server)

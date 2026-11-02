@@ -526,5 +526,8 @@ test.describe('fleet: a counted match', () => {
     await page.getByTestId('fleet-resign-yes').click()
     await expect(root).toHaveAttribute('data-turn', 'over')
     await expect(page.getByRole('alert')).toHaveCount(0)
+    // The lost square is not kept aimed on the over screen either.
+    await expect(page.getByTestId('fleet-aim-chip')).toHaveText('')
+    await expect(page.locator('[data-testid^="fleet-cell-"][data-aimed]')).toHaveCount(0)
   })
 })

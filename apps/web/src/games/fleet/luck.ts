@@ -10,6 +10,8 @@ const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five']
 const N = FLEET_SIZE
 /** Fleets drawn per shot to estimate its hit chance. */
 const SAMPLES = 200
+/** Samples between two hand-backs of the main thread. */
+const SLICE = 25
 /** How much more often the proposal picks a position that covers one more open hit. */
 const FAVOUR = 8
 
@@ -49,7 +51,7 @@ function spotsOf(length: number): Int8Array {
  * the answer is the true posterior: weighted samples of fleets that fit every miss, cover every open hit, and hold no afloat ship lying wholly on hits.
  * A hunt that is skilful earns a high chance for the squares it picks; luck is only what is left over.
  */
-function posterior(miss: Uint8Array, hit: Uint8Array, open: number[], sunk: Array<Placement | null>, rng: ReturnType<typeof makeRng>): Float64Array {
+function* posterior(miss: Uint8Array, hit: Uint8Array, open: number[], sunk: Array<Placement | null>, rng: ReturnType<typeof makeRng>): Generator<void, Float64Array, void> {
   const sums = new Float64Array(CELLS)
   let weightSum = 0
   const fixed = new Uint8Array(CELLS)
@@ -64,6 +66,8 @@ function posterior(miss: Uint8Array, hit: Uint8Array, open: number[], sunk: Arra
   const legal = new Int32Array(CELLS * 2)
   const gain = new Float64Array(CELLS * 2)
   for (let n = 0; n < SAMPLES; n++) {
+    // A shot with many open hits rejects most samples and can take several times the usual: hand the thread back inside it too.
+    if (n > 0 && n % SLICE === 0) yield
     taken.fill(0)
     covered.fill(0)
     let weight = 1
@@ -134,8 +138,12 @@ function posterior(miss: Uint8Array, hit: Uint8Array, open: number[], sunk: Arra
   return out
 }
 
-/** Scores the shots of one player against the fleet they faced (their whole fleet, known once the match is over). */
-export function luckScore(shots: number[], target: Placement[]): LuckScore {
+/**
+ * Scores the shots of one player against the fleet they faced (their whole fleet, known once the match is over), a slice of one shot per step. A step
+ * is a few milliseconds, so a page can hand the main thread back between steps; the result is the same however the steps are spread, because
+ * the seeded sampler is drawn from in the same order.
+ */
+function* scoreSteps(shots: number[], target: Placement[]): Generator<void, LuckScore, void> {
   let seed = 0x57a6
   for (const p of target) seed = (Math.imul(seed, 31) + p.cell * 2 + (p.vertical ? 1 : 0)) >>> 0
   for (const c of shots) seed = (Math.imul(seed, 31) + c + 1) >>> 0
@@ -152,7 +160,7 @@ export function luckScore(shots: number[], target: Placement[]): LuckScore {
     if (cell < 0 || cell >= CELLS || shot[cell] === 1) continue
     const open: number[] = []
     for (let c = 0; c < CELLS; c++) if (hitCell[c] === 1 && !sunk.some((p) => p && shipCells(p).includes(c))) open.push(c)
-    const post = posterior(miss, hitCell, open, sunk, rng)
+    const post = yield* posterior(miss, hitCell, open, sunk, rng)
     // No sample fitted (a very rare board): share the unhit ship squares evenly over the unshot squares, which claims no skill and no luck.
     const p = post[cell]! >= 0 ? post[cell]! : target.reduce((a, q, i) => a + (sunk[i] ? 0 : q.length), 0) / (CELLS - shot.reduce((a, b) => a + b, 0))
     expected += p
@@ -162,13 +170,35 @@ export function luckScore(shots: number[], target: Placement[]): LuckScore {
     const ship = target.find((q) => shipCells(q).includes(cell))
     if (!ship) {
       miss[cell] = 1
-      continue
+    } else {
+      hits++
+      hitCell[cell] = 1
+      if (shipCells(ship).every((c) => hitCell[c] === 1)) sunk[ship.id] = ship
     }
-    hits++
-    hitCell[cell] = 1
-    if (shipCells(ship).every((c) => hitCell[c] === 1)) sunk[ship.id] = ship
+    yield
   }
   return { shots: scored, hits, expected, variance }
+}
+
+/** Synchronous scoring (the server's report, tests). */
+export function luckScore(shots: number[], target: Placement[]): LuckScore {
+  const run = scoreSteps(shots, target)
+  for (let step = run.next(); ; step = run.next()) if (step.done) return step.value
+}
+
+/**
+ * The same score for a page: before every slice it awaits `pause` (a frame or a timer), so no task is longer than one shot. `live` stops it early
+ * (returns null) when the page no longer wants the answer.
+ */
+export async function luckScoreSliced(shots: number[], target: Placement[], pause: () => Promise<void>, live: () => boolean = () => true): Promise<LuckScore | null> {
+  const run = scoreSteps(shots, target)
+  for (;;) {
+    // Hand back first, so the commit that asked for the score has painted before any of the work.
+    await pause()
+    if (!live()) return null
+    const step = run.next()
+    if (step.done) return step.value
+  }
 }
 
 export type LuckVerdict = 'lucky' | 'unlucky' | 'about even'

@@ -21,7 +21,7 @@ import { visibleRegistry } from '../../lib/strength-gates'
 import type { Result } from '@duelwise/core/src/types'
 import { playCue } from './sounds'
 import { strengthSentence } from './strength'
-import { fleetLuckLine, luckScore } from './luck'
+import { fleetLuckLine, luckScoreSliced, type LuckInput } from './luck'
 import { useFleetMatch } from './useFleetMatch'
 import { coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
 
@@ -338,6 +338,36 @@ function Tally({ sunk, testId, fresh = null }: { sunk: Set<number>; testId: stri
 }
 
 /** The line under the small map: the latest shot, or, when a request failed, what went wrong (same fixed height, so nothing moves). */
+type LuckBase = Omit<LuckInput, 'score'>
+
+/**
+ * The luck line of the result. It owns its state, so the line arriving re-renders only this paragraph and not the page, and it scores after the
+ * result is on screen, a slice at a time, never in render. The invisible copy of a same-length line holds its place from the first paint.
+ */
+function LuckLine({ base, slot, shots, target, ready }: { base: LuckBase; slot: string; shots: number[]; target: Placement[]; ready: boolean }) {
+  const [line, setLine] = useState<string | null>(null)
+  useEffect(() => {
+    if (!ready) return
+    let live = true
+    void luckScoreSliced(shots, target, () => new Promise<void>((r) => setTimeout(r, 0)), () => live).then((score) => {
+      if (live && score) setLine(fleetLuckLine({ ...base, score }))
+    })
+    return () => {
+      live = false
+    }
+  }, [base, shots, target, ready])
+  return (
+    <p className="relative text-sm text-muted" data-testid="fleet-luck-slot">
+      <span aria-hidden="true" className="invisible">
+        {slot}
+      </span>
+      <span className={`absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none ${line ? 'opacity-100' : 'opacity-0'}`} data-testid="fleet-luck">
+        {line}
+      </span>
+    </p>
+  )
+}
+
 function EventLine({ event, failure }: { event: string; failure: string | null }) {
   return failure ? (
     <p role="alert" className="h-10 overflow-hidden text-sm text-bad-ink" data-testid="fleet-failure">
@@ -526,21 +556,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     playCue(viewWon(view) ? 'win' : 'lose', 1, viewWon(view) && hold > 0 ? LAST_SINK_HOLD_MS : 400)
   }, [over, resigned, view, hold])
 
-  // The luck line (spec 2.6) needs their whole fleet, which the server sends only once the match is over.
-  const luck = useMemo(() => {
-    if (!over || resigned || !view?.reveal) return null
-    const found = view.sunk.length
-    if (found === 0) return null
-    const won = viewWon(view)
-    return fleetLuckLine({
-      won,
-      winnerShots: won ? view.shots.length : view.incoming.length,
-      found,
-      score: luckScore(view.shots.map((s) => s.cell), view.reveal),
-      opponent,
-    })
-  }, [over, resigned, view, opponent])
-
   // Cues, the live line and the flash on my small map follow what the view gained: a shot of mine, or a shot at me.
   const seen = useRef({ shots: 0, incoming: 0 })
   useEffect(() => {
@@ -647,6 +662,24 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     const t = setTimeout(() => setResultDue(true), LAST_SINK_HOLD_MS)
     return () => clearTimeout(t)
   }, [holdResult])
+  // The luck line (spec 2.6) needs their whole fleet, which the server sends only once the match is over. Scoring it takes a few milliseconds a shot,
+  // so it never runs in render: it starts once the result is on screen and hands the main thread back after every shot. Its slot is reserved
+  // from the first paint, sized by a line of the same length, so the line arriving moves nothing.
+  const luckBase = useMemo((): LuckBase | null => {
+    if (!over || resigned || !view?.reveal) return null
+    const found = view.sunk.length
+    if (found === 0) return null
+    const won = viewWon(view)
+    return { won, winnerShots: won ? view.shots.length : view.incoming.length, found, opponent }
+  }, [over, resigned, view, opponent])
+  const luckShots = useMemo(() => (view ? view.shots.map((s) => s.cell) : []), [view])
+  const luckSlot = useMemo(() => {
+    if (!luckBase || !view) return null
+    const hits = view.shots.filter((s) => s.hit).length
+    // The longest verdict a result can carry: a win reads "about even" and a loss "lucky, and still lost on the chase".
+    return fleetLuckLine({ ...luckBase, score: { shots: view.shots.length, hits, expected: luckBase.won ? hits : hits - 10, variance: 1 } })
+  }, [luckBase, view])
+  const luckReady = over && (!holdResult || resultDue)
   const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned ? 'resigned' : 'fleet sunk' } : null
   const resultNode =
     result && view && (!holdResult || resultDue) ? (
@@ -678,11 +711,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                   <figcaption className="text-xs text-muted">Your waters</figcaption>
                 </figure>
               </div>
-              {luck ? (
-                <p className="text-sm text-muted" data-testid="fleet-luck">
-                  {luck}
-                </p>
-              ) : null}
+              {luckSlot && luckBase && view.reveal ? <LuckLine base={luckBase} slot={luckSlot} shots={luckShots} target={view.reveal} ready={luckReady} /> : null}
             </div>
           ) : null
         }

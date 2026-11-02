@@ -484,6 +484,32 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('result-reason')).toContainText('sank')
     await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
   })
+
+  test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their boxes', async ({ page, context }) => {
+    const fleet = await seededMatch(page, 0)
+    const cells = fleet.flatMap(shipCells)
+    // A slow phone: scoring takes long enough that the page is seen without the line first.
+    await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: 6 })
+    for (const cell of cells) {
+      await fireAt(page, cell)
+      if (cell !== cells.at(-1)) await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    }
+    const panel = page.getByTestId('result-panel')
+    const slot = page.getByTestId('fleet-luck-slot')
+    await expect(slot).toBeAttached()
+    // Sizes and document height: the page may scroll the result into view meanwhile, which moves y but not what is laid out.
+    const boxes = async () => {
+      const [p, sl] = [await panel.boundingBox(), await slot.boundingBox()]
+      return { panel: [p!.width, p!.height], slot: [sl!.width, sl!.height], doc: await page.evaluate(() => document.documentElement.scrollHeight) }
+    }
+    await expect(panel).toBeVisible()
+    expect(await page.getByTestId('fleet-luck').textContent()).toBe('')
+    const before = await boxes()
+    await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
+    // Let the fade finish, then compare: the line is in its reserved slot.
+    await expect(page.getByTestId('fleet-luck')).toHaveCSS('opacity', '1')
+    expect(await boxes()).toEqual(before)
+  })
 })
 
 test.describe('fleet play details', () => {

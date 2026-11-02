@@ -3,7 +3,7 @@ import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { shotsToSink } from '@duelwise/agents/src/fleet/measure'
 import { shipCells, type Placement } from '@duelwise/core/src/games/fleet'
 import { makeRng } from '@duelwise/core/src/rng'
-import { fleetLuckLine, luckScore, luckVerdict } from './luck'
+import { fleetLuckLine, luckScore, luckScoreSliced, luckVerdict } from './luck'
 
 type Hunt = { fired: number[]; fleet: Placement[] }
 
@@ -49,6 +49,17 @@ describe('the luck measure is skill neutral', () => {
     expect(s.shots).toBe(1)
     expect(s.expected).toBeGreaterThan(0.12)
     expect(s.expected).toBeLessThan(0.32)
+  })
+
+  test('spread over timer ticks the score is exactly the synchronous one, a few ticks per shot, and it stops when the page leaves', async () => {
+    const hunt = shotsToSink('medium', 70_002)
+    let pauses = 0
+    const sliced = await luckScoreSliced(hunt.fired, hunt.fleet, async () => { pauses++ })
+    expect(sliced).toEqual(luckScore(hunt.fired, hunt.fleet))
+    expect(pauses).toBeGreaterThanOrEqual(hunt.fired.length)
+    let alive = true
+    const gone = await luckScoreSliced(hunt.fired, hunt.fleet, async () => { alive = false }, () => alive)
+    expect(gone).toBeNull()
   })
 
   test('the same shots against the same fleet always score the same', () => {
