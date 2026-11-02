@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import type { Level } from '@duelwise/core/src/product'
 import { runMatches, type GameRecord } from '../measure/harness'
 import { evaluatePair, wilson, type PairStats } from '../measure/ladder'
@@ -7,8 +8,8 @@ type PairBudget = Parameters<typeof evaluatePair>[1]
 
 /**
  * Twelve Yards dry ladder (TY3). Not a registry: it plays each adjacent pair through the real harness on the module-path core
- * and writes the numbers to plan/bench/penalty-dry-ladder.json. `game: 'four'` is only a label; the module-path core wins.
- * Run: nice -n 10 /Users/vidyutsriram/projects/beatme/plan/heavy-lock.sh bun packages/agents/src/penalty/dry-ladder.ts
+ * and writes the numbers to the absolute path given as `out` (the CLI takes it as argv[2]). `game: 'four'` is only a label; the module-path core wins.
+ * Run: nice -n 10 heavy-lock.sh bun packages/agents/src/penalty/dry-ladder.ts <abs path to plan/bench/penalty-dry-ladder.json>
  */
 const BUDGET: PairBudget = { maxGames: 800, looks: [] }
 const SEAT_GAMES = 400
@@ -16,7 +17,6 @@ const CORE = { module: '@duelwise/core/src/games/penalty', export: 'createPenalt
 const AGENT = import.meta.dir + '/agent.ts'
 const RANDOM = import.meta.dir + '/../measure/four-random.ts'
 const EQUILIBRIUM = import.meta.dir + '/equilibrium-agent.ts'
-export const OUT = '/Users/vidyutsriram/projects/beatme/plan/bench/penalty-dry-ladder.json'
 
 type Ref = { level: Level; module: string }
 const level = (l: Level): Ref => ({ level: l, module: AGENT })
@@ -72,7 +72,7 @@ async function play(label: string, a: Ref, b: Ref, seedBase: number): Promise<Pa
   return { label, ...stats, passed: stats.passed && perSeatOk, bySeat, distinctHashes: hashes.size }
 }
 
-export async function runDryLadder(opts: { write?: boolean } = {}): Promise<LadderReport> {
+export async function runDryLadder(opts: { out?: string } = {}): Promise<LadderReport> {
   const pairs: PairReport[] = []
   for (const p of PAIRS) pairs.push(await play(p.label, p.a, p.b, p.seedBase))
   // Report only, no bar (claim C5): Sable against a player who truly mixes.
@@ -85,15 +85,15 @@ export async function runDryLadder(opts: { write?: boolean } = {}): Promise<Ladd
     equilibrium,
     allPass: pairs.every((p) => p.passed),
   }
-  if (opts.write !== false) {
-    mkdirSync(OUT.slice(0, OUT.lastIndexOf('/')), { recursive: true })
-    writeFileSync(OUT, JSON.stringify(report, null, 2) + '\n')
+  if (opts.out) {
+    mkdirSync(dirname(opts.out), { recursive: true })
+    writeFileSync(opts.out, JSON.stringify(report, null, 2) + '\n')
   }
   return report
 }
 
 if (import.meta.main) {
-  const r = await runDryLadder()
+  const r = await runDryLadder({ out: process.argv[2] })
   for (const p of [...r.pairs, r.equilibrium]) {
     console.log(`${p.label}: ${p.score.toFixed(3)} [${p.ci95[0].toFixed(3)}, ${p.ci95[1].toFixed(3)}] seat0 ${p.bySeat[0].score.toFixed(3)} (lb ${p.bySeat[0].ci95[0].toFixed(3)}) seat1 ${p.bySeat[1].score.toFixed(3)} (lb ${p.bySeat[1].ci95[0].toFixed(3)}) hashes ${p.distinctHashes} passed ${p.passed}`)
   }

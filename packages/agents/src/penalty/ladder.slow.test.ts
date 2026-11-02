@@ -3,7 +3,7 @@ import { PAIRS, runDryLadder, type PairReport } from './dry-ladder'
 
 // Twelve Yards dry ladder gate (TY3). 800 games per pair through the real harness, 400 per seat.
 // Named .slow so run_suite.py skips it. Run it under heavy-lock.sh: bun test packages/agents/src/penalty/ladder.slow.test.ts
-const report = await runDryLadder({ write: false })
+const report = await runDryLadder()
 
 describe('Twelve Yards dry ladder, through the real harness', () => {
   test('four pairs, 800 games each, 400 per seat', () => {
