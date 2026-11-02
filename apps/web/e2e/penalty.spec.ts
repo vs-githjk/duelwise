@@ -41,6 +41,24 @@ async function expectStill(locator: Locator, start: Spot, label: string) {
   expect(Math.abs(now.top - start.top), `${label}: scene moved on screen`).toBeLessThanOrEqual(2)
 }
 
+// Added: the viewport top on every frame (no scrollY added), so a scroll that undoes itself between two checks still shows on screen.
+async function watchScreen(locator: Locator) {
+  await locator.evaluate((el) => {
+    const w = window as unknown as { __screen: number[] }
+    w.__screen = []
+    const tick = () => {
+      w.__screen.push(el.getBoundingClientRect().top)
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+}
+async function expectNoScreenShift(page: Page, label: string) {
+  const tops = await page.evaluate(() => (window as unknown as { __screen: number[] }).__screen)
+  expect(tops.length, `${label}: screen frames were recorded`).toBeGreaterThan(10)
+  expect(Math.max(...tops) - Math.min(...tops), `${label}: moved on screen during a frame`).toBeLessThanOrEqual(2)
+}
+
 async function expectNoOverflow(page: Page, label: string) {
   const w = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }))
   expect(w.scroll, `${label}: horizontal overflow`).toBeLessThanOrEqual(w.client)
@@ -88,6 +106,7 @@ test.describe('Twelve Yards at 360 wide', () => {
     await expectNoOverflow(page, 'before the first kick')
     await expectTargets(page, 'before the first kick')
     await watchFrames(scene)
+    await watchScreen(scene)
     const first = await spot(scene)
 
     const roles = new Set<string>()
@@ -99,6 +118,7 @@ test.describe('Twelve Yards at 360 wide', () => {
       if (kicks === 3) {
         await expectStill(scene, first, 'penalty after three kicks')
         await expectNoFrameShift(page, 'penalty after three kicks')
+        await expectNoScreenShift(page, 'penalty after three kicks')
         await expectNoOverflow(page, 'after three kicks')
         await expectTargets(page, 'after three kicks')
       }
@@ -107,6 +127,7 @@ test.describe('Twelve Yards at 360 wide', () => {
     expect(kicks, 'the seed reaches sudden death').toBeGreaterThan(10)
     await expect(page.getByTestId('penalty-result')).toContainText(/You win\.|wins\.|A draw\./)
     await expectNoFrameShift(page, 'penalty whole match, role change, sudden death and result')
+    await expectNoScreenShift(page, 'penalty whole match, role change, sudden death and result')
     await expectStill(scene, first, 'penalty result')
     await expectNoOverflow(page, 'result')
     await expectTargets(page, 'result')
@@ -160,6 +181,7 @@ test.describe('Twelve Yards at 360 wide', () => {
   })
 
   test('the page before a commit is identical whatever the agent will pick, and the scene carries no inline style', async ({ page }) => {
+    test.setTimeout(120_000)
     // Wording-free guard: the markup of the whole page (clock stripped) must be byte-identical on seeds where the agent's first pick differs,
     // so no attribute, class, variable or text can carry the coming pick. The picks are read after the commit, only to prove the seeds differ.
     const seeds = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -169,23 +191,54 @@ test.describe('Twelve Yards at 360 wide', () => {
         copy.querySelectorAll('[data-volatile]').forEach((n) => n.remove())
         return copy.outerHTML
       })
+    // Second variant: the page minus the two nodes that legitimately hold history (last kick and score).
+    const htmlNoHistory = async () =>
+      page.getByTestId('penalty-page').evaluate((el) => {
+        const copy = el.cloneNode(true) as HTMLElement
+        copy.querySelectorAll('[data-volatile],[data-testid=penalty-last],[data-testid=penalty-score]').forEach((n) => n.remove())
+        return copy.outerHTML
+      })
     const before: string[] = []
+    const afterTap: string[] = []
+    const afterKick: string[] = []
+    const kickTwo: string[] = []
     const picks = new Set<string>()
+    const picksTwo = new Set<string>()
+    const tags = () => page.locator('.pen-tag').evaluateAll((els) => els.map((e) => (e as HTMLElement).style.left).join('|'))
     for (const seed of seeds) {
       await start(page, seed)
       const scene = page.getByTestId('penalty-scene')
       expect((await scene.getAttribute('style')) ?? '', `seed ${seed}: scene has no inline style before a reveal`).toBe('')
       before.push(await html())
       await page.getByTestId('penalty-zone-0').tap()
+      await expect(page.getByTestId('penalty-zone-0')).toHaveAttribute('aria-pressed', 'true')
+      afterTap.push(await html())
       await page.getByTestId('penalty-zone-0').tap()
       await expect(scene).toHaveAttribute('data-reveal', /set|go/)
-      picks.add((await page.locator('.pen-tag').evaluateAll((els) => els.map((e) => (e as HTMLElement).style.left))).join('|'))
+      await expect(page.locator('.pen-tag')).toHaveCount(2)
+      picks.add(await tags())
+      await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
+      afterKick.push(await htmlNoHistory())
+      // Kick two: select a zone and compare again, then commit and read the second pick.
+      await page.getByTestId('penalty-zone-0').tap()
+      await expect(page.getByTestId('penalty-zone-0')).toHaveAttribute('aria-pressed', 'true')
+      kickTwo.push(await htmlNoHistory())
+      await page.getByTestId('penalty-zone-0').tap()
+      await expect(scene).toHaveAttribute('data-reveal', /set|go/)
+      await expect(page.locator('.pen-tag')).toHaveCount(2)
+      picksTwo.add(await tags())
       await expect(scene).not.toHaveAttribute('data-reveal', /set|go/, { timeout: 5000 })
       // Between kicks the scene is back to bare too (the next pick may already exist in the core, never in the markup).
       expect((await scene.getAttribute('style')) ?? '', `seed ${seed}: scene has no inline style between kicks`).toBe('')
     }
     expect(picks.size, 'the seeds really give different agent picks').toBeGreaterThan(1)
-    for (let i = 1; i < before.length; i++) expect(before[i], `seed ${seeds[i]} markup differs from seed ${seeds[0]} before the commit`).toBe(before[0])
+    expect(picksTwo.size, 'the seeds really give different second picks').toBeGreaterThan(1)
+    for (let i = 1; i < before.length; i++) {
+      expect(before[i], `seed ${seeds[i]} markup differs from seed ${seeds[0]} before the commit`).toBe(before[0])
+      expect(afterTap[i], `seed ${seeds[i]} after a tap differs from seed ${seeds[0]}`).toBe(afterTap[0])
+      expect(afterKick[i], `seed ${seeds[i]} after kick one differs from seed ${seeds[0]}`).toBe(afterKick[0])
+      expect(kickTwo[i], `seed ${seeds[i]} kick two differs from seed ${seeds[0]}`).toBe(kickTwo[0])
+    }
   })
 
   test('the action button commits the selected zone', async ({ page }) => {
