@@ -46,7 +46,8 @@ export async function ownerViewHandler(
   if (!isOwner(user, env)) return NOT_FOUND
   const p = parseOwnerParams(q)
   const { zone, zoneFallback } = await zoneFor(db, q.tz)
-  const from = new Date(now.getTime() - 2 * RANGE_MS[p.range])
+  // One extra day: a daily range opens at local midnight, which can be up to a day and an hour before now - range, and the comparison period sits before that.
+  const from = new Date(now.getTime() - 2 * RANGE_MS[p.range] - 86_400_000)
   const rows = await db.select().from(schema.telemetryEvent).where(gte(schema.telemetryEvent.at, from)).orderBy(sql`${schema.telemetryEvent.at} desc`).limit(EVENT_CAP)
   const events: EventRow[] = rows.map((r) => ({
     at: r.at, kind: r.kind, matchId: r.matchId, game: r.game, level: r.level, persona: r.persona, device: r.device, durationMs: r.durationMs,

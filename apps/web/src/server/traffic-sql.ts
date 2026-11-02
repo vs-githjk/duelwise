@@ -72,10 +72,6 @@ export function addTo(s: Split, cls: unknown, n: number): void {
   s.total += n
 }
 
-/**
- * The zone to use for a request: the asked one when Intl knows it and the database accepts it, else UTC (flagged). The name only ever
- * reaches SQL as a bound parameter. Checking it against the database too means an odd name Intl knows but Postgres does not cannot fail a page.
- */
 const goodZones = new Set<string>()
 /** Postgres says this for a name it does not know: time zone "Mars/Base" not recognized. Matched on the text of the error and its causes, because drizzle wraps driver errors and the exact shape on Neon is not verified. */
 const notRecognised = (e: unknown): boolean => {
@@ -84,6 +80,10 @@ const notRecognised = (e: unknown): boolean => {
   }
   return false
 }
+/**
+ * The zone to use for a request: the asked one when Intl knows it and the database accepts it, else UTC (flagged). The name only ever
+ * reaches SQL as a bound parameter. Checking it against the database too means an odd name Intl knows but Postgres does not cannot fail a page.
+ */
 export async function zoneFor(db: { execute: (q: SQL) => Promise<unknown> }, raw: unknown): Promise<ZoneInfo> {
   const z = resolveZone(raw)
   if (z.zoneFallback || goodZones.has(z.zone)) return z

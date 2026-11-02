@@ -237,14 +237,15 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
   const hourly = range === '24h'
   const count = hourly ? 24 : range === '7d' ? 7 : 30
   // 24 h is a rolling day of hourly buckets. 7 and 30 days are whole calendar days in the zone: today plus the days before it,
-  // from local midnight of the first day. The comparison period is the same number of days just before.
+  // from local midnight of the first day. The comparison period is the same number of days just before, cut off after the same elapsed time as the current period, so a flat week reads as no change at any hour.
   const dayKeys = Array.from({ length: count }, (_, i) => addDays(dayKeyIn(now, zone), -(count - 1 - i)))
   const span = RANGE_MS['24h']
   const since = hourly ? now.getTime() - span : dayStartIn(dayKeys[0]!, zone)
   const prevSince = hourly ? since - span : dayStartIn(addDays(dayKeys[0]!, -count), zone)
   const filtered = input.events.filter((e) => (!input.game || e.game === input.game) && (!input.level || e.level === input.level))
   const cur = filtered.filter((e) => e.at.getTime() >= since && e.at.getTime() <= now.getTime())
-  const prev = filtered.filter((e) => e.at.getTime() >= prevSince && e.at.getTime() < since)
+  const prevEnd = Math.min(since, prevSince + (now.getTime() - since))
+  const prev = filtered.filter((e) => e.at.getTime() >= prevSince && e.at.getTime() < prevEnd)
   const isNew = (ref: string) => (input.firstSeen.get(ref)?.getTime() ?? Infinity) >= since
 
   // Buckets: hourly for 24 h, one per calendar day otherwise. Labels are on the clock and calendar of the asked zone.

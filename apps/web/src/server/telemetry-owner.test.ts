@@ -53,6 +53,18 @@ describe('owner view time zone', () => {
   })
 })
 
+describe('owner view previous period reaches back far enough', () => {
+  test('an event in the first half hour of the previous 7 days after a 25 hour day is fetched and counted', async () => {
+    const now = new Date('2026-11-02T04:30:00.000Z') // 23:30 EST Nov 1; the previous period opens Oct 19 00:00 EDT = 04:00Z
+    await db.insert(schema.telemetryEvent).values(['match_started', 'match_finished'].map((kind) => ({
+      id: crypto.randomUUID(), at: new Date('2026-10-19T04:10:00.000Z'), kind: kind as schema.TelemetryKind, matchId: 'gap', game: 'chess', level: 'easy', persona: 'Pip',
+      device: 'phone', trainingBasis: 'legitimate-interest', playerRef: 'pl_gap', playerKind: 'user', ...(kind === 'match_finished' ? { outcome: 'human', durationMs: 1000 } : {}),
+    })))
+    const body = (await ownerViewHandler(db, OWNER, ENV, { range: '7d', tz: 'America/New_York', who: 'all' }, () => null, now)).body as import('./telemetry-stats').OwnerViewBody
+    expect(body.kpis.matches.previous).toBe(2) // the match seeded on Oct 22 plus the one in the gap
+  })
+})
+
 describe('owner view access', () => {
   test('a non-owner, a signed-out visitor and a missing allowlist all get 404 and no data', async () => {
     // The allowlisted email with the address not verified by the provider is not the owner either (M4).

@@ -717,8 +717,8 @@ describe('owner time zone', () => {
   test('only an unrecognised zone falls back to UTC; any other database failure is not hidden', async () => {
     const down = { execute: async () => { throw new Error('connection terminated unexpectedly') } }
     await expect(zoneFor(down, 'Africa/Nairobi')).rejects.toThrow('connection terminated')
-    const wrapped = { execute: async () => { throw Object.assign(new Error('Failed query: select ...'), { cause: new Error('time zone "Mars/Base" not recognized') }) } }
-    expect(await zoneFor(wrapped, 'Mars/Base')).toEqual({ zone: 'UTC', zoneFallback: true })
+    const wrapped = { execute: async () => { throw Object.assign(new Error('Failed query: select ...'), { cause: new Error('time zone "Africa/Lagos" not recognized') }) } }
+    expect(await zoneFor(wrapped, 'Africa/Lagos')).toEqual({ zone: 'UTC', zoneFallback: true })
     // a good zone is remembered, so the probe is not repeated
     let probes = 0
     const counting = { execute: async () => { probes++ } }

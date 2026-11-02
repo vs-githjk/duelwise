@@ -220,6 +220,19 @@ describe('bucket labels follow the asked zone', () => {
     expect(v.kpis.matches.previous).toBe(2) // Oct 25 23:59 and Oct 19 00:00 EDT are in the previous 7 days; Oct 18 23:59 is before them
   })
 
+  test('flat traffic reads as no change against the period before, early and late in the day', () => {
+    // One match per player per hour from Oct 12 to now, in New York. Both periods are cut off after the same elapsed time.
+    const make = (now: Date) => {
+      const evs: EventRow[] = []
+      for (let t = now.getTime() - 20 * 86_400_000; t <= now.getTime(); t += 3_600_000) evs.push(...played('human', { at: new Date(t), playerRef: 'pl_flat' }))
+      return view(evs, { now, zone: 'America/New_York' }).kpis.matches
+    }
+    for (const iso of ['2026-10-29T05:30:00.000Z', '2026-10-29T15:30:00.000Z', '2026-10-30T03:30:00.000Z']) {
+      const m = make(new Date(iso))
+      expect(Math.abs(m.value / m.previous - 1)).toBeLessThan(0.02)
+    }
+  })
+
   test('hourly labels are wall clock hours in the zone, across the fall-back hour', () => {
     const ny = view([], { range: '24h', now: new Date('2026-11-01T07:00:00.000Z'), zone: 'America/New_York' }) // 02:00 EST
     expect(ny.bucketLabels).toHaveLength(24)
