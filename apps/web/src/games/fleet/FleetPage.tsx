@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { FLEET_SIZE, SHIPS, shipCells, type Placement } from '@duelwise/core/src/games/fleet'
-import type { Level } from '@duelwise/core/src/product'
+import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { FLEET_LEVELS } from '@duelwise/agents/src/fleet/levels'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { GameShell } from '../../components/GameShell'
 import { ResultPanel } from '../../components/ResultPanel'
+import { LevelPicker } from '../../components/LevelPicker'
+import { PlayMode } from '../../components/PlayModeToggle'
+import { isOffline, subscribeConnection } from '../../lib/connection'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { personaFor, styleLine } from '../../personas'
@@ -25,12 +28,9 @@ import { CELLS, coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt,
 const registry = visibleRegistry(parseRegistry(fleetRegistryJson))
 const levelInfo = levelInfoFromRegistry(registry)
 
-const LEVELS: Array<{ id: Level; label: string }> = [
-  { id: 'easy', label: 'Easy' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'hard', label: 'Hard' },
-  { id: 'champion', label: 'Champion' },
-]
+function firstSelectable(): Level {
+  return (['easy', 'medium', 'hard', 'champion'] as const).find((l) => !levelInfo[l].inTraining) ?? 'easy'
+}
 
 const COLS = 'ABCDEFGHIJ'
 
@@ -331,7 +331,8 @@ function seedFromUrl(): number | undefined {
 
 /** `forceUnrated` is the dev page: it always plays on this page's own core, as it did before counted matches existed. */
 export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boolean } = {}) {
-  const [level, setLevel] = useState<Level>('easy')
+  const [level, setLevel] = useState<Level>(firstSelectable)
+  const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
   const [fleet, setFleet] = useState<Placement[]>(() => randomFleet(makeRng((Math.random() * 2 ** 32) >>> 0)))
   const [selected, setSelected] = useState<number | null>(null)
   const [flash, setFlash] = useState<{
@@ -643,20 +644,11 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       {!started ? (
         <>
           <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first.</p>
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Level">
-            {LEVELS.map((l) => (
-              <button
-                key={l.id}
-                type="button"
-                aria-pressed={level === l.id}
-                onClick={() => setLevel(l.id)}
-                disabled={starting}
-                className={`min-h-11 rounded-control border px-4 font-semibold disabled:opacity-60 ${level === l.id ? 'border-action bg-action text-action-ink' : 'border-line bg-surface'}`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+          {offline ? (
+            <p className="text-sm text-muted" data-testid="fleet-offline-line">
+              Rated Stormglass needs a connection, because the server keeps the hidden fleets. Practice works offline.
+            </p>
+          ) : null}
           <div className="grid gap-3 rounded-card border border-line bg-surface p-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-display-sm">Your fleet</h2>
@@ -699,6 +691,15 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               </button>
             </div>
           </div>
+          <PlayMode disabled={starting} />
+          <LevelPicker
+            value={level}
+            onChange={setLevel}
+            levels={levelInfo}
+            statsSlug={PRODUCT.games.fleet.slug}
+            disabled={starting}
+            action={
+              <>
           <div className="h-14" data-testid="fleet-failure-slot">
             {game.failure ? (
               <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
@@ -715,6 +716,9 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
           >
             Ready: start match vs {opponent}
           </button>
+              </>
+            }
+          />
         </>
       ) : (
         <>
