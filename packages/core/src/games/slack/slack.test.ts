@@ -61,11 +61,11 @@ describe('slackwater core', () => {
     cells[at(3, 0)] = 2
     cells[at(3, 1)] = 1
     expect(flipsFor(cells, 1, at(2, 7))).toEqual([])
-    // Up-left from (2,0) would wrap to (1,7)... seat 1 at (1,0) and seat 0 at (0,7) must not close a line from (2,0).
+    // West from (3,0) would wrap to (2,7) if columns were not bounded: seat 1 at (2,7) closed by seat 0 at (2,6) must not flip.
     const c2 = new Array<number>(64).fill(0)
-    c2[at(0, 7)] = 1
-    c2[at(1, 0)] = 2
-    expect(flipsFor(c2, 1, at(2, 0))).toEqual([])
+    c2[at(2, 7)] = 2
+    c2[at(2, 6)] = 1
+    expect(flipsFor(c2, 1, at(3, 0))).toEqual([])
     // plain horizontal run that would only be closed by a wrapped disc is not a flip
     const c3 = new Array<number>(64).fill(0)
     c3[at(4, 6)] = 2
@@ -113,6 +113,15 @@ describe('slackwater core', () => {
     expect(slackCore.legal(s, 0)).toEqual([])
     expect(slackCore.legal(s, 1)).toEqual([])
     expect(() => act(s, PASS)).toThrow()
+  })
+
+  test('the game ends at once when both colours remain but neither seat can move', () => {
+    const s = board(['x.o.....', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY], 0)
+    expect(slackCore.terminal(s)).toBe(true)
+    expect(slackCore.toAct(s)).toEqual([])
+    expect(slackCore.legal(s, 0)).toEqual([])
+    expect(slackCore.legal(s, 1)).toEqual([])
+    expect(slackCore.result(s)).toEqual({ winner: null, score: [0.5, 0.5], reason: 'level on discs' })
   })
 
   test('ending move: the game is over right after the last flip when the other seat is stuck', () => {
