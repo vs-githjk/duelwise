@@ -503,13 +503,17 @@ test.describe('fleet: a counted match', () => {
     await cell.click()
     await cell.click()
     await expect(page.getByTestId('fleet-failure')).toBeVisible()
-    await expect(page.getByRole('alert')).toContainText(/shot not sent/i)
+    await expect(page.getByRole('alert')).toContainText(/shot at [A-J]\d+ not sent\. press fire to send it again/i)
     await fits()
     expect(aborts).toBe(4)
-    // Another square now: the lost shot is sent first and the match goes on, with no error line left.
+    // Another square now: the lost shot stays aimed and locked (Fire can only send it again), so the tap changes nothing and the line stays true.
     const other = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').nth(5)
     await other.click()
     await other.click()
+    await expect(page.getByRole('alert')).toHaveCount(1)
+    await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(0)
+    // Fire sends the lost shot and the match goes on, with no error line left.
+    await page.getByTestId('fleet-fire').click()
     await expect(page.getByRole('alert')).toHaveCount(0)
     await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(1)
     // A failed shot, then Resign: the over screen keeps no stale "fire again" line.
@@ -517,7 +521,7 @@ test.describe('fleet: a counted match', () => {
     const third = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').nth(7)
     await third.click()
     await third.click()
-    await expect(page.getByRole('alert')).toContainText(/shot not sent/i)
+    await expect(page.getByRole('alert')).toContainText(/shot at [A-J]\d+ not sent\. press fire to send it again/i)
     await page.getByTestId('fleet-resign').click()
     await page.getByTestId('fleet-resign-yes').click()
     await expect(root).toHaveAttribute('data-turn', 'over')
