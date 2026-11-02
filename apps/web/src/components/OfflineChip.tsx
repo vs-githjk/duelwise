@@ -6,7 +6,7 @@ export function useOnline(): boolean {
   return !useSyncExternalStore(subscribeConnection, isOffline, () => false)
 }
 
-/** A small, calm chip while offline: finished matches are kept and sent later. */
+/** A small, calm chip while offline: finished matches are kept and sent later. It sits at the top of the screen, off the sticky Start bar, and never takes a tap. */
 export function OfflineChip() {
   const online = useOnline()
   // Check once on load, then often while offline (to notice the way back quickly) and rarely while online.
@@ -21,7 +21,7 @@ export function OfflineChip() {
   }, [])
   if (online) return null
   return (
-    <p role="status" data-testid="offline-chip" className="fixed bottom-3 left-3 z-50 rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow">
+    <p role="status" data-testid="offline-chip" className="pointer-events-none fixed left-1/2 top-[max(8px,env(safe-area-inset-top))] z-50 -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow">
       Offline: matches will sync later
     </p>
   )
