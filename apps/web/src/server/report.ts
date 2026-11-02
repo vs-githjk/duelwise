@@ -163,7 +163,7 @@ export async function getReport(db: Db, id: string, viewer: Viewer, deps: Report
     const ms = row.status === 'resigned' && row.finishedAt ? Math.max(0, row.finishedAt.getTime() - row.startedAt.getTime()) : 0
     // The server's own log says the player won before giving up: nothing was counted, and it was not a loss.
     if ((row.filterFlags as Record<string, unknown> | null)?.[LOGGED_WIN_FLAG] === true) {
-      const body = simpleBody(game, level, 'Your last shot sank the fleet before you saw the result. Nothing was counted.', "The player's last shot sank the fleet before the result was seen. Nothing was counted.", 0, 'win')
+      const body = simpleBody(game, level, 'Your last shot sank the fleet, but the match was not saved. Nothing was counted.', "The player's last shot sank the fleet, but the match was not saved. Nothing was counted.", 0, 'win')
       return { ...base, status: row.status, body: mine ? body : publicBody(body) }
     }
     const body = row.status === 'resigned' ? simpleBody(game, level, 'You resigned.', 'The player resigned.', ms) : simpleBody(game, level, 'The match was abandoned.', 'The match was abandoned.', ms)

@@ -773,7 +773,9 @@ describe('Stormglass: the seed is revealed after a loss, so the server\'s own lo
       const view = (await getReport(db, m.matchId, USER))!
       expect(view.status).toBe('resigned')
       expect(view.body!.outcome).toBe('win')
-      expect(view.body!.reason).not.toMatch(/resigned/i)
+      // True on every route (the player never saw the end, or saw it and the upload never landed): it says what is certain.
+      expect(view.body!.reason).toBe('Your last shot sank the fleet, but the match was not saved. Nothing was counted.')
+      expect(view.body!.publicReason).toBe("The player's last shot sank the fleet, but the match was not saved. Nothing was counted.")
       expect(view.owner!.rating).toBeNull()
       expect(await getCardFacts(db, m.matchId)).toBeNull()
       const other = await wonUnseen()

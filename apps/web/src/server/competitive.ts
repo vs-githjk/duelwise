@@ -26,7 +26,7 @@ export const notUnplayed = sql`coalesce((${schema.match.filterFlags}->>'unplayed
 
 /**
  * A sealed turn match the server's own log says the player won, settled by giving up (resign, abandon sweep, over-cap sweep) before the
- * player saw the end. Only a resigned or abandoned row is left out; a win that was uploaded and finished keeps counting. The player won, so it moves no rating either way, and it is not a loss on any record. The turn handler writes the
+ * win was uploaded: the player may or may not have seen the end. Only a resigned or abandoned row is left out; a win that was uploaded and finished keeps counting. The player won, so it moves no rating either way, and it is not a loss on any record. The turn handler writes the
  * marker with the terminal log; resign derives it from the log itself.
  */
 export const LOGGED_WIN_FLAG = 'loggedWin'
