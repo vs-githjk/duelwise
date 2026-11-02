@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { eq, sql } from 'drizzle-orm'
 import { encodeRecord } from '@duelwise/core/src/match-record'
-import type { GameId, Level } from '@duelwise/core/src/product'
+import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { adminActiveHandler, adminOverviewHandler, adminPeopleHandler, adminPlayerHandler, parsePeopleParams, type PlayerDetail } from './admin-owner'
@@ -218,7 +218,7 @@ describe('player drill-down', () => {
     // The arena win on a Practice level clears the stop on the path; the invalid word win does not.
     expect(d.path.find((p) => p.game === 'arena')!.cleared).toEqual({ easy: false, medium: false, hard: false, champion: true })
     expect(d.path.find((p) => p.game === 'word')!.cleared).toEqual({ easy: false, medium: false, hard: false, champion: false })
-    expect(d.path).toHaveLength(6)
+    expect(d.path).toHaveLength(Object.keys(PRODUCT.games).length)
     expect(JSON.stringify(d)).not.toContain('@')
   })
 
