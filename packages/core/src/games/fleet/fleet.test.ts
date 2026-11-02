@@ -274,19 +274,14 @@ describe('fleet core: observation hides the enemy fleet', () => {
   const placementJson = (p: { id: number; length: number; cell: number; vertical: boolean }): string =>
     JSON.stringify({ id: p.id, length: p.length, cell: p.cell, vertical: p.vertical })
 
-  /** Every ship of `other` that none of `seat`'s shots touched, so it is still entirely hidden. */
-  function untouched(s: FleetState, seat: 0 | 1): FleetState['ships'][0] {
-    const fired = new Set(s.shots[seat])
-    return s.ships[(1 - seat) as 0 | 1].filter((p) => !shipCells(p).some((c) => fired.has(c)))
-  }
-
-  /** Same state, but one untouched enemy ship sits somewhere else that is also unshot. Null when no such spot exists. */
+  /** Same state, but one unsunk enemy ship sits somewhere else covering exactly the same fired cells. Null when no such spot exists. */
   function moveHidden(s: FleetState, seat: 0 | 1, rng: ReturnType<typeof makeRng>): FleetState | null {
     const other = (1 - seat) as 0 | 1
-    const hidden = untouched(s, seat)
-    if (hidden.length === 0) return null
-    const ship = hidden[rng.int(hidden.length)]!
     const fired = new Set(s.shots[seat])
+    const unsunk = s.ships[other].filter((p) => !shipCells(p).every((c) => fired.has(c)))
+    if (unsunk.length === 0) return null
+    const ship = unsunk[rng.int(unsunk.length)]!
+    const hits = shipCells(ship).filter((c) => fired.has(c)).join()
     const others = new Set<number>()
     for (const p of s.ships[other]) if (p.id !== ship.id) for (const c of shipCells(p)) others.add(c)
     const spots: { cell: number; vertical: boolean }[] = []
@@ -297,7 +292,8 @@ describe('fleet core: observation hides the enemy fleet', () => {
         const col = cell % FLEET_SIZE
         if (vertical ? row + ship.length > FLEET_SIZE : col + ship.length > FLEET_SIZE) continue
         const cells = shipCells({ cell, vertical, length: ship.length })
-        if (cells.some((c) => fired.has(c) || others.has(c))) continue
+        if (cells.some((c) => others.has(c))) continue
+        if (cells.filter((c) => fired.has(c)).join() !== hits) continue
         spots.push({ cell, vertical })
       }
     }
@@ -321,10 +317,11 @@ describe('fleet core: observation hides the enemy fleet', () => {
           const json = JSON.stringify(o)
           checks++
           if (over) {
-            expect(o.reveal).not.toBeNull()
+            expect(o.reveal).toEqual(st.ships[(1 - seat) as 0 | 1])
             continue
           }
           expect(o.reveal).toBeNull()
+          expect(o.incoming.map((m) => m.cell)).toEqual(st.shots[(1 - seat) as 0 | 1])
           // 1. No placement of an enemy ship with any unhit cell appears anywhere in the serialised observation.
           const fired = new Set(st.shots[seat])
           const sunkIds = new Set(o.sunk.map((p) => p.id))
@@ -336,7 +333,7 @@ describe('fleet core: observation hides the enemy fleet', () => {
             expect(sunkIds.has(p.id)).toBe(false)
             expect(json.includes(placementJson(p))).toBe(false)
           }
-          // 2. Moving an untouched enemy ship to another unshot spot leaves the observation byte-identical.
+          // 2. Moving an unsunk enemy ship (hit or not) to another spot covering the same fired cells leaves the observation byte-identical.
           const alt = moveHidden(st, seat, rng)
           if (alt !== null) {
             moved++
