@@ -2,7 +2,7 @@ import { PASS, type SlackObs } from '@duelwise/core/src/games/slack/core'
 import type { Level } from '@duelwise/core/src/product'
 import type { Rng } from '@duelwise/core/src/types'
 import { fromCells, legalMoves, flipsOf } from './board'
-import { searchMove } from './search'
+import { searchMove, type SearchOpts } from './search'
 
 /**
  * Slackwater levels: four different algorithms, not one dial. Pip is a one-ply flip counter with a
@@ -74,12 +74,17 @@ export function chooseSlackAction(level: Level, obs: SlackObs, rng: Rng): number
     return top[rng.int(top.length)]!
   }
   // Observation cells already put the mover as 1, so the search is told seat 0.
-  return searchMove(obs.cells, 0, {
+  return searchMove(obs.cells, 0, slackSearchOpts(cfg, obs, rng)).move
+}
+
+/** The exact options a search level hands to `searchMove` for an observation; the one place the level config meets the search. */
+export function slackSearchOpts(cfg: Extract<SlackLevelConfig, { kind: 'search' }>, obs: SlackObs, rng: Rng): SearchOpts {
+  return {
     maxDepth: cfg.depth,
     mobility: cfg.mobility,
     noise: cfg.openingNoise && obs.cells.filter((c) => c === 0).length > cfg.openingNoise.above ? cfg.openingNoise.noise : cfg.noise,
     rng,
     ...(cfg.exactEmpties !== undefined ? { exactEmpties: cfg.exactEmpties } : {}),
     ...(cfg.nodeCap !== undefined ? { nodeCap: cfg.nodeCap } : {}),
-  }).move
+  }
 }

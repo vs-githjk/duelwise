@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { PASS, slackCore, type SlackObs, type SlackState } from '@duelwise/core/src/games/slack/core'
+import { PASS, flipsFor, slackCore, type SlackObs, type SlackState } from '@duelwise/core/src/games/slack/core'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Seat } from '@duelwise/core/src/types'
 import { createGameAgent } from './agent'
-import { SLACK_LEVELS, chooseSlackAction } from './levels'
+import { SLACK_LEVELS, chooseSlackAction, slackSearchOpts } from './levels'
 import { searchMove, NODE_BATCH } from './search'
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -119,6 +119,17 @@ describe('the answer depends only on the observation and the rng', () => {
   })
 })
 
+describe('level parameters', () => {
+  test('the four configs are the plan step 1 values', () => {
+    expect(SLACK_LEVELS).toEqual({
+      easy: { kind: 'greedy', cornerBonus: 20, randomPercent: 20 },
+      medium: { kind: 'search', depth: 2, mobility: false, noise: 4 },
+      hard: { kind: 'search', depth: 4, mobility: true, noise: 2 },
+      champion: { kind: 'search', depth: 6, mobility: true, noise: 1, openingNoise: { above: 50, noise: 30 }, exactEmpties: 8, nodeCap: 120_000 },
+    })
+  })
+})
+
 describe('Pip', () => {
   test('takes a free corner far more often than chance over 200 positions', () => {
     const states = positions(4000, 41).filter((s) => {
@@ -140,37 +151,90 @@ describe('Pip', () => {
   })
 
   test('plays a random legal move about a fifth of the time', () => {
-    // On the opening position the four placements flip one disc each; greedy ties are broken by the rng, so all four show.
+    // A position with one clear best placement (a corner with flips): Pip leaves it only on the random fifth, and then
+    // the draw lands on the best too 1 time in k, so the off-best rate is 0.2 * (k - 1) / k.
+    const greedy = (o: SlackObs, m: number) => flipsFor(o.cells, 1, m).length + (CORNERS.includes(m) ? 20 : 0)
+    const found = positions(4000, 41).find((s) => {
+      const o = obsOf(s)
+      if (o.legal.length < 3 || o.legal[0] === PASS) return false
+      const v = o.legal.map((m) => greedy(o, m)).sort((x, y) => y - x)
+      return v[0]! > v[1]!
+    })
+    expect(found).toBeDefined()
+    const o = obsOf(found!)
+    const k = o.legal.length
+    const best = o.legal.reduce((a, m) => (greedy(o, m) > greedy(o, a) ? m : a))
+    const rng = makeRng(12)
+    const n = 2000
+    let off = 0
+    for (let i = 0; i < n; i++) if (chooseSlackAction('easy', o, rng) !== best) off++
+    const expected = (0.2 * (k - 1)) / k
+    expect(off / n).toBeGreaterThan(expected - 0.04)
+    expect(off / n).toBeLessThan(expected + 0.04)
+  })
+
+  test('breaks a tie between equal placements with the rng, not by position', () => {
+    // The four opening placements flip one disc each: every one is the greedy best and each should be played about a quarter of the time.
     const o = obsOf(slackCore.init(0))
     const rng = makeRng(2)
-    const seen = new Set<number>()
-    for (let i = 0; i < 100; i++) seen.add(chooseSlackAction('easy', o, rng))
-    expect(seen.size).toBe(4)
+    const count = new Map<number, number>()
+    const n = 2000
+    for (let i = 0; i < n; i++) {
+      const c = chooseSlackAction('easy', o, rng)
+      count.set(c, (count.get(c) ?? 0) + 1)
+    }
+    expect(count.size).toBe(4)
+    for (const v of count.values()) {
+      expect(v / n).toBeGreaterThan(0.18)
+      expect(v / n).toBeLessThan(0.32)
+    }
   })
 })
 
 describe('Sable', () => {
-  test('never passes its node cap by more than one batch', () => {
+  test('never passes its node cap by more than one batch, on positions where the cap bites', () => {
     const cfg = SLACK_LEVELS.champion
     expect(cfg.kind).toBe('search')
     if (cfg.kind !== 'search') return
-    const cap = cfg.nodeCap ?? Infinity
+    const cap = cfg.nodeCap!
     expect(cap).toBe(120_000)
-    const rng = makeRng(6)
+    // Vesper plays whole games (seeded); every Sable-to-move midgame position at 50 to 31 empties is searched with the options
+    // the level really hands to the search, opening noise included. Games 0 to 4 hold several positions the cap cuts off.
     let worst = 0
-    for (const s of positions(160, 51).filter((x) => slackCore.legal(x, x.turn)[0] !== PASS)) {
-      const r = searchMove(s.cells, s.turn, {
-        maxDepth: cfg.depth,
-        mobility: cfg.mobility,
-        noise: cfg.noise,
-        rng,
-        exactEmpties: cfg.exactEmpties,
-        nodeCap: cap,
-      })
-      worst = Math.max(worst, r.nodes)
+    let capped = 0
+    for (let g = 0; g < 5; g++) {
+      const rng = makeRng(g + 1)
+      let s = slackCore.init(0)
+      let ply = 0
+      while (!slackCore.terminal(s)) {
+        const o = obsOf(s)
+        const empties = o.cells.filter((c) => c === 0).length
+        if (empties <= 50 && empties >= 31 && o.legal[0] !== PASS) {
+          const r = searchMove(o.cells, 0, slackSearchOpts(cfg, o, makeRng(g * 100 + ply)))
+          worst = Math.max(worst, r.nodes)
+          if (r.nodes > cap) {
+            capped++
+            // The chooser takes the same path.
+            expect(chooseSlackAction('champion', o, makeRng(g * 100 + ply))).toBe(r.move)
+          }
+        }
+        s = act(s, chooseSlackAction('hard', o, rng))
+        ply++
+      }
     }
+    expect(capped).toBeGreaterThanOrEqual(1)
     expect(worst).toBeLessThanOrEqual(cap + NODE_BATCH)
   }, 120_000)
+
+  test('the last 8 empties are solved exactly, not by the depth 6 guess', () => {
+    // Eight empties, mover owns the viewer discs. Depth 6 with mobility picks 23, the exact solve picks 8 (wins by 26 discs).
+    const cells = Array.from('1021111102021110221121201211222210212222112221221122222110202222', Number)
+    const o = obsOf({ cells, turn: 0 })
+    expect(cells.filter((c) => c === 0).length).toBe(8)
+    expect(searchMove(cells, 0, { maxDepth: 6, mobility: true }).move).toBe(23)
+    expect(searchMove(cells, 0, { maxDepth: 6, mobility: true, exactEmpties: 8 }).move).toBe(8)
+    for (let seed = 1; seed <= 20; seed++) expect(chooseSlackAction('champion', o, makeRng(seed))).toBe(8)
+  })
 
   test('against one scripted opening line its first four moves differ across seeds', async () => {
     const sequences = new Set<string>()
