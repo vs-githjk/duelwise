@@ -73,13 +73,8 @@ function shotSpot(zone: number): { left: string; top: string } {
   const c = cellCentre(zone)
   return { left: `${(c.x / 328) * 100}%`, top: `${(c.y / 300) * 100}%` }
 }
-const DIVE_SPOT = [
-  { left: '9%', top: '18%' },
-  { left: '9%', top: '42%' },
-  { left: '41%', top: '8%' },
-  { left: '72%', top: '18%' },
-  { left: '72%', top: '42%' },
-]
+const pct = (left: number, top: number) => ({ left: `${left}%`, top: `${top}%` })
+const DIVE_SPOT = [pct(9, 18), pct(9, 42), pct(41, 8), pct(72, 18), pct(72, 42)]
 
 /** A tag beside a shot's cell, kept inside the frame. */
 function tagAt(zone: number): { left: string; top: string } {
