@@ -17,7 +17,7 @@ const SHOT_BASE = 200
 
 /** What the page says when the server could not be reached for a request; never the server's own wording. */
 export const SETUP_FAILED = 'The match could not start. Check your connection and press Ready again.'
-export const SHOT_FAILED = 'That shot did not go through. Fire again to send it.'
+export const SHOT_FAILED = 'Shot not sent. Fire again.'
 
 /** What the page shows. In a counted match `view` is only what the server sent: my fleet, my shots, theirs at me, ships already sunk. */
 export interface FleetSnapshot {
@@ -349,7 +349,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       if (snap.phase !== 'play') return
       const tick = snap.view ? stepsPlayed(snap.view) : 0
       epoch++
-      set({ phase: 'over', resigned: true, thinking: false })
+      set({ phase: 'over', resigned: true, thinking: false, failure: null })
       await rec().resign(tick)
       clearMatch()
     },

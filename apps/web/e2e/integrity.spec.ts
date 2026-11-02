@@ -362,12 +362,21 @@ test.describe('fleet: a counted match', () => {
         await route.abort('failed')
       } else await route.continue()
     })
+    await page.setViewportSize({ width: 360, height: 740 })
     await page.goto('/play/stormglass?hold=0')
     const root = page.getByTestId('fleet-page')
+    // The failure line must fit its slot at 360 wide: no clipped text, and it ends above the button below it.
+    const fits = async () => {
+      const box = await page.getByTestId('fleet-failure').evaluate((el) => ({ clipped: el.scrollHeight > el.clientHeight, bottom: el.getBoundingClientRect().bottom }))
+      expect(box.clipped).toBe(false)
+      return box.bottom
+    }
     // Setup: both tries fail.
     abortLeft = 2
     await page.getByTestId('fleet-ready').click()
     await expect(page.getByRole('alert')).toContainText(/could not start/i)
+    const setupBottom = await fits()
+    expect(setupBottom).toBeLessThanOrEqual((await page.getByTestId('fleet-ready').boundingBox())!.y)
     await expect(root).toHaveAttribute('data-phase', 'setup')
     expect(aborts).toBe(2)
     // Ready again works, and the line goes.
@@ -381,7 +390,8 @@ test.describe('fleet: a counted match', () => {
     await cell.click()
     await cell.click()
     await expect(page.getByTestId('fleet-failure')).toBeVisible()
-    await expect(page.getByRole('alert')).toContainText(/did not go through/i)
+    await expect(page.getByRole('alert')).toContainText(/shot not sent/i)
+    await fits()
     expect(aborts).toBe(4)
     // Another square now: the lost shot is sent first and the match goes on, with no error line left.
     const other = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').nth(5)
@@ -389,5 +399,15 @@ test.describe('fleet: a counted match', () => {
     await other.click()
     await expect(page.getByRole('alert')).toHaveCount(0)
     await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(1)
+    // A failed shot, then Resign: the over screen keeps no stale "fire again" line.
+    abortLeft = 2
+    const third = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').nth(7)
+    await third.click()
+    await third.click()
+    await expect(page.getByRole('alert')).toContainText(/shot not sent/i)
+    await page.getByTestId('fleet-resign').click()
+    await page.getByTestId('fleet-resign-yes').click()
+    await expect(root).toHaveAttribute('data-turn', 'over')
+    await expect(page.getByRole('alert')).toHaveCount(0)
   })
 })

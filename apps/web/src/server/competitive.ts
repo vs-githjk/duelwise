@@ -22,8 +22,10 @@ export const PRACTICE_FLAG = 'practice'
 
 export const notPractice = sql`coalesce((${schema.match.filterFlags}->>'practice')::boolean, false) = false`
 
-/** Every read that counts a result for anyone's standing adds this: the match was neither left early nor played as practice. */
-export const competitive = sql`${notLeft} and ${notPractice}`
+export const notUnplayed = sql`coalesce((${schema.match.filterFlags}->>'unplayed')::boolean, false) = false`
+
+/** Every read that counts a result for anyone's standing adds this: the match was neither left early, played as practice, nor settled as never played. */
+export const competitive = sql`${notLeft} and ${notPractice} and ${notUnplayed}`
 
 /** Whether a stored match row was started as practice. */
 export function isPractice(flags: unknown): boolean {

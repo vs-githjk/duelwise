@@ -571,7 +571,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               </button>
             </div>
           </div>
-          <div className="h-10" data-testid="fleet-failure-slot">
+          <div className="h-14" data-testid="fleet-failure-slot">
             {game.failure ? (
               <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
                 {game.failure}

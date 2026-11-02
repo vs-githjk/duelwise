@@ -11,6 +11,7 @@ import * as schema from '../db/schema'
 import { startMatchHandler, type Caller } from './match-handlers'
 import { finishUnchecked as finishMatchHandler } from './finish-unchecked'
 import { abandonStale } from './abandon'
+import { getMyRecord } from './landing'
 import { resignMatchHandler } from './resign'
 import { buildSealedLog, FLEET_SPEC, recordMatchesLog, sealedTurnHandler, type SealedTurnBody } from './sealed-duel'
 
@@ -449,6 +450,15 @@ describe('a sealed match that never got its setup was not played', () => {
     for (let i = 0; i < 4; i++) await startAs()
     expect((await db.select().from(schema.match).where(eq(schema.match.status, 'abandoned'))).length).toBeGreaterThan(1)
     expect(await ratingGames()).toBeUndefined()
+  })
+
+  test('an abandoned unplayed row leaves no trace on the player record', async () => {
+    const id = await startAs()
+    await db.update(schema.match).set({ startedAt: new Date(Date.now() - 2 * 3600_000) }).where(eq(schema.match.id, id))
+    expect(await abandonStale(db)).toBe(1)
+    const rec = await getMyRecord(db as never, 'u-1')
+    expect(rec.perGame.find((g) => g.game === 'fleet')).toBeUndefined()
+    expect(rec.recent.filter((m) => m.game === 'fleet')).toHaveLength(0)
   })
 
   test('once the setup is stored the match was played: resigning and abandoning still cost a loss', async () => {

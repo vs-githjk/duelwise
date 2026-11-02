@@ -186,7 +186,7 @@ export async function getMyRecord(
         eq(schema.match.userId, userId),
         or(
           and(eq(schema.match.status, 'finished'), inArray(schema.match.recordValid, [true, false]), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive),
-          // A resignation or abandonment costs rating like a loss, so it counts as one here. These rows have no record.
+          // A resignation or abandonment costs rating like a loss, so it counts as one here (a sealed row settled as never played is dropped by competitive). These rows have no record.
           and(inArray(schema.match.status, ['resigned', 'abandoned']), competitive),
         ),
       ),

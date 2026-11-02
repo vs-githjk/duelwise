@@ -255,6 +255,7 @@ describe('counted match through the engine', () => {
     await engine.start('easy', FLEET)
     await engine.fire(0)
     await engine.resign()
+    expect(engine.snapshot().failure).toBeNull()
     expect(engine.snapshot().phase).toBe('over')
     expect(engine.snapshot().resigned).toBe(true)
     expect(log.resigned).toBe(1)
