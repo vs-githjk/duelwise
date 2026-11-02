@@ -68,7 +68,7 @@ flowchart LR
   Page -- "match record<br/>(seed + moves, gzip)" --> Server["Server<br/>TanStack Start + Nitro"]
   Server --> Core2["Same rules replay the match<br/>from the issued seed"]
   Core2 -- "valid" --> DB[("Postgres<br/>PGlite locally, Neon in production")]
-  Core2 -- "invalid" --> Reject["stored as invalid,<br/>never rated or trained on"]
+  Core2 -- "invalid" --> Reject["stored as invalid: never gains<br/>rating, never trained on"]
   DB --> Export["Filtered human matches"]
   Export --> Train["Training<br/>training/ (PyTorch)"]
   Train -- "challenger" --> Gate["Strength gates<br/>packages/agents/src/measure"]
@@ -76,7 +76,7 @@ flowchart LR
   Registry --> Page
 ```
 
-Every finished match is stored as a small replayable record: the seed and the moves. The server replays the record from the seed it issued, and only a record that replays cleanly counts toward ratings or training.
+Every finished match is stored as a small replayable record: the seed and the moves. The server replays the record from the seed it issued, and only a record that replays cleanly can gain rating or reach training. An invalid record never gains rating and is never trained on.
 
 - **`packages/core`** (TypeScript): six deterministic, seeded, headless game simulations behind one `GameCore` interface, the match record format, replay, Elo and the human input limiter. The same code runs in the browser, on the server and in training.
 - **`packages/agents`** (TypeScript): the browser agent runtime, search and strategy code per game, level configs, the measurement harness, and `registry/<game>.json`, the file every strength number is read from.
