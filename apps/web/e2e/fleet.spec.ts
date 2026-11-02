@@ -485,11 +485,12 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
   })
 
-  test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their boxes', async ({ page, context }) => {
+  test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their boxes', async ({ page, context, browserName }) => {
     const fleet = await seededMatch(page, 0)
     const cells = fleet.flatMap(shipCells)
-    // A slow phone: scoring takes long enough that the page is seen without the line first.
-    await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: 6 })
+    // A slow phone: scoring takes long enough that the page is seen without the line first (Chromium can slow its CPU; WebKit only checks the boxes).
+    const slow = browserName === 'chromium'
+    if (slow) await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: 6 })
     for (const cell of cells) {
       await fireAt(page, cell)
       if (cell !== cells.at(-1)) await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
@@ -503,7 +504,7 @@ test.describe('the sink, the moment of the game', () => {
       return { panel: [p!.width, p!.height], slot: [sl!.width, sl!.height], doc: await page.evaluate(() => document.documentElement.scrollHeight) }
     }
     await expect(panel).toBeVisible()
-    expect(await page.getByTestId('fleet-luck').textContent()).toBe('')
+    if (slow) expect(await page.getByTestId('fleet-luck').textContent()).toBe('')
     const before = await boxes()
     await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
     // Let the fade finish, then compare: the line is in its reserved slot.
