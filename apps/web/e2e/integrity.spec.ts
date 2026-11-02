@@ -262,6 +262,10 @@ test.describe('fleet: a counted match', () => {
       shots++
     }
     await expect(page.getByTestId('fleet-result')).toBeVisible()
+    // The browser-built record was accepted by the local server: the page shows the rating it moved, and the board counts the match.
+    await expect(page.getByTestId('fleet-result-elo')).toContainText(/Rating 1000 to \d+/)
+    await page.goto('/leaderboard/stormglass')
+    await expect(page.getByTestId('leaderboard-me')).toContainText('after 1 counted match')
 
     const replies = turns.filter((t) => t.reply && !t.reply.error)
     const last = replies.at(-1)!
@@ -290,7 +294,7 @@ test.describe('fleet: a counted match', () => {
     expect(shots).toBeGreaterThan(10)
   })
 
-  test('a record with a different shot or a moved fleet is refused by the server', async ({ page }) => {
+  test('a record of a game nobody played through the server is refused, with the log reason', async ({ page }) => {
     test.setTimeout(180_000)
     await devSignIn(page, 'forger')
     // Keep the honest record on the page: its upload fails and no beacon can deliver it.
@@ -316,9 +320,6 @@ test.describe('fleet: a counted match', () => {
     expect(honest.game).toBe('fleet')
     expect(honest.seed).toBeGreaterThan(0)
 
-    const lastMine = honest.actions.map((a) => a[1]).lastIndexOf(0)
-    const otherShot = { ...honest, actions: honest.actions.map((a, i) => (i === lastMine ? ([a[0], a[1], a[2] === 299 ? 298 : a[2] + 1] as typeof a) : a)) }
-    const moved = { ...honest, actions: honest.actions.map((a) => (a[0] === 0 && a[1] === 0 ? ([a[0], a[1], a[2] === 0 ? 1 : 0] as typeof a) : a)) }
     // A game nobody played through the server, but one the core accepts end to end: it replays, its result and hash are right.
     // Only the server's own log of the match can tell it from the real one.
     const fabricated = (() => {
@@ -339,11 +340,54 @@ test.describe('fleet: a counted match', () => {
       }
       return { ...honest, actions, result: fleetCore.result(st)!, finalHash: fleetCore.hash(st), humanInputTimesMs: undefined } as MatchRecordV1
     })()
-    for (const forged of [fabricated, otherShot, moved]) {
-      const r = await page.request.post('/api/finish', { data: Buffer.from(encodeRecord(forged)), headers: { 'content-type': 'application/gzip' } })
-      const body = (await r.json()) as { valid: boolean; elo?: unknown }
-      expect(body.valid, JSON.stringify(body)).toBe(false)
-      expect(body.elo).toBeUndefined()
-    }
+    // A changed shot and a moved fleet are pinned in server/sealed-duel.test.ts (they reach the same log check, each on its own match).
+    const r = await page.request.post('/api/finish', { data: Buffer.from(encodeRecord(fabricated)), headers: { 'content-type': 'application/gzip' } })
+    expect(r.status()).toBe(200)
+    const body = (await r.json()) as { valid: boolean; reason?: string; elo?: unknown }
+    expect(body).toMatchObject({ valid: false, reason: 'record does not match the logged turns' })
+    expect(body.elo).toBeUndefined()
+  })
+
+  test('a setup or a shot that fails twice shows a line on the page, and the next try recovers', async ({ page }) => {
+    test.setTimeout(120_000)
+    await devSignIn(page, 'flaky')
+    let aborts = 0
+    let abortLeft = 0
+    await page.route(/_serverFn\//, async (route) => {
+      const m = /\/_serverFn\/([^?]+)/.exec(route.request().url())
+      const isTurn = !!m && Buffer.from(m[1]!, 'base64').toString().includes('fleetTurn')
+      if (isTurn && abortLeft > 0) {
+        abortLeft--
+        aborts++
+        await route.abort('failed')
+      } else await route.continue()
+    })
+    await page.goto('/play/stormglass?hold=0')
+    const root = page.getByTestId('fleet-page')
+    // Setup: both tries fail.
+    abortLeft = 2
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByRole('alert')).toContainText(/could not start/i)
+    await expect(root).toHaveAttribute('data-phase', 'setup')
+    expect(aborts).toBe(2)
+    // Ready again works, and the line goes.
+    await page.getByTestId('fleet-ready').click()
+    await expect(root).toHaveAttribute('data-phase', 'play')
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    // A shot: both tries fail, the line shows, the turn is still mine.
+    await expect(root).toHaveAttribute('data-turn', 'you')
+    abortLeft = 2
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    await cell.click()
+    await cell.click()
+    await expect(page.getByTestId('fleet-failure')).toBeVisible()
+    await expect(page.getByRole('alert')).toContainText(/did not go through/i)
+    expect(aborts).toBe(4)
+    // Another square now: the lost shot is sent first and the match goes on, with no error line left.
+    const other = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').nth(5)
+    await other.click()
+    await other.click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(1)
   })
 })

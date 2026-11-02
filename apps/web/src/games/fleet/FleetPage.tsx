@@ -271,6 +271,19 @@ function Tally({ sunk, testId }: { sunk: Set<number>; testId: string }) {
   )
 }
 
+/** The line under the small map: the latest shot, or, when a request failed, what went wrong (same fixed height, so nothing moves). */
+function EventLine({ event, failure }: { event: string; failure: string | null }) {
+  return failure ? (
+    <p role="alert" className="h-10 overflow-hidden text-sm text-bad-ink" data-testid="fleet-failure">
+      {failure}
+    </p>
+  ) : (
+    <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
+      {event}
+    </p>
+  )
+}
+
 function ResignButton({ onResign }: { onResign: () => void }) {
   const [confirming, setConfirming] = useState(false)
   if (confirming) {
@@ -558,6 +571,13 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               </button>
             </div>
           </div>
+          <div className="h-10" data-testid="fleet-failure-slot">
+            {game.failure ? (
+              <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
+                {game.failure}
+              </p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={ready}
@@ -642,9 +662,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 >
                   <Board views={ownViews} label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" />
                 </div>
-                <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
-                  {event}
-                </p>
+                <EventLine event={event} failure={game.failure} />
                 {!over ? <ResignButton onResign={resign} /> : null}
               </div>
             ) : null}
@@ -692,9 +710,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               <div className="grid content-start gap-1">
                 <span className="text-xs text-muted">Your fleet</span>
                 <Tally sunk={ownSunk} testId="fleet-tally-own" />
-                <p className="h-10 overflow-hidden text-sm text-muted" data-testid="fleet-event">
-                  {event}
-                </p>
+                <EventLine event={event} failure={game.failure} />
               </div>
             </div>
             {!over ? <ResignButton onResign={resign} /> : null}

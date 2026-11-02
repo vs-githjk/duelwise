@@ -450,5 +450,15 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     }
   }, [api])
 
-  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign, mark, truncate, setOptions }
+  /** Forgets a counted match that never began (a sealed game whose setup request failed): no loss is charged and no call is made; the server settles the unplayed row itself. */
+  const discard = useCallback(() => {
+    live.current = null
+    setCounted(false)
+    recorder.current = null
+    session.current = null
+    setMatchActive(false)
+    setStatus('idle')
+  }, [])
+
+  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign, discard, mark, truncate, setOptions }
 }

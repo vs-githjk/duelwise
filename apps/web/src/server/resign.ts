@@ -6,7 +6,7 @@ import type { Caller, FinishOptions, HandlerResponse } from './match-handlers'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
-import { isPractice, PRACTICE_FLAG } from './competitive'
+import { isPractice, isUnplayed, PRACTICE_FLAG, UNPLAYED_FLAG } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -42,9 +42,11 @@ export async function resignMatchHandler(
   if (!mine) return err(403, 'not your match')
   if (row.status !== 'started') return err(409, `match is already ${row.status}`)
 
+  // A sealed match whose setup never reached the server was never played and revealed nothing: ending it costs no rating.
+  const unplayed = isUnplayed(row.game, row.filterFlags)
   const updated = await db
     .update(schema.match)
-    .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(row.filterFlags) ? { [PRACTICE_FLAG]: true } : {}) }, finishedAt: new Date() })
+    .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(row.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(unplayed ? { [UNPLAYED_FLAG]: true } : {}) }, finishedAt: new Date() })
     .where(and(eq(schema.match.id, row.id), eq(schema.match.status, 'started')))
     .returning({ id: schema.match.id })
   if (updated.length === 0) return err(409, 'match was settled by another request')
@@ -59,7 +61,7 @@ export async function resignMatchHandler(
   })
 
   // A practice match moves no rating, so a resignation costs nothing.
-  if (!row.userId || isPractice(row.filterFlags)) return { status: 200, body: { resigned: true } }
+  if (!row.userId || isPractice(row.filterFlags) || unplayed) return { status: 200, body: { resigned: true } }
   const change = await applyRatingIfRanked(db, {
     userId: row.userId,
     game: row.game as GameId,

@@ -15,6 +15,10 @@ const HUMAN: Seat = 0
 const AGENT: Seat = 1
 const SHOT_BASE = 200
 
+/** What the page says when the server could not be reached for a request; never the server's own wording. */
+export const SETUP_FAILED = 'The match could not start. Check your connection and press Ready again.'
+export const SHOT_FAILED = 'That shot did not go through. Fire again to send it.'
+
 /** What the page shows. In a counted match `view` is only what the server sent: my fleet, my shots, theirs at me, ships already sunk. */
 export interface FleetSnapshot {
   phase: Phase
@@ -82,6 +86,8 @@ export interface RecorderPort {
   setSeed(seed: number): void
   finish(core: typeof fleetCore, state: unknown): Promise<FinishedMatch>
   resign(tick?: number): Promise<void>
+  /** Forgets a counted match that never really began (its setup request failed), with no loss and no call to the server. */
+  discard(): void
 }
 
 export interface EngineDeps {
@@ -131,6 +137,8 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
   /** My actions so far in a counted match: five placements, then one code per shot. */
   let human: number[] = []
   let humanMs: number[] = []
+  /** The request whose reply never came (both tries failed): the server may have stored its shot, so the next fire sends exactly this list again. */
+  let unsent: { list: number[]; ms: number } | null = null
   let roundStart = 0
 
   const set = (patch: Partial<FleetSnapshot>) => {
@@ -147,6 +155,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
     matchId = null
     human = []
     humanMs = []
+    unsent = null
   }
 
   /** One request, tried twice: the server answers an identical request with the same reply, so a repeat is safe. */
@@ -232,7 +241,12 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
           matchId = session.matchId!
           human = codes
           rec().start(init)
-          const reply = await turn(codes)
+          let reply: FleetTurnReply
+          try {
+            reply = await turn(codes)
+          } catch {
+            throw new Error(SETUP_FAILED)
+          }
           if (mine !== epoch) return
           if (reply.over || reply.view.phase !== 'play') throw new Error('The server answered the setup with a match that is not ready.')
           rec().reach(SHIPS.length)
@@ -259,6 +273,8 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
         if (mine !== epoch) return
         // The row (if any) is closed by the leave beacon or the server's abandon rule, never kept open by this page.
         clearMatch()
+        // Nothing was played: the recorder must not keep the row live (leaving would resign it) or the page marked as in a match.
+        rec().discard()
         set({ phase: 'setup', view: null, failure: e instanceof Error ? e.message : 'The match could not start.' })
       }
     },
@@ -270,13 +286,26 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       if (view.shots.some((s) => s.cell === cell)) return 'You already fired there'
       const mine = epoch
       busy = true
-      const ms = performance.now() - roundStart
+      // A resend of a lost request is the same list whatever cell was tapped now: the server may already hold that shot.
+      const pending = matchId ? unsent : null
+      const ms = pending?.ms ?? performance.now() - roundStart
       try {
+        if (snap.failure) set({ failure: null })
         if (matchId) {
-          const list = [...human, shotCode(cell)]
+          const list = pending?.list ?? [...human, shotCode(cell)]
           set({ thinking: true })
-          const reply = await turn(list)
+          let reply: FleetTurnReply
+          try {
+            reply = await turn(list)
+          } catch {
+            if (mine === epoch) {
+              unsent = { list, ms }
+              set({ failure: SHOT_FAILED, thinking: false })
+            }
+            return null
+          }
           if (mine !== epoch) return null
+          unsent = null
           human = list
           humanMs.push(ms)
           if (reply.over) {

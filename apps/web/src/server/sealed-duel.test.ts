@@ -10,6 +10,8 @@ import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { startMatchHandler, type Caller } from './match-handlers'
 import { finishUnchecked as finishMatchHandler } from './finish-unchecked'
+import { abandonStale } from './abandon'
+import { resignMatchHandler } from './resign'
 import { buildSealedLog, FLEET_SPEC, recordMatchesLog, sealedTurnHandler, type SealedTurnBody } from './sealed-duel'
 
 type Db = PgliteDatabase<typeof schema>
@@ -383,5 +385,81 @@ describe('the record has to be the logged match', () => {
     const forgedAgent = rec(human, agent)
     forgedAgent.actions = forgedAgent.actions.map(([t, s, a]) => (t === 0 && s === 1 ? [t, s, (a + 1) % 200] : [t, s, a]))
     expect(recordMatchesLog(forgedAgent, flags)).toBe(false)
+  })
+})
+
+describe('the record has to be the logged match: forged but replayable records', () => {
+  /** A played-out honest match, and a record that replays cleanly end to end but is not the logged one. */
+  async function forge(build: (human: number[]) => number[]) {
+    const m = await startFleet()
+    const { human } = await playOut(m.matchId)
+    const other = build(human)
+    let built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other)
+    for (let cell = 0; !fleetCore.terminal(built.state); cell++) {
+      expect(cell).toBeLessThan(100)
+      if (!other.includes(shot(cell))) other.push(shot(cell))
+      built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, other)
+    }
+    return { m, human, done: await finishMatchHandler(db, recordOf(m.matchId, SEED, other.slice(0, built.humanUsed), built.agent), ME) }
+  }
+
+  test('a changed shot (two shots swapped) is refused with the log reason, and the row is not finished', async () => {
+    const { m, human, done } = await forge((h) => {
+      const x = [...h]
+      ;[x[SETUP.length], x[SETUP.length + 1]] = [x[SETUP.length + 1]!, x[SETUP.length]!]
+      return x
+    })
+    expect(human.length).toBeGreaterThan(SETUP.length + 2)
+    expect(done.status).toBe(200)
+    expect(done.body).toMatchObject({ valid: false, reason: 'record does not match the logged turns' })
+    expect(await db.select().from(schema.rating)).toHaveLength(0)
+    expect((await db.select().from(schema.match).where(eq(schema.match.id, m.matchId)))[0]!.recordValid).toBe(false)
+  })
+
+  test('a moved fleet (another legal setup) is refused with the log reason', async () => {
+    const { done } = await forge((h) => [...randomFleet(makeRng(8)).map(place), ...h.slice(SETUP.length)])
+    expect(done.status).toBe(200)
+    expect(done.body).toMatchObject({ valid: false, reason: 'record does not match the logged turns' })
+    expect(await db.select().from(schema.rating)).toHaveLength(0)
+  })
+})
+
+describe('a sealed match that never got its setup was not played', () => {
+  const USER = { userId: 'u-1' }
+  const ratingGames = async () => (await db.select().from(schema.rating).where(eq(schema.rating.userId, 'u-1')))[0]?.games
+  const startAs = async () => {
+    const r = await startMatchHandler(db, { game: 'fleet', level: 'easy' }, USER, { agentVersion: () => 'v1', seed: () => SEED })
+    return (r.body as { matchId: string }).matchId
+  }
+
+  test('resigning it settles the row with no rating', async () => {
+    const id = await startAs()
+    const r = await resignMatchHandler(db, { matchId: id, tick: 0 }, USER)
+    expect(r.body).toEqual({ resigned: true })
+    expect(await ratingGames()).toBeUndefined()
+    expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.status).toBe('resigned')
+  })
+
+  test('the abandon sweep settles it with no rating, and the open-match cap does too', async () => {
+    const id = await startAs()
+    await db.update(schema.match).set({ startedAt: new Date(Date.now() - 2 * 3600_000) }).where(eq(schema.match.id, id))
+    expect(await abandonStale(db)).toBe(1)
+    expect(await ratingGames()).toBeUndefined()
+    expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.status).toBe('abandoned')
+    for (let i = 0; i < 4; i++) await startAs()
+    expect((await db.select().from(schema.match).where(eq(schema.match.status, 'abandoned'))).length).toBeGreaterThan(1)
+    expect(await ratingGames()).toBeUndefined()
+  })
+
+  test('once the setup is stored the match was played: resigning and abandoning still cost a loss', async () => {
+    const a = await startAs()
+    expect((await ask(a, SETUP, USER)).status).toBe(200)
+    await resignMatchHandler(db, { matchId: a, tick: 5 }, USER)
+    expect(await ratingGames()).toBe(1)
+    const b = await startAs()
+    expect((await ask(b, SETUP, USER)).status).toBe(200)
+    await db.update(schema.match).set({ startedAt: new Date(Date.now() - 2 * 3600_000) }).where(eq(schema.match.id, b))
+    expect(await abandonStale(db)).toBe(1)
+    expect(await ratingGames()).toBe(2)
   })
 })

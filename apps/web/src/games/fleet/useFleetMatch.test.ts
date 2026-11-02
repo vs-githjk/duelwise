@@ -8,13 +8,13 @@ import type { Level } from '@duelwise/core/src/product'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { buildSealedLog, FLEET_SPEC } from '../../server/sealed-duel'
 import type { FetchTurn, FleetTurnReply } from './api'
-import { createFleetEngine, recordFromLists, setupCodes, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
+import { createFleetEngine, recordFromLists, setupCodes, SETUP_FAILED, SHOT_FAILED, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
 
 const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
 
 /** The server, without a database: the same replay the real handler does (buildSealedLog), the same refusals the engine must never trigger. */
-function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; failFirstOf?: number } = {}) {
+function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; failFirstOf?: number; loseReplyAt?: number; refuseAt?: number } = {}) {
   let stored: { human: number[]; agent: number[] } = { human: [], agent: [] }
   const calls: number[][] = []
   const replies: FleetTurnReply[] = []
@@ -25,12 +25,16 @@ function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; fail
     if (fresh && actions.length !== SHIPS.length) throw new Error('the first request must carry exactly 5 setup actions')
     if (!fresh && !stored.human.every((n, i) => actions[i] === n)) throw new Error('actions must be the ones already played, plus at most one new one')
     if (opts.failFirstOf !== undefined && calls.length === opts.failFirstOf && failures++ < 2) throw new Error('network down')
+    // The request never reaches the server.
+    if (opts.refuseAt !== undefined && (calls.length === opts.refuseAt || calls.length === opts.refuseAt + 1)) throw new Error('network down')
     const run = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, actions, stored.agent)
     stored = { human: actions, agent: run.agent }
     const over = fleetCore.terminal(run.state)
     const view = fleetCore.observe(run.state, 0)
     let reply: FleetTurnReply = JSON.parse(JSON.stringify(over ? { view, over, reveal: { seed: SEED, agentActions: run.agent } } : { view, over }))
     if (opts.tamper) reply = opts.tamper(reply)
+    // The server stored the action but the reply is lost, on this request and on the engine's one retry.
+    if (opts.loseReplyAt !== undefined && (calls.length === opts.loseReplyAt || calls.length === opts.loseReplyAt + 1)) throw new Error('reply lost')
     replies.push(reply)
     return reply
   }
@@ -40,7 +44,7 @@ function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; fail
 /** The match recorder without React, with a log of what the engine told it and when. */
 function fakeRecorder(session: Session) {
   let rec: ReturnType<typeof createMatchRecorder> | null = null
-  const log = { startSeed: -1, setSeedAt: [] as number[], beginLevel: null as Level | null, beginSeed: undefined as number | undefined, finished: null as FinishedMatch | null, resigned: 0, events: [] as string[] }
+  const log = { discards: 0, startSeed: -1, setSeedAt: [] as number[], beginLevel: null as Level | null, beginSeed: undefined as number | undefined, finished: null as FinishedMatch | null, resigned: 0, events: [] as string[] }
   const port: RecorderPort = {
     async begin(level, devSeed) {
       log.beginLevel = level
@@ -63,6 +67,9 @@ function fakeRecorder(session: Session) {
     },
     async resign() {
       log.resigned++
+    },
+    discard() {
+      log.discards++
     },
   }
   return { port, log }
@@ -188,6 +195,57 @@ describe('counted match through the engine', () => {
     await playOut(engine)
     expect(engine.snapshot().phase).toBe('over')
     // The first attempt of the fourth request failed; the engine sent the same request again and the page saw no failure.
+    expect(engine.snapshot().failure).toBeNull()
+  })
+
+  test('a shot whose reply was lost twice is sent again as it was, whatever cell is tapped next, and the match goes on with no 409', async () => {
+    // Request 1 is the setup, request 2 the first shot: the server stores it and the reply is lost on both tries.
+    const server = fakeServer({ loseReplyAt: 2 })
+    const { engine } = engineFor(SEALED, server)
+    await engine.start('easy', FLEET)
+    expect(await engine.fire(10)).toBeNull()
+    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(engine.snapshot().thinking).toBe(false)
+    expect(engine.snapshot().view!.shots).toHaveLength(0)
+    expect(server.stored().human).toEqual([...setupCodes(FLEET), shotCode(10)])
+    // A different cell now: the engine resends the stored list and applies its reply.
+    expect(await engine.fire(55)).toBeNull()
+    const snap = engine.snapshot()
+    expect(snap.failure).toBeNull()
+    expect(snap.view!.shots.map((x) => x.cell)).toEqual([10])
+    expect(server.stored().human).toHaveLength(SHIPS.length + 1)
+    // Confirmed: the next shot builds on it.
+    expect(await engine.fire(55)).toBeNull()
+    expect(engine.snapshot().view!.shots.map((x) => x.cell)).toEqual([10, 55])
+    expect(engine.snapshot().failure).toBeNull()
+    await playOut(engine)
+    expect(engine.snapshot().phase).toBe('over')
+  })
+
+  test('a request that fails twice shows plain copy, never the server text, and the line goes with the next good reply', async () => {
+    const server = fakeServer({ refuseAt: 2 })
+    const { engine } = engineFor(SEALED, server)
+    await engine.start('easy', FLEET)
+    await engine.fire(10)
+    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(JSON.stringify(engine.snapshot())).not.toMatch(/network down|actions must be/)
+    await engine.fire(10)
+    expect(engine.snapshot().failure).toBeNull()
+    expect(engine.snapshot().view!.shots.map((x) => x.cell)).toEqual([10])
+  })
+
+  test('a setup request that fails twice returns to setup with plain copy and tells the recorder to drop the match', async () => {
+    const server = fakeServer({ refuseAt: 1 })
+    const { engine, log } = engineFor(SEALED, server)
+    await engine.start('easy', FLEET)
+    const snap = engine.snapshot()
+    expect(snap.phase).toBe('setup')
+    expect(snap.failure).toBe(SETUP_FAILED)
+    expect(log.discards).toBe(1)
+    expect(log.resigned).toBe(0)
+    // Ready again starts a fresh match.
+    await engine.start('easy', FLEET)
+    expect(engine.snapshot().phase).toBe('play')
     expect(engine.snapshot().failure).toBeNull()
   })
 

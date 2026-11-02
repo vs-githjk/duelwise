@@ -6,7 +6,7 @@ import * as schema from '../db/schema'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
-import { practiceColumn, withPractice } from './competitive'
+import { practiceColumn, unplayedColumn, withPractice } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -34,7 +34,7 @@ export interface AbandonOptions {
   siteElo?: (game: GameId, level: Level, agentVersion: string) => number | null
 }
 
-type Abandoned = { id: string; userId: string | null; guestId: string | null; level: string; agentVersion: string; startedAt: Date; practice?: boolean }
+type Abandoned = { id: string; userId: string | null; guestId: string | null; level: string; agentVersion: string; startedAt: Date; practice?: boolean; unplayed?: boolean }
 
 /** Records the event and charges the loss for matches that were just flipped to 'abandoned'. */
 export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], now: Date, opts: AbandonOptions): Promise<void> {
@@ -48,7 +48,8 @@ export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], n
       durationMs: Math.max(0, now.getTime() - r.startedAt.getTime()),
     })
     // A practice match moves no rating, so walking away from it costs nothing.
-    if (!r.userId || r.practice) continue
+    // A sealed match that never got its setup was never played and revealed nothing, so it costs nothing either.
+    if (!r.userId || r.practice || r.unplayed) continue
     // Per-row catch: the rows are already marked abandoned, so one failed rating must not strand the rest.
     try {
       const change = await applyRatingIfRanked(db, {
@@ -66,7 +67,7 @@ export async function settleAbandoned(db: Db, game: GameId, rows: Abandoned[], n
   }
 }
 
-export const ABANDONED_ROW = { id: schema.match.id, userId: schema.match.userId, guestId: schema.match.guestId, level: schema.match.level, agentVersion: schema.match.agentVersion, startedAt: schema.match.startedAt, practice: practiceColumn }
+export const ABANDONED_ROW = { id: schema.match.id, userId: schema.match.userId, guestId: schema.match.guestId, level: schema.match.level, agentVersion: schema.match.agentVersion, startedAt: schema.match.startedAt, practice: practiceColumn, unplayed: unplayedColumn }
 
 /**
  * Settles every started match that outlived its game's maximum duration plus the grace period: the
