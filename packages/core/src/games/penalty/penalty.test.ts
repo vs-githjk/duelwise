@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { makeRng } from '../../rng'
+import { replay } from '../../replay'
+import type { MatchRecordV1 } from '../../match-record'
+import type { GameId } from '../../product'
 import { EXTRA_ROUNDS, GOAL_PER_MILLE, KICKS, createPenaltyCore, penaltyCore, type Kick, type PenaltyState, type Zone } from './index'
 
 const core = penaltyCore
@@ -326,5 +329,146 @@ describe('penalty core: codes', () => {
       expect(make.toAct(s)).toEqual([])
       expect(r!.score[0] + r!.score[1]).toBe(s.kicks.filter((k) => k.goal).length)
     }
+  })
+})
+
+/** Plays a random match, returning every state on the way and the per-tick action codes (kicker first is not assumed: [seat 0, seat 1]). */
+function randomMatch(seed: number, onState?: (s: PenaltyState) => void): { s: PenaltyState; ticks: [number, number][] } {
+  const rng = makeRng(seed * 7919)
+  let s = core.init(seed)
+  const ticks: [number, number][] = []
+  onState?.(s)
+  while (!core.terminal(s)) {
+    const a = rng.int(3) as Zone
+    const b = rng.int(3) as Zone
+    ticks.push([core.encodeAction(a), core.encodeAction(b)])
+    s = play(s, a, b)
+    onState?.(s)
+  }
+  return { s, ticks }
+}
+
+describe('penalty core: the hidden choice', () => {
+  test('over 500 random matches no observation carries the seed or a roll, and the seed cannot change what a seat sees', () => {
+    let checks = 0
+    for (let seed = 1; seed <= 500; seed++) {
+      // A seed whose decimal digits cannot appear by chance in a small observation.
+      const bigSeed = 900_000_000 + seed * 1_003
+      randomMatch(bigSeed, (st) => {
+        for (const seat of [0, 1] as const) {
+          const o = core.observe(st, seat)
+          const json = JSON.stringify(o)
+          checks++
+          expect(Object.keys(o).sort()).toEqual(['goals', 'kicks', 'over', 'role', 'round', 'seat', 'sudden', 'taken'])
+          expect(json).not.toContain('seed')
+          expect(json).not.toContain('roll')
+          expect(json).not.toContain(String(bigSeed))
+          for (const k of o.kicks) expect(Object.keys(k).sort()).toEqual(['byMe', 'dive', 'outcome', 'zone'])
+          // Same finished kicks under any other seed: identical observation.
+          const other: PenaltyState = { seed: (bigSeed ^ 0x5bd1e995) | 0, kicks: st.kicks }
+          expect(JSON.stringify(core.observe(other, seat))).toBe(json)
+        }
+      })
+    }
+    expect(checks).toBeGreaterThan(10000)
+  })
+
+  test('a pending choice is not in the state: toAct names both seats and observe before a tick is the same whatever either side will pick', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      randomMatch(seed, (st) => {
+        if (core.terminal(st)) return
+        const before = [0, 1].map((seat) => JSON.stringify(core.observe(st, seat as 0 | 1)))
+        for (const a of [0, 1, 2] as const) {
+          for (const b of [0, 1, 2] as const) {
+            core.step(st, [a, b])
+            expect([0, 1].map((seat) => JSON.stringify(core.observe(st, seat as 0 | 1)))).toEqual(before)
+          }
+        }
+      })
+    }
+  })
+})
+
+describe('penalty core: real replay() through the borrowed id', () => {
+  // replay() reads PRODUCT.games[core.id].kind, and penalty is not a GameId yet: borrow a turn-based id.
+  const borrowed = { ...core, id: 'four' as GameId }
+
+  function recordOf(seed: number): MatchRecordV1 {
+    const { s, ticks } = randomMatch(seed)
+    const actions: MatchRecordV1['actions'] = []
+    ticks.forEach((t, i) => {
+      actions.push([i, 0, t[0]])
+      actions.push([i, 1, t[1]])
+    })
+    return {
+      schema: 1,
+      matchId: 'penalty-' + seed,
+      game: 'four' as GameId,
+      coreVersion: core.version,
+      agent: { version: 'test', level: 'easy' },
+      seed,
+      humanSeat: 0,
+      actions,
+      result: core.result(s)!,
+      finalHash: core.hash(s),
+      startedAt: '2026-11-02T00:00:00.000Z',
+      endedAt: '2026-11-02T00:01:00.000Z',
+      device: 'desktop',
+      input: 'mouse',
+      trainingAllowed: false,
+    }
+  }
+  const run = (r: MatchRecordV1) => replay(r, { core: borrowed })
+
+  test('200 random matches replay ok, two entries per tick', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const r = recordOf(seed)
+      expect(r.actions.length % 2).toBe(0)
+      const out = run(r)
+      expect(out.error).toBeUndefined()
+      expect(out.ok).toBe(true)
+      expect(out.finalHash).toBe(r.finalHash)
+    }
+  })
+
+  test('a changed zone, a dropped seat action, a kick after the end and a wrong seed each fail', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const r = recordOf(seed)
+      expect(run(r).ok).toBe(true)
+
+      // Changed zone: rotate one action. The roll, the early end or the hash moves, so it never replays ok.
+      const i = (seed * 5) % r.actions.length
+      const changed = r.actions.map((a) => [...a] as MatchRecordV1['actions'][number])
+      changed[i]![2] = (changed[i]![2] + 1) % 3
+      const c = run({ ...r, actions: changed })
+      expect(c.ok).toBe(false)
+      expect(c.error).toMatch(/mismatch|actions after the game ended|record ends/)
+
+      // Dropped seat action: remove one entry.
+      const dropped = r.actions.filter((_, j) => j !== i)
+      const d = run({ ...r, actions: dropped })
+      expect(d.ok).toBe(false)
+      expect(d.error).toMatch(/missing action|record ends|out of order|not to act/)
+
+      // A kick after the end: one more tick of entries.
+      const lastTick = r.actions[r.actions.length - 1]![0]
+      const extra = [...r.actions, [lastTick + 1, 0, 1], [lastTick + 1, 1, 1]] as MatchRecordV1['actions']
+      const e = run({ ...r, actions: extra })
+      expect(e.ok).toBe(false)
+      expect(e.error).toMatch(/actions after the game ended/)
+
+      // Wrong seed.
+      const w = run({ ...r, seed: r.seed + 1 })
+      expect(w.ok).toBe(false)
+    }
+  })
+
+  test('an action code outside 0..2 is refused as illegal', () => {
+    const r = recordOf(3)
+    const bad = r.actions.map((a) => [...a] as MatchRecordV1['actions'][number])
+    bad[0]![2] = 3
+    const out = run({ ...r, actions: bad })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/illegal action 3/)
   })
 })
