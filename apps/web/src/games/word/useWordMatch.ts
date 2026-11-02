@@ -139,6 +139,8 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
         return
       }
       humanMsLog.current = []
+      busy.current = false
+      setThinking(false)
       if (sealed) {
         live.current = null
         sealedId.current = opened.session.matchId!
@@ -169,6 +171,7 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
 
   const submit = useCallback(
     async (word: string): Promise<string | null> => {
+      const gen = epoch.current
       const cur = view.current
       const ag = agent.current
       if (!cur || !ag || busy.current || cur.answer !== null) return null
@@ -187,6 +190,8 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
           // the word, the seed and the opponent's words arrive only when the match is over.
           const mine = [...cur.guesses[HUMAN], word]
           const reply = await fetchMarks(matchId, mine)
+          // A reply from a match that was left or restarted must not write into the new one's recorder.
+          if (gen !== epoch.current) return null
           const theirs = reply.reveal?.agentGuesses ?? []
           next = { guesses: [mine, theirs], marks: reply.marks, answer: reply.reveal?.answer ?? null }
           humanMsLog.current.push(humanMs)
@@ -207,6 +212,7 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
           }
         } else {
           const [code] = await ag.act(observeView(cur, AGENT))
+          if (gen !== epoch.current) return null
           const aiWord = wordCore.decodeAction(code!)
           const stepped = wordCore.step(live.current!, [word, aiWord])
           live.current = stepped
@@ -226,11 +232,14 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
         }
         return null
       } catch (e) {
-        setFailure(e instanceof Error ? e.message : 'Something went wrong.')
+        if (gen === epoch.current) setFailure(e instanceof Error ? e.message : 'Something went wrong.')
         return null
       } finally {
-        busy.current = false
-        setThinking(false)
+        // start and backToSetup already cleared these for the page that moved on.
+        if (gen === epoch.current) {
+          busy.current = false
+          setThinking(false)
+        }
       }
     },
     [recorder, fetchMarks],
@@ -244,6 +253,8 @@ export function useWordMatch(agentVersion: (level: Level) => string, fetchMarks:
     view.current = null
     sealedId.current = null
     humanMsLog.current = []
+    busy.current = false
+    setThinking(false)
     setState(null)
     setPhase('setup')
   }, [])
