@@ -30,6 +30,9 @@ describe('postResign', () => {
     const r = await postResign('m', 3, reply(200, { resigned: true, elo: { before: 1000, after: 980 } }))
     expect(r.elo).toEqual({ before: 1000, after: 980 })
   })
+  test('carries the unplayed mark of a match that never had a shot', async () => {
+    expect((await postResign('m', 0, reply(200, { resigned: true, unplayed: true }))).unplayed).toBe(true)
+  })
   test('throws the server message on an error', async () => {
     await expect(postResign('m', 3, reply(409, { error: 'match is already finished' }))).rejects.toThrow('already finished')
   })

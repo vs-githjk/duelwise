@@ -4,6 +4,7 @@ export const RESIGN_URL = '/api/resign'
 
 export interface ResignReply {
   resigned: true
+  unplayed?: boolean
   elo?: { before: number; after: number }
   provisional?: boolean
 }

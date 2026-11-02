@@ -474,7 +474,7 @@ describe('a sealed match that never got its setup was not played', () => {
   test('resigning it settles the row with no rating', async () => {
     const id = await startAs()
     const r = await resignMatchHandler(db, { matchId: id, tick: 0 }, USER)
-    expect(r.body).toEqual({ resigned: true })
+    expect(r.body).toEqual({ resigned: true, unplayed: true })
     expect(await ratingGames()).toBeUndefined()
     expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.status).toBe('resigned')
   })
@@ -520,7 +520,8 @@ describe('a sealed match that never got its setup was not played', () => {
     const a = await startAs()
     expect((await ask(a, SETUP, USER)).status).toBe(200)
     expect((await ask(a, [...SETUP, shot(0)], USER)).status).toBe(200)
-    await resignMatchHandler(db, { matchId: a, tick: 6 }, USER)
+    const resigned = await resignMatchHandler(db, { matchId: a, tick: 6 }, USER)
+    expect(resigned.body).not.toHaveProperty('unplayed')
     expect(await ratingGames()).toBe(1)
     const b = await startAs()
     expect((await ask(b, SETUP, USER)).status).toBe(200)
