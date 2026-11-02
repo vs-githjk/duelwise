@@ -316,14 +316,18 @@ describe('fleet core: observation hides the enemy fleet', () => {
           const o = fleetCore.observe(st, seat)
           const json = JSON.stringify(o)
           checks++
+          const enemy = st.ships[(1 - seat) as 0 | 1]
+          const fired = new Set(st.shots[seat])
+          expect(Object.keys(o)).toEqual(['phase', 'ships', 'shots', 'incoming', 'sunk', 'enemyLeft', 'reveal'])
+          expect(o.incoming).toEqual(fleetCore.observe(st, (1 - seat) as 0 | 1).shots)
+          expect(o.sunk).toEqual(enemy.filter((p) => shipCells(p).every((c) => fired.has(c))))
+          expect(o.enemyLeft).toEqual(SHIPS.filter((_, i) => !o.sunk.some((p) => p.id === i)))
           if (over) {
             expect(o.reveal).toEqual(st.ships[(1 - seat) as 0 | 1])
             continue
           }
           expect(o.reveal).toBeNull()
-          expect(o.incoming.map((m) => m.cell)).toEqual(st.shots[(1 - seat) as 0 | 1])
           // 1. No placement of an enemy ship with any unhit cell appears anywhere in the serialised observation.
-          const fired = new Set(st.shots[seat])
           const sunkIds = new Set(o.sunk.map((p) => p.id))
           for (const p of st.ships[(1 - seat) as 0 | 1]) {
             const fullyHit = shipCells(p).every((c) => fired.has(c))
