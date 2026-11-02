@@ -4,6 +4,7 @@ import type { Level } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 import { createGameAgent } from '@duelwise/agents/src/fleet/agent'
+import { coord } from './fleet-match'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
 import { openMatch } from '../../lib/open-match'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
@@ -17,7 +18,8 @@ const SHOT_BASE = 200
 
 /** What the page says when the server could not be reached for a request; never the server's own wording. */
 export const SETUP_FAILED = 'The match could not start. Check your connection and press Start match again.'
-export const SHOT_FAILED = 'Shot not sent. Fire again.'
+/** The line after a shot whose reply never came; it names the square so the player knows which shot Fire will send. */
+export const shotFailed = (cell: number): string => `Shot at ${coord(cell)} not sent. Press Fire to send it again.`
 export const MATCH_ENDED = 'This match has ended. Place your fleet to start a new one.'
 
 /** What the page shows. In a counted match `view` is only what the server sent: my fleet, my shots, theirs at me, ships already sunk. */
@@ -29,11 +31,13 @@ export interface FleetSnapshot {
   thinking: boolean
   resigned: boolean
   failure: string | null
+  /** The square of a shot whose reply was lost: it stays aimed and locked, because Fire can only send that shot again. Null when none is waiting. */
+  unsentCell: number | null
   /** True when the server holds the enemy fleet (a counted match). */
   sealed: boolean
 }
 
-const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, sealed: false }
+const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, sealed: false }
 
 /** The five setup actions, in ship order, as the server and the record expect them. */
 export function setupCodes(fleet: Placement[]): number[] {
@@ -151,6 +155,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
     human = []
     humanMs = []
     unsent = null
+    snap = { ...snap, unsentCell: null }
   }
 
   /** One request, tried twice: the server answers an identical request with the same reply, so a repeat is safe. */
@@ -287,7 +292,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       const pending = matchId ? unsent : null
       const ms = pending?.ms ?? performance.now() - roundStart
       try {
-        if (snap.failure) set({ failure: null })
+        if (snap.failure) set({ failure: null, unsentCell: null })
         if (matchId) {
           const list = pending?.list ?? [...human, shotCode(cell)]
           set({ thinking: true })
@@ -305,12 +310,13 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
             }
             if (mine === epoch) {
               unsent = { list, ms }
-              set({ failure: SHOT_FAILED, thinking: false })
+              set({ failure: shotFailed(list[list.length - 1]! - SHOT_BASE), unsentCell: list[list.length - 1]! - SHOT_BASE, thinking: false })
             }
             return null
           }
           if (mine !== epoch) return null
           unsent = null
+          if (snap.unsentCell !== null) set({ unsentCell: null })
           human = list
           humanMs.push(ms)
           if (reply.over) {

@@ -482,7 +482,7 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('result-panel')).toHaveCount(0)
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('result-reason')).toContainText('sank')
-    await expect(page.getByTestId('fleet-luck')).toContainText('a careful hunt needs about')
+    await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
   })
 })
 
@@ -564,6 +564,40 @@ test.describe('fleet play details', () => {
     expect(turned).toBe(true)
   })
 
+  test('a shot whose reply never came stays aimed and locked, names its square, and Fire sends that same shot', async ({ page }) => {
+    let drop = false
+    await page.route(/_serverFn/, async (route) => {
+      if (drop && (route.request().postData() ?? '').includes('actions')) await route.abort('failed')
+      else await route.continue()
+    })
+    await page.goto('/play/stormglass')
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    expect(await page.getByTestId('fleet-page').getAttribute('data-counted')).toBe('true')
+    drop = true
+    const lost = page.getByTestId('fleet-cell-22')
+    await lost.click()
+    await lost.click()
+    await expect(page.getByTestId('fleet-failure')).toHaveText('Shot at C3 not sent. Press Fire to send it again.')
+    await expect(lost).toHaveAttribute('data-aimed', '')
+    await expect(page.getByTestId('fleet-aim-chip')).toHaveText('C3')
+    // Another square is not accepted: the aim stays on the lost shot and the line stays true.
+    const other = page.getByTestId('fleet-cell-34')
+    await other.click()
+    await other.click()
+    await expect(lost).toHaveAttribute('data-aimed', '')
+    await expect(other).not.toHaveAttribute('data-aimed', '')
+    await expect(page.getByTestId('fleet-aim-chip')).toHaveText('C3')
+    await expect(page.getByTestId('fleet-failure')).toHaveText('Shot at C3 not sent. Press Fire to send it again.')
+    drop = false
+    await expect(page.getByTestId('fleet-fire')).toBeEnabled()
+    await page.getByTestId('fleet-fire').click()
+    await expect(page.getByTestId('fleet-failure')).toHaveCount(0)
+    await expect(lost).not.toHaveAttribute('data-state', 'open')
+    await expect(other).toHaveAttribute('data-state', 'open')
+    await expect(page.getByTestId('fleet-aim-chip')).toHaveText('')
+  })
+
   test('a reload that ends a counted match says so at the top of setup, once', async ({ page }) => {
     await page.goto('/play/stormglass')
     await page.getByTestId('fleet-ready').click()
@@ -596,6 +630,7 @@ test.describe('fleet play details', () => {
         await expect(page.getByTestId('fleet-ready')).toBeVisible()
         await page.getByTestId('fleet-ready').click()
         await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-phase', 'play')
+        await expect(page.getByTestId('fleet-cell-0')).toBeFocused()
         const box = async (id: string) => (await page.getByTestId(id).first().boundingBox())!
         const hud = await box('fleet-hud')
         const fire = await box('fleet-fire')

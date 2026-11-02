@@ -1,6 +1,6 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { SHIPS, shipCells, type FleetState, type Placement } from '@duelwise/core/src/games/fleet/core'
-import { expectedHunting, fleetLuckLine, huntingShots } from '../games/fleet/luck'
+import { fleetLuckLine, luckScore } from '../games/fleet/luck'
 import type { Moment } from './types'
 import { walk } from './walk'
 
@@ -55,7 +55,7 @@ function slowestFinish(shots: number[], target: Placement[]): { length: number; 
 /** Key moments for a fleet match: shots used, ships left, the luck line, the slowest finish, then the result. */
 export function fleetMoments(rec: MatchRecordV1, sentence: string, opponent: string): Moment[] {
   const f = factsOf(rec)
-  const end: Moment = { kind: 'end', label: 'Result', tag: 'result', text: sentence }
+  const end: Moment = { kind: 'end', label: 'Result', tag: 'how it ended', text: sentence }
   if (!f.setupDone) return [end]
   const out: Moment[] = []
   const youShots = f.myShots.length
@@ -86,11 +86,10 @@ export function fleetMoments(rec: MatchRecordV1, sentence: string, opponent: str
       won,
       winnerShots: won ? youShots : themShots,
       found,
-      hunting: huntingShots(f.myShots, f.enemy),
-      expected: expectedHunting(f.enemy, found),
+      score: luckScore(f.myShots, f.enemy),
       opponent,
     }
-    out.push({ kind: 'info', label: 'Luck', tag: 'hunting shots', text: fleetLuckLine(input), publicText: fleetLuckLine({ ...input, third: true }) })
+    out.push({ kind: 'info', label: 'Luck', tag: 'hits against chance', text: fleetLuckLine(input), publicText: fleetLuckLine({ ...input, third: true }) })
   }
   const slow = slowestFinish(f.myShots, f.enemy)
   if (slow) {

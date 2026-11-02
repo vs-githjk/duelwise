@@ -8,7 +8,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { buildSealedLog, FLEET_SPEC } from '../../server/sealed-duel'
 import { TurnRefused, type FetchTurn, type FleetTurnReply } from './api'
-import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, SETUP_FAILED, SHOT_FAILED, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
+import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, SETUP_FAILED, shotFailed, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
 
 const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
@@ -204,7 +204,10 @@ describe('counted match through the engine', () => {
     const { engine } = engineFor(SEALED, server)
     await engine.start('easy', FLEET)
     expect(await engine.fire(10)).toBeNull()
-    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(engine.snapshot().failure).toBe(shotFailed(10))
+    expect(engine.snapshot().failure).toBe('Shot at A2 not sent. Press Fire to send it again.')
+    // The lost square is named and kept for the page to hold aimed and locked.
+    expect(engine.snapshot().unsentCell).toBe(10)
     expect(engine.snapshot().thinking).toBe(false)
     expect(engine.snapshot().view!.shots).toHaveLength(0)
     expect(server.stored().human).toEqual([...setupCodes(FLEET), shotCode(10)])
@@ -212,6 +215,7 @@ describe('counted match through the engine', () => {
     expect(await engine.fire(55)).toBeNull()
     const snap = engine.snapshot()
     expect(snap.failure).toBeNull()
+    expect(snap.unsentCell).toBeNull()
     expect(snap.view!.shots.map((x) => x.cell)).toEqual([10])
     expect(server.stored().human).toHaveLength(SHIPS.length + 1)
     // Confirmed: the next shot builds on it.
@@ -227,7 +231,7 @@ describe('counted match through the engine', () => {
     const { engine } = engineFor(SEALED, server)
     await engine.start('easy', FLEET)
     await engine.fire(10)
-    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(engine.snapshot().failure).toBe(shotFailed(10))
     expect(JSON.stringify(engine.snapshot())).not.toMatch(/network down|actions must be/)
     await engine.fire(10)
     expect(engine.snapshot().failure).toBeNull()
@@ -293,7 +297,7 @@ describe('counted match through the engine', () => {
     await engine.fire(0)
     expect(log.finished).toBeNull()
     await engine.fire(1)
-    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(engine.snapshot().failure).toBe(shotFailed(1))
     expect(log.finished).toBeNull()
     await playOut(engine)
     expect(engine.snapshot().phase).toBe('over')

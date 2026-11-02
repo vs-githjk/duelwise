@@ -21,7 +21,7 @@ import { visibleRegistry } from '../../lib/strength-gates'
 import type { Result } from '@duelwise/core/src/types'
 import { playCue } from './sounds'
 import { strengthSentence } from './strength'
-import { expectedHunting, fleetLuckLine, huntingShots } from './luck'
+import { fleetLuckLine, luckScore } from './luck'
 import { useFleetMatch } from './useFleetMatch'
 import { coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
 
@@ -536,8 +536,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       won,
       winnerShots: won ? view.shots.length : view.incoming.length,
       found,
-      hunting: huntingShots(view.shots.map((s) => s.cell), view.reveal),
-      expected: expectedHunting(view.reveal, found),
+      score: luckScore(view.shots.map((s) => s.cell), view.reveal),
       opponent,
     })
   }, [over, resigned, view, opponent])
@@ -577,8 +576,15 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     [game, turn],
   )
 
+  // A shot whose reply was lost stays aimed and locked: Fire can only send that same shot again, so aiming elsewhere would be a lie.
+  const lost = game.unsentCell
+  const shownAim = lost ?? aimed
   const tapTarget = (cell: number) => {
     if (!view || turn !== 'you') return
+    if (lost !== null) {
+      if (cell === lost) fire(cell)
+      return
+    }
     if (view.shots.some((s) => s.cell === cell)) return
     if (aimed === cell) fire(cell)
     else {
@@ -628,6 +634,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     const hud = hudRef.current
     if (hud) window.scrollTo({ top: Math.max(0, hud.getBoundingClientRect().top + window.scrollY), left: 0, behavior: 'instant' })
     else window.scrollTo(0, 0)
+    // The Start button is gone from the page now, so keyboard focus would fall to the top of the document: put it on the board, where the next move is.
+    document.querySelector<HTMLElement>('[data-testid="fleet-cell-0"]')?.focus({ preventScroll: true })
   }, [started])
 
   const won = !!view && !resigned && viewWon(view)
@@ -856,7 +864,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 testId="fleet-cell"
                 onCell={tapTarget}
                 isDisabled={(c) => !!view?.shots.some((s) => s.cell === c) || turn !== 'you'}
-                aimed={aimed}
+                aimed={shownAim}
                 lastShot={lastShot}
                 describe={(c) => {
                   const s = view?.shots.find((x) => x.cell === c)
@@ -866,14 +874,14 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
               <button
                 type="button"
-                disabled={aimed === null || turn !== 'you' || over}
-                onClick={() => aimed !== null && fire(aimed)}
+                disabled={shownAim === null || turn !== 'you' || over}
+                onClick={() => shownAim !== null && fire(shownAim)}
                 data-testid="fleet-fire"
                 className="flex h-14 items-center justify-center gap-3 rounded-control bg-action font-semibold text-action-ink disabled:opacity-60"
               >
                 <span>Fire</span>
                 <span className="grid h-10 min-w-10 place-items-center font-mono" data-testid="fleet-aim-chip">
-                  {aimed !== null ? coord(aimed) : ''}
+                  {shownAim !== null ? coord(shownAim) : ''}
                 </span>
               </button>
             </div>

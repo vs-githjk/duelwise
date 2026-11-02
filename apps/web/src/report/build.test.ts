@@ -5,7 +5,6 @@ import { getCore } from '@duelwise/core/src/games/index'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import { buildReportBody } from './build'
 import { MATERIAL } from './chess'
-import { huntingShots, luckVerdict } from '../games/fleet/luck'
 import { publicBody, reportTiles } from './copy'
 import { playRandom, playScript } from './testing'
 
@@ -185,35 +184,11 @@ describe('Fleet report', () => {
     }
   })
 
-  test('luck verdict thresholds are 15 percent either side', () => {
-    expect(luckVerdict(23, 31)).toBe('lucky')
-    expect(luckVerdict(31, 31)).toBe('about even')
-    expect(luckVerdict(35, 31)).toBe('about even')
-    expect(luckVerdict(36, 31)).toBe('unlucky')
-    expect(luckVerdict(26.4, 31)).toBe('about even')
-    expect(luckVerdict(26.3, 31)).toBe('lucky')
-  })
-
   test('the report rebuilds identically and the record replays', () => {
     expect(replay(rec).ok).toBe(true)
     const r1 = buildReportBody(rec)
     const r2 = buildReportBody(rec)
     expect(r1).toEqual(r2)
-  })
-
-  test('hunting shots skip the finishing shots after a hit', () => {
-    const ship = [{ id: 0, length: 2, cell: 0, vertical: false }]
-    // Miss, hit, finish: two hunting shots (the miss and the first hit), the finish does not count.
-    expect(huntingShots([50, 0, 1], ship)).toBe(2)
-    expect(huntingShots([0, 1], ship)).toBe(1)
-  })
-
-  test('hunting shots stop at the last sink: trailing misses after it are not counted', () => {
-    const ship = [{ id: 0, length: 2, cell: 0, vertical: false }]
-    // Miss, hit, sink, then three misses the loser fired before the opponent finished: only the first two shots plus the opening hit count.
-    expect(huntingShots([50, 0, 1, 60, 61, 62], ship)).toBe(2)
-    // A stray hit-free tail never raises the count.
-    expect(huntingShots([0, 1, 60, 61, 62], ship)).toBe(1)
   })
 
   test('a public report holds no setup: no coordinates, no ship cells, no first person', () => {
