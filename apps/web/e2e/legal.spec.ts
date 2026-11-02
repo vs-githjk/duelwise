@@ -10,7 +10,7 @@ test('the terms and the landing page name every game the server holds, and say w
   await expect(hidden).toContainText('A connected Stormglass practice match is held on the server too')
   await expect(hidden).toContainText('runs in your browser only when you are offline')
   await page.goto('/')
-  await expect(page.getByText('in a counted Word Duel or Stormglass match the server holds the hidden side')).toBeVisible()
+  await expect(page.getByText('in a counted Stormglass match it keeps the enemy fleet')).toBeVisible()
 })
 
 test.describe('privacy notice matches the legitimate-interest basis', () => {
