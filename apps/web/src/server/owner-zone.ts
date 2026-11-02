@@ -12,9 +12,9 @@ export interface ZoneInfo {
 
 const NAME_MAX = 64
 
-/** A zone Intl accepts, as written by Intl, or null. */
+/** A zone Intl accepts, as written by Intl, or null. Names must start with a letter: Postgres reads a leading sign or digit as a UTC offset, with the opposite sign to the one Intl would read. */
 export function validZone(raw: unknown): string | null {
-  if (typeof raw !== 'string' || raw.length === 0 || raw.length > NAME_MAX || !/^[A-Za-z0-9_+\-/]+$/.test(raw)) return null
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > NAME_MAX || !/^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(raw)) return null
   try {
     return new Intl.DateTimeFormat('en-US', { timeZone: raw }).resolvedOptions().timeZone
   } catch {
@@ -66,6 +66,25 @@ export function timeIn(iso: string, zone: string): string {
   if (Number.isNaN(d.getTime())) return ''
   const p = parts(d, zone)
   return `${p.hour}:${p.minute}`
+}
+
+/** "Oct 21" for a day key (YYYY-MM-DD). */
+export function shortDayKey(key: string): string {
+  const [, m, d] = key.split('-').map(Number) as [number, number, number]
+  return `${MONTHS[m - 1]} ${d}`
+}
+
+/** The first instant (ms) of a calendar day on the zone's clock: the earliest instant whose day is `key` or later. Found by bisection, so a repeated or skipped midnight cannot throw it off. */
+export function dayStartIn(key: string, zone: string): number {
+  const mid = Date.parse(`${key}T00:00:00.000Z`)
+  let lo = mid - 36 * 3_600_000 // certainly before the day starts anywhere
+  let hi = mid + 36 * 3_600_000 // certainly inside or after it
+  while (hi - lo > 1) {
+    const m = lo + Math.floor((hi - lo) / 2)
+    if (dayKeyIn(new Date(m), zone) >= key) hi = m
+    else lo = m
+  }
+  return hi
 }
 
 /** "Oct 21" for an instant, on the zone's calendar. */

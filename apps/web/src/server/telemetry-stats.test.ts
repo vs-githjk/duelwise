@@ -183,14 +183,41 @@ describe('owner view panels', () => {
 })
 
 describe('bucket labels follow the asked zone', () => {
-  // 2026-10-22 12:00Z is 08:00 EDT in New York. Seven daily buckets end at now, now - 1 day, and so on.
-  test('daily labels are the zone calendar day each bucket ends on, UTC when no zone is given', () => {
+  const FB = new Date('2026-11-02T04:04:00.000Z') // 23:04 EST on Nov 1, already Nov 2 in UTC
+  test('daily ranges are whole calendar days in the zone, today last, each label once', () => {
     expect(view([]).bucketLabels.at(-1)).toBe('Oct 22')
-    expect(view([], { now: new Date('2026-11-02T03:30:00.000Z') }).bucketLabels.at(-1)).toBe('Nov 2') // UTC is already Nov 2
-    const ny = view([], { now: new Date('2026-11-02T03:30:00.000Z'), zone: 'America/New_York' })
+    const ny = view([], { now: FB, zone: 'America/New_York' })
     expect(ny.zone).toBe('America/New_York')
-    expect(ny.bucketLabels.at(-1)).toBe('Nov 1') // 22:30 EST
-    expect(ny.bucketLabels).toHaveLength(7)
+    expect(ny.bucketLabels).toEqual(['Oct 26', 'Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31', 'Nov 1'])
+    expect(view([], { now: FB }).bucketLabels).toEqual(['Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2'])
+    const thirty = view([], { now: FB, zone: 'America/New_York', range: '30d' }).bucketLabels
+    expect(thirty).toHaveLength(30)
+    expect(new Set(thirty).size).toBe(30)
+    expect(thirty.at(-1)).toBe('Nov 1')
+  })
+
+  test('a 22:00 local match lands on its own day, and the 25 hour day holds all of its matches', () => {
+    const at = (iso: string) => new Date(iso)
+    const evs = [
+      ...played('human', { at: at('2026-11-02T03:00:00.000Z'), playerRef: 'pl_a' }), // 22:00 EST Nov 1
+      ...played('human', { at: at('2026-11-01T04:30:00.000Z'), playerRef: 'pl_b' }), // 00:30 EDT Nov 1
+      ...played('human', { at: at('2026-11-01T06:30:00.000Z'), playerRef: 'pl_c' }), // 01:30 EST Nov 1
+      ...played('human', { at: at('2026-10-31T03:59:00.000Z'), playerRef: 'pl_d' }), // 23:59 EDT Oct 30
+    ]
+    const v = view(evs, { now: FB, zone: 'America/New_York' })
+    expect(v.kpis.matches.series).toEqual([0, 0, 0, 0, 1, 0, 3])
+    expect(v.kpis.matches.value).toBe(4)
+    // Viewed two days later the 22:00 match is still Nov 1, not Nov 3.
+    const later = view(evs, { now: new Date('2026-11-04T15:00:00.000Z'), zone: 'America/New_York' })
+    expect(later.bucketLabels.at(-1)).toBe('Nov 4')
+    expect(later.kpis.matches.series.at(-4)).toBe(3) // Nov 1
+  })
+
+  test('the first day opens at local midnight and the comparison period is the same number of days before', () => {
+    const e = (iso: string) => played('human', { at: new Date(iso), playerRef: 'pl_x' })
+    const v = view([...e('2026-10-26T03:59:00.000Z'), ...e('2026-10-26T04:00:00.000Z'), ...e('2026-10-19T04:00:00.000Z'), ...e('2026-10-18T03:59:00.000Z')], { now: FB, zone: 'America/New_York' })
+    expect(v.kpis.matches.value).toBe(1) // 04:00Z is Oct 26 00:00 EDT, the first minute; 03:59Z is Oct 25
+    expect(v.kpis.matches.previous).toBe(2) // Oct 25 23:59 and Oct 19 00:00 EDT are in the previous 7 days; Oct 18 23:59 is before them
   })
 
   test('hourly labels are wall clock hours in the zone, across the fall-back hour', () => {

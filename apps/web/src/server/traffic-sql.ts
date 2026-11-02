@@ -76,15 +76,30 @@ export function addTo(s: Split, cls: unknown, n: number): void {
  * The zone to use for a request: the asked one when Intl knows it and the database accepts it, else UTC (flagged). The name only ever
  * reaches SQL as a bound parameter. Checking it against the database too means an odd name Intl knows but Postgres does not cannot fail a page.
  */
+const goodZones = new Set<string>()
+/** Postgres says this for a name it does not know: time zone "Mars/Base" not recognized. Matched on the text of the error and its causes, because drizzle wraps driver errors and the exact shape on Neon is not verified. */
+const notRecognised = (e: unknown): boolean => {
+  for (let err = e as { message?: unknown; cause?: unknown } | undefined, depth = 0; err && depth < 5; err = err.cause as typeof err, depth++) {
+    if (typeof err.message === 'string' && /time ?zone .*not recognized|unknown time ?zone|invalid value for .*time ?zone/i.test(err.message)) return true
+  }
+  return false
+}
 export async function zoneFor(db: { execute: (q: SQL) => Promise<unknown> }, raw: unknown): Promise<ZoneInfo> {
   const z = resolveZone(raw)
-  if (z.zoneFallback) return z
+  if (z.zoneFallback || goodZones.has(z.zone)) return z
   try {
     await db.execute(sql`select now() at time zone ${z.zone}::text`)
+    goodZones.add(z.zone)
     return z
-  } catch {
-    return { zone: 'UTC', zoneFallback: true }
+  } catch (e) {
+    // Only a name the database does not know falls back to UTC. A dropped connection or any other failure goes up to the normal error path instead of showing UTC numbers with a false zone message.
+    if (notRecognised(e)) return { zone: 'UTC', zoneFallback: true }
+    throw e
   }
 }
-/** The instant a calendar day (YYYY-MM-DD) starts in the zone, as SQL. */
-export const dayStart = (day: string, zone: string) => sql`((${day}::date)::timestamp at time zone ${zone}::text)`
+/**
+ * SQL for "this timestamp falls on `day` (YYYY-MM-DD) or later on the zone's calendar". Compares local dates rather than an instant, so a
+ * midnight that happens twice (clocks going back at 00:00) keeps both of its hours. The instant test is a wide pre-filter that lets an index work.
+ */
+export const onOrAfterDay = (col: SQL, day: string, zone: string) =>
+  sql`(${col} >= ((${day}::date - 2)::timestamp at time zone 'UTC') and (${col} at time zone ${zone}::text)::date >= ${day}::date)`

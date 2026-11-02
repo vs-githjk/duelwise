@@ -10,6 +10,7 @@ import { adminActiveHandler, adminOverviewHandler, adminPeopleHandler, adminPlay
 import { playerRef } from './telemetry'
 import { claimGuestForOwner } from './guest'
 import { revealEmailsHandler } from './telemetry-owner'
+import { zoneFor } from './traffic-sql'
 
 let client: PGlite
 let db: PgliteDatabase<typeof schema>
@@ -695,6 +696,35 @@ describe('owner time zone', () => {
       expect(((await adminOverviewHandler(db, OWNER, ENV, FALLBACK_NOW, bad)).body as import('./admin-owner').AdminOverview).zoneFallback).toBe(true)
     }
     expect((await client.query('select count(*)::int as n from match')).rows[0]).toEqual({ n: 10 })
+  })
+
+  test('a repeated local midnight keeps its first occurrence: Havana, 2025-11-02 00:00 happens twice', async () => {
+    await db.execute(sql`truncate table match, guest cascade`)
+    g = 0
+    await oneOff(at('2025-11-02T04:30:00.000Z')) // 00:30 CDT, the first midnight hour of Nov 2
+    await oneOff(at('2025-11-02T05:30:00.000Z')) // 00:30 CST, the second
+    await oneOff(at('2025-11-02T03:59:00.000Z')) // 23:59 CDT Nov 1: before the window
+    const now = new Date('2025-12-01T12:00:00.000Z') // today Dec 1, so the 30 day window opens on Nov 2
+    const a = await AC('America/Havana', now)
+    expect(a.perDay[0]).toMatchObject({ day: '2025-11-02', total: 2 })
+    expect(a.mau.total).toBe(2)
+    const o = await OV('America/Havana', new Date('2025-11-10T12:00:00.000Z')) // 14 days: opens Oct 28
+    expect(o.matchesPerDay.find((d) => d.day === '2025-11-02')!.total).toBe(2)
+    const o2 = await OV('America/Havana', new Date('2025-11-15T12:00:00.000Z')) // opens Nov 2
+    expect(o2.matchesPerDay[0]).toMatchObject({ day: '2025-11-02', total: 2 })
+  })
+
+  test('only an unrecognised zone falls back to UTC; any other database failure is not hidden', async () => {
+    const down = { execute: async () => { throw new Error('connection terminated unexpectedly') } }
+    await expect(zoneFor(down, 'Africa/Nairobi')).rejects.toThrow('connection terminated')
+    const wrapped = { execute: async () => { throw Object.assign(new Error('Failed query: select ...'), { cause: new Error('time zone "Mars/Base" not recognized') }) } }
+    expect(await zoneFor(wrapped, 'Mars/Base')).toEqual({ zone: 'UTC', zoneFallback: true })
+    // a good zone is remembered, so the probe is not repeated
+    let probes = 0
+    const counting = { execute: async () => { probes++ } }
+    await zoneFor(counting, 'Asia/Tokyo')
+    await zoneFor(counting, 'Asia/Tokyo')
+    expect(probes).toBe(1)
   })
 
   test('404 for anyone but the owner is unchanged whatever zone they ask for', async () => {

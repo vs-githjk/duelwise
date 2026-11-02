@@ -15,7 +15,7 @@ export function ActiveCards({ zone }: { zone: string }) {
   const last = data?.perDay[data.perDay.length - 1]?.day
   const max = Math.max(1, ...(data?.perDay.map((d) => d.total) ?? [1]))
   return (
-    <Card title="Active players" note={`finished matches, guests and accounts, days on ${zoneLabel(data?.zone ?? zone)} time`} testId="owner-active">
+    <Card title="Active players" note={`finished matches, guests and accounts, days in ${zoneLabel(data?.zone ?? zone)}`} testId="owner-active">
       {error ? (
         <p role="alert" className="rounded-control bg-warn-soft p-3 text-sm text-warn-ink">
           Active players did not load. <button type="button" className="font-semibold underline" onClick={retry}>Try again</button>

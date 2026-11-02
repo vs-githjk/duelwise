@@ -8,7 +8,7 @@ import { isPractice } from './competitive'
 import type { HandlerResponse } from './match-handlers'
 import { addDays, dayKeyIn, type ZoneInfo } from './owner-zone'
 import { isOwner, playerRef } from './telemetry'
-import { addTo, classCte, dayStart, emptySplit, MATCH_CLS, MATCH_PID, type Split, zoneFor } from './traffic-sql'
+import { addTo, classCte, emptySplit, MATCH_CLS, MATCH_PID, onOrAfterDay, type Split, zoneFor } from './traffic-sql'
 import type { Traffic } from './traffic'
 
 /**
@@ -194,7 +194,7 @@ export async function adminOverviewHandler(
 ): Promise<HandlerResponse<AdminOverview | { error: string }>> {
   if (!isOwner(user, env)) return NOT_FOUND
   const { zone, zoneFallback } = await zoneFor(db, rawZone)
-  const from = dayStart(addDays(dayKeyIn(now, zone), -(TREND_DAYS - 1)), zone)
+  const firstDay = addDays(dayKeyIn(now, zone), -(TREND_DAYS - 1))
   const endIso = now.toISOString()
   const cte = classCte(env)
   const [playerRows, newRows, dayRows, gameRows, feedRows] = await Promise.all([
@@ -202,12 +202,12 @@ export async function adminOverviewHandler(
     db.execute(sql`
       with ${cte}
       select to_char(created at time zone ${zone}::text, 'YYYY-MM-DD') as day, cls, count(*)::int as count
-      from pc where created >= ${from} and created <= ${endIso}::timestamptz group by 1, 2`),
+      from pc where ${onOrAfterDay(sql`created`, firstDay, zone)} and created <= ${endIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
       select to_char(m.finished_at at time zone ${zone}::text, 'YYYY-MM-DD') as day, ${MATCH_CLS} as cls, count(*)::int as count
       from match m left join pc on pc.pid = ${MATCH_PID}
-      where m.status in ${PLAYED_SQL} and m.finished_at >= ${from} and m.finished_at <= ${endIso}::timestamptz group by 1, 2`),
+      where m.status in ${PLAYED_SQL} and ${onOrAfterDay(sql`m.finished_at`, firstDay, zone)} and m.finished_at <= ${endIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
       select m.game, ${MATCH_CLS} as cls, count(*)::int as count
@@ -307,14 +307,13 @@ export async function adminActiveHandler(
   const today = dayKeyIn(now, zone)
   const w7 = addDays(today, -6)
   const w30 = addDays(today, -(ACTIVE_DAYS - 1))
-  // The window is explicit: from 00:00 of the first day on the zone's clock to now. Nothing dated after now is counted, and the database session time zone never matters because every conversion names its zone.
-  const start = dayStart(w30, zone)
+  // The window is explicit: from 00:00 of the first day on the zone's clock (its first occurrence, if midnight repeats) to now. Nothing dated after now is counted, and the database session time zone never matters because every conversion names its zone.
   const endIso = now.toISOString()
   const cte = classCte(env)
   const played = sql`
     select ${MATCH_PID} as pid, ${MATCH_CLS} as cls, (m.finished_at at time zone ${zone}::text)::date as d
     from match m left join pc on pc.pid = ${MATCH_PID}
-    where m.status in ${PLAYED_SQL} and m.finished_at >= ${start} and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
+    where m.status in ${PLAYED_SQL} and ${onOrAfterDay(sql`m.finished_at`, w30, zone)} and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
   const [dayRows, totalRows] = await Promise.all([
     db.execute(sql`with ${cte}, m2 as (${played}) select to_char(d, 'YYYY-MM-DD') as day, cls, count(distinct pid)::int as count from m2 group by d, cls`),
     db.execute(sql`
