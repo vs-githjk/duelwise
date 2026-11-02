@@ -75,13 +75,7 @@ export function recordFromLists(seed: number, human: number[], agent: number[]):
 /** The part of the match recorder the engine uses; `useMatchRecorder` provides it and a test can stand in. */
 export interface RecorderPort {
   begin(level: Level, devSeed?: number): Promise<import('../../lib/match-recorder').Session>
-  start(init: {
-    seed: number
-    humanSeat: Seat
-    agent: { version: string; level: Level }
-    trainingAllowed: boolean
-    input?: 'keyboard' | 'touch' | 'mouse'
-  }): void
+  start(init: Parameters<ReturnType<typeof useMatchRecorder>['start']>[0]): void
   act(tick: number, seat: Seat, action: number, humanInputMs?: number): void
   reach(tick: number): void
   setSeed(seed: number): void

@@ -335,6 +335,7 @@ describe('no real client plays from another seat', () => {
     word: { hook: 'word/useWordMatch.ts', seat: 'word/useWordMatch.ts' },
     fighter: { hook: 'fighter/useFighterMatch.ts', seat: 'fighter/useFighterMatch.ts' },
     arena: { hook: 'arena/useArenaMatch.ts', seat: 'arena/useArenaMatch.ts' },
+    fleet: { hook: 'fleet/useFleetMatch.ts', seat: 'fleet/useFleetMatch.ts' },
   }
   const source = (path: string) => readFileSync(new URL(`../games/${path}`, import.meta.url), 'utf8')
 
