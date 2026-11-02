@@ -1,7 +1,8 @@
 import { createFileRoute, notFound, useNavigate, useRouter } from '@tanstack/react-router'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { OwnerDashboard, type OwnerFilters } from '../components/owner/OwnerDashboard'
+import { browserZone } from '../server/owner-zone'
 import { getOwnerView } from '../server/telemetry-fns'
 
 interface Search {
@@ -13,6 +14,8 @@ interface Search {
 }
 
 export const Route = createFileRoute('/owner')({
+  // The loader still runs on the server, so the owner check answers a real 404, but the page renders on the client: only the browser knows its time zone, so rendering it on the server would show numbers for the wrong day and then change them.
+  ssr: 'data-only',
   validateSearch: (s: Record<string, unknown>): Search => {
     const out: Search = {}
     if (s.range === '24h' || s.range === '30d') out.range = s.range
@@ -25,7 +28,8 @@ export const Route = createFileRoute('/owner')({
   },
   loaderDeps: ({ search }) => ({ range: search.range, game: search.game, level: search.level, page: search.page, who: search.who }),
   loader: async ({ deps }) => {
-    const view = await getOwnerView({ data: deps })
+    // The server render has no browser zone (tz stays unset there); the browser always names one, an empty string when it cannot read its own.
+    const view = await getOwnerView({ data: typeof window === 'undefined' ? deps : { ...deps, tz: browserZone() ?? '' } })
     // Anyone who is not the owner sees the same page as an address that does not exist.
     if (!view) throw notFound()
     return view
@@ -57,6 +61,12 @@ function Page() {
   const refresh = useCallback(() => {
     router.invalidate().catch(() => {})
   }, [router])
+  // Data that came from the server render was counted in UTC; load it again with the browser's zone before showing a single number.
+  const needsZone = !view.zoneAsked
+  useEffect(() => {
+    if (needsZone) refresh()
+  }, [needsZone, refresh])
+  if (needsZone) return <Loading />
   return (
     <OwnerDashboard
       v={view}
