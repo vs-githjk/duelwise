@@ -54,7 +54,7 @@ The four opponents are the same four characters in every game, one per level, ea
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. Easy, Medium and Hard share one network under different limits, and Champion has its own. | No |
 | Coldstore | The same method as Tinderbox. | No |
 
-Making human matches train all six is planned, under "What's coming next".
+Making human matches train every learned agent is planned, under "What's coming next".
 
 ## How it works
 
@@ -115,7 +115,7 @@ Three new games are in progress: **Stormglass** (a hidden-fleet naval duel on a 
 
 Also planned:
 
-- Human matches train all six games, with the same filter and promote-only-if-it-wins gate Four in a Row has.
+- Human matches train every learned agent, with the same filter and promote-only-if-it-wins gate Four in a Row has.
 - Stronger Hard opponents as real matches come in.
 - Anchored chess strength against an outside engine.
 - Tournament mode.
