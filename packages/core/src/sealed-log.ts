@@ -1,6 +1,7 @@
 import type { MatchRecordV1 } from './match-record'
 import { getCore } from './games/index'
-import type { GameCore, Seat } from './types'
+import type { GameId } from './product'
+import type { GameCore, Result, Seat } from './types'
 
 /** What the server stores for a sealed turn game: every action each seat took, in that seat's own order. Seat 0 is the player. */
 export interface SealedLog {
@@ -57,6 +58,22 @@ export function sealedLogOf(flags: Record<string, unknown> | null): SealedLog | 
   const g = (flags as { sealedLog?: { human?: unknown; agent?: unknown } } | null)?.sealedLog
   if (!g || !isIntList(g.human) || !isIntList(g.agent)) return null
   return { human: g.human, agent: g.agent }
+}
+
+/**
+ * How a sealed match stands by the server's own log and seed, never by anything uploaded: the result, or `result: null` while the game is
+ * still running. Null when there is no log, or the core cannot play it (a log written under another core version).
+ */
+export function loggedOutcome(game: GameId, seed: number, flags: Record<string, unknown> | null): { result: Result | null } | null {
+  const log = sealedLogOf(flags)
+  if (!log) return null
+  try {
+    const core = getCore(game)
+    const run = runLog(core, seed, log.human, (_s, i) => log.agent[i])
+    return { result: core.terminal(run.state) ? core.result(run.state) : null }
+  } catch {
+    return null
+  }
 }
 
 /**

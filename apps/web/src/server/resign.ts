@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
@@ -6,7 +6,7 @@ import type { Caller, FinishOptions, HandlerResponse } from './match-handlers'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
-import { isPractice, isUnplayed, PRACTICE_FLAG, sealedLogLength, UNPLAYED_FLAG } from './competitive'
+import { isPractice, isUnplayed, PRACTICE_FLAG, sealedLogStill, UNPLAYED_FLAG } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -54,7 +54,7 @@ export async function resignMatchHandler(
     const updated = await db
       .update(schema.match)
       .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(read.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(notPlayed ? { [UNPLAYED_FLAG]: true } : {}) }, finishedAt: new Date() })
-      .where(and(eq(schema.match.id, read.id), eq(schema.match.status, 'started'), sql`coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) = ${sealedLogLength(read.filterFlags)}`))
+      .where(and(eq(schema.match.id, read.id), eq(schema.match.status, 'started'), sealedLogStill(read.filterFlags)))
       .returning({ id: schema.match.id })
     if (updated.length > 0) {
       row = read

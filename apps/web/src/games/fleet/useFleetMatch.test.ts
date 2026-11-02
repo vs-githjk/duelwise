@@ -286,6 +286,21 @@ describe('counted match through the engine', () => {
     expect(await engine.fire(5)).toBeNull()
   })
 
+  test('no record exists until the server says the match is over: a dropped, refused or plain shot writes none, so a mid-match upload is never from this page', async () => {
+    const server = fakeServer({ loseReplyAt: 3 })
+    const { engine, log } = engineFor(SEALED, server)
+    await engine.start('easy', FLEET)
+    await engine.fire(0)
+    expect(log.finished).toBeNull()
+    await engine.fire(1)
+    expect(engine.snapshot().failure).toBe(SHOT_FAILED)
+    expect(log.finished).toBeNull()
+    await playOut(engine)
+    expect(engine.snapshot().phase).toBe('over')
+    expect(server.replies.at(-1)!.over).toBe(true)
+    expect(log.finished).not.toBeNull()
+  })
+
   test('a shot the page already fired is refused before anything is sent', async () => {
     const server = fakeServer()
     const { engine } = engineFor(SEALED, server)

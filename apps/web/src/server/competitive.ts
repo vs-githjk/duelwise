@@ -53,6 +53,9 @@ export function sealedLogLength(flags: unknown): number {
   return Array.isArray(human) ? human.length : 0
 }
 
+/** For a settling write: the stored log is still the one the decision read, so a shot landing between the read and the write stops the write. */
+export const sealedLogStill = (flags: unknown) => sql`coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) = ${sealedLogLength(flags)}`
+
 /** Whether a started row of this game has no stored shot yet (no setup, or the setup only), so it was never played. */
 export function isUnplayed(game: string, flags: unknown): boolean {
   if (!SEALED_TURN_GAMES.some((g) => g === game)) return false

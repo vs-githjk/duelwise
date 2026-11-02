@@ -4,8 +4,11 @@ import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { and, eq, sql } from 'drizzle-orm'
 import { encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { getCore } from '@duelwise/core/src/games/index'
+import { fleetCore, shipCells, type Placement } from '@duelwise/core/src/games/fleet'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import type { GameId, Level } from '@duelwise/core/src/product'
+import { makeRng } from '@duelwise/core/src/rng'
+import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { abandonStale } from './abandon'
@@ -16,9 +19,11 @@ import { getUserRating } from './leaderboard'
 import { getPath } from './path'
 import { resignMatchHandler } from './resign'
 import { finishedResults } from './results'
+import { FLEET_SPEC, sealedTurnHandler, type SealedSpec, type SealedTurnBody } from './sealed-duel'
 import { issueTicketsHandler, type Ticket } from './ticket-issue'
 import { listTrainingMatches } from './training-export'
 import { wordMarksHandler, type WordMarksBody } from './word-marks'
+import { recordFromLists, shotCode } from '../games/fleet/useFleetMatch'
 
 type Db = PgliteDatabase<typeof schema>
 let client: PGlite
@@ -451,5 +456,297 @@ describe('an invalid record is never a win', () => {
     expect(await ratingOf('four')).toBeUndefined()
     expect(await finishedResults(db, { game: 'four', since: new Date(0) })).toEqual([])
     expect(await listTrainingMatches(db, 'four')).toEqual([])
+  })
+})
+
+describe('Stormglass: the seed is revealed after a loss, so the server\'s own log decides an edited record', () => {
+  const place = (p: { cell: number; vertical: boolean }) => fleetCore.encodeAction({ kind: 'place', cell: p.cell, vertical: p.vertical })
+  const MINE = randomFleet(makeRng(7))
+  const THEIRS = randomFleet(makeRng(8))
+  const cellsOf = (fleet: Placement[]) => fleet.flatMap((p) => shipCells(p))
+  const waterOf = (fleet: Placement[]) => Array.from({ length: 100 }, (_, c) => c).filter((c) => !cellsOf(fleet).includes(c))
+  /** The real handler over an opponent with a known fleet: it shoots my ships when the game is one the player loses and open water otherwise. */
+  const scripted = (shots: number[]): SealedSpec => ({
+    ...FLEET_SPEC,
+    agentAction: (_level, _seed, _obs, _seat, tick) => (tick < 5 ? place(THEIRS[tick]!) : shotCode(shots[tick - 5]!)),
+  })
+  type Who = { userId?: string; guestId?: string }
+
+  /** Plays through the real turn handler: the setup, then `count` shots from `mine`. Returns the player's list and the last reply. */
+  async function shoot(m: { matchId: string }, mine: number[], theirs: number[], count: number, who: Who = USER) {
+    const spec = scripted(theirs)
+    const human = MINE.map(place)
+    let last = (await sealedTurnHandler(db, { matchId: m.matchId, actions: human }, who, spec)).body as SealedTurnBody
+    for (const cell of mine.slice(0, count)) {
+      human.push(shotCode(cell))
+      const r = await sealedTurnHandler(db, { matchId: m.matchId, actions: human }, who, spec)
+      expect(r.status).toBe(200)
+      last = r.body as SealedTurnBody
+    }
+    return { human, last }
+  }
+  /** The honest record, built by the page's own function from what the server revealed. */
+  function recordOf(matchId: string, human: number[], last: SealedTurnBody): MatchRecordV1 {
+    expect(last.over).toBe(true)
+    const { seed, agentActions } = last.reveal!
+    const { actions, state } = recordFromLists(seed, human, agentActions)
+    return { ...stub('fleet', matchId, seed), actions, result: fleetCore.result(state)!, finalHash: fleetCore.hash(state) }
+  }
+  async function lostGame(who: Who = USER, extra: Record<string, unknown> = {}) {
+    const m = await begin('fleet', who, 21, extra)
+    const { human, last } = await shoot(m, waterOf(THEIRS), cellsOf(MINE), 17, who)
+    expect(last.view).toMatchObject({ phase: 'over' })
+    return { m, rec: recordOf(m.matchId, human, last) }
+  }
+  async function wonGame(who: Who = USER) {
+    const m = await begin('fleet', who)
+    const { human, last } = await shoot(m, cellsOf(THEIRS), waterOf(MINE), 17, who)
+    const rec = recordOf(m.matchId, human, last)
+    expect(rec.result.winner).toBe(0)
+    return { m, rec }
+  }
+  /** What a resignation costs a new player in a played Stormglass match at this level. */
+  async function fleetPrice(): Promise<number> {
+    const m = await begin('fleet', CONTROL)
+    await shoot(m, waterOf(THEIRS), cellsOf(MINE), 1, CONTROL)
+    expect((await resignMatchHandler(db, { matchId: m.matchId, tick: 6 }, CONTROL, CHECKED)).status).toBe(200)
+    const after = (await ratingOf('fleet', CONTROL.userId))!.elo
+    expect(after).toBeLessThan(1000)
+    return after
+  }
+  const noRating = async () => expect(await db.select().from(schema.rating).where(eq(schema.rating.userId, USER.userId))).toEqual([])
+  /** The player's first two shots swapped, with the hash fixed up: the record replays to the same end but is not the logged match. */
+  function swappedShots(rec: MatchRecordV1): MatchRecordV1 {
+    const [a, b] = rec.actions.map((e, i) => (e[1] === 0 && e[0] >= 5 ? i : -1)).filter((i) => i >= 0)
+    const actions = rec.actions.map((e, i) => (i === a ? ([e[0], e[1], rec.actions[b!]![2]] as typeof e) : i === b ? ([e[0], e[1], rec.actions[a!]![2]] as typeof e) : e))
+    return { ...rec, actions, finalHash: hashOf(rec, actions) }
+  }
+  function hashOf(rec: MatchRecordV1, actions: MatchRecordV1['actions']): string {
+    let s = fleetCore.init(rec.seed)
+    for (let t = 0, i = 0; !fleetCore.terminal(s); t++) {
+      const step: [unknown, unknown] = [null, null]
+      for (; i < actions.length && actions[i]![0] === t; i++) step[actions[i]![1]] = fleetCore.decodeAction(actions[i]![2])
+      s = fleetCore.step(s, step as never)
+    }
+    return fleetCore.hash(s)
+  }
+
+  const EDITS: Array<[string, (r: MatchRecordV1) => MatchRecordV1, RegExp]> = [
+    ["coreVersion 'fleet-0'", (r) => ({ ...r, coreVersion: 'fleet-0' }), /core version/],
+    ['finalHash zeros', (r) => ({ ...r, finalHash: '0000000000000000' }), /final hash/],
+    ['humanSeat 1', (r) => ({ ...r, humanSeat: 1 }), /seat 0/],
+    ['one action code changed, no longer replays', (r) => ({ ...r, actions: r.actions.map((e, i) => (i === r.actions.length - 1 ? ([e[0], e[1], e[2] === 299 ? 298 : 299] as typeof e) : e)) }), /./],
+    ['one action code changed, still replays', swappedShots, /logged turns/],
+  ]
+
+  test('the honest records are valid: a loss is the real loss and a win is a gain', async () => {
+    const lost = await lostGame()
+    const down = (await finish(lost.rec)).body as { valid: boolean; elo: { before: number; after: number } }
+    expect(down.valid).toBe(true)
+    expect(down.elo.after).toBeLessThan(1000)
+    expect(await rowOf(lost.m.matchId)).toMatchObject({ recordValid: true, result: { winner: 1 } })
+    await db.execute(sql`truncate table rating`)
+    const won = await wonGame()
+    const up = (await finish(won.rec)).body as { valid: boolean; elo: { before: number; after: number } }
+    expect(up.valid).toBe(true)
+    expect(up.elo.after).toBeGreaterThan(1000)
+  })
+
+  for (const [name, edit, why] of EDITS) {
+    test(`after a real loss, ${name}: the same loss as a resign, charged once, and the row holds what really happened`, async () => {
+      const price = await fleetPrice()
+      const { m, rec } = await lostGame()
+      const bad = edit(rec)
+      const r = await finish(bad)
+      expect(r.status).toBe(200)
+      expect(r.body).toMatchObject({ valid: false, result: null, elo: { before: 1000, after: price } })
+      expect((r.body as { reason: string }).reason).toMatch(why)
+      expect(await ratingOf('fleet')).toMatchObject({ elo: price, games: 1 })
+      expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, record: null, trainingAllowed: false, result: { winner: 1, score: [0, 1], reason: 'fleet sunk' } })
+      const rating = await ratingOf('fleet')
+      expect((await finish(bad)).status).toBe(409)
+      expect((await finish(rec)).status).toBe(409)
+      expect(await ratingOf('fleet')).toEqual(rating)
+    })
+
+    test(`after a real win, ${name}: no gain, no charge, and the row says the player won with the record refused`, async () => {
+      const { m, rec } = await wonGame()
+      const bad = edit(rec)
+      const r = await finish(bad)
+      expect(r.status).toBe(200)
+      expect(r.body).toMatchObject({ valid: false, result: null })
+      expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+      await noRating()
+      expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, record: null, trainingAllowed: false, result: { winner: 0, score: [1, 0], reason: 'fleet sunk' } })
+      expect((await finish(bad)).status).toBe(409)
+      expect((await finish(rec)).status).toBe(409)
+      await noRating()
+      expect(await getUserRating(db, USER.userId, 'fleet')).toBeNull()
+      expect(await getPath(db, USER, 'fleet')).toEqual({ easy: false, medium: false, hard: false, champion: false })
+      expect(await finishedResults(db, { game: 'fleet', since: new Date(0) })).toEqual([])
+      expect(await listTrainingMatches(db, 'fleet')).toEqual([])
+    })
+  }
+
+  test('a won game with the wrong seed: the log says won, so no charge', async () => {
+    const { rec } = await wonGame()
+    const r = await finish({ ...rec, seed: rec.seed + 1 })
+    expect((r.body as { reason: string }).reason).toContain('seed')
+    expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+    await noRating()
+  })
+
+  test('a lost game claiming the win: the same loss, the claim is not kept, and no read counts it', async () => {
+    const price = await fleetPrice()
+    const { m, rec } = await lostGame()
+    const r = await finish({ ...rec, result: { winner: 0, score: [1, 0], reason: 'fleet sunk' } })
+    expect(r.body).toMatchObject({ valid: false, elo: { before: 1000, after: price } })
+    expect((await rowOf(m.matchId)).result).toMatchObject({ winner: 1 })
+    expect(await finishedResults(db, { game: 'fleet', since: new Date(0) })).toEqual([])
+  })
+
+  test('the level and game are the row\'s: a record naming Easy or another game costs the Hard Stormglass price', async () => {
+    const price = await fleetPrice()
+    const easy = await lostGame()
+    const a = await finish({ ...easy.rec, agent: { ...easy.rec.agent, level: 'easy' } })
+    expect(a.body).toMatchObject({ valid: false, elo: { before: 1000, after: price } })
+    await db.execute(sql`truncate table rating`)
+    const other = await lostGame()
+    const b = await finish({ ...other.rec, game: 'four' })
+    expect(b.body).toMatchObject({ valid: false, elo: { before: 1000, after: price } })
+    expect(await ratingOf('four')).toBeUndefined()
+  })
+
+  test('five copies of an edited record at once are charged once', async () => {
+    const { rec } = await lostGame()
+    const answers = await Promise.all(Array.from({ length: 5 }, () => finish({ ...rec, coreVersion: 'fleet-0' })))
+    expect(answers.filter((a) => a.status === 200)).toHaveLength(1)
+    expect(answers.filter((a) => a.status === 409)).toHaveLength(4)
+    expect((await ratingOf('fleet'))?.games).toBe(1)
+  })
+
+  test('a match still running: the page never uploads one, so any upload is charged as giving up, and the row keeps no result', async () => {
+    const price = await fleetPrice()
+    const m = await begin('fleet')
+    const { last } = await shoot(m, waterOf(THEIRS), cellsOf(MINE), 3)
+    expect(last.over).toBe(false)
+    const r = await finish({ ...stub('fleet', m.matchId, 21), coreVersion: 'fleet-0', result: { winner: 0, score: [1, 0], reason: 'fleet sunk' } })
+    expect(r.body).toMatchObject({ valid: false, result: null, elo: { before: 1000, after: price } })
+    expect(await ratingOf('fleet')).toMatchObject({ elo: price, games: 1 })
+    expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, result: null })
+    const stale = await sealedTurnHandler(db, { matchId: m.matchId, actions: MINE.map(place) }, USER, scripted(cellsOf(MINE)))
+    expect(stale.status).toBe(409)
+  })
+
+  test('a shot that lands between the read and the write sends the upload back: a free unplayed row cannot end on a shot, and the next try is charged', async () => {
+    const price = await fleetPrice()
+    const m = await begin('fleet')
+    const { human } = await shoot(m, [], [], 0)
+    let landed = false
+    /** The database as the finish handler sees it: one shot lands just before its write. */
+    const racing = new Proxy(db, {
+      get(target, key, receiver) {
+        if (key !== 'update' || landed) return Reflect.get(target, key, receiver)
+        return (table: typeof schema.match) => ({
+          set: (values: Record<string, unknown>) => ({
+            where: (cond: never) => ({
+              returning: async (cols: never) => {
+                landed = true
+                expect((await sealedTurnHandler(db, { matchId: m.matchId, actions: [...human, shotCode(waterOf(THEIRS)[0]!)] }, USER, scripted(cellsOf(MINE)))).status).toBe(200)
+                return target.update(table).set(values).where(cond).returning(cols)
+              },
+            }),
+          }),
+        })
+      },
+    })
+    const bad = { ...stub('fleet', m.matchId, 21), coreVersion: 'fleet-0' }
+    expect((await finishMatchHandler(racing, encodeRecord(bad), USER, CHECKED)).status).toBe(409)
+    expect(await rowOf(m.matchId)).toMatchObject({ status: 'started' })
+    await noRating()
+    expect((await finish(bad)).body).toMatchObject({ valid: false, elo: { before: 1000, after: price } })
+  })
+
+  test('the turn handler cannot run past a charge: resign and the abandon sweep change nothing after it', async () => {
+    const { m, rec } = await lostGame()
+    await finish({ ...rec, finalHash: '0000000000000000' })
+    const rating = await ratingOf('fleet')
+    expect((await resignMatchHandler(db, { matchId: m.matchId, tick: 3 }, USER, CHECKED)).status).toBe(409)
+    await abandonStale(db, new Date(Date.now() + 1e9), CHECKED)
+    expect(await ratingOf('fleet')).toEqual(rating)
+  })
+
+  describe('never charged', () => {
+    test('a practice match, lost and edited', async () => {
+      const { m, rec } = await lostGame(USER, { practice: true })
+      const r = await finish({ ...rec, coreVersion: 'fleet-0' })
+      expect(r.body).toMatchObject({ valid: false, result: null })
+      expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+      await noRating()
+      expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false })
+    })
+
+    test('a practice match still running', async () => {
+      const m = await begin('fleet', USER, 21, { practice: true })
+      await shoot(m, waterOf(THEIRS), cellsOf(MINE), 2)
+      expect((await finish({ ...stub('fleet', m.matchId, 21), coreVersion: 'fleet-0' })).body).toMatchObject({ valid: false, result: null })
+      await noRating()
+    })
+
+    test('a guest, lost and edited', async () => {
+      const { rec } = await lostGame(GUEST)
+      const r = await finish({ ...rec, finalHash: '0000000000000000' }, GUEST)
+      expect(r.body).toMatchObject({ valid: false, result: null })
+      expect(await db.select().from(schema.rating)).toEqual([])
+    })
+
+    test('an unplayed row, setup only or nothing stored: an edited record is free, even one that contradicts its match, and a claimed win is not kept', async () => {
+      const setupOnly = await begin('fleet')
+      await shoot(setupOnly, [], [], 0)
+      for (const edit of [{ seed: 22 }, { humanSeat: 1 as const }, { coreVersion: 'fleet-0' }]) {
+        const m = await begin('fleet')
+        await shoot(m, [], [], 0)
+        const r = await finish({ ...stub('fleet', m.matchId, 21), ...edit })
+        expect(r.body).toMatchObject({ valid: false, result: null })
+        expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+        expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, result: null })
+      }
+      const bare = await begin('fleet')
+      const r = await finish({ ...stub('fleet', bare.matchId, 21), seed: 22 })
+      expect(r.body).toMatchObject({ valid: false, result: null })
+      expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+      await noRating()
+    })
+  })
+
+  describe('a stored log the core cannot play (never the player\'s doing): the record alone decides', () => {
+    const broken = async () => {
+      const m = await begin('fleet')
+      await shoot(m, waterOf(THEIRS), cellsOf(MINE), 2)
+      const row = await rowOf(m.matchId)
+      const log = (row.filterFlags as { sealedLog: { human: number[]; agent: number[] } }).sealedLog
+      await db.update(schema.match).set({ filterFlags: { ...row.filterFlags, sealedLog: { ...log, human: [...log.human.slice(0, 5), 99999, 99998] } } }).where(eq(schema.match.id, m.matchId))
+      return m
+    }
+
+    test('an honest looking failure stays free', async () => {
+      const m = await broken()
+      const r = await finish({ ...stub('fleet', m.matchId, 21), coreVersion: 'fleet-0' })
+      expect((r.body as { elo?: unknown }).elo).toBeUndefined()
+      await noRating()
+      expect(await rowOf(m.matchId)).toMatchObject({ recordValid: false, result: null })
+    })
+
+    test('a seat flip still costs the loss', async () => {
+      const m = await broken()
+      const r = await finish({ ...stub('fleet', m.matchId, 21), humanSeat: 1, seed: 22 })
+      expect((r.body as { elo?: { after: number } }).elo!.after).toBeLessThan(1000)
+    })
+
+    test('a seat flip alone still costs the loss: the seat is held in every sealed game', async () => {
+      const m = await broken()
+      const r = await finish({ ...stub('fleet', m.matchId, 21), humanSeat: 1 })
+      expect((r.body as { elo?: { after: number } }).elo!.after).toBeLessThan(1000)
+    })
   })
 })
