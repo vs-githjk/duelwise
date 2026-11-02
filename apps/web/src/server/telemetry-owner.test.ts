@@ -41,6 +41,18 @@ beforeEach(async () => {
   ])
 })
 
+describe('owner view time zone', () => {
+  const get = async (q: Record<string, unknown>) => (await ownerViewHandler(db, OWNER, ENV, q, () => null, NOW)).body as import('./telemetry-stats').OwnerViewBody
+  test('the asked zone is validated, echoed and used; a missing or hostile one falls back to UTC and says so', async () => {
+    expect(await get({ tz: 'America/New_York' })).toMatchObject({ zone: 'America/New_York', zoneFallback: false, zoneAsked: true })
+    expect(await get({})).toMatchObject({ zone: 'UTC', zoneFallback: true, zoneAsked: false })
+    expect(await get({ tz: "UTC'; drop table telemetry_event; --" })).toMatchObject({ zone: 'UTC', zoneFallback: true, zoneAsked: true })
+    expect(await get({ tz: 7 })).toMatchObject({ zone: 'UTC', zoneFallback: true })
+    expect((await get({ tz: 'UTC' })).zoneFallback).toBe(false)
+    expect((await client.query('select count(*)::int as n from telemetry_event')).rows[0]).toEqual({ n: 2 })
+  })
+})
+
 describe('owner view access', () => {
   test('a non-owner, a signed-out visitor and a missing allowlist all get 404 and no data', async () => {
     // The allowlisted email with the address not verified by the provider is not the owner either (M4).

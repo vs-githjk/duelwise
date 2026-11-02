@@ -181,3 +181,21 @@ describe('owner view panels', () => {
     expect(JSON.stringify(e)).not.toContain('null,null,NaN')
   })
 })
+
+describe('bucket labels follow the asked zone', () => {
+  // 2026-10-22 12:00Z is 08:00 EDT in New York. Seven daily buckets end at now, now - 1 day, and so on.
+  test('daily labels are the zone calendar day each bucket ends on, UTC when no zone is given', () => {
+    expect(view([]).bucketLabels.at(-1)).toBe('Oct 22')
+    expect(view([], { now: new Date('2026-11-02T03:30:00.000Z') }).bucketLabels.at(-1)).toBe('Nov 2') // UTC is already Nov 2
+    const ny = view([], { now: new Date('2026-11-02T03:30:00.000Z'), zone: 'America/New_York' })
+    expect(ny.zone).toBe('America/New_York')
+    expect(ny.bucketLabels.at(-1)).toBe('Nov 1') // 22:30 EST
+    expect(ny.bucketLabels).toHaveLength(7)
+  })
+
+  test('hourly labels are wall clock hours in the zone, across the fall-back hour', () => {
+    const ny = view([], { range: '24h', now: new Date('2026-11-01T07:00:00.000Z'), zone: 'America/New_York' }) // 02:00 EST
+    expect(ny.bucketLabels).toHaveLength(24)
+    expect(ny.bucketLabels.slice(-5)).toEqual(['23:00', '00:00', '01:00', '01:00', '02:00']) // 01:00 appears twice: EDT, then EST
+  })
+})

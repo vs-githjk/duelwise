@@ -5,7 +5,7 @@ import * as schema from '../db/schema'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
 import { buildOwnerView, RANGE_MS, type EventRow, type Lens, type OwnerViewBody, type Range } from './telemetry-stats'
-import { classCte } from './traffic-sql'
+import { classCte, zoneFor } from './traffic-sql'
 
 type Db = PgDatabase<any, typeof schema>
 type Env = { OWNER_EMAILS?: string | undefined }
@@ -45,6 +45,7 @@ export async function ownerViewHandler(
 ): Promise<HandlerResponse<OwnerViewBody | { error: string }>> {
   if (!isOwner(user, env)) return NOT_FOUND
   const p = parseOwnerParams(q)
+  const { zone, zoneFallback } = await zoneFor(db, q.tz)
   const from = new Date(now.getTime() - 2 * RANGE_MS[p.range])
   const rows = await db.select().from(schema.telemetryEvent).where(gte(schema.telemetryEvent.at, from)).orderBy(sql`${schema.telemetryEvent.at} desc`).limit(EVENT_CAP)
   const events: EventRow[] = rows.map((r) => ({
@@ -74,14 +75,14 @@ export async function ownerViewHandler(
     const c = classOf.get(e.playerRef)
     return c === 'owner' || c === 'test' || c === 'human' ? c : 'human'
   }
-  const view = (list: EventRow[]) => buildOwnerView({ events: list, firstSeen, providers, now, range: p.range, game: p.game, level: p.level, page: p.page, targetFor })
+  const view = (list: EventRow[]) => buildOwnerView({ events: list, firstSeen, providers, now, zone, range: p.range, game: p.game, level: p.level, page: p.page, targetFor })
   const by = (c: 'human' | 'owner' | 'test') => view(events.filter((e) => clsOf(e) === c))
   const total = view(events)
   const human = by('human')
   const owner = by('owner')
   const test = by('test')
   const lens = p.who === 'human' ? human : p.who === 'owner' ? owner : p.who === 'test' ? test : total
-  return { status: 200, body: { ...lens, lastEventAt: total.lastEventAt, who: p.who, kpisBy: { human: human.kpis, owner: owner.kpis, test: test.kpis, total: total.kpis } } }
+  return { status: 200, body: { ...lens, zone, zoneFallback, zoneAsked: q.tz !== undefined, lastEventAt: total.lastEventAt, who: p.who, kpisBy: { human: human.kpis, owner: owner.kpis, test: test.kpis, total: total.kpis } } }
 }
 
 /**

@@ -1,4 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
+import { resolveZone, type ZoneInfo } from './owner-zone'
 import { ownerEntries } from './telemetry'
 import { TRAFFIC_CLASSES, type Traffic } from './traffic'
 
@@ -70,3 +71,20 @@ export function addTo(s: Split, cls: unknown, n: number): void {
   s[isClass(cls) ? cls : 'human'] += n
   s.total += n
 }
+
+/**
+ * The zone to use for a request: the asked one when Intl knows it and the database accepts it, else UTC (flagged). The name only ever
+ * reaches SQL as a bound parameter. Checking it against the database too means an odd name Intl knows but Postgres does not cannot fail a page.
+ */
+export async function zoneFor(db: { execute: (q: SQL) => Promise<unknown> }, raw: unknown): Promise<ZoneInfo> {
+  const z = resolveZone(raw)
+  if (z.zoneFallback) return z
+  try {
+    await db.execute(sql`select now() at time zone ${z.zone}::text`)
+    return z
+  } catch {
+    return { zone: 'UTC', zoneFallback: true }
+  }
+}
+/** The instant a calendar day (YYYY-MM-DD) starts in the zone, as SQL. */
+export const dayStart = (day: string, zone: string) => sql`((${day}::date)::timestamp at time zone ${zone}::text)`
