@@ -15,7 +15,7 @@ const SHOT0 = 2 * CELLS
 function solo(level: Level, enemy: Placement[], seed: number): number {
   const rng = makeRng(seed)
   const state: FleetState = { ships: [randomFleet(makeRng(seed + 1)), enemy], shots: [[], []] }
-  for (let n = 1; n <= CELLS; n++) {
+  for (let n = 1; n <= CELLS + 1; n++) {
     const obs = fleetCore.observe(state, 0)
     if (obs.phase === 'over') return n - 1
     const action = chooseFleetAction(level, obs, rng)
@@ -33,7 +33,7 @@ describe('fleet shooter', () => {
     for (const level of LEVELS) for (let g = 0; g < 30; g++) solo(level, randomFleet(makeRng(900 + g)), 50 + g)
   })
 
-  test('the move depends only on the observation (a changed hidden enemy cell changes nothing)', () => {
+  test('the move depends only on the observation (a changed hidden enemy cell changes nothing, even when the agent is handed the full state)', async () => {
     for (const level of LEVELS) {
       for (let g = 0; g < 20; g++) {
         const a = randomFleet(makeRng(300 + g))
@@ -61,6 +61,14 @@ describe('fleet shooter', () => {
         const ob = fleetCore.observe(sb, 0)
         if (oa.phase === 'over') continue
         expect(chooseFleetAction(level, oa, makeRng(5))).toBe(chooseFleetAction(level, ob, makeRng(5)))
+        // The harness and worker pass the full hidden state as act's second argument; the move must ignore it.
+        const ag = await createGameAgent(level, { seat: 0 })
+        ag.reset(5)
+        const x = await ag.act(oa, sa)
+        ag.reset(5)
+        const y = await ag.act(oa, sb)
+        expect(x).toEqual(y)
+        ag.dispose()
       }
     }
   })
@@ -96,7 +104,7 @@ describe('fleet shooter', () => {
 })
 
 describe('fleet placement', () => {
-  test('uniform random valid: five legal ships, every position reachable, per-tick placement matches the core', () => {
+  test('randomFleet gives five legal, non-overlapping ships and reaches every board row', () => {
     const seen = new Set<number>()
     for (let g = 0; g < 200; g++) {
       const fleet = randomFleet(makeRng(g))
@@ -140,12 +148,52 @@ describe('fleet placement', () => {
   })
 
   test('placeNext picks only legal cells', () => {
-    const rng = makeRng(4)
-    const fleet: Placement[] = []
-    for (let i = 0; i < SHIPS.length; i++) {
-      const p = placeNext(fleet, rng)
-      fleet.push(p)
+    for (let seed = 0; seed < 100; seed++) {
+      const rng = makeRng(seed)
+      const fleet: Placement[] = []
+      const used = new Set<number>()
+      for (let i = 0; i < SHIPS.length; i++) {
+        const p = placeNext(fleet, rng)
+        expect(p.length).toBe(SHIPS[i]!)
+        const col = p.cell % FLEET_SIZE
+        const row = Math.floor(p.cell / FLEET_SIZE)
+        expect(p.vertical ? row + p.length : col + p.length).toBeLessThanOrEqual(FLEET_SIZE)
+        for (const c of shipCells(p)) {
+          expect(used.has(c)).toBe(false)
+          used.add(c)
+        }
+        fleet.push(p)
+      }
+      expect(used.size).toBe(SHIPS.reduce((a, b) => a + b, 0))
     }
-    expect(fleet.length).toBe(5)
+  })
+
+  test('the first ship is uniform over all 120 spots and half vertical', () => {
+    const N = 12000
+    const counts = new Map<string, number>()
+    let vertical = 0
+    for (let seed = 0; seed < N; seed++) {
+      const p = placeNext([], makeRng(seed))
+      if (p.vertical) vertical++
+      const key = `${p.cell}:${p.vertical}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    expect(counts.size).toBe(120)
+    expect(Math.abs(vertical / N - 0.5)).toBeLessThan(0.03)
+    for (const n of counts.values()) expect(Math.abs(n - N / 120)).toBeLessThan(45)
+  })
+
+  test('reset: the seed picks the stream, ignoring it would repeat every game', async () => {
+    const first = async (seed: number) => {
+      const ag = await createGameAgent('easy', { seat: 1 })
+      ag.reset(seed)
+      const [code] = await ag.act(fleetCore.observe(fleetCore.init(1), 1))
+      ag.dispose()
+      return code!
+    }
+    expect(await first(77)).toBe(await first(77))
+    const distinct = new Set<number>()
+    for (let seed = 1; seed <= 40; seed++) distinct.add(await first(seed))
+    expect(distinct.size).toBeGreaterThan(10)
   })
 })
