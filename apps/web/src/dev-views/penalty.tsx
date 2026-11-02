@@ -64,6 +64,7 @@ function reveal(k: Kick): CSSProperties {
     '--kx': d.kx,
     '--ky': d.ky,
     '--kr': `${d.kr}deg`,
+    '--kf': d.fall,
   } as CSSProperties
 }
 
@@ -293,7 +294,10 @@ export default function PenaltyView() {
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
     const aim = aimFromDrag((e.clientX - d.x) / d.scale, (e.clientY - d.y) / d.scale, pickRole)
-    if (aim === null) return
+    if (aim === null) {
+      if (d.moved) setSelected(null)
+      return
+    }
     d.moved = true
     if (aim !== selected) setSelected(aim)
   }
@@ -450,6 +454,7 @@ export default function PenaltyView() {
                         <path d={aimPath(selected)} />
                       </svg>
                     ) : null}
+                    {lastKick ? <span className="pen-mark pen-mark-dive" data-dive={lastKick.dive} aria-hidden="true" /> : null}
                     {lastKick ? <span className="pen-mark pen-mark-shot" style={shotSpot(lastKick.zone)} aria-hidden="true" /> : null}
                     <div className="pen-ball" data-testid="penalty-ball">
                       <div className="pen-ball-curl">

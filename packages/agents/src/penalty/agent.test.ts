@@ -306,7 +306,7 @@ describe('Sable', () => {
       const hist: KickView[] = []
       for (let i = 0; i < 5; i++) hist.push(view(true, C, dive), view(false, C, STAY))
       const c = draws('champion', obs('shooter', hist.slice(0, 9)), 3000)
-      expect(zones.reduce((a, z) => a + c[z]!, 0) / 3000).toBeGreaterThan(0.95)
+      expect(zones.reduce((a: number, z: number) => a + c[z]!, 0) / 3000).toBeGreaterThan(0.95)
     }
   })
 

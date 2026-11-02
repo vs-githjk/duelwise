@@ -141,19 +141,19 @@ export function flightOf(k: Kick): Flight {
   return { bx: c.x - SPOT.x, by: c.y - SPOT.y, curl, dx: 0, dy: 16 }
 }
 
-/** The keeper's move for a finished kick, from its rest spot: a stay reaches up for a shot at the top middle. */
-export function diveOf(k: Kick): { kx: number; ky: number; kr: number } {
+/** The keeper's move for a finished kick, from its rest spot: a stay reaches up for a shot at the top middle, and what went up comes down after contact. */
+export function diveOf(k: Kick): { kx: number; ky: number; kr: number; fall: number } {
   switch (k.dive) {
     case 0:
-      return { kx: -88, ky: -56, kr: -64 }
+      return { kx: -88, ky: -56, kr: -64, fall: 46 }
     case 1:
-      return { kx: -92, ky: -2, kr: -92 }
+      return { kx: -92, ky: -2, kr: -92, fall: 0 }
     case 3:
-      return { kx: 88, ky: -56, kr: 64 }
+      return { kx: 88, ky: -56, kr: 64, fall: 46 }
     case 4:
-      return { kx: 92, ky: -2, kr: 92 }
+      return { kx: 92, ky: -2, kr: 92, fall: 0 }
     default:
-      return { kx: 0, ky: k.zone === 1 ? -34 : -4, kr: 0 }
+      return { kx: 0, ky: k.zone === 1 ? -34 : -4, kr: 0, fall: k.zone === 1 ? 30 : 4 }
   }
 }
 

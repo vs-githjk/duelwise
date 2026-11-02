@@ -8,7 +8,7 @@
   --pitch: #2f7d46;
   --pitch-stripe: #38904f;
   --goal-post: #ffffff;
-  --goal-net: rgba(255, 255, 255, 0.3);
+  --goal-net: rgba(255, 255, 255, 0.15);
   --game-penalty: #5f8f1f;
   --keeper-you: #2166f0;
   --keeper-them: #f2a11f;
@@ -75,8 +75,8 @@
   width: calc(280 * var(--u));
   height: calc(152 * var(--u));
   background:
-    repeating-linear-gradient(0deg, var(--goal-net) 0 1px, transparent 1px calc(9 * var(--u))),
-    repeating-linear-gradient(90deg, var(--goal-net) 0 1px, transparent 1px calc(9 * var(--u)));
+    repeating-linear-gradient(0deg, var(--goal-net) 0 1px, transparent 1px calc(12 * var(--u))),
+    repeating-linear-gradient(90deg, var(--goal-net) 0 1px, transparent 1px calc(12 * var(--u)));
   transform-origin: 50% 40%;
   pointer-events: none;
   will-change: transform;
@@ -130,7 +130,7 @@
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   cursor: pointer;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
   transition: background-color 60ms linear;
 }
 .pen-zones[data-kind='kick'] .pen-zone {
@@ -193,6 +193,18 @@
   border-radius: 50%;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
 }
+.pen-mark-dive {
+  left: calc(24 * var(--u));
+  top: calc(16 * var(--u));
+  width: calc(280 * var(--u) / 3);
+  height: calc(75 * var(--u));
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+}
+.pen-mark-dive[data-dive='1'] { top: calc(91 * var(--u)); }
+.pen-mark-dive[data-dive='2'] { left: calc(24 * var(--u) + 280 * var(--u) / 3); height: calc(150 * var(--u)); }
+.pen-mark-dive[data-dive='3'] { left: calc(24 * var(--u) + 560 * var(--u) / 3); }
+.pen-mark-dive[data-dive='4'] { left: calc(24 * var(--u) + 560 * var(--u) / 3); top: calc(91 * var(--u)); }
 .pen-tag {
   position: absolute;
   z-index: 6;
@@ -213,7 +225,7 @@
   width: calc(36 * var(--u));
   height: calc(62 * var(--u));
   pointer-events: none;
-  transform-origin: 50% 70%;
+  transform-origin: 50% 85%;
   transition: opacity 140ms linear;
   will-change: transform;
 }
@@ -303,7 +315,15 @@
 .pen-scene[data-reveal='set'] .pen-keeper-lean { transform: scale(1.05, 0.9); }
 .pen-scene[data-reveal='go'] .pen-keeper {
   transform: translate(calc(var(--kx) * var(--u)), calc(var(--ky) * var(--u))) rotate(var(--kr));
-  transition: transform 400ms cubic-bezier(0.2, 0.75, 0.3, 1), opacity 140ms linear;
+  transition: transform 400ms cubic-bezier(0.2, 0.75, 0.3, 1.06), opacity 140ms linear;
+}
+.pen-scene[data-reveal='go'][data-beat] .pen-keeper {
+  transform: translate(calc(var(--kx) * var(--u)), calc((var(--ky) + var(--kf)) * var(--u))) rotate(var(--kr));
+  transition: transform 300ms cubic-bezier(0.5, 0, 0.9, 0.6), opacity 140ms linear;
+}
+.pen-scene[data-beat='hit'] .pen-ball-svg { animation: pen-squash 120ms ease-out both; }
+@keyframes pen-squash {
+  30% { transform: scale(1.22, 0.8); }
 }
 
 /* The payoff lands at contact: the net takes the ball, the picture jolts once. */
@@ -362,10 +382,10 @@
   opacity: 0;
   pointer-events: none;
 }
-.pen-word[data-on] { opacity: 1; animation: pen-word 240ms cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.pen-word[data-on] { opacity: 1; animation: pen-word 240ms cubic-bezier(0.2, 1.3, 0.4, 1) 90ms both; } /* the 90 ms is the hold at contact: the net or the glove lands, then the word */
 .pen-scene[data-beat='out'] .pen-word { opacity: 0; transition: opacity 140ms linear; animation: none; }
 @keyframes pen-word {
-  from { opacity: 0; transform: scale(0.72); }
+  from { opacity: 0; transform: translateY(calc(8 * var(--u))) scale(0.72); }
   to { opacity: 1; transform: scale(1); }
 }
 
@@ -449,6 +469,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pen-keeper-svg,
+  .pen-ball-svg,
   .pen-ball-curl,
   .pen-net,
   .pen-world,

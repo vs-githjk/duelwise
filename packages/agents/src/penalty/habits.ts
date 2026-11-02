@@ -129,7 +129,7 @@ function habitShapes(eq: readonly number[], favourites: readonly number[], mirro
     (_p, m) => {
       // avoids my last
       if (!m.length) return eq
-      const away = echo(m[m.length - 1]!).map((x) => (x > 0 ? 0 : 1))
+      const away = echo(m[m.length - 1]!).map((x): number => (x > 0 ? 0 : 1))
       const sum = away.reduce((a, b) => a + b, 0)
       return softOf(away.map((x) => x / sum))
     },
