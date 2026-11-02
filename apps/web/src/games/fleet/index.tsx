@@ -1,7 +1,7 @@
 import { PRODUCT } from '@duelwise/core/src/product'
-import FleetView from '../../dev-views/fleet'
+import FleetPage from './FleetPage'
 
 export const meta = { title: PRODUCT.games.fleet.displayName }
 
-// A thin page until the sealed match hook lands (F9): it plays the dev view, unrated. Promoted on the branch only.
-export default FleetView
+// The play page: a counted match runs against the server (the enemy fleet stays there until the end); ?seed makes an unrated one.
+export default FleetPage

@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
+import { decodeRecord, encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record.ts'
+import { fleetCore } from '@duelwise/core/src/games/fleet/index.ts'
 
 const GAMES = {
   chess: { play: '/play/chess', board: 'chess-board', board_lb: '/leaderboard/chess' },
@@ -140,4 +142,208 @@ test('a record that no request could deliver stays in localStorage and the next 
   expect(delivered).toBeGreaterThanOrEqual(1)
   await page.goto('/leaderboard/four-in-a-row')
   await expect(page.getByTestId('leaderboard-me')).toContainText('after 1 counted match')
+})
+
+// ---- Stormglass (fleet): a counted match is played on the server --------------------------------
+
+/** The page's server-function replies are seroval JSON; this reads the few node kinds they use (numbers, strings, constants, arrays, objects). */
+function sero(n: any, refs = new Map<number, unknown>()): any {
+  switch (n.t) {
+    case 0:
+    case 1:
+      return n.s
+    case 2:
+      return [null, undefined, true, false][n.s]
+    case 4:
+      return refs.get(n.i)
+    case 9: {
+      const a: unknown[] = []
+      refs.set(n.i, a)
+      for (const x of n.a) a.push(sero(x, refs))
+      return a
+    }
+    case 10: {
+      const o: Record<string, unknown> = {}
+      refs.set(n.i, o)
+      n.p.k.forEach((k: string, j: number) => (o[k] = sero(n.p.v[j], refs)))
+      return o
+    }
+    default:
+      throw new Error(`unknown node ${n.t}`)
+  }
+}
+
+interface Turn {
+  url: string
+  post: string
+  headers: Record<string, string>
+  text: string
+  status: number
+  reply: { view?: any; over?: boolean; reveal?: { seed: number; agentActions: number[] }; error?: string }
+}
+
+/** Records every fleetTurn server-function call of the page: what it sent and what the server answered. */
+function watchTurns(page: Page): Turn[] {
+  const turns: Turn[] = []
+  page.on('response', async (res) => {
+    const m = /\/_serverFn\/([^?]+)/.exec(res.url())
+    if (!m || !Buffer.from(m[1]!, 'base64').toString().includes('fleetTurn')) return
+    const text = await res.text().catch(() => '')
+    if (!text) return
+    const req = res.request()
+    turns.push({ url: res.url(), post: req.postData() ?? '', headers: await req.allHeaders(), text, status: res.status(), reply: sero(JSON.parse(text)).result })
+  })
+  return turns
+}
+
+/** Aims at the first open square and fires it, then waits until that square shows its result. Returns false when the match is over. */
+async function fireNext(page: Page): Promise<boolean> {
+  const root = page.getByTestId('fleet-page')
+  if ((await root.getAttribute('data-turn')) === 'over') return false
+  await expect(root).toHaveAttribute('data-turn', /you|over/)
+  if ((await root.getAttribute('data-turn')) === 'over') return false
+  const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+  const id = (await cell.getAttribute('data-testid'))!
+  await cell.click()
+  await cell.click()
+  await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+  return true
+}
+
+const cellsOf = (p: { cell: number; vertical: boolean; length: number }) => Array.from({ length: p.length }, (_, i) => p.cell + i * (p.vertical ? 10 : 1))
+
+/** A request for the same match with the setup swapped for another legal fleet (rows 0, 2, 4, 6, 8, all across, from column 0). */
+const otherSetupBody = (post: string) => post.replace(/"a":\[[^\]]*\]/, `"a":[${[0, 20, 40, 60, 80].map((n) => `{"t":0,"s":${n}}`).join(',')}]`)
+
+test.describe('fleet: a counted match', () => {
+  test.use({ viewport: { width: 360, height: 780 } })
+
+  test('the browser never holds an enemy ship before it is hit or sunk, the seed is 0 until the end, and a second setup is refused', async ({ page }) => {
+    test.setTimeout(180_000)
+    await devSignIn(page, 'fleeter')
+    const turns = watchTurns(page)
+    const started: string[] = []
+    page.on('response', async (res) => {
+      if (res.request().resourceType() === 'fetch' && /_serverFn/.test(res.url())) {
+        const t = await res.text().catch(() => '')
+        if (t.includes('"sealed"')) started.push(t)
+      }
+    })
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-counted', 'true')
+    await expect(root).toHaveAttribute('data-phase', 'play')
+    // The start reply withholds the seed and says the match is sealed.
+    expect(started.length).toBeGreaterThan(0)
+    const startReply = sero(JSON.parse(started[0]!)).result
+    expect(startReply.sealed).toBe(true)
+    expect(startReply.seed).toBe(0)
+
+    // A second, different setup for the same match is refused before and after shots, and changes nothing.
+    const first = turns[0]!
+    expect(first.reply.view.phase).toBe('play')
+    const refuse = async (body: string) => {
+      const r = await page.request.post(first.url, { data: body, headers: Object.fromEntries(Object.entries(first.headers).filter(([k]) => !['content-length', 'host'].includes(k))) })
+      expect(r.status()).toBe(409)
+    }
+    await refuse(otherSetupBody(first.post))
+    await fireNext(page)
+    await fireNext(page)
+    await refuse(first.post)
+    await refuse(otherSetupBody(first.post))
+
+    let shots = 0
+    for (let i = 0; i < 100; i++) {
+      // The board shows exactly my shots: no other enemy square is anything but open water.
+      const marked = await page.locator('[data-testid^="fleet-cell-"]:not([data-testid="fleet-cell-board"])').evaluateAll((els) => els.filter((e) => e.getAttribute('data-state') !== 'open').length)
+      if ((await root.getAttribute('data-turn')) !== 'over') expect(marked).toBe(await page.locator('[data-testid^="fleet-cell-"][data-state="hit"], [data-testid^="fleet-cell-"][data-state="miss"], [data-testid^="fleet-cell-"][data-state="sunk"]').count())
+      if (!(await fireNext(page))) break
+      shots++
+    }
+    await expect(page.getByTestId('fleet-result')).toBeVisible()
+
+    const replies = turns.filter((t) => t.reply && !t.reply.error)
+    const last = replies.at(-1)!
+    expect(last.reply.over).toBe(true)
+    const enemy: Array<{ id: number; cell: number; vertical: boolean; length: number }> = last.reply.view.reveal
+    expect(enemy).toHaveLength(5)
+    expect(last.reply.reveal!.seed).toBeGreaterThan(0)
+    for (const t of replies.slice(0, -1)) {
+      expect(t.reply.over).toBe(false)
+      expect(t.reply.reveal).toBeUndefined()
+      expect(t.reply.view.reveal).toBeNull()
+      expect(t.text).not.toContain('agentActions')
+      expect(t.text).not.toContain('"seed"')
+      const hits = new Set<number>(t.reply.view.shots.filter((m: any) => m.hit).map((m: any) => m.cell))
+      const sunkIds = new Set<number>(t.reply.view.sunk.map((p: any) => p.id))
+      // Every enemy ship in the reply is a sunk one, and no ship that is still afloat appears.
+      for (const p of enemy) {
+        if (sunkIds.has(p.id)) expect(cellsOf(p).every((c) => hits.has(c))).toBe(true)
+        else expect(cellsOf(p).every((c) => hits.has(c))).toBe(false)
+      }
+      expect(t.reply.view.sunk).toHaveLength(sunkIds.size)
+    }
+    // What the page sent: only my own actions (setup first, then one more each time), never a seed or the opponent's moves.
+    const sentLists = turns.map((t) => JSON.stringify(sero(JSON.parse(t.post).t).data.actions))
+    expect(sentLists.length).toBeGreaterThan(5)
+    expect(shots).toBeGreaterThan(10)
+  })
+
+  test('a record with a different shot or a moved fleet is refused by the server', async ({ page }) => {
+    test.setTimeout(180_000)
+    await devSignIn(page, 'forger')
+    // Keep the honest record on the page: its upload fails and no beacon can deliver it.
+    await page.route(/_serverFn/, async (route) => {
+      if ((route.request().headers()['content-type'] ?? '').includes('multipart/form-data')) await route.abort('failed')
+      else await route.continue()
+    })
+    await page.addInitScript(() => {
+      navigator.sendBeacon = () => false
+    })
+    await page.route(/\/api\/finish$/, (route) => route.abort('failed'))
+    await page.goto('/play/stormglass?hold=0')
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-counted', 'true')
+    for (let i = 0; i < 100; i++) if (!(await fireNext(page))) break
+    await expect(page.getByTestId('fleet-result')).toBeVisible()
+    const pending = await page.evaluate(() => {
+      const k = Object.keys(localStorage).find((x) => x.startsWith('duelwise.pending-finish.'))
+      return k ? localStorage.getItem(k) : null
+    })
+    expect(pending).not.toBeNull()
+    const honest = decodeRecord(new Uint8Array(Buffer.from(pending!, 'base64')))
+    expect(honest.game).toBe('fleet')
+    expect(honest.seed).toBeGreaterThan(0)
+
+    const lastMine = honest.actions.map((a) => a[1]).lastIndexOf(0)
+    const otherShot = { ...honest, actions: honest.actions.map((a, i) => (i === lastMine ? ([a[0], a[1], a[2] === 299 ? 298 : a[2] + 1] as typeof a) : a)) }
+    const moved = { ...honest, actions: honest.actions.map((a) => (a[0] === 0 && a[1] === 0 ? ([a[0], a[1], a[2] === 0 ? 1 : 0] as typeof a) : a)) }
+    // A game nobody played through the server, but one the core accepts end to end: it replays, its result and hash are right.
+    // Only the server's own log of the match can tell it from the real one.
+    const fabricated = (() => {
+      let st = fleetCore.init(honest.seed)
+      const actions: MatchRecordV1['actions'] = []
+      const fleet = (row0: number) => [5, 4, 3, 3, 2].map((_, i) => (row0 + 2 * i) * 10)
+      const mine = fleet(0)
+      const theirs = fleet(1)
+      for (let i = 0; i < 5; i++) {
+        st = fleetCore.step(st, [{ kind: 'place', cell: mine[i]!, vertical: false }, { kind: 'place', cell: theirs[i]!, vertical: false }])
+        actions.push([i, 0, mine[i]!], [i, 1, theirs[i]!])
+      }
+      for (let cell = 0, tick = 5; !fleetCore.terminal(st); tick++) {
+        const seat = fleetCore.toAct(st)[0]!
+        const c = seat === 0 ? cell : cell++
+        st = fleetCore.step(st, seat === 0 ? [{ kind: 'shot', cell: c }, null] : [null, { kind: 'shot', cell: c }])
+        actions.push([tick, seat, 200 + c])
+      }
+      return { ...honest, actions, result: fleetCore.result(st)!, finalHash: fleetCore.hash(st), humanInputTimesMs: undefined } as MatchRecordV1
+    })()
+    for (const forged of [fabricated, otherShot, moved]) {
+      const r = await page.request.post('/api/finish', { data: Buffer.from(encodeRecord(forged)), headers: { 'content-type': 'application/gzip' } })
+      const body = (await r.json()) as { valid: boolean; elo?: unknown }
+      expect(body.valid, JSON.stringify(body)).toBe(false)
+      expect(body.elo).toBeUndefined()
+    }
+  })
 })

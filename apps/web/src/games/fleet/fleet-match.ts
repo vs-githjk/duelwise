@@ -118,8 +118,7 @@ export const whoseTurn = (m: FleetMatch): 'you' | 'ai' | 'over' => (isOver(m) ? 
 export const humanView = (m: FleetMatch): FleetObs => fleetCore.observe(m.state, HUMAN)
 
 /** What a shot did, in words. `who` is the shooter; the pronoun side is the person looking at the page. */
-export function describeShot(m: FleetMatch, who: Seat, opponent: string): string {
-  const shots = humanView(m)
+export function describeShotIn(shots: FleetObs, who: Seat, opponent: string): string {
   const list = who === HUMAN ? shots.shots : shots.incoming
   const last = list[list.length - 1]
   if (!last) return ''
@@ -132,21 +131,27 @@ export function describeShot(m: FleetMatch, who: Seat, opponent: string): string
   return `${opponent} fired at ${at}. ${last.hit ? 'Hit.' : 'Miss.'}`
 }
 
+export const describeShot = (m: FleetMatch, who: Seat, opponent: string): string => describeShotIn(humanView(m), who, opponent)
+
 /** The kind of cue the last shot should play. */
-export function shotKind(m: FleetMatch, who: Seat): 'sunk' | 'hit' | 'miss' | null {
-  const v = humanView(m)
+export function shotKindIn(v: FleetObs, who: Seat): 'sunk' | 'hit' | 'miss' | null {
   const last = (who === HUMAN ? v.shots : v.incoming).at(-1)
   if (!last) return null
   return last.sunk !== null ? 'sunk' : last.hit ? 'hit' : 'miss'
 }
 
-export function statusLine(m: FleetMatch, opponent: string): string {
-  const result = fleetCore.result(m.state)
-  const v = humanView(m)
-  if (result) {
-    return result.winner === HUMAN
+export const shotKind = (m: FleetMatch, who: Seat): 'sunk' | 'hit' | 'miss' | null => shotKindIn(humanView(m), who)
+
+/** True when a finished view is a win for the person looking at it: every enemy ship is gone. */
+export const viewWon = (v: FleetObs): boolean => v.phase === 'over' && v.enemyLeft.length === 0
+
+export function statusLineIn(v: FleetObs, opponent: string, yourTurn: boolean): string {
+  if (v.phase === 'over') {
+    return viewWon(v)
       ? `You sank all five ships in ${v.shots.length} shots.`
       : `${opponent} sank your fleet in ${v.incoming.length} shots; ${opponent} still had ${v.enemyLeft.length} ${v.enemyLeft.length === 1 ? 'ship' : 'ships'} afloat.`
   }
-  return whoseTurn(m) === 'you' ? 'Your shot: tap a square, then tap it again or press Fire.' : `${opponent} is firing`
+  return yourTurn ? 'Your shot: tap a square, then tap it again or press Fire.' : `${opponent} is firing`
 }
+
+export const statusLine = (m: FleetMatch, opponent: string): string => statusLineIn(humanView(m), opponent, whoseTurn(m) === 'you')
