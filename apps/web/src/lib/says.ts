@@ -21,6 +21,8 @@ export interface SaysInput {
   call: Level | null
   /** How many moves the human played (turn games), for the close-loss rule. */
   humanMoves: number
+  /** Stormglass: the hits the player still needed when the match ended. One means the next shot would have won it. */
+  shortBy?: number
   /** The opponent's wins and losses against people, when the match store has them. */
   record?: { wins: number; losses: number } | null
   /**
@@ -32,8 +34,8 @@ export interface SaysInput {
 
 const lvl = (l: Level) => LEVELS.indexOf(l)
 
-/** A close loss, per game: Word Duel lost late (every guess nearly used), Chess and Four after move 30, Tinderbox and Coldstore by one round, Hold'em by under a big blind per hand. */
-export function isCloseLoss(i: Pick<SaysInput, 'game' | 'result' | 'humanSeat' | 'humanMoves'>): boolean {
+/** A close loss, per game: Word Duel lost late (every guess nearly used), Chess and Four after move 30, Tinderbox and Coldstore by one round, Hold'em by under a big blind per hand, Stormglass one shot short of sinking the last ship. */
+export function isCloseLoss(i: Pick<SaysInput, 'game' | 'result' | 'humanSeat' | 'humanMoves' | 'shortBy'>): boolean {
   const me = i.result.score?.[i.humanSeat]
   const them = i.result.score?.[(1 - i.humanSeat) as Seat]
   switch (i.game) {
@@ -44,7 +46,7 @@ export function isCloseLoss(i: Pick<SaysInput, 'game' | 'result' | 'humanSeat' |
     case 'four':
       return i.humanMoves > 15
     case 'fleet':
-      return false
+      return i.shortBy === 1
     case 'fighter':
     case 'arena':
       return typeof me === 'number' && typeof them === 'number' && them - me === 1

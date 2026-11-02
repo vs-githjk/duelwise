@@ -65,6 +65,8 @@ export interface ResultPanelProps {
   levels?: Partial<Record<Level, LevelInfo>>
   /** The human's own moves in the record (guesses, moves), for the margin and the close-loss line. */
   moves?: number
+  /** Stormglass: hits the player still needed when the match ended, for the close-loss line. */
+  shortBy?: number
   /** False for a game whose matches never reach a leaderboard (the real-time games): the panel then offers no leaderboard link. Default true. */
   leaderboard?: boolean
   /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
@@ -78,7 +80,7 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
@@ -141,7 +143,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord, practice, accepted])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, ...(shortBy === undefined ? {} : { shortBy }), record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, shortBy, oppRecord, practice, accepted])
   const spoke = useRef(false)
   // A rated win is spoken once the server has answered, so the voice never says the plain line and then the promising one.
   const settling = clearable && upload?.status === 'uploading'
