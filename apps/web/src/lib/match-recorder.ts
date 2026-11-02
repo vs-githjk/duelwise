@@ -4,6 +4,7 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { encodeRecordAsync } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
+import { isSealed } from '@duelwise/core/src/sealed'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
 import { enqueueUpload, drainUploads, uploadStore, QUEUE_EVENT, type UploadOutcome } from './upload-queue'
 import { notePlayed, refillTickets, settleConsumed, takeLocalTicket, type Ticket, type TicketOwner } from './tickets'
@@ -210,7 +211,8 @@ const offlineNow = isOffline
 
 /** The calm line that says why an unrated match is unrated when the server was not reached. */
 export function offlineReason(game: GameId): string {
-  if (game === 'word') return offlineNow() ? 'You are offline, so this Word Duel is unranked. It counts on your record on this device only.' : 'The server could not be reached, so this match is not counted.'
+  // A sealed game never has a ticket (the server keeps the hidden setup), so "saved match slots" would be false for it.
+  if (isSealed(game)) return offlineNow() ? `You are offline, so this ${PRODUCT.games[game].displayName} match is unranked. It counts on your record on this device only.` : 'The server could not be reached, so this match is not counted.'
   return offlineNow() ? 'You are offline and have no saved match slots left, so this match is not counted. Open the game once while online to get more.' : 'The server could not be reached, so this match is not counted.'
 }
 

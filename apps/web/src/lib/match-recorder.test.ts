@@ -197,6 +197,8 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     try {
       expect(offlineReason('word')).toMatch(/unranked/)
       expect(offlineReason('word')).toMatch(/this device only/)
+      expect(offlineReason('fleet')).toBe('You are offline, so this Stormglass match is unranked. It counts on your record on this device only.')
+      expect(offlineReason('fleet')).not.toMatch(/slots|while online/)
       expect(offlineReason('four')).toMatch(/offline/)
       expect(offlineReason('four')).toMatch(/while online/)
     } finally {

@@ -380,9 +380,11 @@ describe('the record has to be the logged match', () => {
     // Anyone who knew the seed could run the sealed log offline; the server must still not count it.
     const human = [...SETUP]
     let built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, human)
+    // The agent's fleet is random per call now, so keep the first one the way the server keeps the stored actions.
+    const fleet = built.agent.slice(0, 5)
     for (let cell = 0; !fleetCore.terminal(built.state); cell++) {
       human.push(shot(cell))
-      built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, human)
+      built = buildSealedLog(FLEET_SPEC, fleetCore, 'easy', SEED, human, fleet)
     }
     const done = await finishMatchHandler(db, recordOf(m.matchId, SEED, human, built.agent), ME)
     expect(done.body).toMatchObject({ valid: false, reason: 'record does not match the logged turns' })
