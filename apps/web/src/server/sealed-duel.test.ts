@@ -12,6 +12,7 @@ import * as schema from '../db/schema'
 import { startMatchHandler, type Caller } from './match-handlers'
 import { finishUnchecked as finishMatchHandler } from './finish-unchecked'
 import { abandonStale } from './abandon'
+import { SEALED_SETUP_TICKS } from './competitive'
 import { getMyRecord } from './landing'
 import { resignMatchHandler } from './resign'
 import { buildSealedLog, FLEET_SPEC, recordMatchesLog, sealedTurnHandler, type SealedTurnBody } from './sealed-duel'
@@ -496,13 +497,32 @@ describe('a sealed match that never got its setup was not played', () => {
     expect(rec.recent.filter((m) => m.game === 'fleet')).toHaveLength(0)
   })
 
-  test('once the setup is stored the match was played: resigning and abandoning still cost a loss', async () => {
+  test('a stored setup with no shot is still unplayed: a reply lost twice costs nothing, and the sweep leaves competitive reads', async () => {
+    expect(SEALED_SETUP_TICKS).toBe(FLEET_SPEC.setupTicks)
     const a = await startAs()
     expect((await ask(a, SETUP, USER)).status).toBe(200)
-    await resignMatchHandler(db, { matchId: a, tick: 5 }, USER)
+    expect((await storedLog(a)).human).toHaveLength(5)
+    await db.update(schema.match).set({ startedAt: new Date(Date.now() - 2 * 3600_000) }).where(eq(schema.match.id, a))
+    expect(await abandonStale(db)).toBe(1)
+    expect(await ratingGames()).toBeUndefined()
+    const rec = await getMyRecord(db as never, 'u-1')
+    expect(rec.perGame.find((g) => g.game === 'fleet')).toBeUndefined()
+    expect(rec.recent.filter((m) => m.game === 'fleet')).toHaveLength(0)
+    const b = await startAs()
+    expect((await ask(b, SETUP, USER)).status).toBe(200)
+    await resignMatchHandler(db, { matchId: b, tick: 5 }, USER)
+    expect(await ratingGames()).toBeUndefined()
+  })
+
+  test('once a shot is stored the match was played: resigning and abandoning still cost a loss', async () => {
+    const a = await startAs()
+    expect((await ask(a, SETUP, USER)).status).toBe(200)
+    expect((await ask(a, [...SETUP, shot(0)], USER)).status).toBe(200)
+    await resignMatchHandler(db, { matchId: a, tick: 6 }, USER)
     expect(await ratingGames()).toBe(1)
     const b = await startAs()
     expect((await ask(b, SETUP, USER)).status).toBe(200)
+    expect((await ask(b, [...SETUP, shot(0)], USER)).status).toBe(200)
     await db.update(schema.match).set({ startedAt: new Date(Date.now() - 2 * 3600_000) }).where(eq(schema.match.id, b))
     expect(await abandonStale(db)).toBe(1)
     expect(await ratingGames()).toBe(2)
