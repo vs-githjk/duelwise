@@ -24,7 +24,7 @@ function act(s: SlackState, a: number): SlackState {
 const EMPTY = '........'
 const count = (s: SlackState, v: number) => s.cells.filter((c) => c === v).length
 
-describe('slackwater core', () => {
+describe('crosscurrent core', () => {
   test('starts with four centre discs, seat 0 to act and 4 legal moves', () => {
     const s = slackCore.init(0)
     expect(s.cells[at(3, 3)]).toBe(2)
@@ -267,7 +267,7 @@ function randomMoves(seed: number): number[] {
 }
 
 // Observation is relative and complete: open game, nothing is hidden, so there is no hiding test.
-describe('slackwater observation', () => {
+describe('crosscurrent observation', () => {
   test('across 300 random matches, at every ply, each seat sees a relative, consistent view', () => {
     let plies = 0
     for (let seed = 1; seed <= 300; seed++) {
@@ -317,7 +317,7 @@ describe('slackwater observation', () => {
   })
 })
 
-// Real replay() needs PRODUCT.games[core.id], and Slackwater is not promoted yet, so the core borrows
+// Real replay() needs PRODUCT.games[core.id], and Crosscurrent is not promoted yet, so the core borrows
 // the id of a turn-based game. The record carries the same id.
 const BORROWED = 'four' as GameId
 const borrowed = { ...slackCore, id: BORROWED }
@@ -360,7 +360,7 @@ const PASS_GAME = [
   39, 58, 40, 24, 13, 52, 60, 49, 57, 61, 31, 25, 6, 8, 0, 59, 33, 15, 2, 3, 10, 1, 5, 56, 4, 51, 30, 26, 64, 47,
 ]
 
-describe('slackwater replay', () => {
+describe('crosscurrent replay', () => {
   test('the scripted position holds a forced pass and replays ok', () => {
     expect(PASS_GAME).toContain(PASS)
     const r = recordOf(1, PASS_GAME)

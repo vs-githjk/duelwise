@@ -31,7 +31,7 @@ import {
 import type { FromWorker, ToWorker } from './slack-worker'
 import './slack.css'
 
-// Slackwater play page, dev only: served at /dev/slack on a dev server and never in the games list. The agent runs in a
+// Crosscurrent play page, dev only: served at /dev/slack on a dev server and never in the games list. The agent runs in a
 // Worker (slack-worker.ts), so the HUD pulse and taps stay live during Sable's search, and its reply is held to at least
 // MIN_HOLD_MS so Pip does not answer instantly. GameShell, LevelPicker and ResultPanel come with promotion.
 
@@ -284,7 +284,7 @@ export default function SlackView() {
   return (
     <OpponentContext.Provider value={{ level: playing }}>
       <section className="sl grid max-w-5xl gap-3 py-4" data-testid="slack-page">
-        <h1 className={`font-display ${started ? 'text-display-sm' : 'text-display-md'}`}>Slackwater (dev)</h1>
+        <h1 className={`font-display ${started ? 'text-display-sm' : 'text-display-md'}`}>Crosscurrent (dev)</h1>
         {!started && (
           <>
             <p className="text-muted">
@@ -329,7 +329,7 @@ export default function SlackView() {
                       {k + 1}
                     </span>
                   ))}
-                  <div className="sl-grid" role="grid" aria-label="Slackwater board, 8 by 8" aria-rowcount={SIZE} aria-colcount={SIZE}>
+                  <div className="sl-grid" role="grid" aria-label="Crosscurrent board, 8 by 8" aria-rowcount={SIZE} aria-colcount={SIZE}>
                     {Array.from({ length: SIZE }, (_, r) => (
                       <div key={r} className="sl-row" role="row">
                         {Array.from({ length: SIZE }, (_, c) => {

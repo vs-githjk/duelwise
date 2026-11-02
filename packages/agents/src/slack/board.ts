@@ -1,5 +1,5 @@
 /**
- * A fast Slackwater board for search. Int8Array(64): 1 is seat 0, -1 is seat 1, 0 empty. `me` below is
+ * A fast Crosscurrent board for search. Int8Array(64): 1 is seat 0, -1 is seat 1, 0 empty. `me` below is
  * 1 or -1 (seat 0 is 1). Moves are made and unmade in place with a caller-owned flip buffer, so a
  * search allocates nothing per node. Ray tables hold only rays long enough to close a line (2+ cells).
  *

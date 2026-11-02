@@ -5,7 +5,7 @@ import { fromCells, legalMoves, flipsOf } from './board'
 import { searchMove, type SearchOpts } from './search'
 
 /**
- * Slackwater levels: four different algorithms, not one dial. Pip is a one-ply flip counter with a
+ * Crosscurrent levels: four different algorithms, not one dial. Pip is a one-ply flip counter with a
  * corner pull; the other three are the SW3 search with growing depth, a mobility term and less noise.
  * Level names follow the product's ids (easy, medium, hard, champion); the personas are Pip, Marlow,
  * Vesper and Sable.

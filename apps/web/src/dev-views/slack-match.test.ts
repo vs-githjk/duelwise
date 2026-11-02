@@ -79,7 +79,7 @@ function replay(m: SlackMatch): string {
   return slackCore.hash(s)
 }
 
-describe('slackwater dev match logic', () => {
+describe('crosscurrent dev match logic', () => {
   test.each(LEVELS as Level[])('a whole match at %s ends, and its log replays to the same hash', async (level) => {
     const { m } = await playOut(level, 11)
     expect(slackCore.terminal(m.state)).toBe(true)

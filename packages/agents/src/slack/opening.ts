@@ -4,7 +4,7 @@ import { makeRng } from '@duelwise/core/src/rng'
 export const OPENING_PLIES = 4
 
 /**
- * A Slackwater core whose start position is 4 seeded random plies in, so deterministic agents do not replay one game.
+ * A Crosscurrent core whose start position is 4 seeded random plies in, so deterministic agents do not replay one game.
  * The rules hold no randomness, so without this the measured games would repeat. Seeds 2k and 2k+1 share an opening:
  * the pair of colour-swapped games. Copied from createOpeningCore in measure/chess.ts. Measurement only, never shipped.
  */

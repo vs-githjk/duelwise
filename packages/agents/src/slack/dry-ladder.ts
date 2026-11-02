@@ -7,7 +7,7 @@ import { evaluatePair, wilson, type PairStats } from '../measure/ladder'
 type PairBudget = Parameters<typeof evaluatePair>[1]
 
 /**
- * Slackwater dry ladder (SW5). Not a registry: it plays each adjacent pair through the real harness on the module-path opening core
+ * Crosscurrent dry ladder (SW5). Not a registry: it plays each adjacent pair through the real harness on the module-path opening core
  * and writes the numbers to the absolute path given as `out` (the CLI takes it as argv[2]). `game: 'four'` is only a label; the module-path core wins.
  * Run: nice -n 10 heavy-lock.sh bun packages/agents/src/slack/dry-ladder.ts <abs path to plan/bench/slack-dry-ladder.json>
  */

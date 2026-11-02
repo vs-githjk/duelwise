@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-// Slackwater agent host, dev only. The search runs here so the page's HUD pulse and taps stay live during Sable's search,
+// Crosscurrent agent host, dev only. The search runs here so the page's HUD pulse and taps stay live during Sable's search,
 // the way the shipped agents run. One request at a time: the page sends 'reset' once, then one 'act' per agent turn.
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent } from '@duelwise/agents/src/slack/agent'

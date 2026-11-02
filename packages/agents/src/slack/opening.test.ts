@@ -4,7 +4,7 @@ import { OPENING_PLIES, createSlackOpeningCore } from './opening'
 
 const core = createSlackOpeningCore()
 
-describe('Slackwater opening core', () => {
+describe('Crosscurrent opening core', () => {
   test('seeds 2k and 2k+1 share one opening', () => {
     for (let k = 0; k < 200; k++) {
       expect(core.hash(core.init(2 * k))).toBe(core.hash(core.init(2 * k + 1)))

@@ -1,6 +1,6 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test'
 
-// Slackwater at /dev/slack, on a phone 360 wide: a whole match to a result, the board never moves by more than 2 px on any frame, nothing
+// Crosscurrent at /dev/slack, on a phone 360 wide: a whole match to a result, the board never moves by more than 2 px on any frame, nothing
 // overflows sideways, every control is at least 44 px (cells exempt, like chess squares), a cell needs two taps, and reduced motion keeps the
 // end state. The dev page reads a test-only ?moves= list (cell names, or "pass") to reach a known position without playing there; it sets up the first match only.
 

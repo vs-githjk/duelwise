@@ -3,7 +3,7 @@ import type { GameId } from '../../product'
 import { hashState } from '../../hash'
 
 /**
- * Slackwater: eight by eight, two colours of disc. A move places a disc so that it closes a line
+ * Crosscurrent: eight by eight, two colours of disc. A move places a disc so that it closes a line
  * of the other colour against one of your own, and every closed line flips. No luck anywhere in the
  * rules. A seat with no move must pass; the game ends the moment neither seat can move.
  *

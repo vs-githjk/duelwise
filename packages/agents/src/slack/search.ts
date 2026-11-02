@@ -5,7 +5,7 @@ import {
 } from './board'
 
 /**
- * Slackwater search: iterative deepening negamax with alpha-beta, move order by square weight (best
+ * Crosscurrent search: iterative deepening negamax with alpha-beta, move order by square weight (best
  * move of the last depth first at the root), a node count, and an optional exact solve of the last
  * few empties. Integer scores only, so a position always scores the same.
  */

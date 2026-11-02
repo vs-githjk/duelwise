@@ -1,5 +1,5 @@
 /*
- * Slackwater dev page. The board is drawn in a 328 x 328 box and scaled by --u (container width / 328), so it is exact at 360
+ * Crosscurrent dev page. The board is drawn in a 328 x 328 box and scaled by --u (container width / 328), so it is exact at 360
  * wide and grows to 520 on a desktop with the same proportions: a 16 unit gutter for A to H and 1 to 8, then 312 units of grid,
  * 39 per cell. Sea and disc colours are object colours: the same in light and dark, since their contrast is against the board,
  * not the page. Promotion moves them to tokens. Only transforms and opacity change during a move; no box ever resizes.

@@ -5,7 +5,7 @@ import type { Rng } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
 import { chooseSlackAction } from './levels'
 
-/** Slackwater agent: search only, no model file, so it is never a stub. The seat is mixed into the seed so two seats on one seed draw different noise. */
+/** Crosscurrent agent: search only, no model file, so it is never a stub. The seat is mixed into the seed so two seats on one seed draw different noise. */
 export async function createGameAgent(level: Level, opts: AgentOpts = {}): Promise<PreviewAgent> {
   const seat = opts.seat ?? 1
   let rng: Rng = makeRng(0)

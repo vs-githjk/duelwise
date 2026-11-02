@@ -2,7 +2,7 @@ import { PASS, SIZE, flipsFor, slackCore, type SlackState } from '@duelwise/core
 import type { Level } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 
-// Pure match logic for the Slackwater dev page. No React here, so a unit test can drive a whole match.
+// Pure match logic for the Crosscurrent dev page. No React here, so a unit test can drive a whole match.
 // Seat 0 is the player (dark discs, moves first); seat 1 is the agent (pale discs).
 
 export const HUMAN: Seat = 0

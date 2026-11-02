@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { PAIRS, runDryLadder, type PairReport } from './dry-ladder'
 
-// Slackwater dry ladder gate (SW5). 800 games per pair through the real harness, 400 per seat.
+// Crosscurrent dry ladder gate (SW5). 800 games per pair through the real harness, 400 per seat.
 // Named .slow so run_suite.py skips it. Run it under heavy-lock.sh, with the output path in SLACK_LADDER_OUT to also write the JSON:
 //   SLACK_LADDER_OUT=<abs path> nice -n 10 heavy-lock.sh bun test packages/agents/src/slack/ladder.slow.test.ts --timeout 7200000
 const report = await runDryLadder({ out: process.env.SLACK_LADDER_OUT })
 
-describe('Slackwater dry ladder, through the real harness', () => {
+describe('Crosscurrent dry ladder, through the real harness', () => {
   test('four pairs, 800 games each, 400 per seat', () => {
     expect(report.pairs.map((p) => p.label)).toEqual(PAIRS.map((p) => p.label))
     for (const p of report.pairs) {
