@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { decodeRecord, encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record.ts'
 import { fleetCore } from '@duelwise/core/src/games/fleet/index.ts'
+import { publishedLevels } from './published-levels'
 
 const GAMES = {
   chess: { play: '/play/chess', board: 'chess-board', board_lb: '/leaderboard/chess' },
@@ -307,7 +308,8 @@ test.describe('fleet: a counted match', () => {
     await expect(page.getByTestId('leaving-notice')).toContainText(/resigns a counted match/)
     await expect(page.getByTestId('opponent-style')).not.toBeEmpty()
     await expect(page.getByTestId('fleet-legend')).toContainText('Sunk')
-    await expect(page.getByTestId('preview-badge')).toHaveText(/In training/)
+    // A published level shows no badge; a level still in training says so.
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('fleet').includes('easy') ? 0 : 1)
     // Fire still fits the 360 x 780 screen with the aside present, measured as the design does (section 2.2): page scrolled so the HUD is at the top.
     await page.getByTestId('fleet-hud').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY))
     await expect(page.getByTestId('fleet-fire')).toBeInViewport({ ratio: 1 })

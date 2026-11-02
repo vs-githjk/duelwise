@@ -736,8 +736,6 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
 
       {!started ? (
         <>
-          <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first. You fire first.</p>
-          <p className="text-sm text-muted">In counted matches the server keeps both fleets hidden until the match ends.</p>
           {/* Up here, not by Start match: that button is pinned to a phone's screen while its place in the page is far below, and a refused shot lands the player at the top of setup. */}
           {game.failure ? (
             <p ref={failureRef} role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad-ink" data-testid="fleet-failure">
@@ -749,6 +747,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               {leftLine}
             </p>
           ) : null}
+          <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first. You fire first.</p>
+          <p className="text-sm text-muted">In counted matches the server keeps both fleets hidden until the match ends.</p>
           {offline ? (
             <p className="text-sm text-muted" data-testid="fleet-offline-line">
               Rated Stormglass needs a connection, because the server keeps the hidden fleets. Practice works offline.

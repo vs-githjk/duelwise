@@ -84,7 +84,7 @@ test.describe('agent stats', () => {
       } else if (!champion) {
         await expect(page.getByTestId('tile-champion')).toContainText('In training')
       }
-      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : 'Does not learn from site matches yet')
+      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : game === 'fleet' ? 'Scripted solver: does not learn from site matches' : 'Does not learn from site matches yet')
       if (game === 'word') await expect(page.getByTestId('learns-note')).not.toContainText(/self-play/i)
     }
   })
@@ -118,7 +118,7 @@ test.describe('agent stats', () => {
       const published = LEVELS.filter((l) => reg?.levels?.[l] && reg?.measured?.[l]).length
       const text = await page.getByTestId(`strip-levels-${game}`).innerText()
       expect(text).toContain(published === 4 ? 'all four' : published === 0 ? 'In training' : `${published} of 4`)
-      await expect(page.getByTestId(`strip-learns-${game}`)).toHaveText(learnsOf(game) ? 'Trains on site matches' : 'Not yet')
+      await expect(page.getByTestId(`strip-learns-${game}`)).toHaveText(learnsOf(game) ? 'Trains on site matches' : game === 'fleet' ? 'Scripted' : 'Not yet')
     }
   })
 
