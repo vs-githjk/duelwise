@@ -73,11 +73,16 @@ export function mix(a: readonly number[], b: readonly number[], w: number): Dist
   return a.map((x, i) => w * x + (1 - w) * b[i]!)
 }
 
-/** Lifts every entry to at least `min`, then rescales so the total is 1 again. */
+/** Holds every entry at `min` or more and rescales the others, so the total is 1 and the floor is exact: a share the rescale would push under `min` is held there too. */
 export function floored(d: readonly number[], min: number): Dist {
-  const raised = d.map((x) => Math.max(x, min))
-  const sum = raised.reduce((a, b) => a + b, 0)
-  return raised.map((x) => x / sum)
+  const held = d.map((x) => x < min)
+  for (;;) {
+    const left = 1 - min * held.filter(Boolean).length
+    const free = d.reduce((a, x, i) => (held[i] ? a : a + x), 0)
+    const under = d.findIndex((x, i) => !held[i] && (x * left) / free < min)
+    if (under < 0) return d.map((x, i) => (held[i] ? min : (x * left) / free))
+    held[under] = true
+  }
 }
 
 /** Left and right count as tied when their values are within this; the caller's side then decides (the table is mirror symmetric, so the gap is noise). */

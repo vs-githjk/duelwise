@@ -14,7 +14,7 @@ export type PenaltyLevelConfig =
   | { kind: 'vesper'; read: number }
   | { kind: 'sable'; /** Best-response weight is min(1, weight * (1 - P(equilibrium))). */ weight: number }
 
-/** The sim's numbers (plan/bench/more-games-sim/pen9.ts, table t4). Sable's weight is what makes it read a habit fast but stay near equilibrium when unsure. */
+/** Dials as first set in the sim (plan/bench/more-games-sim/pen9.ts, table t4). The proof is the dry ladder through the real harness (dry-ladder.ts): these agents differ from the sim's on Sable's opener and ties. Sable's weight is what makes it read a habit fast but stay near equilibrium when unsure. */
 export const PENALTY_LEVELS: Record<Level, PenaltyLevelConfig> = {
   easy: { kind: 'pip', favourite: 0.75 },
   medium: { kind: 'marlow', read: 0.75 },

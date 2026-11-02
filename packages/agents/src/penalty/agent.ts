@@ -15,7 +15,7 @@ import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS } from './levels'
  * between calls. What an agent "knows" about a player is only the kicks inside this one match.
  */
 
-/** Sable's first shot or dive has nothing to read: the equilibrium, with every choice kept alive so all nine zones turn up. */
+/** Sable's first shot or dive has nothing to read: the equilibrium, with at least 3% on every choice so no zone or dive is ruled out on that one pick. */
 const OPEN_FLOOR = 0.03
 
 function pick(d: readonly number[], rng: Rng): number {

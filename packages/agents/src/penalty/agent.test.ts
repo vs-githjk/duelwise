@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { GOAL_PER_MILLE, penaltyCore, type Dive, type KickView, type PenaltyObs, type Zone } from '@duelwise/core/src/games/penalty/core'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
+import type { Rng } from '@duelwise/core/src/types'
 import { choosePenaltyAction, createGameAgent } from './agent'
 import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER } from './levels'
@@ -37,6 +38,27 @@ function draws(level: Level, o: PenaltyObs, n: number, salt = 7, seed = 11): num
   const c: number[] = new Array<number>(o.role === 'shooter' ? 9 : 5).fill(0)
   for (let i = 0; i < n; i++) c[choosePenaltyAction(level, o, rng, salt)]!++
   return c
+}
+
+/** The exact mix behind one choice, read through the real function: `pick` walks the running total, so a stub rng can bisect for each step of it. */
+function exactMix(level: Level, o: PenaltyObs, salt = 7): number[] {
+  const at = (r: number) => choosePenaltyAction(level, o, { float: () => r } as unknown as Rng, salt)
+  const n = o.role === 'shooter' ? 9 : 5
+  const out: number[] = new Array<number>(n).fill(0)
+  let from = 0
+  for (let i = 0; i < n - 1; i++) {
+    let lo = from
+    let hi = 1
+    for (let step = 0; step < 60; step++) {
+      const mid = (lo + hi) / 2
+      if (at(mid) <= i) lo = mid
+      else hi = mid
+    }
+    out[i] = hi - from
+    from = hi
+  }
+  out[n - 1] = 1 - from
+  return out
 }
 
 /** Fictitious play on the goal table, the same way the sim checks its equilibrium. */
@@ -240,10 +262,15 @@ describe('Marlow', () => {
     expect(openerSides('medium')).toEqual(new Set([0, 2]))
     const tied = [view(true, C, LH), view(true, C, RL)]
     expect(openerSides('medium', tied)).toEqual(new Set([0, 2]))
-    const c = shares(draws('medium', obs('shooter', tied), 3000))
-    // 0.75 on the salt corner plus its share of the equilibrium 0.25.
-    expect(Math.max(...c)).toBeGreaterThan(0.76)
-    expect(Math.max(...c)).toBeLessThan(0.86)
+    // 0.75 on the salt corner plus that corner's own share of the equilibrium 0.25, for each of the four corners.
+    const corners = new Set<number>()
+    for (let salt = 0; salt < 40; salt++) {
+      const m = exactMix('medium', obs('shooter', tied), salt)
+      const corner = m.indexOf(Math.max(...m))
+      corners.add(corner)
+      expect(m[corner]!).toBeCloseTo(0.75 + 0.25 * EQ_SHOOTER[corner]!, 6)
+    }
+    expect(corners).toEqual(new Set([TL, TR, BL, BR]))
   })
 })
 
@@ -258,9 +285,14 @@ describe('Vesper', () => {
   test('as shooter opens on the salt corner, and after a middle kick picks a salt corner again', () => {
     expect(openerSides('hard')).toEqual(new Set([0, 2]))
     expect(openerSides('hard', [view(true, C, LH)])).toEqual(new Set([0, 2]))
-    const c = shares(draws('hard', obs('shooter', [view(true, C, LH)]), 3000))
-    expect(Math.max(...c)).toBeGreaterThan(0.76)
-    expect(Math.max(...c)).toBeLessThan(0.86)
+    const corners = new Set<number>()
+    for (let salt = 0; salt < 40; salt++) {
+      const m = exactMix('hard', obs('shooter', [view(true, C, LH)]), salt)
+      const corner = m.indexOf(Math.max(...m))
+      corners.add(corner)
+      expect(m[corner]!).toBeCloseTo(0.75 + 0.25 * EQ_SHOOTER[corner]!, 6)
+    }
+    expect(corners).toEqual(new Set([TL, TR, BL, BR]))
   })
 
   test('as keeper with no kick to read plays the equilibrium dive mix', () => {
@@ -287,19 +319,46 @@ describe('Vesper', () => {
 })
 
 describe('Sable', () => {
-  test('with no history keeps at least 3% on every zone and dive and matches its opening mix within 0.02 over 5,000 draws', () => {
-    for (const [role, eq] of [
-      ['shooter', EQ_SHOOTER],
-      ['keeper', EQ_KEEPER],
+  // Written out, not through floored(): the four zones the equilibrium skips hold exactly 3%, the other five share the 0.88 left in their equilibrium proportions.
+  const OPEN_SHOOTER = [0.2525, 0.03, 0.2525, 0.03, 0.1736, 0.03, 0.1607, 0.03, 0.1607].map((p) => (p === 0.03 ? p : p * 0.88))
+  // Every dive is in the equilibrium already, so the floor touches none; the constants sum to 1.0001, and the mix is rescaled to 1.
+  const OPEN_KEEPER = [0.1716, 0.2671, 0.1227, 0.1716, 0.2671].map((p) => p / 1.0001)
+
+  test('with no history its opening mix is exact, and no zone or dive holds under a true 3%', () => {
+    for (const [role, want] of [
+      ['shooter', OPEN_SHOOTER],
+      ['keeper', OPEN_KEEPER],
+    ] as const) {
+      const m = exactMix('champion', obs(role))
+      expect(m.length).toBe(want.length)
+      for (let i = 0; i < m.length; i++) {
+        expect(m[i]!).toBeCloseTo(want[i]!, 6)
+        expect(m[i]!).toBeGreaterThan(0.03 - 1e-9)
+      }
+    }
+    expect(OPEN_SHOOTER.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9)
+    expect(OPEN_KEEPER.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9)
+  })
+
+  test('with no history the draws follow that mix over 5,000 draws', () => {
+    for (const [role, want] of [
+      ['shooter', OPEN_SHOOTER],
+      ['keeper', OPEN_KEEPER],
     ] as const) {
       const f = shares(draws('champion', obs(role), 5000))
-      const want = floored(eq, 0.03)
       for (let i = 0; i < f.length; i++) {
         expect(f[i]!).toBeGreaterThanOrEqual(0.03 * 0.75) // 3% of the mix, less sampling noise at 5,000 draws (sd about 0.0025)
         expect(Math.abs(f[i]! - want[i]!)).toBeLessThan(0.02)
       }
-      for (const p of want) expect(p).toBeGreaterThanOrEqual(0.0265)
     }
+  })
+
+  test('the floor holds entries at exactly the minimum, also one that the rescale would push back under it', () => {
+    const lifted = floored([0.5, 0.5, 0, 0], 0.03)
+    for (const [i, p] of [0.47, 0.47, 0.03, 0.03].entries()) expect(lifted[i]!).toBeCloseTo(p, 12)
+    const pushed = floored([0.85, 0.03, 0.12, 0], 0.03)
+    for (const [i, p] of [(0.85 * 0.94) / 0.97, 0.03, (0.12 * 0.94) / 0.97, 0.03].entries()) expect(pushed[i]!).toBeCloseTo(p, 12)
+    expect(floored([0.6, 0.4], 0.03)).toEqual([0.6, 0.4])
   })
 
   test('after five kicks to one zone its keeper answers that zone over 97%', () => {
