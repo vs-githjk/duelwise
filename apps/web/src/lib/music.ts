@@ -342,7 +342,7 @@ export function duckMusic(ms = MAX_HOLD_MS): () => void {
 }
 
 /**
- * The result sound of a match, for all six games: plays the win or loss stinger (when sound effects are on) and ducks the music under it.
+ * The result sound of a match, for every game: plays the win or loss stinger (when sound effects are on) and ducks the music under it.
  * `delayMs` lets a game put it after its own last animation.
  */
 export function playStinger(outcome: StingerOutcome, delayMs = 0): void {

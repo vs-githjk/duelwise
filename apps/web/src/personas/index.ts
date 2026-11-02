@@ -2,7 +2,7 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import data from './personas.json'
 
 /**
- * The cast: four characters shared by all six games (design v3). This module holds names, bios and
+ * The cast: four characters shared by every game (design v3). This module holds names, bios and
  * per-game style lines only. Ratings and reaction limits are never stored here; they come from the
  * registries and PRODUCT (see cast.ts).
  */
