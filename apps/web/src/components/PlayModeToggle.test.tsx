@@ -114,3 +114,19 @@ test('Practice: a level in training with a shipped model opens; one with nothing
   expect(radio(html, 'champion')).toContain('disabled')
   expect(html).toContain('Still training. Champion has not been measured yet.')
 })
+
+test('a game whose rated path is not open shows Rated shut with the reason, and Practice as the only pick', () => {
+  const html = renderToStaticMarkup(<PlayMode ratedUnavailable="Rated opens when the opponent can be checked by the server." />)
+  expect(html).toContain('data-mode="practice"')
+  expect(html).toContain('Rated opens when the opponent can be checked by the server.')
+  const rated = html.match(/<input[^>]*value="rated"[^>]*>/)![0]
+  expect(rated).toContain('disabled')
+  expect(rated).not.toContain('checked')
+  const practice = html.match(/<input[^>]*value="practice"[^>]*>/)![0]
+  expect(practice).toContain('checked')
+  expect(practice).not.toContain('disabled')
+  // The shut row says so in words too, not only by colour.
+  expect(html).toContain('data-rated-unavailable')
+  // Without the prop nothing changes.
+  expect(renderToStaticMarkup(<PlayMode />)).not.toContain('data-rated-unavailable')
+})
