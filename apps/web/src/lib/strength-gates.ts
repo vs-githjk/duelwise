@@ -68,7 +68,7 @@ export function verifiedStrength(reg: Registry | null, level: Level): boolean {
   }
   if (reg.game === 'four') return fourPass(reg, level)
   if (reg.game === 'word') return wordPass(reg, level)
-  if (reg.game === 'chess' || reg.game === 'holdem' || reg.game === 'fleet') {
+  if (reg.game === 'chess' || reg.game === 'holdem' || reg.game === 'fleet' || reg.game === 'slack') {
     if (!twoSeats(obj(gate.baseline)?.bySeat, 0.5)) return false
     const pairs = Array.isArray(gate.pairs) ? gate.pairs : []
     const index = LEVELS.indexOf(level)

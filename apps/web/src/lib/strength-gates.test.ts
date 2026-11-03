@@ -36,6 +36,7 @@ import type { Registry } from '@duelwise/agents/src/registry'
 import { GAMES_PER_SEAT as FLEET_GAMES_PER_SEAT, buildFleetRegistry, seated, seatRows, seatsPass } from '@duelwise/agents/src/fleet/measure'
 import type { GameRecord } from '@duelwise/agents/src/measure/harness'
 import type { LadderResult } from '@duelwise/agents/src/measure/ladder'
+import { GAMES_PER_SEAT as SLACK_GAMES_PER_SEAT, buildSlackRegistry, seated as slackSeated } from '@duelwise/agents/src/slack/measure'
 
 const REGISTRY_DIR = join(import.meta.dir, '../../../../packages/agents/registry')
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -223,6 +224,53 @@ describe('what the Stormglass measurement writes reaches the gate', () => {
     expect(seatsPass(r)).toBe(false)
     expect(seatsPass(seatRows(rows(399, 399, FLEET_GAMES_PER_SEAT - 1)))).toBe(false)
     expect(seatsPass(seatRows(rows(300, 300)))).toBe(true)
+  })
+})
+
+describe('what the Crosscurrent measurement writes reaches the gate', () => {
+  const rows = (first: number, second: number) => [
+    ...Array.from({ length: SLACK_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 0, scoreA: i < first ? 1 : 0 })),
+    ...Array.from({ length: SLACK_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 1, scoreA: i < second ? 1 : 0 })),
+  ] as GameRecord[]
+  const row = (first: number, second: number) => {
+    const n = SLACK_GAMES_PER_SEAT * 2
+    const floor = wilsonFloor(first + second, n)
+    return slackSeated({ points: first + second, n, score: (first + second) / n, ci95: [floor, 1], stoppedEarly: false, passed: floor > 0.5 }, rows(first, second))
+  }
+  const ladder = (hard = row(300, 300), baseline = row(380, 380)): LadderResult => ({
+    game: 'slack',
+    levels: [...LEVELS],
+    pairs: [{ lower: 'easy', upper: 'medium', ...row(350, 350) }, { lower: 'medium', upper: 'hard', ...hard }, { lower: 'hard', upper: 'champion', ...row(280, 280) }],
+    baseline: { label: 'random', ...baseline },
+    elo: { easy: 1000, medium: 1300, hard: 1500, champion: 1600 },
+  })
+  const prior = (): Registry => ({
+    game: 'slack',
+    champion: 'v1',
+    versions: [{ version: 'v1', parent: null, createdAt: '2026-11-03T04:00:00.000Z', promotedAt: null, status: 'preview', artifacts: {}, sha256: {}, trainedSteps: 0, humanMatchesUsed: 0, gate: null }],
+    levels: Object.fromEntries(LEVELS.map((l) => [l, { version: 'v1', config: {} }])),
+    measured: {},
+    unpublished: {},
+    unpublishedConfig: {},
+    learnsFromHumans: false,
+  })
+  const build = (l: LadderResult) => buildSlackRegistry(prior(), l, { commit: 'abc1234', now: '2026-11-03T13:00:00.000Z' })
+
+  test('a full pass shows all four levels, with no learning claim', () => {
+    const reg = build(ladder())
+    expect(measuredSet(reg)).toEqual(LEVELS)
+    expect(reg.learnsFromHumans).toBe(false)
+    expect((reg.versions[0]!.gate as { strengthSource: string }).strengthSource).toContain('scripted search')
+  })
+  test('a pair that passes pooled but fails one seat keeps that level and the ones above In training', () => {
+    const reg = build(ladder(row(395, 205)))
+    expect(measuredSet(reg)).toEqual(['easy', 'medium'])
+    expect(reg.unpublished?.hard).toContain('from every seat')
+  })
+  test('a gate with no seat rows shows nothing: a game the gate does not know stays In training', () => {
+    const reg = build(ladder())
+    delete (reg.versions[0]!.gate as any).baseline.bySeat
+    expect(measuredSet(reg)).toEqual([])
   })
 })
 
