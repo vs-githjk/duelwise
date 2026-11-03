@@ -171,23 +171,27 @@ describe('no clock decides a move, so the same code gives the same move on any m
       const a = legal[rng.int(legal.length)]
       s = slackCore.step(s, seat === 0 ? [a, null] : [null, a])
     }
-    const opts = (seed: number) => ({ maxDepth: cfg.depth, mobility: cfg.mobility, noise: cfg.noise, exactEmpties: cfg.exactEmpties, nodeCap: cfg.nodeCap, rng: makeRng(seed) })
-    const clean = positions.map((c, i) => searchMove(c, mover[i]!, opts(i)))
-    expect(clean.some((r) => r.nodes >= cfg.nodeCap!), 'the cap must bind somewhere, or this proves nothing').toBe(true)
-    // Warm caches, run in reverse order, and make every clock wildly wrong: nothing may change.
-    const realNow = Date.now
-    const realPerf = performance.now.bind(performance)
-    let tick = 0
-    Date.now = () => (tick += 7_919_001)
-    performance.now = () => (tick += 3_000_017)
-    try {
-      for (let i = positions.length - 1; i >= 0; i--) {
-        const again = searchMove(positions[i]!, mover[i]!, opts(i))
-        expect(again, `position ${i}`).toEqual(clean[i]!)
+    // Sable's own cap rarely binds on a random walk, so the proof also runs a cap small enough to bind on most positions: the same code path, a stricter test.
+    for (const nodeCap of [cfg.nodeCap!, 4_000]) {
+      const opts = (seed: number) => ({ maxDepth: cfg.depth, mobility: cfg.mobility, noise: cfg.noise, exactEmpties: cfg.exactEmpties, nodeCap, rng: makeRng(seed) })
+      const clean = positions.map((c, i) => searchMove(c, mover[i]!, opts(i)))
+      if (nodeCap === 4_000) expect(clean.filter((r) => r.nodes >= nodeCap).length, 'the cap must bind on many positions, or this proves nothing').toBeGreaterThan(10)
+      for (const r of clean) expect(r.nodes).toBeLessThanOrEqual(nodeCap + 1)
+      // Warm caches, run in reverse order, and make every clock wildly wrong: nothing may change.
+      const realNow = Date.now
+      const realPerf = performance.now.bind(performance)
+      let tick = 0
+      Date.now = () => (tick += 7_919_001)
+      performance.now = () => (tick += 3_000_017)
+      try {
+        for (let i = positions.length - 1; i >= 0; i--) {
+          const again = searchMove(positions[i]!, mover[i]!, opts(i))
+          expect(again, `cap ${nodeCap}, position ${i}`).toEqual(clean[i]!)
+        }
+      } finally {
+        Date.now = realNow
+        performance.now = realPerf
       }
-    } finally {
-      Date.now = realNow
-      performance.now = realPerf
     }
   })
 

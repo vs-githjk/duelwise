@@ -6,7 +6,7 @@ export type LevelName = 'easy' | 'medium' | 'hard' | 'champion'
 export const ALL_LEVELS: readonly LevelName[] = ['easy', 'medium', 'hard', 'champion']
 
 /** The levels a game's registry publishes, read from the same file the page reads, so a spec follows the registry and never a fixed list. */
-export function publishedLevels(game: 'fighter' | 'arena' | 'fleet'): LevelName[] {
+export function publishedLevels(game: 'fighter' | 'arena' | 'fleet' | 'slack'): LevelName[] {
   const reg = visibleRegistry(JSON.parse(readFileSync(join(import.meta.dirname, '../../../packages/agents/registry', `${game}.json`), 'utf8')))
   return ALL_LEVELS.filter((l) => reg.levels[l] !== undefined)
 }

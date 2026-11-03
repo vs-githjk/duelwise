@@ -6,6 +6,8 @@ import { publishedLevels } from './published-levels'
 const GAMES = {
   chess: { play: '/play/chess', board: 'chess-board', board_lb: '/leaderboard/chess' },
   four: { play: '/play/four-in-a-row', board: 'four-board', board_lb: '/leaderboard/four-in-a-row' },
+  // Crosscurrent's play HUD carries data-turn, like the other boards.
+  slack: { play: '/play/crosscurrent', board: 'play-hud', board_lb: '/leaderboard/crosscurrent' },
 } as const
 
 async function devSignIn(page: Page, name: string) {
@@ -33,7 +35,7 @@ async function resign(page: Page) {
   await expect(page.getByTestId('result-reason')).toHaveText('You resigned.')
 }
 
-for (const game of ['chess', 'four'] as const) {
+for (const game of ['chess', 'four', 'slack'] as const) {
   test.describe(`${game}: rated resign`, () => {
     test('resigning a counted match is a loss: the rating shown drops and the leaderboard reflects it', async ({ page }) => {
       await devSignIn(page, `res-${game}`)
@@ -60,15 +62,17 @@ for (const game of ['chess', 'four'] as const) {
   })
 }
 
-test('closing the page during a counted match sends a beacon that resigns it', async ({ page }) => {
-  await devSignIn(page, 'leaver')
-  await startMatch(page, 'four')
-  await page.goto('/leaderboard/four-in-a-row') // a full navigation fires pagehide on the play page
-  await expect(async () => {
-    await page.reload()
-    await expect(page.getByTestId('leaderboard-me')).toContainText('after 1 counted match')
-  }).toPass({ timeout: 15_000 })
-})
+for (const game of ['four', 'slack'] as const) {
+  test(`${game}: closing the page during a counted match sends a beacon that resigns it`, async ({ page }) => {
+    await devSignIn(page, `leaver-${game}`)
+    await startMatch(page, game)
+    await page.goto(GAMES[game].board_lb) // a full navigation fires pagehide on the play page
+    await expect(async () => {
+      await page.reload()
+      await expect(page.getByTestId('leaderboard-me')).toContainText('after 1 counted match')
+    }).toPass({ timeout: 15_000 })
+  })
+}
 
 /** Lets the match start but makes the finished record's upload (the multipart server function) fail. */
 async function failServerUpload(page: Page) {

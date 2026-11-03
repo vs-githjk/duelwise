@@ -1,4 +1,7 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { publishedLevels } from './published-levels'
 
 // Crosscurrent at /play/crosscurrent: the real game page on GameShell, LevelPicker and ResultPanel. A whole match to a result on a phone 360 wide,
 // the board never moves by more than 2 px on any frame, nothing overflows sideways at 360, 390 or 1440, every control is at least 44 px (cells
@@ -209,23 +212,45 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.locator('body')).toContainText(/scripted|search/i)
   })
 
-  test('Rated is shut with the reason and Practice is picked, so no match can count for a record nothing checks', async ({ page }) => {
+  test('Rated is open and the default pick; every level shows the strength its registry measured, and nothing is In training', async ({ page }) => {
     await page.goto(URL)
     const mode = page.getByTestId('play-mode')
-    await expect(mode).toHaveAttribute('data-mode', 'practice')
-    await expect(page.locator('[data-mode-option="rated"] input')).toBeDisabled()
-    await expect(page.locator('[data-mode-option="rated"]')).toContainText('Not open yet')
-    await expect(page.locator('[data-mode-option="practice"] input')).toBeChecked()
-    // The four levels are the four personas, each with its own line; none shows a strength number.
+    await expect(mode).toHaveAttribute('data-mode', 'rated')
+    await expect(page.locator('[data-mode-option="rated"] input')).toBeEnabled()
+    await expect(page.locator('[data-mode-option="rated"] input')).toBeChecked()
+    await expect(page.locator('[data-mode-option="rated"]')).not.toContainText('Not open yet')
+    // The four levels are the four personas, each with its own line, and each is published with the registry's own site Elo.
     for (const [level, name, line] of [['easy', 'Pip', /most discs it can/], ['medium', 'Marlow', /squares matter/], ['hard', 'Vesper', /few moves ahead/], ['champion', 'Sable', /endgame/]] as const) {
       const row = page.locator(`[data-persona="${level}"]`)
       await expect(row).toContainText(name)
       await expect(row).toContainText(line)
-      await expect(row).toContainText('In training')
-      await expect(row).not.toContainText(/site Elo/i)
+      await expect(row).not.toContainText('In training')
     }
+    expect(publishedLevels('slack')).toEqual(['easy', 'medium', 'hard', 'champion'])
     await expect(page.getByTestId('slack-start')).toContainText('Start match vs Pip')
-    // A match started from here is a Practice match: the header says so and the result says so.
+  })
+
+  test('the aside prints the measured strength of the opponent from the registry, level by level', async ({ page }) => {
+    const reg = JSON.parse(readFileSync(join(import.meta.dirname, '../../../packages/agents/registry/slack.json'), 'utf8')) as { measured: Record<string, { siteElo: number }> }
+    for (const level of ['easy', 'champion'] as const) {
+      await page.goto(URL)
+      await page.locator(`[data-persona="${level}"] input`).check()
+      await page.getByTestId('slack-start').click()
+      await expect(page.getByTestId('agent-card')).toContainText(`site Elo ${Math.round(reg.measured[level]!.siteElo)}`)
+    }
+  })
+
+  test('a Rated match is not a Practice match: no badge, resigning is a loss for a signed-out player with the unranked line, and Practice still marks itself', async ({ page }) => {
+    await page.goto(URL)
+    await page.getByTestId('slack-start').click()
+    await expect(page.getByTestId('practice-badge')).toHaveCount(0)
+    await page.getByTestId('slack-resign').click()
+    await page.getByTestId('slack-resign-yes').click()
+    await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', 'loss')
+    await expect(page.getByTestId('result-practice')).toHaveCount(0)
+    // Practice, picked on the setup screen, marks the match as before.
+    await page.goto(URL)
+    await page.locator('[data-mode-option="practice"] input').check({ force: true })
     await page.getByTestId('slack-start').click()
     await expect(page.getByTestId('practice-badge')).toBeVisible()
     await page.getByTestId('slack-resign').click()
