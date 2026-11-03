@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { animate } from 'motion'
 import { COLS, ROWS, stoneAt, type FourState } from '@duelwise/core/src/games/four/rules'
 import { cn } from '../../lib/cn'
-import { HUMAN, type LastMove, type WinLine } from './useFourMatch'
+import type { LastMove, WinLine } from './useFourMatch'
 import { columnLabel } from './announce'
 import { playCue } from './sounds'
 
@@ -37,8 +37,8 @@ const FACE = (() => {
   return d
 })()
 
-function Stone({ seat, ghost = false }: { seat: number; ghost?: boolean }) {
-  const you = seat === HUMAN
+function Stone({ seat, humanSeat, ghost = false }: { seat: number; humanSeat: number; ghost?: boolean }) {
+  const you = seat === humanSeat
   return (
     <g opacity={ghost ? 0.5 : 1}>
       <circle r={R} fill={you ? 'var(--four-you)' : 'var(--four-ai)'} stroke={you ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.6)'} strokeWidth={3} />
@@ -49,7 +49,7 @@ function Stone({ seat, ghost = false }: { seat: number; ghost?: boolean }) {
 }
 
 /** A placed stone. It animates once, when it first mounts, which is exactly when it is dropped. */
-function Disc({ col, row, seat, win, onLanded }: { col: number; row: number; seat: number; win: boolean; onLanded: (seat: number) => void }) {
+function Disc({ col, row, seat, humanSeat, win, onLanded }: { col: number; row: number; seat: number; humanSeat: number; win: boolean; onLanded: (seat: number) => void }) {
   const ref = useRef<SVGGElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -77,7 +77,7 @@ function Disc({ col, row, seat, win, onLanded }: { col: number; row: number; sea
   return (
     <g data-testid="disc" data-col={col} data-row={row} data-seat={seat} data-win={win ? '' : undefined} transform={`translate(${cx(col)} ${cy(row)})`}>
       <g ref={ref}>
-        <Stone seat={seat} />
+        <Stone seat={seat} humanSeat={humanSeat} />
       </g>
     </g>
   )
@@ -97,6 +97,8 @@ function WinRing({ col, row }: { col: number; row: number }) {
 export interface BoardProps {
   /** The opponent's persona name, for the column labels a screen reader hears. */
   opponent: string
+  /** The player's seat: their stones are the yellow ones whichever side they have. */
+  humanSeat?: number
   state: FourState
   lastMove: LastMove | null
   winCells: ReadonlySet<string>
@@ -113,7 +115,7 @@ export interface BoardProps {
  * lie over the columns: they give mouse, touch and screen-reader play, with a roving tab stop and
  * arrow, Home and End keys. A hovered or focused column shows a ghost stone and its landing spot.
  */
-export function Board({ opponent, state, lastMove, winCells, winLines, canMove, turn, onDrop }: BoardProps) {
+export function Board({ opponent, humanSeat = 0, state, lastMove, winCells, winLines, canMove, turn, onDrop }: BoardProps) {
   const [cursor, setCursor] = useState(3)
   const [hover, setHover] = useState<number | null>(null)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
@@ -165,16 +167,16 @@ export function Board({ opponent, state, lastMove, winCells, winLines, canMove, 
         <rect x="0" y={TOP} width={W} height={H - TOP - DEPTH} rx={24} fill="var(--four-hole)" />
         <g>
           {discs.map((d) => (
-            <Disc key={`${d.col}-${d.row}`} {...d} win={winCells.has(`${d.col},${d.row}`)} onLanded={(seat) => {
+            <Disc key={`${d.col}-${d.row}`} {...d} humanSeat={humanSeat} win={winCells.has(`${d.col},${d.row}`)} onLanded={(seat) => {
                 setLandedN(nowN.current)
-                playCue(seat === HUMAN ? 'drop-you' : 'drop-ai')
+                playCue(seat === humanSeat ? 'drop-you' : 'drop-ai')
               }} />
           ))}
         </g>
         {/* The ghost stone hovers in the strip above the board. */}
         {aimOpen ? (
           <g transform={`translate(${cx(aim)} ${TOP / 2}) scale(0.75)`} data-testid="ghost" style={{ pointerEvents: 'none' }}>
-            <Stone seat={HUMAN} ghost />
+            <Stone seat={humanSeat} humanSeat={humanSeat} ghost />
           </g>
         ) : null}
         <path d={FACE} fillRule="evenodd" fill="var(--four-frame)" data-testid="four-slab" />
@@ -212,7 +214,7 @@ export function Board({ opponent, state, lastMove, winCells, winLines, canMove, 
               type="button"
               data-testid={`col-${col}`}
               aria-disabled={blocked}
-              aria-label={columnLabel(state, col, opponent)}
+              aria-label={columnLabel(state, col, opponent, humanSeat)}
               tabIndex={col === cursor ? 0 : -1}
               onPointerEnter={() => setHover(col)}
               onPointerLeave={() => setHover(null)}

@@ -149,3 +149,97 @@ test.describe('Chess: a random colour each match', () => {
     await expect(pieceAt(page, 'a1')).toHaveAttribute('data-type', 'q')
   })
 })
+
+test.describe('Four in a Row: first or second drop, at random each match', () => {
+  const board = (page: Page) => page.getByTestId('four-board')
+
+  async function open(page: Page, query: string) {
+    await page.goto(`/play/four-in-a-row?${query}&side=seed`)
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    await expect(board(page)).toBeVisible()
+  }
+
+  /**
+   * A seed that gives the player the second drop and where the stub opponent (random column, seat 0 here) never plays column 0 in its first
+   * four drops, so a player who stacks column 0 four times wins on the eighth drop.
+   */
+  function seedWhereSecondPlayerStacksColumnZero(): number {
+    for (let seed = seedFor('four', 1); seed < 400000; seed = seedFor('four', 1, seed + 1)) {
+      const rng = makeRng(seed)
+      let ok = true
+      for (let i = 0; i < 4 && ok; i++) if (rng.int(7) === 0) ok = false
+      if (ok) return seed
+    }
+    throw new Error('no seed found')
+  }
+  const SECOND_WIN_SEED = seedWhereSecondPlayerStacksColumnZero()
+
+  test('the setup page says who drops first is random', async ({ page }) => {
+    await page.goto('/play/four-in-a-row')
+    await expect(page.getByTestId('four-setup')).toContainText('decides at random who drops first')
+    await expect(page.getByTestId('four-setup')).not.toContainText('You move first')
+  })
+
+  test('first: the chips say move first, it is your move and your stone is yellow', async ({ page }) => {
+    const errors = watchConsole(page)
+    await open(page, `seed=${seedFor('four', 0)}&opponent=random`)
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    await expect(board(page)).toHaveAttribute('data-moves', '0')
+    await expect(page.getByTestId('play-hud-you')).toContainText('You, move first')
+    await expect(page.getByTestId('agent-card')).toContainText('You, move first')
+    await expect(page.getByTestId('agent-card')).toContainText('moves second')
+    await expect(page.getByTestId('four-status')).toHaveText('Your move')
+    await expect(page.getByTestId('four-board-summary')).toContainText('Column 1: empty.')
+    await page.getByTestId('col-3').click()
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    await expect(page.locator('[data-testid="disc"][data-seat="0"] circle').first()).toHaveAttribute('fill', 'var(--four-you)')
+    expect(errors).toEqual([])
+  })
+
+  test('second: the opponent opens at once, the turn shows from the first frame, and your stones are still yellow', async ({ page }) => {
+    const errors = watchConsole(page)
+    await page.goto(`/play/four-in-a-row?seed=${seedFor('four', 1)}&opponent=random&side=seed`)
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    const t0 = Date.now()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    await expect(board(page)).toBeVisible()
+    await expect(board(page)).toHaveAttribute('data-turn', 'ai')
+    await expect(page.getByTestId('four-status')).toContainText('is thinking')
+    await expect(page.getByTestId('play-hud-ai')).toHaveAttribute('data-active', '')
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    expect(Date.now() - t0).toBeLessThan(4000)
+    await expect(board(page)).toHaveAttribute('data-moves', '1')
+    await expect(page.getByTestId('play-hud-you')).toContainText('You, move second')
+    await expect(page.getByTestId('agent-card')).toContainText('You, move second')
+    await expect(page.getByTestId('agent-card')).toContainText('moves first')
+    await expect(page.getByTestId('four-status')).toHaveText('Your move')
+    // The opening stone is the opponent's, in the dark colour; yours land yellow.
+    await expect(page.locator('[data-testid="disc"][data-seat="0"] circle').first()).toHaveAttribute('fill', 'var(--four-ai)')
+    await expect(page.getByTestId('four-board-summary')).toContainText(/bottom to top: Pip\./)
+    await page.getByTestId('col-3').click()
+    await expect(board(page)).toHaveAttribute('data-moves', /^[34]$/)
+    await expect(board(page)).toHaveAttribute('data-turn', 'you')
+    await expect(page.locator('[data-testid="disc"][data-seat="1"] circle').first()).toHaveAttribute('fill', 'var(--four-you)')
+    expect(errors).toEqual([])
+  })
+
+  test('the second player wins a whole game, and the record (agent first) replays to its final hash', async ({ page }) => {
+    const errors = watchConsole(page)
+    await open(page, `seed=${SECOND_WIN_SEED}&opponent=random`)
+    await expect(board(page)).toHaveAttribute('data-moves', '1')
+    for (let i = 0; i < 4; i++) {
+      const before = Number(await board(page).getAttribute('data-moves'))
+      await expect(board(page)).toHaveAttribute('data-turn', 'you')
+      await expect(board(page)).not.toHaveAttribute('data-settling', 'true')
+      await page.getByTestId('col-0').click()
+      await expect(board(page)).not.toHaveAttribute('data-moves', String(before))
+    }
+    await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', 'win')
+    await expect(page.locator('[data-testid="disc"][data-win][data-col="0"]')).toHaveCount(4)
+    const record = page.getByTestId('four-record')
+    await expect(record).toHaveAttribute('data-record-ok', 'true')
+    await expect(record).toHaveAttribute('data-final-hash', /^[0-9a-f]{16}$/)
+    expect(errors).toEqual([])
+  })
+})

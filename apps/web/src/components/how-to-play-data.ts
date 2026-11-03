@@ -10,7 +10,7 @@ export const guides: Record<GameId, Guide> = {
   },
   four: {
     goal: 'Line up four of your discs in a row.',
-    steps: ['Take turns choosing a column.', 'Your disc falls to the lowest open space.', 'Make a line across, up and down, or diagonally.'],
+    steps: ['Each match decides at random whether you drop first or second. Take turns choosing a column.', 'Your disc falls to the lowest open space.', 'Make a line across, up and down, or diagonally.'],
     controls: [{ keys: 'Mouse or touch', action: 'choose a column' }, { keys: 'Left or Right', action: 'move between columns' }, { keys: 'Enter or Space', action: 'drop a disc' }, { keys: 'Home or End', action: 'go to an edge' }],
     win: 'The first player to line up four wins. A full board without four is a draw.', tip: 'Watch for a line your opponent can complete next turn.',
   },
