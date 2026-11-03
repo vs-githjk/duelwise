@@ -8,7 +8,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { buildSealedLog, FLEET_SPEC } from '../../server/sealed-duel'
 import { TurnRefused, type FetchTurn, type FleetTurnReply } from './api'
-import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, RECORD_FAILED, SETUP_FAILED, shotFailed, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
+import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, NOT_ADD_UP_FAILED, RECORD_FAILED, SETUP_FAILED, shotFailed, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
 
 const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
@@ -191,8 +191,12 @@ describe('counted match through the engine', () => {
     expect(log.finished).toBeNull()
     expect(engine.snapshot().phase).not.toBe('over')
     expect(engine.snapshot().failure).toMatch(/does not add up/)
-    // Resign is back, so the player is not stuck on a finished board.
+    // Resign is back, so the player is not stuck on a finished board, and the line fits two lines at 360 wide.
     expect(engine.snapshot().ending).toBe(false)
+    expect(engine.snapshot().failure).toBe(NOT_ADD_UP_FAILED)
+    expect(NOT_ADD_UP_FAILED.length).toBeLessThanOrEqual(45)
+    expect(RECORD_FAILED.length).toBeLessThanOrEqual(55)
+    expect(engine.snapshot().finalSeen).toBe(true)
   })
 
   test('a dropped reply is retried with the same request and the match goes on', async () => {
@@ -213,6 +217,8 @@ describe('counted match through the engine', () => {
     expect(await engine.fire(10)).toBeNull()
     expect(engine.snapshot().failure).toBe(shotFailed(10))
     expect(engine.snapshot().failure).toBe('Shot at A2 not sent. Press Fire to send it again.')
+    // The final reply never arrived on this route: the view lacks that shot, so a win the log has counts one more.
+    expect(engine.snapshot().finalSeen).toBe(false)
     // The lost square is named and kept for the page to hold aimed and locked.
     expect(engine.snapshot().unsentCell).toBe(10)
     expect(engine.snapshot().thinking).toBe(false)
@@ -450,7 +456,7 @@ describe('the final reply of a counted match paints before the record work', () 
     g.gate.open()
     await done
     const s = g.engine.snapshot()
-    expect(s).toMatchObject({ phase: 'play', ending: false, thinking: false, failure: RECORD_FAILED })
+    expect(s).toMatchObject({ phase: 'play', ending: false, thinking: false, failure: RECORD_FAILED, finalSeen: true })
     // Plain copy, never the thrown text, and it points at the one thing that works.
     expect(s.failure).not.toMatch(/encode failed/)
     expect(RECORD_FAILED).toMatch(/Resign/)

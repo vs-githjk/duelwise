@@ -21,6 +21,8 @@ export const SETUP_FAILED = 'The match could not start. Check your connection an
 /** The line after a shot whose reply never came; it names the square so the player knows which shot Fire will send. */
 /** The final reply is in but this page could not make the record of the match. Resign is back, and the server settles the match from its own log. Short: it must fit two lines at 360 wide. */
 export const RECORD_FAILED = 'Match over, but not saved. Press Resign to settle it.'
+/** The server's reveal does not match the played shots. Both lines fit two lines at 360 wide (a third clips in the event line). */
+export const NOT_ADD_UP_FAILED = 'This match does not add up. Press Resign.'
 
 export const shotFailed = (cell: number): string => `Shot at ${coord(cell)} not sent. Press Fire to send it again.`
 export const MATCH_ENDED = 'This match has ended. Place your fleet to start a new one.'
@@ -38,11 +40,13 @@ export interface FleetSnapshot {
   unsentCell: number | null
   /** True from the moment the server's final reply is in: the match is over and being settled, so Resign is gone and does nothing. */
   ending: boolean
+  /** True once the server's final reply has been applied to the view (the winning or killing shot is in it). False when that reply never arrived, so a win the server's log has is one shot longer than the view. */
+  finalSeen: boolean
   /** True when the server holds the enemy fleet (a counted match). */
   sealed: boolean
 }
 
-const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, ending: false, sealed: false }
+const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, ending: false, finalSeen: false, sealed: false }
 
 /** The five setup actions, in ship order, as the server and the record expect them. */
 export function setupCodes(fleet: Placement[]): number[] {
@@ -346,7 +350,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
             const interim = { ...reply.view, phase: 'play' as const, reveal: null }
             // A loss: my last shot lands first, the opponent's killing shot after the same hold as on every other turn.
             const killing = hold > 0 && reply.view.incoming.length > before
-            set({ ending: true, view: killing ? { ...interim, incoming: reply.view.incoming.slice(0, before) } : interim })
+            set({ ending: true, finalSeen: true, view: killing ? { ...interim, incoming: reply.view.incoming.slice(0, before) } : interim })
             await nextPaint()
             // Resign, a rematch or leaving the page meanwhile has settled the match; settling it again here would record it twice.
             if (mine !== epoch) return null
@@ -387,8 +391,8 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       } catch (e) {
         if (mine === epoch) {
           // After the final reply the match is ending and Resign is off; a record that cannot be made must not leave the player with no way out.
-          // The server's own plain lines (a reveal that does not add up) are kept; anything else, such as a missing compression API, becomes plain copy.
-          if (snap.ending) set({ failure: e instanceof Error && e.message.startsWith('The server ') ? `${e.message} Press Resign.` : RECORD_FAILED, thinking: false, ending: false })
+          // A reveal that does not add up has its own short line; anything else, such as a missing compression API, becomes plain copy.
+          if (snap.ending) set({ failure: e instanceof Error && e.message.includes('does not add up') ? NOT_ADD_UP_FAILED : RECORD_FAILED, thinking: false, ending: false })
           else set({ failure: e instanceof Error ? e.message : 'Something went wrong.', thinking: false })
         }
         return null

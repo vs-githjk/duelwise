@@ -739,8 +739,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         }}
         onChangeLevel={backToSetup}
         levels={levelInfo}
-        // The winning shot of a win the server's log had is not in this view (its reply never came), so it counts one more.
-        moves={resultMoves(view.shots.length, loggedWon)}
+        // The winning shot of a win the server's log had is not in this view when its reply never came, so it counts one more; when the reply was applied it is already in.
+        moves={resultMoves(view.shots.length, loggedWon && !game.finalSeen)}
         {...(view.reveal ? { shortBy: unhitCells(view.reveal, view.shots) } : {})}
         reveal={
           view.reveal ? (
