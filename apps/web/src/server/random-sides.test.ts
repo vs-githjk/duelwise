@@ -210,3 +210,14 @@ describe('a page from before sides existed (no `sides: 1` marker)', () => {
   })
 })
 
+describe('the who-am-I probe (count 0) on games that have no tickets', () => {
+  test('is answered for every game with the viewer, writes no row, and a real request for tickets is still refused', async () => {
+    for (const game of ['chess', 'four', 'holdem', 'slack', 'fighter', 'arena', 'fleet', 'word'] as const) {
+      const r = await issueTicketsHandler(db, { game, level: 'easy', count: 0 }, USER, { agentVersion: () => 'v1' })
+      expect(r.status, game).toBe(200)
+      expect(r.body, game).toEqual({ tickets: [], viewer: { userId: 'u-1', guestId: null } })
+    }
+    expect(await (async () => (await db.select().from(schema.match)).length)()).toBe(0)
+    expect((await issueTicketsHandler(db, { game: 'four', level: 'easy', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(400)
+  })
+})

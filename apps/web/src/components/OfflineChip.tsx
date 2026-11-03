@@ -16,8 +16,8 @@ export function chipText(onStormglass: boolean, ratedLive: boolean, unrated = fa
   return ratedLive ? 'Offline: reconnecting' : 'Offline: Practice only'
 }
 
-/** Pages whose games are rated only with a connection but still play offline, as a local match that counts nowhere (rated-path.ts NO_OFFLINE_TICKETS). */
-const UNRATED_OFFLINE_PATHS = [PRODUCT.games.chess, PRODUCT.games.four, PRODUCT.games.holdem].map((g) => `/play/${g.slug}`)
+/** Pages whose games are rated only with a connection but still play offline, as a local match that counts nowhere (rated-path.ts NO_OFFLINE_TICKETS). Every one of them offers Practice too. */
+const UNRATED_OFFLINE_PATHS = [PRODUCT.games.chess, PRODUCT.games.four, PRODUCT.games.holdem, PRODUCT.games.fighter, PRODUCT.games.arena].map((g) => `/play/${g.slug}`)
 export const isUnratedOfflinePath = (pathname: string): boolean => UNRATED_OFFLINE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 
 /** The pill itself, for a page that shows it in its own flow (Stormglass, Crosscurrent) so it can never cover the header, the opponent or a button. */

@@ -109,6 +109,22 @@ describe('ticket owners', () => {
   })
 })
 
+describe('the refill with no ticket games (every game, since offline matches are unrated)', () => {
+  test('still learns the viewer, reports a ticket taken before the change and left unfinished, and drops saved tickets, without asking for any', async () => {
+    const store = memory([ticket('old-four', { game: 'four', owner: USER_U1 }), ticket('old-fighter', { game: 'fighter', owner: USER_U1 })])
+    const book = ledger([{ matchId: 'taken-unfinished', game: 'four', owner: USER_U1, takenAt: NOW - REPORT_AFTER_MS - 1 }])
+    const asked: string[] = []
+    const sent: string[][] = []
+    // A real-shaped api: the viewer probe answers (the server answers count 0 for every game) and abandon reports.
+    const api: TicketApi = { async viewer() { return USER_U1 }, async issue(i) { asked.push(i.game); return [] }, async abandon(ids) { sent.push(ids); return ids } }
+    await refillTickets(undefined, api, store, NOW, book)
+    expect(asked).toEqual([])
+    expect(sent).toEqual([['taken-unfinished']])
+    expect(book.all()).toEqual([])
+    expect(store.all()).toEqual([])
+  })
+})
+
 describe('reportUnfinished', () => {
   const entry = (id: string, age: number, owner = GUEST): Consumed => ({ matchId: id, game: 'four', owner, takenAt: NOW - age })
   test('reports only the viewer\'s tickets that were taken long enough ago, and forgets what the server settled', async () => {

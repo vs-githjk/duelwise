@@ -33,6 +33,6 @@ test('Stormglass and Crosscurrent draw their own pill in the page; every other p
 test('chess, Four in a Row and Hold\'em say their offline matches are not counted; other pages keep their line', () => {
   expect(chipText(false, false, true)).toBe('Offline: matches are not counted')
   expect(chipText(false, false, false)).toBe('Offline: matches will sync later')
-  for (const p of ['/play/chess', '/play/four-in-a-row', '/play/heads-up-holdem', '/play/chess/']) expect(isUnratedOfflinePath(p), p).toBe(true)
-  for (const p of ['/play', '/play/crosscurrent', '/play/word-duel', '/', '/play/tinderbox']) expect(isUnratedOfflinePath(p), p).toBe(false)
+  for (const p of ['/play/chess', '/play/four-in-a-row', '/play/heads-up-holdem', '/play/chess/', '/play/tinderbox', '/play/coldstore']) expect(isUnratedOfflinePath(p), p).toBe(true)
+  for (const p of ['/play', '/play/crosscurrent', '/play/word-duel', '/']) expect(isUnratedOfflinePath(p), p).toBe(false)
 })
