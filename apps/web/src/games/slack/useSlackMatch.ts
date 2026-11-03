@@ -51,8 +51,8 @@ function reducedMotion(): boolean {
  * moves first. The opponent's reply is held to a minimum beat so Pip does not answer instantly, and a forced pass for the human is sent by
  * the page after a short pause; neither hold changes what is recorded.
  *
- * Every match here starts as Practice: the opponent's moves are not yet re-run by the server, so a Rated Crosscurrent match would count a record
- * nothing can check. The recorder is told so explicitly, whatever the Rated or Practice flag says.
+ * Rated or Practice is the player's pick (the site-wide flag the recorder reads). A Rated match counts only after the server has re-run the
+ * opponent's moves with the same agent code (server/agent-check.ts), which is possible because the search stops at a node count and never a clock.
  */
 export function useSlackMatch(agentVersion: (level: Level) => string, learnsFromHumans = false): SlackLive {
   const recorder = useMatchRecorder('slack')
@@ -155,7 +155,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
         // The opponent is made before the server row exists, so one that fails to load never leaves a started match behind.
         opened = await openMatch({
           create: () => createWorkerAgent(lvl),
-          begin: () => recorder.begin(lvl, forcedSeed, undefined, true),
+          begin: () => recorder.begin(lvl, forcedSeed),
           isCurrent: () => mine === epoch.current,
         })
       } catch (e) {

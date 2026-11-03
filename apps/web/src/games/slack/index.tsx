@@ -9,7 +9,6 @@ import { PlayMode } from '../../components/PlayModeToggle'
 import { ResultPanel } from '../../components/ResultPanel'
 import { StrengthLine } from '../../components/SiteElo'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
-import { setPractice } from '../../lib/practice'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { personaFor, styleLine } from '../../personas'
 import { Board } from './Board'
@@ -25,9 +24,6 @@ const raw = Object.values(found)[0]
 const sourceRegistry: Registry | null = raw ? parseRegistry(raw) : null
 const registry: Registry | null = sourceRegistry ? visibleRegistry(sourceRegistry) : null
 const levelInfo = levelInfoFromRegistry(registry)
-
-/** Why Rated is shut. Every match is Practice until the server can re-run the opponent's moves, so no match can count for a record it cannot check. */
-const RATED_SHUT = 'Not open yet. Rated opens once the server can check the opponent, so every match is Practice for now.'
 
 /** Each opponent's own line in this game. Without it an unmeasured level shows the generic early-version line instead of who it is. */
 const STYLE: Record<Level, string> = { easy: styleLine('easy', 'slack'), medium: styleLine('medium', 'slack'), hard: styleLine('hard', 'slack'), champion: styleLine('champion', 'slack') }
@@ -55,9 +51,6 @@ export default function SlackPage() {
   const [confirming, setConfirming] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
   const [focus, setFocus] = useState(0)
-
-  // Every match is Practice (see RATED_SHUT). GameShell resets the flag when the page opens, and this effect runs after it, so the setup shows Practice picked.
-  useEffect(() => setPractice(true), [])
 
   const begin = (level: Level) => {
     const s = fixedSeed
@@ -170,7 +163,7 @@ export default function SlackPage() {
           <p className="text-muted">
             Place a disc so a line of {personaFor(picked).name}&apos;s discs ends against one of yours, and every closed line flips. You play dark and move first. The most discs when neither side can move wins.
           </p>
-          <PlayMode disabled={match.phase === 'starting'} ratedUnavailable={RATED_SHUT} />
+          <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} descriptions={STYLE} statsSlug={PRODUCT.games.slack.slug} disabled={match.phase === 'starting'}
             action={
               <>
