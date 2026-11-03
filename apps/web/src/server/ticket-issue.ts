@@ -3,6 +3,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { isSealed } from '@duelwise/core/src/sealed'
+import { hasRandomSide } from '@duelwise/core/src/sides'
 import type { Seat } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
 import { adoptTicket, issueMatchRow, mayUseTicket, trainingFor, type Caller, type HandlerResponse, type StartOptions } from './match-handlers'
@@ -103,6 +104,8 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   if (!who.userId && !who.guestId) return err(401, 'no player')
   const viewer = viewerOf(who)
   if (wanted === 0) return { status: 200, body: { tickets: [], viewer } }
+  // Same rule as a start (match-handlers.ts): a page from before sides existed would play a ticket's side 1 as seat 0 and could not use it.
+  if (hasRandomSide(game as GameId) && (input as { sides?: unknown }).sides !== 1) return err(409, 'This page is from an older version of Duelwise, which cannot play this game now. Reload the page to play.')
 
   return exclusive(ownerKey(who), async () => {
     const now = (opts.now ?? (() => new Date()))()

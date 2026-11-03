@@ -52,7 +52,7 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const finish = (rec: MatchRecordV1) => finishMatchHandler(db, encodeRecord(rec), USER, REAL)
 
 async function begin(seed = 21) {
-  const r = await startMatchHandler(db, { game: 'slack', level }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
+  const r = await startMatchHandler(db, { sides: 1, game: 'slack', level }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }
@@ -119,7 +119,7 @@ describe('the path card tells the truth: a rated win over Pip clears Pip, and on
     let won = false
     for (let seed = 1; seed < 80 && !won; seed++) {
       await db.execute(sql`truncate table match, rating, profile, match_report, telemetry_event`)
-      const r = await startMatchHandler(db, { game: 'slack', level: 'easy' }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
+      const r = await startMatchHandler(db, { sides: 1, game: 'slack', level: 'easy' }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
       const m = r.body as { matchId: string; seed: number }
       const rec = await played(m, undefined, 'easy')
       const out = await finish(rec)
@@ -228,7 +228,7 @@ describe('a forged record never turns into a win', () => {
   })
 
   test('the wrong seed is charged as a loss, the same as a resignation', async () => {
-    const control = await startMatchHandler(db, { game: 'slack', level }, { userId: 'u-control' }, { seed: () => 3, agentVersion: () => 'v1', side: () => 0 as const })
+    const control = await startMatchHandler(db, { sides: 1, game: 'slack', level }, { userId: 'u-control' }, { seed: () => 3, agentVersion: () => 'v1', side: () => 0 as const })
     expect((await resignMatchHandler(db, { matchId: (control.body as { matchId: string }).matchId, tick: 3 }, { userId: 'u-control' }, REAL)).status).toBe(200)
     const price = (await db.select().from(schema.rating).where(eq(schema.rating.userId, 'u-control')))[0]!.elo
     const m = await begin()
@@ -265,7 +265,7 @@ describe('offline tickets', () => {
   // unrated, so Crosscurrent is kept out of tickets as Stormglass is: Rated needs a connection, Practice works offline.
   test('no ticket is issued for Crosscurrent, at any level or count', async () => {
     for (const lvl of ['easy', 'medium', 'hard', 'champion'] as const) {
-      const r = await issueTicketsHandler(db, { game: 'slack', level: lvl, count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
+      const r = await issueTicketsHandler(db, { sides: 1, game: 'slack', level: lvl, count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
       expect(r.status).toBe(400)
       expect(JSON.stringify(r.body)).toContain('no offline tickets')
     }

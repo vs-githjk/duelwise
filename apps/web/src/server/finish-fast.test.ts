@@ -29,7 +29,7 @@ const GUEST = { guestId: 'g-1' }
 const USER = { userId: 'u-1' }
 
 async function begin(game: GameId, who: { userId?: string; guestId?: string }, seed = 21) {
-  const r = await startMatchHandler(db, { game, level: 'hard' }, who, { seed: () => seed, side: () => 0 as const })
+  const r = await startMatchHandler(db, { sides: 1, game, level: 'hard' }, who, { seed: () => seed, side: () => 0 as const })
   return r.body as { matchId: string; seed: number }
 }
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!

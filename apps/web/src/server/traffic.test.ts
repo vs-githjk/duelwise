@@ -57,12 +57,12 @@ describe('written at create time', () => {
   test('a started match carries its caller class, and none is written when the caller does not say', async () => {
     await db.insert(schema.guest).values({ id: 'g-1' })
     for (const traffic of ['test', 'owner', 'human'] as const) {
-      const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, { guestId: 'g-1', traffic })
+      const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, { guestId: 'g-1', traffic })
       expect(r.status).toBe(200)
       const id = (r.body as { matchId: string }).matchId
       expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.traffic).toBe(traffic)
     }
-    const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, { guestId: 'g-1' })
+    const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, { guestId: 'g-1' })
     expect((await db.select().from(schema.match).where(eq(schema.match.id, (r.body as { matchId: string }).matchId)))[0]!.traffic).toBeNull()
   })
 })

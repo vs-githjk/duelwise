@@ -206,6 +206,10 @@ export async function startMatchHandler(
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
   if (!who.userId && !who.guestId) return err(401, 'no player')
+  // A page from before sides existed always plays seat 0, so a side the server issues it would be rejected at the finish and charged as a loss. A page that knows
+  // about sides says so with `sides: 1`; without it the start is refused (409, which an older page treats as an unreachable server: it plays unrated or on a saved
+  // ticket, and is never charged). The marker is never defaulted to seat 0: leaving it out must not let a client pick White.
+  if (hasRandomSide(game as GameId) && (input as { sides?: unknown }).sides !== 1) return err(409, 'This page is from an older version of Duelwise, which cannot play this game now. Reload the page to play.')
   // Practice is chosen here, once, and stored with the match; the finish step reads the stored flag and never anything the upload says.
   if (practice !== undefined && typeof practice !== 'boolean') return err(400, 'practice must be true or false')
   // A game whose opponent the server cannot check yet has no rated path: its matches are Practice whatever the request says.

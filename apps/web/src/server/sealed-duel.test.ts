@@ -38,7 +38,7 @@ const OTHER = { guestId: 'g-2' }
 const SEED = 987654321
 
 async function startFleet(seed = SEED) {
-  const r = await startMatchHandler(db, { game: 'fleet', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => seed })
+  const r = await startMatchHandler(db, { sides: 1, game: 'fleet', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => seed })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number; sealed?: boolean }
 }
@@ -250,7 +250,7 @@ describe('turns', () => {
   })
 
   test('a turn keeps the other filterFlags keys (a practice match stays practice)', async () => {
-    const r = await startMatchHandler(db, { game: 'fleet', level: 'easy', practice: true }, ME, { agentVersion: () => 'v1', seed: () => SEED })
+    const r = await startMatchHandler(db, { sides: 1, game: 'fleet', level: 'easy', practice: true }, ME, { agentVersion: () => 'v1', seed: () => SEED })
     const id = (r.body as { matchId: string }).matchId
     await ask(id, SETUP)
     await ask(id, [...SETUP, shot(0)])
@@ -301,7 +301,7 @@ describe('access', () => {
     expect((await ask('00000000-0000-0000-0000-000000000000', SETUP)).status).toBe(404)
     expect((await sealedTurnHandler(db, { matchId: 5, actions: SETUP }, ME, FLEET_SPEC)).status).toBe(400)
     expect((await sealedTurnHandler(db, { matchId: 'x' }, ME, FLEET_SPEC)).status).toBe(400)
-    const four = await startMatchHandler(db, { game: 'four', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => 1 })
+    const four = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => 1 })
     expect((await ask((four.body as { matchId: string }).matchId, SETUP)).status).toBe(400)
   })
 
@@ -467,7 +467,7 @@ describe('a sealed match that never got its setup was not played', () => {
   const USER = { userId: 'u-1' }
   const ratingGames = async () => (await db.select().from(schema.rating).where(eq(schema.rating.userId, 'u-1')))[0]?.games
   const startAs = async () => {
-    const r = await startMatchHandler(db, { game: 'fleet', level: 'easy' }, USER, { agentVersion: () => 'v1', seed: () => SEED })
+    const r = await startMatchHandler(db, { sides: 1, game: 'fleet', level: 'easy' }, USER, { agentVersion: () => 'v1', seed: () => SEED })
     return (r.body as { matchId: string }).matchId
   }
 

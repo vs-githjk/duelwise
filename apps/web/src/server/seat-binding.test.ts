@@ -50,7 +50,7 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const ratingOf = async (game: GameId) => (await db.select().from(schema.rating).where(and(eq(schema.rating.userId, 'u-1'), eq(schema.rating.game, game))))[0]
 
 async function begin(game: GameId, level: Level, who: Caller, seed: number, extra: Record<string, unknown> = {}) {
-  const r = await startMatchHandler(db, { game, level, ...extra }, who, { agentVersion: () => 'v1', seed: () => seed, side: () => 0 as const })
+  const r = await startMatchHandler(db, { sides: 1, game, level, ...extra }, who, { agentVersion: () => 'v1', seed: () => seed, side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string }
 }
@@ -211,7 +211,7 @@ describe('Word Duel: the player is seat 0', () => {
   })
 
   test('offline Word stays as it was: no ticket is issued, and a ticket row with no marked rounds is refused for that reason', async () => {
-    expect((await issueTicketsHandler(db, { game: 'word', level: 'easy', count: 1 }, USER)).status).toBe(400)
+    expect((await issueTicketsHandler(db, { sides: 1, game: 'word', level: 'easy', count: 1 }, USER)).status).toBe(400)
     const now = Date.now()
     await db.insert(schema.match).values({
       id: 'ticket-word', game: 'word', userId: 'u-1', agentVersion: 'v1', level: 'easy', seed: 500, status: 'ticket',
@@ -260,7 +260,7 @@ for (const [game, seeds] of [['fighter', { win: 1, loss: 2 }], ['arena', { win: 
     })
 
     test('an offline ticket is honest from seat 0 and refused from seat 1', async () => {
-      const issued = await issueTicketsHandler(db, { game, level: 'hard', count: 2 }, USER, { agentVersion: () => 'v1', seed: () => seeds.win })
+      const issued = await issueTicketsHandler(db, { sides: 1, game, level: 'hard', count: 2 }, USER, { agentVersion: () => 'v1', seed: () => seeds.win })
       const [good, bad] = (issued.body as { tickets: Ticket[] }).tickets
       expect(body(await finishMatchHandler(db, recordOf(seeds.win, good!.matchId), USER))).toMatchObject({ valid: true, unranked: true })
       expect(body(await finishMatchHandler(db, recordOf(seeds.win, bad!.matchId, 1), USER))).toMatchObject({ valid: false, reason: 'a real-time match is played from seat 0' })

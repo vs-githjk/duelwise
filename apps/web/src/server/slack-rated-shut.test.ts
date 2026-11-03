@@ -75,7 +75,7 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
 
   test('a start that does not ask for Practice is stored as Practice, and so is one that asks for it', async () => {
     for (const extra of [{}, { practice: false }, { practice: true }]) {
-      const r = await startMatchHandler(db, { game: 'slack', level: 'easy', ...extra }, USER, startOpts)
+      const r = await startMatchHandler(db, { sides: 1, game: 'slack', level: 'easy', ...extra }, USER, startOpts)
       expect(r.status).toBe(200)
       expect((await rowOf((r.body as { matchId: string }).matchId)).filterFlags).toMatchObject({ practice: true })
     }
@@ -84,7 +84,7 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
   test('a won record from a rated-looking start moves no rating, no path stop and no board row', async () => {
     // Find a seed for which random play ends in a human win, so only the Practice marker can keep it off a competitive read.
     for (let n = 1; n < 60; n++) {
-      const r = await startMatchHandler(db, { game: 'slack', level: 'easy' }, USER, startOpts)
+      const r = await startMatchHandler(db, { sides: 1, game: 'slack', level: 'easy' }, USER, startOpts)
       const { matchId, seed } = r.body as { matchId: string; seed: number }
       const rec = playSlack(matchId, seed)
       const out = await finish(db, encodeRecord(rec), USER)
@@ -101,7 +101,7 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
   })
 
   test('no offline tickets are issued for it, so a ticket cannot stand in for a rated start', async () => {
-    const r = await issueTicketsHandler(db, { game: 'slack', level: 'easy', count: 2 }, USER, startOpts)
+    const r = await issueTicketsHandler(db, { sides: 1, game: 'slack', level: 'easy', count: 2 }, USER, startOpts)
     expect(r.status).toBe(400)
     expect(JSON.stringify(r.body)).toMatch(/Crosscurrent has no rated matches yet/)
     expect((await db.select().from(schema.match)).length).toBe(0)
@@ -110,12 +110,12 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
     expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('four')
     expect(TICKET_GAMES).not.toContain('slack')
     // Word and Stormglass keep their own refusal.
-    expect((await issueTicketsHandler(db, { game: 'fleet', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
-    expect((await issueTicketsHandler(db, { game: 'four', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(200)
+    expect((await issueTicketsHandler(db, { sides: 1, game: 'fleet', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
+    expect((await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(200)
   })
 
   test('other games are untouched: a Four start without Practice writes no flag', async () => {
-    const f = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, startOpts)
+    const f = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, startOpts)
     expect((await rowOf((f.body as { matchId: string }).matchId)).filterFlags).toEqual({ humanSeat: 0 })
   })
 })

@@ -118,9 +118,9 @@ describe('createMatchRecorder', () => {
   })
 })
 
-function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean }> } {
+function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean; sides?: number }> } {
   const sent: Uint8Array[] = []
-  const started: Array<{ game: string; level: string; practice?: boolean }> = []
+  const started: Array<{ game: string; level: string; practice?: boolean; sides?: number }> = []
   return {
     sent,
     started,
@@ -141,7 +141,7 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     test(`${game}: the seed comes from startMatch and the replay-checked record is uploaded`, async () => {
       const api = fakeApi()
       const s = await beginSession(api, game, 'medium')
-      expect(api.started).toEqual([{ game, level: 'medium' }])
+      expect(api.started).toEqual([{ game, level: 'medium', sides: 1 }])
       expect(s).toMatchObject({ seed: 7, matchId: 'srv-1', rated: true })
       const rec = createMatchRecorder(init({ game, matchId: s.matchId!, seed: s.seed }))
       const { core, s: end } = playCounter(rec, game)
@@ -156,7 +156,7 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
   test('a practice start tells the server, and the session is marked practice', async () => {
     const api = fakeApi()
     const s = await beginSession(api, 'chess', 'hard', undefined, undefined, undefined, undefined, true)
-    expect(api.started).toEqual([{ game: 'chess', level: 'hard', practice: true }])
+    expect(api.started).toEqual([{ game: 'chess', level: 'hard', sides: 1, practice: true }])
     expect(s).toMatchObject({ matchId: 'srv-1', rated: true, practice: true })
     const rated = await beginSession(fakeApi(), 'chess', 'hard')
     expect(rated.practice).toBeUndefined()

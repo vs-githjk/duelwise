@@ -31,7 +31,7 @@ beforeEach(async () => {
 const USER = { userId: 'u-1' }
 
 async function play(): Promise<string> {
-  const s = await startMatchHandler(db, { game: 'four', level: 'medium' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
+  const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'medium' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
   const { matchId, seed } = s.body as { matchId: string; seed: number }
   const rec: MatchRecordV1 = { ...playRandom('four', seed, 0), matchId }
   expect((await finishMatchHandler(db, encodeRecord(rec), USER, { siteElo: () => 1000 })).status).toBe(200)
@@ -65,7 +65,7 @@ describe('share card PNG', () => {
     await setReportSettings(db, id, USER, { linkPublic: false })
     expect(await cardPngFor(db, id, 'x')).toBeNull()
     expect(await cardPngFor(db, 'nope', 'x')).toBeNull()
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     expect(await cardPngFor(db, (s.body as { matchId: string }).matchId, 'x')).toBeNull()
   })
 

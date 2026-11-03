@@ -18,6 +18,6 @@ describe('?side', () => {
   test('does nothing in a production build, and ignores values other than 0, 1 and seed', () => {
     expect(devSide('?side=1', false, '1')).toBeUndefined()
     expect(devSide('?side=2', true, null)).toBeUndefined()
-    expect(devSide(undefined, true, '1')).toBeUndefined()
+    expect(devSide(null, true, '1')).toBeUndefined()
   })
 })

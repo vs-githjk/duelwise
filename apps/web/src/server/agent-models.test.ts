@@ -78,7 +78,7 @@ for (const [game, level] of [['chess', 'medium'], ['chess', 'easy'], ['four', 'm
 
 // A player who has the second move (random sides, core/sides.ts): the opponent is seat 0 and opens. The page builds its opponent for seat 1 and re-seats it
 // at reset; the server builds it for seat 0. Both must play the same moves, and a changed opening move must be caught.
-for (const [game, level] of [['chess', 'medium'], ['chess', 'easy'], ['four', 'medium'], ['four', 'easy']] as const) {
+for (const [game, level] of [['chess', 'hard'], ['chess', 'medium'], ['chess', 'easy'], ['four', 'hard'], ['four', 'medium'], ['four', 'easy']] as const) {
   describe(`${game} ${level}: the server's copy of the shipped agent when it moves first`, () => {
     test('replays a game the page agent opened, move for move', async () => {
       const rec = await playWithShippedAgent(game, level, 37, undefined, 1)

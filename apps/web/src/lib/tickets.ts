@@ -123,7 +123,7 @@ export async function forgetTickets(store: { clear(): Promise<void> } = { clear:
 }
 
 export interface TicketApi {
-  issue(input: { game: GameId; level: Level; count: number }): Promise<Ticket[]>
+  issue(input: { game: GameId; level: Level; count: number; sides?: 1 }): Promise<Ticket[]>
   /** Who the server sees this browser as. Absent in a test double that does not care about owners. */
   viewer?(): Promise<TicketOwner>
   /** Reports ticket matches that were started and never finished; answers the ids the server has settled. */
@@ -177,7 +177,7 @@ export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: Tick
           const target = played.has(level) ? PLAYED_POOL : OTHER_POOL
           const need = target - live.filter((t) => t.game === game && t.level === level).length
           if (need <= 0) continue
-          for (const t of await api.issue({ game, level, count: need })) {
+          for (const t of await api.issue({ game, level, count: need, sides: 1 })) {
             await store.put(t)
             added++
           }

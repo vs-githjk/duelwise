@@ -34,7 +34,7 @@ const ANSWER = wordCore.init(SEED).answer
 const WRONG = ['crane', 'slate', 'house', 'pilot', 'mound', 'fjord'].filter((w) => w !== ANSWER)
 
 async function startWord(seed = SEED) {
-  const r = await startMatchHandler(db, { game: 'word', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => seed })
+  const r = await startMatchHandler(db, { sides: 1, game: 'word', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => seed })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number; sealed?: boolean }
 }
@@ -59,7 +59,7 @@ describe('the answer stays on the server in a counted Word Duel match', () => {
   })
 
   test('other games still get their seed', async () => {
-    const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => SEED })
+    const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, ME, { agentVersion: () => 'v1', seed: () => SEED })
     expect(r.body).toMatchObject({ seed: SEED })
     expect((r.body as { sealed?: boolean }).sealed).toBeUndefined()
   })
@@ -147,7 +147,7 @@ describe('the answer stays on the server in a counted Word Duel match', () => {
     expect((await wordMarksHandler(db, { matchId: m.matchId, guesses: [] }, ME)).status).toBe(400)
     expect((await wordMarksHandler(db, { matchId: m.matchId }, ME)).status).toBe(400)
     expect((await wordMarksHandler(db, { matchId: m.matchId, guesses: [WRONG[0]!] }, {})).status).toBe(401)
-    const four = await startMatchHandler(db, { game: 'four', level: 'easy' }, ME)
+    const four = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, ME)
     expect((await ask((four.body as { matchId: string }).matchId, [WRONG[0]!])).status).toBe(400)
     await db.update(schema.match).set({ status: 'finished' }).where(eq(schema.match.id, m.matchId))
     expect((await ask(m.matchId, [WRONG[0]!])).status).toBe(409)
@@ -155,7 +155,7 @@ describe('the answer stays on the server in a counted Word Duel match', () => {
 
   test('every level picks its words on the server, one word per round, none of them the hidden word before it is earned', async () => {
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
-      const r = await startMatchHandler(db, { game: 'word', level }, ME, { agentVersion: () => 'v1', seed: () => SEED })
+      const r = await startMatchHandler(db, { sides: 1, game: 'word', level }, ME, { agentVersion: () => 'v1', seed: () => SEED })
       const id = (r.body as { matchId: string }).matchId
       const mine: string[] = []
       for (let i = 0; i < 3; i++) {

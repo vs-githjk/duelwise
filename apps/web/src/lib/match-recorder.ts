@@ -137,7 +137,7 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
 
 /** The two server calls a counted match makes. Injected so tests and other callers need no network. */
 export interface MatchApi {
-  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options']; practice?: boolean }): Promise<StartBody>
+  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options']; practice?: boolean; sides?: 1 }): Promise<StartBody>
   finish(bytes: Uint8Array): Promise<FinishBody>
   /** Gives up a counted match; the server scores it as a loss. */
   resign?(matchId: string, tick: number): Promise<ResignReply>
@@ -205,7 +205,8 @@ export async function beginSession(
 ): Promise<Session> {
   if (devSeed !== undefined) return { seed: devSeed, humanSeat: hasRandomSide(game) ? (devSide() ?? sideForSeed(game, devSeed)) : 0, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
-    const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
+    // `sides: 1` tells the server this page plays whatever side it is given; a page without it is refused a random-side game (match-handlers.ts).
+    const s = await api.start({ game, level, sides: 1, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
     return { seed: s.seed, humanSeat: hasRandomSide(game) ? (s.humanSeat === 1 ? 1 : 0) : 0, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
   } catch {

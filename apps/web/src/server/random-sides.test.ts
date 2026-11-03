@@ -42,7 +42,7 @@ function seedFor(game: GameId, side: Seat, from = 1): number {
 }
 
 async function begin(game: GameId, seed: number, extra: Record<string, unknown> = {}, who: Caller = USER) {
-  const r = await startMatchHandler(db, { game, level: 'hard', ...extra }, who, { agentVersion: () => 'v1', seed: () => seed })
+  const r = await startMatchHandler(db, { game, level: 'hard', sides: 1, ...extra }, who, { agentVersion: () => 'v1', seed: () => seed })
   expect(r.status).toBe(200)
   return r.body as StartBody
 }
@@ -70,7 +70,7 @@ describe('the server gives the player a side at the start', () => {
   test('with real randomness both sides come up', async () => {
     const seen = new Set<number>()
     for (let i = 0; i < 40; i++) {
-      const r = await startMatchHandler(db, { game: 'four', level: 'easy', practice: true }, USER, { agentVersion: () => 'v1' })
+      const r = await startMatchHandler(db, { game: 'four', level: 'easy', sides: 1, practice: true }, USER, { agentVersion: () => 'v1' })
       seen.add((r.body as StartBody).humanSeat!)
     }
     expect([...seen].sort()).toEqual([0, 1])
@@ -86,7 +86,7 @@ describe('the server gives the player a side at the start', () => {
 
   test('an offline ticket carries the side it was issued with, and it is the same one the row holds', async () => {
     const seed = seedFor('chess', 1)
-    const r = await issueTicketsHandler(db, { game: 'chess', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', seed: () => seed })
+    const r = await issueTicketsHandler(db, { game: 'chess', level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1', seed: () => seed })
     const [t] = (r.body as { tickets: Ticket[] }).tickets
     expect(t!.humanSeat).toBe(1)
     expect((await rowOf(t!.matchId)).filterFlags).toMatchObject({ humanSeat: 1 })
@@ -159,3 +159,52 @@ describe('the finish step holds the record to the issued side', () => {
     expect((await checkAgentMoves({ ...rec, humanSeat: 1 }, { makeAgent: async (g) => fakeAgent(g) })).kind).toBe('unverified')
   })
 })
+
+describe('a page from before sides existed (no `sides: 1` marker)', () => {
+  const open = async () => (await db.select().from(schema.match)).length
+
+  for (const game of RANDOM) {
+    test(`${game}: a start without the marker is refused with a plain line, writes no row, and charges nothing`, async () => {
+      for (const extra of [{}, { sides: 0 }, { sides: true }, { sides: '1' }]) {
+        const r = await startMatchHandler(db, { game, level: 'hard', ...extra }, USER, { agentVersion: () => 'v1', seed: () => seedFor(game, 1) })
+        expect(r.status).toBe(409)
+        expect((r.body as { error: string }).error).toContain('Reload the page')
+      }
+      expect(await open()).toBe(0)
+      expect(await ratingOf(game)).toBeUndefined()
+    })
+
+    test(`${game}: a ticket request without the marker is refused, and one with it is served`, async () => {
+      expect((await issueTicketsHandler(db, { game, level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(game === 'slack' ? 400 : 409)
+      expect(await open()).toBe(0)
+      if (game !== 'slack') expect((await issueTicketsHandler(db, { game, level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(200)
+    })
+
+    test(`${game}: a start with the marker works for both seats`, async () => {
+      for (const side of [0, 1] as const) {
+        const m = await begin(game, seedFor(game, side))
+        expect(m.humanSeat).toBe(side)
+      }
+    })
+  }
+
+  test('the other games need no marker', async () => {
+    for (const game of ['holdem', 'fleet', 'fighter', 'arena'] as const) {
+      const r = await startMatchHandler(db, { game, level: 'hard' }, USER, { agentVersion: () => 'v1', seed: () => 5 })
+      expect(r.status).toBe(200)
+    }
+  })
+
+  test('an old page that was refused plays a saved pre-deploy ticket (no flag, seat 0) and it settles as before, with no loss for an honest record', async () => {
+    const seed = seedFor('four', 1)
+    const now = Date.now()
+    await db.insert(schema.match).values({
+      id: 'old-ticket', game: 'four', userId: 'u-1', agentVersion: 'v1', level: 'hard', seed, status: 'ticket',
+      filterFlags: { ticketIssuedAt: now, ticketExpiresAt: now + 3_600_000, ticketPlayerAllowed: true },
+    })
+    const rec = await play('four', seed, undefined, 'hard', 'old-ticket', 0)
+    const r = body(await finishMatchHandler(db, encodeRecord(rec), USER, CHECKED))
+    expect(r.valid, r.reason).toBe(true)
+  })
+})
+

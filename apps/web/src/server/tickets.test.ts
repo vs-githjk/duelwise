@@ -55,7 +55,7 @@ function playFour(t: Ticket, version = 'v1'): MatchRecordV1 {
 }
 
 async function issue(count = 1, who = G1, game = 'four', level = 'easy', opts: Parameters<typeof issueTicketsHandler>[3] = OPTS) {
-  const r = await issueTicketsHandler(db, { game, level, count }, who, opts)
+  const r = await issueTicketsHandler(db, { sides: 1, game, level, count }, who, opts)
   return r
 }
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
@@ -129,7 +129,7 @@ describe('tickets are not matches until used', () => {
 
   test('tickets do not count against the open match cap', async () => {
     const tickets = ((await issue(5)).body as { tickets: Ticket[] }).tickets
-    for (let i = 0; i < MAX_OPEN_MATCHES + 2; i++) await startMatchHandler(db, { game: 'four', level: 'easy' }, G1, OPTS)
+    for (let i = 0; i < MAX_OPEN_MATCHES + 2; i++) await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, G1, OPTS)
     for (const t of tickets) expect((await rowOf(t.matchId)).status).toBe('ticket')
   })
 })
@@ -263,7 +263,7 @@ describe('owners, adoption and caps (review F1, F3)', () => {
         })
       },
     }) as Db
-    const r = await issueTicketsHandler(racing, { game: 'four', level: 'easy', count: 3 }, G1, OPTS)
+    const r = await issueTicketsHandler(racing, { sides: 1, game: 'four', level: 'easy', count: 3 }, G1, OPTS)
     // 3 issued plus 4 from the other process is 7; the pool holds 5, so this request keeps 1 and gives 2 back.
     const open = await db.select().from(schema.match).where(eq(schema.match.status, 'ticket'))
     expect(open).toHaveLength(MAX_OPEN_TICKETS_PER_LEVEL)

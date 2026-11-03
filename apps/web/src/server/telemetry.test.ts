@@ -57,7 +57,7 @@ function playFour(matchId: string, seed: number): MatchRecordV1 {
 const events = () => db.select().from(schema.telemetryEvent).orderBy(schema.telemetryEvent.at)
 
 async function start(who: { userId?: string; guestId?: string } = GUEST, ua = PHONE_UA) {
-  const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1', userAgent: ua, side: () => 0 as const })
+  const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1', userAgent: ua, side: () => 0 as const })
   if (!('matchId' in r.body)) throw new Error('start failed')
   return r.body
 }
@@ -132,7 +132,7 @@ describe('event writes per lifecycle path', () => {
   test('a telemetry failure never breaks the match path', async () => {
     await db.execute(sql`drop table telemetry_event`)
     try {
-      const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, GUEST, { agentVersion: () => 'v1', side: () => 0 as const })
+      const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, GUEST, { agentVersion: () => 'v1', side: () => 0 as const })
       expect(r.status).toBe(200)
       await expect(recordEvent(db, { kind: 'match_started', matchId: 'x', game: 'four', level: 'easy', who: GUEST })).resolves.toBeUndefined()
     } finally {

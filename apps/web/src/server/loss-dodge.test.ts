@@ -51,7 +51,7 @@ const siteElo = (_game: GameId, level: Level) => SITE_ELO[level]
 const CHECKED: FinishOptions = { verifyAgent: (rec) => checkAgentMoves(rec, { makeAgent: async (g) => fakeAgent(g) }), siteElo }
 
 async function begin(game: GameId, who: { userId?: string; guestId?: string } = USER, seed = 21, extra: Record<string, unknown> = {}) {
-  const r = await startMatchHandler(db, { game, level: 'hard', ...extra }, who, { seed: () => seed, side: () => 0 as const })
+  const r = await startMatchHandler(db, { sides: 1, game, level: 'hard', ...extra }, who, { seed: () => seed, side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }
@@ -229,7 +229,7 @@ describe('a seat flip costs the loss: the server holds the player to seat 0', ()
     expect((await finish({ ...(await played('four', practice)), humanSeat: 1 })).body).toMatchObject({ valid: false })
     const guest = await begin('four', GUEST)
     expect((await finish({ ...(await played('four', guest)), humanSeat: 1 }, GUEST)).body).toMatchObject({ valid: false })
-    const t = (await issueTicketsHandler(db, { game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })).body as { tickets: Ticket[] }
+    const t = (await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })).body as { tickets: Ticket[] }
     const ticket = t.tickets[0]!
     const r = await finish({ ...(await played('four', { matchId: ticket.matchId, seed: ticket.seed })), humanSeat: 1 })
     expect(r.body).toMatchObject({ valid: false, result: null })
@@ -334,7 +334,7 @@ describe('never charged: an honest failure looks the same', () => {
 
   describe('an offline ticket', () => {
     async function ticket(): Promise<Ticket> {
-      const r = await issueTicketsHandler(db, { game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
+      const r = await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
       return (r.body as { tickets: Ticket[] }).tickets[0]!
     }
     const ticketed = async (t: Ticket) => played('four', { matchId: t.matchId, seed: t.seed })

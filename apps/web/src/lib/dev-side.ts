@@ -7,11 +7,11 @@ import type { Seat } from '@duelwise/core/src/types'
  * Dev builds only: a production build never honours either, and a counted match takes its side from the server.
  */
 export function devSide(
-  search: string | undefined = typeof window === 'undefined' ? undefined : window.location.search,
+  search: string | null | undefined = typeof window === 'undefined' ? undefined : window.location.search,
   dev: boolean = import.meta.env?.DEV === true,
   fallback: string | null | undefined = import.meta.env?.VITE_DUELWISE_SIDE,
 ): Seat | undefined {
-  if (!dev || search === undefined) return undefined
+  if (!dev || search === undefined || search === null) return undefined
   const q = new URLSearchParams(search).get('side') ?? fallback
   return q === '0' ? 0 : q === '1' ? 1 : undefined
 }
