@@ -260,7 +260,7 @@ for (const [game, seeds] of [['fighter', { win: 1, loss: 2 }], ['arena', { win: 
     })
 
     test('an offline ticket is honest from seat 0 and refused from seat 1', async () => {
-      const issued = await issueTicketsHandler(db, { sides: 1, game, level: 'hard', count: 2 }, USER, { agentVersion: () => 'v1', seed: () => seeds.win })
+      const issued = await issueTicketsHandler(db, { sides: 1, game, level: 'hard', count: 2 }, USER, { agentVersion: () => 'v1', seed: () => seeds.win, noTickets: [] })
       const [good, bad] = (issued.body as { tickets: Ticket[] }).tickets
       expect(body(await finishMatchHandler(db, recordOf(seeds.win, good!.matchId), USER))).toMatchObject({ valid: true, unranked: true })
       expect(body(await finishMatchHandler(db, recordOf(seeds.win, bad!.matchId, 1), USER))).toMatchObject({ valid: false, reason: 'a real-time match is played from seat 0' })

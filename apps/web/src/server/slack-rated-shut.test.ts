@@ -107,14 +107,12 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
     expect((await db.select().from(schema.match)).length).toBe(0)
     // The live list leaves Crosscurrent out whether or not its rated path is shut: tickets are refused for it either way.
     expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain('slack')
-    expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('fighter')
-    for (const g of ['chess', 'four', 'holdem'] as const) expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain(g)
+    // Offline matches are unrated in every game (decisions.md, Nov 3 16:23): no game has tickets.
+    expect(ticketGamesFor(RATED_NOT_OPEN)).toEqual([])
     expect(TICKET_GAMES).not.toContain('slack')
     // Word and Stormglass keep their own refusal.
     expect((await issueTicketsHandler(db, { sides: 1, game: 'fleet', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
-    // Fighter still has tickets; chess, Four and Hold'em have none (offline there is unrated).
-    expect((await issueTicketsHandler(db, { sides: 1, game: 'fighter', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(200)
-    for (const g of ['chess', 'four', 'holdem'] as const) expect((await issueTicketsHandler(db, { sides: 1, game: g, level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
+    for (const g of ['chess', 'four', 'holdem', 'fighter', 'arena'] as const) expect((await issueTicketsHandler(db, { sides: 1, game: g, level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
   })
 
   test('other games are untouched: a Four start without Practice writes no flag', async () => {

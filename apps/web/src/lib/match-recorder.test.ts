@@ -181,16 +181,16 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     expect(api.started).toEqual([])
   })
 
-  test('an unreachable server uses a saved offline ticket (Fighter still has them): the match stays counted, with the ticket id, seed and version', async () => {
+  test('the ticket path, when a game is allowed tickets (none is now; the list is injected): the match stays counted, with the ticket id, seed and version', async () => {
     const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
-    const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'fighter' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
-    const s = await beginSession(down, 'fighter', 'easy', undefined, async () => ticket)
+    const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'four' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
+    const s = await beginSession(down, 'four', 'easy', undefined, async () => ticket, undefined, undefined, false, [])
     expect(s).toMatchObject({ seed: 99, matchId: 'tk-1', agentVersion: 'v7', rated: true, offline: true })
   })
 
-  test('offline, chess, Four, Hold\'em and Crosscurrent never take a ticket, even one saved before the rule: a local match that counts nowhere, with a side from its own seed', async () => {
+  test('offline, no game takes a ticket, even one saved before the rule: a local match that counts nowhere, with a side from its own seed', async () => {
     const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
-    for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
+    for (const game of ['chess', 'four', 'holdem', 'slack', 'fighter', 'arena'] as const) {
       let asked = false
       const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-old', game, level: 'easy' as const, seed: 99, agentVersion: 'v7', humanSeat: 1 as const, expiresAt: Date.now() + 1000 }
       const s = await beginSession(down, game, 'easy', undefined, async () => { asked = true; return ticket })
@@ -231,13 +231,6 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
       expect((await beginSession(fakeApi(), 'word', 'easy', 123)).humanSeat).toBe(0)
     })
 
-    test('an offline ticket (Fighter, which has no side) is seat 0 whatever it says', async () => {
-      const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
-      const base = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'fighter' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
-      expect((await beginSession(down, 'fighter', 'easy', undefined, async () => ({ ...base, humanSeat: 1 as const }))).humanSeat).toBe(0)
-      expect((await beginSession(down, 'fighter', 'easy', undefined, async () => base)).humanSeat).toBe(0)
-    })
-
     test('a match with no server at all gets a side from its local seed, and both sides come up', async () => {
       const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
       const seen = new Set<number>()
@@ -259,9 +252,8 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
       expect(offlineReason('word')).toMatch(/this device only/)
       expect(offlineReason('fleet')).toBe('You are offline, so this Stormglass match is unranked. It counts on your record on this device only.')
       expect(offlineReason('fleet')).not.toMatch(/slots|while online/)
-      // Chess, Four, Hold'em and Crosscurrent are rated only with a connection: offline is a local match that counts nowhere.
-      for (const g of ['chess', 'four', 'holdem', 'slack'] as const) expect(offlineReason(g)).toMatch(/offline, so this .* match is not counted: Rated needs a connection, and Practice works offline/)
-      expect(offlineReason('fighter')).toMatch(/while online/)
+      // Every game with a rated path is rated only with a connection: offline is a local match that counts nowhere.
+      for (const g of ['chess', 'four', 'holdem', 'slack', 'fighter', 'arena'] as const) expect(offlineReason(g)).toMatch(/offline, so this .* match is not counted: Rated needs a connection, and Practice works offline/)
     } finally {
       if (real) Object.defineProperty(globalThis, 'navigator', real)
     }

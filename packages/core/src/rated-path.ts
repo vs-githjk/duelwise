@@ -15,4 +15,4 @@ export const RATED_NOT_OPEN: readonly GameId[] = []
  * before it is played, so a script could keep only the sides it likes. A ticket issued before this rule is never handed out again by the page
  * (lib/tickets.ts), expires unused at no cost, and one already played still settles as issued.
  */
-export const NO_OFFLINE_TICKETS: readonly GameId[] = ['slack', 'chess', 'four', 'holdem']
+export const NO_OFFLINE_TICKETS: readonly GameId[] = ['slack', 'chess', 'four', 'holdem', 'fighter', 'arena']

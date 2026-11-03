@@ -202,6 +202,7 @@ export async function beginSession(
   call?: Level,
   options?: MatchRecordV1['options'],
   practice = false,
+  noTickets: readonly GameId[] = NO_OFFLINE_TICKETS,
 ): Promise<Session> {
   if (devSeed !== undefined) return { seed: devSeed, humanSeat: hasRandomSide(game) ? (devSide() ?? sideForSeed(game, devSeed)) : 0, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
@@ -214,7 +215,7 @@ export async function beginSession(
     // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
     // A ticket is issued as a rated match, so a practice match never takes one: it is played here and not sent anywhere.
     // A game in NO_OFFLINE_TICKETS never takes one, even a ticket saved before that rule: offline there is a local match that counts nowhere.
-    const ticket = options || practice || NO_OFFLINE_TICKETS.includes(game) ? null : await takeTicket(game, level).catch(() => null)
+    const ticket = options || practice || noTickets.includes(game) ? null : await takeTicket(game, level).catch(() => null)
     if (ticket) return { seed: ticket.seed, humanSeat: hasRandomSide(game) && ticket.humanSeat === 1 ? 1 : 0, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
     if (practice) return { ...localSession(game), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
     return { ...localSession(game), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
@@ -229,7 +230,8 @@ export function offlineReason(game: GameId): string {
   if (game === 'word') return offlineNow() ? 'You are offline, so this Word Duel is unranked. It counts on your record on this device only.' : 'The server could not be reached, so this match is not counted.'
   if (NO_OFFLINE_TICKETS.includes(game)) return offlineNow() ? `You are offline, so this ${PRODUCT.games[game].displayName} match is not counted: Rated needs a connection, and Practice works offline.` : 'The server could not be reached, so this match is not counted. Rated needs a connection; Practice works offline.'
   if (isSealed(game)) return offlineNow() ? `You are offline, so this ${PRODUCT.games[game].displayName} match is unranked. It counts on your record on this device only.` : 'The server could not be reached, so this match is not counted.'
-  return offlineNow() ? 'You are offline and have no saved match slots left, so this match is not counted. Open the game once while online to get more.' : 'The server could not be reached, so this match is not counted.'
+  // No game has offline tickets now, so there are no saved match slots to point at.
+  return offlineNow() ? 'You are offline, so this match is not counted.' : 'The server could not be reached, so this match is not counted.'
 }
 
 /**

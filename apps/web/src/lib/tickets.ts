@@ -156,7 +156,7 @@ let refilling: Promise<unknown> = Promise.resolve()
  * Tops up the pools for one game (or every ticket game) while online. Drops expired tickets and ones for an agent version this
  * build does not play, then asks the server only for what is missing. Never throws: tickets are a convenience.
  */
-export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: TicketApi = serverTicketApi, store: TicketStore = ticketStore, now = Date.now(), ledger: ConsumedStore = consumedStore): Promise<number> {
+export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: TicketApi = serverTicketApi, store: TicketStore = ticketStore, now = Date.now(), ledger: ConsumedStore = consumedStore, ticketGames: readonly GameId[] = TICKET_GAMES): Promise<number> {
   // One refill at a time (two pages opening together must not both top up the same pool); later calls wait their turn.
   const run = refilling.then(async () => {
     let added = 0
@@ -169,11 +169,11 @@ export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: Tick
       }
       const have = await store.list()
       // Tickets saved for a game that no longer has offline tickets are dropped unused: the server expires them at no cost to anyone.
-      const keep = (t: Ticket) => TICKET_GAMES.includes(t.game) && usable(t, now) && (!viewer || ownsTicket(t.owner, viewer))
+      const keep = (t: Ticket) => ticketGames.includes(t.game) && usable(t, now) && (!viewer || ownsTicket(t.owner, viewer))
       for (const t of have) if (!keep(t)) await store.remove(t.matchId)
       const live = have.filter(keep)
       for (const game of games) {
-        if (!TICKET_GAMES.includes(game)) continue
+        if (!ticketGames.includes(game)) continue
         const played = new Set(playedLevels(game))
         for (const level of LEVELS) {
           const target = played.has(level) ? PLAYED_POOL : OTHER_POOL
