@@ -642,46 +642,69 @@ async function playToRecordFailure(page: Page, mode: 'hunt' | 'scatter') {
   }
   await expect(failure).toHaveText('Match over, but not saved. Press Resign to settle it.')
   expect(await failure.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(false)
-  return { root, failure }
+  // The server's log has a win when all seventeen enemy ship squares are hit on the board the page shows.
+  const won = (await page.locator('[data-testid^="fleet-cell-"][data-state="hit"]').count()) === 17
+  return { root, failure, won }
 }
 
-for (const mode of ['hunt', 'scatter'] as const) {
-  test(`fleet: a page that cannot make the record (${mode}) keeps Resign, which sends exactly one request and settles the match as the server's log has it`, async ({ page }) => {
-    test.setTimeout(180_000)
-    await devSignIn(page, `norecord-${mode}`)
+/** Plays fresh matches (a new page each time, signed in through the shared context) until one ends the wanted way, at most 10 times, and logs which branch it reached. */
+async function reachRecordFailure(page: Page, want: 'won' | 'lost', mode: 'hunt' | 'scatter', label: string) {
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    const p = attempt === 1 ? page : await page.context().newPage()
+    const got = await playToRecordFailure(p, mode)
+    if (got.won === (want === 'won')) {
+      console.log(`BRANCH ${label}: ${want} log reached on attempt ${attempt}`)
+      test.info().annotations.push({ type: 'branch', description: `${want} on attempt ${attempt}` })
+      return { page: p, ...got }
+    }
+    if (p !== page) await p.close()
+    else await page.goto('about:blank')
+  }
+  throw new Error(`${label}: no ${want} log in 10 matches`)
+}
+
+for (const [want, mode] of [['won', 'hunt'], ['lost', 'scatter']] as const) {
+  test(`fleet: a page that cannot make the record, ${want} in the log: Resign sends exactly one request and settles it as the log has it`, async ({ page }) => {
+    test.setTimeout(540_000)
+    await devSignIn(page, `norecord-${want}`)
+    const { page: p, root } = await reachRecordFailure(page, want, mode, `resign-${want}`)
     const resigns: string[] = []
-    page.on('request', (r) => { if (r.url().includes('/api/resign')) resigns.push(r.url()) })
-    const { root } = await playToRecordFailure(page, mode)
-    await page.getByTestId('fleet-resign').click()
-    await page.getByTestId('fleet-resign-yes').click()
+    p.on('request', (r) => { if (r.url().includes('/api/resign')) resigns.push(r.url()) })
+    await p.getByTestId('fleet-resign').click()
+    await p.getByTestId('fleet-resign-yes').click()
     await expect(root).toHaveAttribute('data-turn', 'over')
-    const upload = page.getByTestId('result-upload')
-    const elo = page.getByTestId('result-elo')
-    // Settled either way: won in the log (nothing counted, heading a win, never "You resigned"), or lost in the log (charged, rating shown, heading a loss).
-    await expect(async () => {
-      const said = (await upload.count()) > 0 ? ((await upload.textContent()) ?? '') : ''
-      expect(said.includes('nothing was counted') || (await elo.count()) > 0).toBe(true)
-    }).toPass({ timeout: 20_000 })
-    const panel = page.getByTestId('result-panel')
-    const won = (await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted')
-    await expect(panel).toHaveAttribute('data-outcome', won ? 'win' : 'loss')
-    if (won) {
+    const upload = p.getByTestId('result-upload')
+    const elo = p.getByTestId('result-elo')
+    const panel = p.getByTestId('result-panel')
+    if (want === 'won') {
+      await expect(upload).toContainText('nothing was counted', { timeout: 20_000 })
+      await expect(panel).toHaveAttribute('data-outcome', 'win')
       await expect(elo).toHaveCount(0)
-      await expect(page.getByTestId('result-reason')).not.toContainText(/resigned/i)
-    } else await expect(elo).toBeVisible()
-    await expect(page.getByText('Sign in to get a rating')).toHaveCount(0)
+      await expect(p.getByTestId('result-reason')).not.toContainText(/resigned/i)
+    } else {
+      await expect(elo).toBeVisible({ timeout: 20_000 })
+      await expect(panel).toHaveAttribute('data-outcome', 'loss')
+      await expect(upload).toHaveCount(0)
+    }
+    await expect(p.getByText('Sign in to get a rating')).toHaveCount(0)
     expect(resigns).toHaveLength(1)
   })
-}
 
-test('fleet: a page that cannot make the record, then reloads: the leave path sends exactly one resign for the open match', async ({ page }) => {
-  test.setTimeout(180_000)
-  await devSignIn(page, 'norecord-reload')
-  const { failure } = await playToRecordFailure(page, 'hunt')
-  expect(await page.evaluate(() => sessionStorage.getItem('beacons'))).toBeNull()
-  await page.reload()
-  await expect(page.getByTestId('fleet-page')).toBeVisible()
-  const beacons = JSON.parse((await page.evaluate(() => sessionStorage.getItem('beacons'))) ?? '[]') as string[]
-  expect(beacons.filter((u) => u.includes('/api/resign'))).toHaveLength(1)
-  await expect(failure).toHaveCount(0)
-})
+  test(`fleet: a page that cannot make the record, ${want} in the log, then reloads: one resign beacon and a true note on the next load`, async ({ page }) => {
+    test.setTimeout(540_000)
+    await devSignIn(page, `norecord-reload-${want}`)
+    const { page: p, failure } = await reachRecordFailure(page, want, mode, `reload-${want}`)
+    expect(await p.evaluate(() => sessionStorage.getItem('beacons'))).toBeNull()
+    await p.reload()
+    await expect(p.getByTestId('fleet-page')).toBeVisible()
+    const beacons = JSON.parse((await p.evaluate(() => sessionStorage.getItem('beacons'))) ?? '[]') as string[]
+    expect(beacons.filter((u) => u.includes('/api/resign'))).toHaveLength(1)
+    await expect(failure).toHaveCount(0)
+    const note = p.getByTestId('fleet-left-line')
+    if (want === 'won') {
+      await expect(note).toHaveText('Reloading ended the match. Your last shot had already won it, so nothing was counted.')
+    } else {
+      await expect(note).toHaveText('Reloading ended the match. It counts as a loss.')
+    }
+  })
+}
