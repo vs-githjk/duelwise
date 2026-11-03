@@ -339,3 +339,83 @@ test.describe('Crosscurrent: dark or pale, at random each match', () => {
     expect(errors).toEqual([])
   })
 })
+
+// The side of a counted (Rated) match is the server's: the start reply carries it and the finish step holds the record to it. The e2e server pins seat 0 by
+// default; run these with DUELWISE_SIDE=1 and the server gives every match seat 1, so the whole Rated path is walked as the second mover.
+test.describe('Rated, with the side from the server (run with DUELWISE_SIDE=1)', () => {
+  test.skip(process.env.DUELWISE_SIDE !== '1', 'needs an e2e server that gives seat 1: DUELWISE_SIDE=1')
+
+  test('Four in a Row: a Rated match as the second mover is opened by the opponent, played to the end, and counted', async ({ page }) => {
+    const errors = watchConsole(page)
+    await page.goto('/play/four-in-a-row?opponent=random')
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    const board = page.getByTestId('four-board')
+    await expect(board).toBeVisible()
+    await expect(page.getByTestId('leaving-notice')).toBeVisible()
+    await expect(board).toHaveAttribute('data-moves', '1')
+    await expect(page.getByTestId('play-hud-you')).toContainText('You, move second')
+    for (let i = 0; i < 44; i++) {
+      if (await page.getByTestId('result-panel').isVisible()) break
+      await expect(board).toHaveAttribute('data-turn', /you|over/)
+      await expect(board).not.toHaveAttribute('data-settling', 'true')
+      if (await page.getByTestId('result-panel').isVisible()) break
+      const col = await page.locator('[data-testid^="col-"]:not([aria-disabled="true"])').first().getAttribute('data-testid')
+      await page.getByTestId(col!).click()
+      await expect(board).toHaveAttribute('data-turn', /you|over/)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    // The server accepted the record: the match has a report link, which a refused record never gets.
+    await expect(page.getByTestId('result-report-link')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('result-upload')).not.toContainText('could not be verified')
+    expect(errors).toEqual([])
+  })
+
+  test('Chess: a Rated match as Black is opened by the opponent and a resignation is settled by the server', async ({ page }) => {
+    await page.goto('/play/chess?opponent=random')
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    const board = page.getByTestId('chess-board')
+    await expect(board).toBeVisible()
+    await expect(page.getByTestId('leaving-notice')).toBeVisible()
+    await expect(board).toHaveAttribute('data-orientation', 'b')
+    await expect(board).toHaveAttribute('data-plies', '1')
+    await expect(board).toHaveAttribute('data-turn', 'you')
+    await page.getByTestId('sq-e7').click()
+    await page.getByTestId('sq-e5').click()
+    await expect(board).toHaveAttribute('data-plies', '3')
+    await page.getByRole('button', { name: 'Resign' }).click()
+    await page.getByRole('button', { name: 'Yes, resign' }).click()
+    await expect(page.getByTestId('result-panel')).toHaveAttribute('data-outcome', 'loss')
+  })
+
+  test('Crosscurrent: a Rated match as pale is opened by the opponent, played to the end, and counted', async ({ page }) => {
+    test.setTimeout(150_000)
+    const errors = watchConsole(page)
+    await page.goto('/play/crosscurrent')
+    await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+    await page.getByTestId('slack-start').click()
+    const board = page.getByTestId('slack-board')
+    await expect(board).toBeVisible()
+    await expect(page.getByTestId('leaving-notice')).toBeVisible()
+    await expect(board).toHaveAttribute('data-you', 'pale')
+    const hud = page.getByTestId('play-hud')
+    const legal = page.locator('[data-testid^="slack-cell-"][data-legal]')
+    const until = Date.now() + 120_000
+    for (;;) {
+      if (Date.now() > until) throw new Error('the match did not finish in time')
+      const turn = await hud.getAttribute('data-turn')
+      if (turn === 'over') break
+      if (turn === 'you' && (await legal.count()) > 0) {
+        const cell = legal.first()
+        await cell.click()
+        await cell.click()
+        await page.waitForTimeout(80)
+      } else await page.waitForTimeout(120)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-report-link')).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByTestId('result-upload')).not.toContainText('could not be verified')
+    expect(errors).toEqual([])
+  })
+})

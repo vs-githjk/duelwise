@@ -15,14 +15,17 @@ import { isTimeCapped, makeServerAgent, publicBytes } from './agent-models'
  * (the agents package's own loader, or the table bytes for Hold'em, whose loader only fetches); the server side is
  * makeServerAgent. A record the first one plays must verify on the second, and a changed agent move must not.
  */
-async function playWithShippedAgent(game: GameId, level: Level, seed: number, forgeAt?: number): Promise<MatchRecordV1> {
+async function playWithShippedAgent(game: GameId, level: Level, seed: number, forgeAt?: number, humanSeat: 0 | 1 = 0): Promise<MatchRecordV1> {
   const core = getCore(game)
+  const agentSeat = (1 - humanSeat) as 0 | 1
   const agent =
     game === 'holdem'
       ? await createGameAgent(game, level, { seat: 1, table: loadTable(new Uint8Array(readFileSync(new URL(`../../public/agents/holdem/v1/${level}.bin.gz`, import.meta.url)))) } as never)
       : await createGameAgent(game, level, { seat: 1 })
   expect(agent.preview).toBe(false)
-  agent.reset(seed)
+  // The page builds its opponent before the server says which side the player has (seat 1), then re-seats it at reset.
+  if (humanSeat === 0) agent.reset(seed)
+  else agent.reset(seed, agentSeat)
   const human = makeRng(seed ^ 0x55)
   let s = core.init(seed)
   const actions: MatchRecordV1['actions'] = []
@@ -32,17 +35,17 @@ async function playWithShippedAgent(game: GameId, level: Level, seed: number, fo
     const out: [unknown, unknown] = [null, null]
     for (const seat of core.toAct(s)) {
       let code: number
-      if (seat === 0) {
-        const legal = core.legal(s, 0).filter((a) => !(game === 'holdem' && core.encodeAction(a) === 2))
+      if (seat === humanSeat) {
+        const legal = core.legal(s, humanSeat).filter((a) => !(game === 'holdem' && core.encodeAction(a) === 2))
         code = core.encodeAction(legal[human.int(legal.length)])
       } else {
-        const [raw] = await agent.act(core.observe(s, 1), s)
+        const [raw] = await agent.act(core.observe(s, agentSeat), s)
         code = raw!
         if (game === 'holdem') {
           if (code === 2) code = 1
           if (!isLegal(s as never, 1, core.decodeAction(code) as never)) code = 1
         }
-        if (n === forgeAt) code = core.encodeAction(core.legal(s, 1).find((a) => core.encodeAction(a) !== code && !(game === 'holdem' && core.encodeAction(a) === 2))!)
+        if (n === forgeAt) code = core.encodeAction(core.legal(s, agentSeat).find((a) => core.encodeAction(a) !== code && !(game === 'holdem' && core.encodeAction(a) === 2))!)
         n++
       }
       actions.push([tick, seat, code])
@@ -53,7 +56,7 @@ async function playWithShippedAgent(game: GameId, level: Level, seed: number, fo
   }
   agent.dispose()
   return {
-    schema: 1, matchId: 'm', game, coreVersion: core.version, agent: { version: 'v1', level }, seed, humanSeat: 0, actions, result: core.result(s)!, finalHash: core.hash(s),
+    schema: 1, matchId: 'm', game, coreVersion: core.version, agent: { version: 'v1', level }, seed, humanSeat, actions, result: core.result(s)!, finalHash: core.hash(s),
     startedAt: '2026-10-23T10:00:00.000Z', endedAt: '2026-10-23T10:01:00.000Z', device: 'desktop', input: 'mouse', trainingAllowed: true,
   }
 }
@@ -68,6 +71,23 @@ for (const [game, level] of [['chess', 'medium'], ['chess', 'easy'], ['four', 'm
     })
     test('rejects the same game with one agent move changed', async () => {
       const rec = await playWithShippedAgent(game, level, 31, 1)
+      expect((await checkAgentMoves(rec, server())).kind).toBe('forged')
+    })
+  })
+}
+
+// A player who has the second move (random sides, core/sides.ts): the opponent is seat 0 and opens. The page builds its opponent for seat 1 and re-seats it
+// at reset; the server builds it for seat 0. Both must play the same moves, and a changed opening move must be caught.
+for (const [game, level] of [['chess', 'medium'], ['chess', 'easy'], ['four', 'medium'], ['four', 'easy']] as const) {
+  describe(`${game} ${level}: the server's copy of the shipped agent when it moves first`, () => {
+    test('replays a game the page agent opened, move for move', async () => {
+      const rec = await playWithShippedAgent(game, level, 37, undefined, 1)
+      expect(rec.humanSeat).toBe(1)
+      expect(rec.actions[0]![1]).toBe(0)
+      expect(await checkAgentMoves(rec, server())).toEqual({ kind: 'verified' })
+    })
+    test('rejects the same game with the opening move changed', async () => {
+      const rec = await playWithShippedAgent(game, level, 37, 0, 1)
       expect((await checkAgentMoves(rec, server())).kind).toBe('forged')
     })
   })
