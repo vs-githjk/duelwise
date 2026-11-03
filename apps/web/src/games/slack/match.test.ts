@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { PASS, slackCore, type SlackState } from '@duelwise/core/src/games/slack/core'
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent } from '@duelwise/agents/src/slack/agent'
-import { LEVELS } from '../lib/level-info'
+import { LEVELS } from '../../lib/level-info'
 import {
   AGENT_SEAT,
   HUMAN,
@@ -10,26 +10,28 @@ import {
   announce,
   applyMove,
   cellName,
+  discCounts,
   flipPreview,
   holdAtLeast,
   legalCells,
   mustPass,
-  resultLine,
+  finalCount,
+  humanMoveCount,
   liveText,
-  setLevel,
+  parseMoves,
   startMatch,
   statusLine,
   tapCell,
   pressPlace,
   type SlackMatch,
-} from './slack-match'
+} from './match'
 
 const empty = () => new Array<number>(64).fill(0)
 
 /** A hand-made match at a position. Seat 0 holds value 1 (dark), seat 1 holds value 2 (pale). */
 function at(cells: number[], turn: 0 | 1, log: SlackMatch['log'] = []): SlackMatch {
   const state: SlackState = { cells, turn }
-  return { state, log, last: null }
+  return { state, log, last: null, ring: null }
 }
 
 /** Seat 0 has no move and seat 1 has one: row 0 reads pale, dark, empty. Pale can close at cell 2. */
@@ -79,12 +81,12 @@ function replay(m: SlackMatch): string {
   return slackCore.hash(s)
 }
 
-describe('crosscurrent dev match logic', () => {
+describe('crosscurrent match logic', () => {
   test.each(LEVELS as Level[])('a whole match at %s ends, and its log replays to the same hash', async (level) => {
     const { m } = await playOut(level, 11)
     expect(slackCore.terminal(m.state)).toBe(true)
     expect(replay(m)).toBe(slackCore.hash(m.state))
-    expect(resultLine(m, 'Pip')).toMatch(/^You \d+, Pip \d+$/)
+    expect(finalCount(m, 'Pip')).toMatch(/^Final discs: You \d+, Pip \d+\.$/)
     expect(statusLine(m, 'Pip')).toMatch(/win|draw|level/i)
   })
 
@@ -188,16 +190,6 @@ describe('crosscurrent dev match logic', () => {
     expect(JSON.stringify(m)).toBe(before)
   })
 
-  test('choosing a level only stores it: the board, log and result on screen stay', () => {
-    const played = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
-    const s0 = { level: 'easy' as Level, match: played }
-    expect(setLevel(s0, 'easy')).toBe(s0)
-    const s1 = setLevel(s0, 'hard')
-    expect(s1.level).toBe('hard')
-    expect(s1.match).toBe(played)
-    expect(s1.match.log.length).toBe(1)
-  })
-
   test('the live region carries the closing move and then the verdict', () => {
     const m = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
     expect(liveText(m, 'Pip', false, '')).toBe(announce(m, 'Pip'))
@@ -234,5 +226,47 @@ describe('crosscurrent dev match logic', () => {
     const m = startMatch()
     expect(statusLine(m, 'Pip')).toBe('Move 1')
     expect(statusLine(applyMove(m, HUMAN, legalCells(m)[0]!), 'Pip')).toBe('Move 2')
+  })
+
+  test('after an opponent pass the ring stays on the last disc placed and nothing animates', () => {
+    const withRing: SlackMatch = { ...agentStuck(), ring: 7, last: { seat: HUMAN, cell: 7, flips: [6] } }
+    expect(mustPass(withRing)).toBe(AGENT_SEAT)
+    const after = applyMove(withRing, AGENT_SEAT, PASS)
+    expect(after.last).toEqual({ seat: AGENT_SEAT, cell: null, flips: [] })
+    expect(after.ring).toBe(7)
+  })
+
+  test('the ring follows every placement, the opponent\'s included', () => {
+    const m = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
+    expect(m.ring).toBe(m.last!.cell)
+    const reply = slackCore.legal(m.state, AGENT_SEAT)[0]!
+    const m2 = applyMove(m, AGENT_SEAT, reply)
+    expect(m2.ring).toBe(reply)
+    expect(startMatch().ring).toBeNull()
+  })
+
+  test('a human forced pass keeps the opponent\'s ring too', () => {
+    const m0 = humanStuck()
+    const ringed: SlackMatch = { ...m0, ring: 5 }
+    expect(applyMove(ringed, HUMAN, PASS).ring).toBe(5)
+  })
+
+  test('the test-only moves list: names or pass, played by whoever acts, an illegal or malformed list is ignored whole', () => {
+    const m = parseMoves('D3,C3')!
+    expect(m.log).toEqual([[0, 19], [1, 18]])
+    expect(m.state.turn).toBe(HUMAN)
+    expect(parseMoves('d3')!.log).toEqual([[0, 19]])
+    expect(parseMoves('')).toBeNull()
+    expect(parseMoves(null)).toBeNull()
+    expect(parseMoves('A1')).toBeNull()
+    expect(parseMoves('D3,Z9')).toBeNull()
+    expect(parseMoves('PASS')).toBeNull()
+  })
+
+  test('the final count names both sides, from the board, and the human move count leaves passes out', () => {
+    const m = applyMove(startMatch(), HUMAN, legalCells(startMatch())[0]!)
+    expect(finalCount(m, 'Marlow')).toBe(`Final discs: You ${discCounts(m)[0]}, Marlow ${discCounts(m)[1]}.`)
+    expect(humanMoveCount([[0, 19], [1, 18], [0, PASS], [0, 20]])).toBe(2)
+    expect(humanMoveCount([])).toBe(0)
   })
 })

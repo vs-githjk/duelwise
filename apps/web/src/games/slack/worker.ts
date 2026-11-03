@@ -1,12 +1,13 @@
 /// <reference lib="webworker" />
-// Crosscurrent agent host, dev only. The search runs here so the page's HUD pulse and taps stay live during Sable's search,
+// Crosscurrent agent host. The search runs here so the page's HUD pulse and taps stay live during Sable's search,
 // the way the shipped agents run. One request at a time: the page sends 'reset' once, then one 'act' per agent turn.
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent } from '@duelwise/agents/src/slack/agent'
 import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 
 export type ToWorker = { type: 'reset'; level: Level; seed: number } | { type: 'act'; id: number; obs: unknown }
-export type FromWorker = { type: 'ready' } | { type: 'acted'; id: number; action: number } | { type: 'failed'; id: number; message: string }
+/** `loaded` means the script and the search module are in. `failed` with id 0 is an agent that could not be built; any other id answers one `act`. */
+export type FromWorker = { type: 'loaded' } | { type: 'ready' } | { type: 'acted'; id: number; action: number } | { type: 'failed'; id: number; message: string }
 
 let agent: PreviewAgent | null = null
 let ready: Promise<void> = Promise.resolve()
@@ -19,7 +20,10 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
       agent = await createGameAgent(msg.level, { seat: 1 })
       agent.reset(msg.seed)
       ;(self as unknown as Worker).postMessage({ type: 'ready' } satisfies FromWorker)
-    })()
+    })().catch((err) => {
+      agent = null
+      ;(self as unknown as Worker).postMessage({ type: 'failed', id: 0, message: String(err) } satisfies FromWorker)
+    })
     return
   }
   void ready.then(async () => {
@@ -31,3 +35,5 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
     }
   })
 }
+
+;(self as unknown as Worker).postMessage({ type: 'loaded' } satisfies FromWorker)

@@ -1,5 +1,4 @@
 import { PASS, SIZE, flipsFor, slackCore, type SlackState } from '@duelwise/core/src/games/slack/core'
-import type { Level } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 
 // Pure match logic for the Crosscurrent dev page. No React here, so a unit test can drive a whole match.
@@ -25,22 +24,37 @@ export interface SlackMatch {
   state: SlackState
   /** Every action in order as [seat, code]; code 64 is a pass. A real game stores these as the match record's actions. */
   log: Array<[Seat, number]>
+  /** The latest action, what the board animates: the disc placed and the discs it flipped. A pass has no cell and no flips. */
   last: LastMove | null
-}
-
-export interface Session {
-  level: Level
-  match: SlackMatch
+  /** The cell of the latest disc placed by either side. It keeps its ring through a pass, which places nothing. */
+  ring: number | null
 }
 
 export function startMatch(): SlackMatch {
   // The rules ignore the seed (no luck anywhere); variety lives in the agent's own noise.
-  return { state: slackCore.init(0), log: [], last: null }
+  return { state: slackCore.init(0), log: [], last: null, ring: null }
 }
 
-/** Choosing a level only stores the choice. The match on screen (even a finished one) is untouched; only Play starts a fresh one. */
-export function setLevel(s: Session, level: Level): Session {
-  return level === s.level ? s : { ...s, level }
+const FILES = 'ABCDEFGH'
+
+/**
+ * Test-only start position, read from `?moves=D3,C3`: cell names (file A to H, rank 1 to 8, A1 top left) or "pass", each played by whoever is to
+ * act, from the opening. Null for a missing list and for any list with an unknown token or an illegal move, which is ignored whole.
+ */
+export function parseMoves(raw: string | null | undefined): SlackMatch | null {
+  if (!raw) return null
+  try {
+    let m = startMatch()
+    for (const token of raw.split(',')) {
+      const t = token.trim().toUpperCase()
+      const code = t === 'PASS' ? PASS : /^[A-H][1-8]$/.test(t) ? (Number(t[1]) - 1) * SIZE + FILES.indexOf(t[0]!) : -1
+      if (code < 0) return null
+      m = applyMove(m, m.state.turn, code)
+    }
+    return m
+  } catch {
+    return null
+  }
 }
 
 /** The player's cells to offer: only on the player's own turn, and never the pass code. */
@@ -61,7 +75,7 @@ export function mustPass(m: SlackMatch): Seat | null {
 export function applyMove(m: SlackMatch, seat: Seat, code: number): SlackMatch {
   const flips = code === PASS ? [] : flipsFor(m.state.cells, (seat + 1) as 1 | 2, code)
   const state = slackCore.step(m.state, seat === 0 ? [code, null] : [null, code])
-  return { state, log: [...m.log, [seat, code]], last: { seat, cell: code === PASS ? null : code, flips } }
+  return { state, log: [...m.log, [seat, code]], last: { seat, cell: code === PASS ? null : code, flips }, ring: code === PASS ? m.ring : code }
 }
 
 /**
@@ -109,9 +123,15 @@ export function discCounts(m: SlackMatch): [number, number] {
   return o.discs
 }
 
-export function resultLine(m: SlackMatch, name: string): string {
+/** The closing disc count, for the result card's reveal line. Not used after a resignation: the board was unfinished. */
+export function finalCount(m: SlackMatch, name: string): string {
   const [you, them] = discCounts(m)
-  return `You ${you}, ${name} ${them}`
+  return `Final discs: You ${you}, ${name} ${them}.`
+}
+
+/** The human's own moves in a log (passes are not moves), for the result's margin. */
+export function humanMoveCount(log: ReadonlyArray<readonly [Seat, number]>): number {
+  return log.filter(([seat, code]) => seat === HUMAN && code !== PASS).length
 }
 
 /** The fixed status line. Text swaps in one box, the box never changes size. */
