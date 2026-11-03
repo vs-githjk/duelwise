@@ -529,6 +529,65 @@ test.describe('the sink, the moment of the game', () => {
     })
   }
 
+  for (const [w, h] of [[360, 740], [390, 844]] as const) {
+    test(`a lost match at ${w}x${h}: the killing shot and its sink stay on screen for the whole sink before the result panel arrives`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width: w, height: h })
+      const fleet = enemyFleet(SEED)
+      const ships = new Set(fleet.flatMap(shipCells))
+      const water = Array.from({ length: 100 }, (_, c) => c).filter((c) => !ships.has(c))
+      await page.goto(`/play/stormglass?seed=${SEED}&hold=1`)
+      await page.getByTestId('fleet-ready').click()
+      await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+      await page.evaluate(() => {
+        const w = window as unknown as { __marks: number; __markAt: number; __panelAt: number; __mapVisibleAtPanel: boolean; __frames: Array<[number, number, number]> }
+        w.__marks = 0
+        w.__markAt = 0
+        w.__panelAt = 0
+        w.__frames = []
+        const own = () => document.querySelectorAll('[data-testid="fleet-own"] [data-state]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])').length
+        const tick = () => {
+          const n = own()
+          const t = performance.now()
+          if (n !== w.__marks) {
+            w.__marks = n
+            w.__markAt = t
+          }
+          const panel = document.querySelector('[data-testid="result-panel"]')
+          if (panel && !w.__panelAt) w.__panelAt = t
+          const map = document.querySelector('[data-testid="fleet-own"]')?.getBoundingClientRect()
+          w.__frames.push([t, map ? map.top : -9999, map ? map.bottom : -9999])
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      })
+      // Water first, so the opponent wins the race; the ship squares only follow if a slow opponent has not finished by then (it has, by the hundredth shot).
+      for (const cell of [...water, ...Array.from(ships)]) {
+        if ((await page.getByTestId('fleet-page').getAttribute('data-turn')) === 'over') break
+        const c = page.getByTestId(`fleet-cell-${cell}`)
+        if ((await c.getAttribute('data-state')) !== 'open') continue
+        await c.click()
+        await c.click()
+        await expect(async () => {
+          expect(['you', 'over']).toContain(await page.getByTestId('fleet-page').getAttribute('data-turn'))
+        }).toPass({ timeout: 15_000 })
+      }
+      await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 10_000 })
+      const r = await page.evaluate(() => {
+        const w = window as unknown as { __markAt: number; __marks: number; __panelAt: number; __frames: Array<[number, number, number]> }
+        return { marks: w.__marks, gap: w.__panelAt - w.__markAt, frames: w.__frames.filter((f) => f[0] >= w.__markAt && f[0] < w.__panelAt), vh: innerHeight }
+      })
+      // The killing shot has been on screen at least a full sink (360 ms, and the hold is 720) before the panel, and my map was in view the whole time.
+      expect(r.marks, 'the opponent shots are seen on my map').toBeGreaterThan(10)
+      expect(r.gap).toBeGreaterThanOrEqual(700)
+      expect(r.frames.length).toBeGreaterThan(20)
+      for (const f of r.frames) {
+        expect(f[1]).toBeGreaterThanOrEqual(-1)
+        expect(f[2]).toBeLessThanOrEqual(r.vh + 1)
+      }
+    })
+  }
+
   test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their sizes', async ({ page }) => {
     // luckwait holds the score back for 2 s, so "before" is taken while the line is truly absent, on any machine and in any browser.
     const fleet = enemyFleet(SEED)

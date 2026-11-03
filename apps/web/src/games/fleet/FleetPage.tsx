@@ -688,7 +688,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   const won = sunkWin || loggedWon
   // The winning shot is the biggest sink of the match, and on a phone the result mounts above the board: let it play first.
   const [resultDue, setResultDue] = useState(false)
-  const holdResult = over && sunkWin && hold > 0
+  // A win holds the result for the last sink; a loss holds it just as long, so the killing shot and its sink on my own map are seen before the panel scrolls them away. A resignation has no sink and holds nothing.
+  const holdResult = over && !resigned && !!view && hold > 0
   useEffect(() => {
     if (!holdResult) return setResultDue(false)
     const t = setTimeout(() => setResultDue(true), LAST_SINK_HOLD_MS)
