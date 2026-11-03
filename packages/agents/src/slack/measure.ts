@@ -2,7 +2,7 @@
 // through the real harness and the agents the site serves, on the opening core (4 seeded random plies, shared by the two colour-swapped games).
 // A level that fails the gate on a seat, or sits above one that did, stays In training; nothing here loosens the gate.
 //
-//   nice -n 10 /Users/vidyutsriram/projects/beatme/plan/heavy-lock.sh bun packages/agents/src/slack/measure.ts --out <abs registry path> [--processes 2]
+//   nice -n 10 <heavy-lock.sh> bun packages/agents/src/slack/measure.ts --out <abs registry path> [--processes 2]
 //
 // It reads the registry next to this package for the version lineage, needs a committed tree (the registry records the commit), and writes only --out.
 // No level plays against a clock: every search stops at a node count, so the numbers do not depend on machine speed.
