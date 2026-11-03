@@ -18,7 +18,7 @@
         "word": "Guesses any word that fits what it knows, and sometimes overlooks a clue.",
         "fighter": "Short strings, blocks late, never punishes.",
         "arena": "Walks open lanes and aims after you do.",
-        "fleet": "Fires at random and sometimes forgets to follow up a hit."
+        "fleet": "Fires at random and usually forgets to follow up a hit."
       }
     },
     "medium": {

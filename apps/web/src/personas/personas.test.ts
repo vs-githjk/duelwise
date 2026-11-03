@@ -152,7 +152,10 @@ test('no Champion line claims an action cap: the Champion has no APM cap and the
 })
 
 test('Stormglass tells the truth about Sable: a scripted solver, not human-like play with a reaction limit; every other game and persona keeps its bio', () => {
-  expect(bioFor('champion', 'fleet')).toBe('The house champion. A scripted solver: it fires at the most likely square every time, hunting or finishing.')
+  expect(bioFor('champion', 'fleet')).toBe('The house champion. A scripted solver, not a learned player.')
+  // The style line already says how it fires, so the bio must not repeat it.
+  expect(bioFor('champion', 'fleet')).not.toMatch(/most likely square/)
+  expect(styleLine('champion', 'fleet')).toMatch(/most likely square/)
   expect(bioFor('champion', 'fleet')).not.toMatch(/Human-like|reaction limit/)
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
     for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(bioFor(level, game)).toBe(personaFor(level).bio)
@@ -160,4 +163,9 @@ test('Stormglass tells the truth about Sable: a scripted solver, not human-like 
   }
   for (const level of ['easy', 'medium', 'hard'] as const) expect(bioFor(level, 'fleet')).toBe(personaFor(level).bio)
   expect(personaFor('champion').bio).toBe('The house champion. Human-like play with a carefully recorded reaction limit.')
+})
+
+test('Pip on Stormglass follows up a hit only 35 percent of the time, so the line says he usually forgets; the other games keep their lines', () => {
+  expect(styleLine('easy', 'fleet')).toBe('Fires at random and usually forgets to follow up a hit.')
+  expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and no look-ahead.')
 })
