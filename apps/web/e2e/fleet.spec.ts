@@ -485,6 +485,50 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('fleet-luck')).toContainText('odds added up to about')
   })
 
+  for (const [w, h] of [[1440, 900], [390, 844]] as const) {
+    test(`the winning sink moves nothing at ${w}x${h}: document height, board and scroll hold across the over commit`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: h })
+      const fleet = enemyFleet(SEED)
+      await page.goto(`/play/stormglass?seed=${SEED}&hold=1`)
+      await page.getByTestId('fleet-ready').click()
+      await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+      // One sample per frame: document height, the board's place in the document, and the scroll position.
+      await page.evaluate(() => {
+        const w = window as unknown as { __frames: number[][]; __overAt: number }
+        w.__frames = []
+        w.__overAt = 0
+        const tick = () => {
+          const board = document.querySelector('[data-testid="fleet-cell-board"]')?.getBoundingClientRect()
+          const t = performance.now()
+          if (!w.__overAt && document.querySelector('[data-testid="fleet-page"]')?.getAttribute('data-turn') === 'over') w.__overAt = t
+          w.__frames.push([t, document.documentElement.scrollHeight, board ? board.top + scrollY : -1, scrollY])
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      })
+      const cells = fleet.flatMap(shipCells)
+      for (const cell of cells) {
+        await fireAt(page, cell)
+        if (cell !== cells.at(-1)) await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+      }
+      await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'over')
+      await page.waitForTimeout(500)
+      const { frames, overAt } = await page.evaluate(() => {
+        const w = window as unknown as { __frames: number[][]; __overAt: number }
+        return { frames: w.__frames, overAt: w.__overAt }
+      })
+      // From the frame before the over commit to 600 ms after it, while the result is held: nothing moves.
+      const inWindow = frames.filter((f) => f[0]! >= overAt - 120 && f[0]! <= overAt + 600)
+      expect(inWindow.length).toBeGreaterThan(5)
+      const [first] = inWindow
+      for (const f of inWindow) {
+        expect(Math.abs(f[1]! - first![1]!), `document height at ${Math.round(f[0]! - overAt)} ms`).toBeLessThanOrEqual(0.5)
+        expect(Math.abs(f[2]! - first![2]!), `board top at ${Math.round(f[0]! - overAt)} ms`).toBeLessThanOrEqual(0.5)
+        expect(Math.abs(f[3]! - first![3]!), `scroll at ${Math.round(f[0]! - overAt)} ms`).toBeLessThanOrEqual(0.5)
+      }
+    })
+  }
+
   test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their sizes', async ({ page }) => {
     // luckwait holds the score back for 2 s, so "before" is taken while the line is truly absent, on any machine and in any browser.
     const fleet = enemyFleet(SEED)

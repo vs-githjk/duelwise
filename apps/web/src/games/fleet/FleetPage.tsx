@@ -712,6 +712,8 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     return fleetLuckLine({ ...luckBase, score: { shots: view.shots.length, hits, expected: luckBase.won ? hits : hits - 10, variance: 1 } })
   }, [luckBase, view])
   const luckReady = over && (!holdResult || resultDue)
+  // While the result is held the Resign row keeps its place (locked and invisible), so the over commit changes no height and the board does not drop.
+  const resultHeld = holdResult && !resultDue
   const result: Result | null = over && view ? { winner: won ? 0 : 1, score: [won ? 1 : 0, won ? 0 : 1], reason: resigned && !loggedWon ? 'resigned' : 'fleet sunk' } : null
   // A resignation is answered by the server within moments, and the answer can turn the heading (a win its log already had): the panel waits for it, so it never flips or speaks the wrong line.
   const resignPending = resigned && game.upload.status === 'uploading'
@@ -963,7 +965,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 </div>
                 <Board views={ownViews} hulls={ownHulls} sinking={sinkingOurs} landed={landedOurs} ping label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" />
                 <EventLine event={event} failure={game.failure} />
-                {!over ? <ResignButton onResign={resign} locked={game.ending} /> : null}
+                {!over || resultHeld ? <ResignButton onResign={resign} locked={game.ending || over} /> : null}
               </div>
             ) : null}
           </div>
@@ -982,7 +984,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                 <EventLine event={event} failure={game.failure} />
               </div>
             </div>
-            {!over ? <ResignButton onResign={resign} locked={game.ending} /> : null}
+            {!over || resultHeld ? <ResignButton onResign={resign} locked={game.ending || over} /> : null}
             </>
           )}
         </>
