@@ -15,13 +15,21 @@ export function chipText(onStormglass: boolean, ratedLive: boolean): string {
   return ratedLive ? 'Offline: reconnecting' : 'Offline: Practice only'
 }
 
+/** The pill itself, for a page that shows it in its own flow (Stormglass) so it can never cover the header, the opponent or a button. */
+export function OfflinePill({ text }: { text: string }) {
+  return (
+    <p role="status" data-testid="offline-chip" className="w-fit max-w-full rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow">
+      {text}
+    </p>
+  )
+}
+
 const STORMGLASS_PATH = `/play/${PRODUCT.games.fleet.slug}`
 const CHIP_CORNER = 'bottom-3 left-3'
-const CHIP_TOP = 'pointer-events-none left-1/2 top-[max(8px,env(safe-area-inset-top))] -translate-x-1/2 whitespace-nowrap'
 
 /**
- * A small, calm chip while offline: finished matches are kept and sent later. Every page keeps the corner it always had (bottom left);
- * only Stormglass moves it to the top of the screen, off its sticky Start bar, and there it never takes a tap.
+ * A small, calm chip while offline: finished matches are kept and sent later. Every page keeps the corner it always had (bottom left).
+ * Stormglass draws its own pill inside the page instead (see OfflinePill), where nothing can sit under it: a fixed chip covered the header and the opponent on a phone.
  */
 export function OfflineChip() {
   const online = useOnline()
@@ -37,10 +45,10 @@ export function OfflineChip() {
     tick()
     return () => window.clearTimeout(timer)
   }, [])
-  if (online) return null
+  if (online || onStormglass) return null
   return (
-    <p role="status" data-testid="offline-chip" className={`fixed z-50 rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow ${onStormglass ? CHIP_TOP : CHIP_CORNER}`}>
-      {chipText(onStormglass, ratedLive)}
+    <p role="status" data-testid="offline-chip" className={`fixed z-50 rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow ${CHIP_CORNER}`}>
+      {chipText(false, ratedLive)}
     </p>
   )
 }

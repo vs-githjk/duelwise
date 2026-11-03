@@ -10,6 +10,7 @@ import { ResultPanel } from '../../components/ResultPanel'
 import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { isOffline, subscribeConnection } from '../../lib/connection'
+import { chipText, OfflinePill } from '../../components/OfflineChip'
 import { leftWonLine, noteWonBeforeLeave, readResignedOnLeave } from '../../lib/integrity'
 import { setRatedLive } from '../../lib/match-active'
 import { usePractice } from '../../lib/practice'
@@ -374,7 +375,9 @@ function LuckLine({ base, slot, shots, target, ready }: { base: LuckBase; slot: 
   )
 }
 
-function EventLine({ event, failure }: { event: string; failure: string | null }) {
+function EventLine({ event, failure, offlineText }: { event: string; failure: string | null; offlineText?: string }) {
+  // Offline in a live match: the pill sits in this reserved slot, so it moves nothing and covers nothing.
+  if (!failure && offlineText) return <div className="h-10 overflow-hidden"><OfflinePill text={offlineText} /></div>
   return failure ? (
     <p role="alert" className="h-10 overflow-hidden text-sm text-bad-ink" data-testid="fleet-failure">
       {failure}
@@ -847,6 +850,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
           ) : null}
           <p className="text-muted">Hide five ships on your grid, then take turns firing at the other grid. Sink all five of theirs first. You fire first.</p>
           <p className="text-sm text-muted">In counted matches the server keeps both fleets hidden until the match ends.</p>
+          {offline ? <OfflinePill text={chipText(true, false)} /> : null}
           {offline ? (
             <p className="text-sm text-muted" data-testid="fleet-offline-line">
               Rated Stormglass needs a connection, because the server keeps the hidden fleets. Practice works offline.
@@ -977,7 +981,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
                   <Tally sunk={ownSunk} testId="fleet-tally-own" fresh={sinkingOurs?.id ?? null} />
                 </div>
                 <Board views={ownViews} hulls={ownHulls} sinking={sinkingOurs} landed={landedOurs} ping label={`Your waters, ${SHIPS.length - ownSunk.size} ships afloat`} testId="fleet-own" />
-                <EventLine event={event} failure={game.failure} />
+                <EventLine event={event} failure={game.failure} {...(offline ? { offlineText: chipText(true, ratedLive) } : {})} />
                 {!over || resultHeld ? <ResignButton onResign={resign} locked={game.ending || over} /> : null}
               </div>
             ) : null}
@@ -994,7 +998,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
               <div className="grid content-start gap-1">
                 <span className="text-xs text-muted">Your fleet</span>
                 <Tally sunk={ownSunk} testId="fleet-tally-own" fresh={sinkingOurs?.id ?? null} />
-                <EventLine event={event} failure={game.failure} />
+                <EventLine event={event} failure={game.failure} {...(offline ? { offlineText: chipText(true, ratedLive) } : {})} />
               </div>
             </div>
             {!over || resultHeld ? <ResignButton onResign={resign} locked={game.ending || over} /> : null}

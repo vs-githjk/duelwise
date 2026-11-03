@@ -802,6 +802,44 @@ test.describe('fleet play details', () => {
     await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(1)
   })
 
+  for (const [w, h] of [[360, 740], [390, 844]] as const) {
+    test(`offline at ${w}x${h}: Stormglass's pill covers nothing, in setup and in a live match`, async ({ page, context }) => {
+      await page.setViewportSize({ width: w, height: h })
+      await page.goto('/play/stormglass?hold=0')
+      await expect(page.getByTestId('fleet-ready')).toBeVisible()
+      const overlaps = async () => {
+        const chip = await page.getByTestId('offline-chip').boundingBox()
+        expect(chip).not.toBeNull()
+        // Every visible control, link, heading and the opponent pill, in document coordinates: none may sit under the pill.
+        return page.evaluate((c) => {
+          const hit: string[] = []
+          for (const el of document.querySelectorAll('button, a, h1, h2, [data-testid="header-persona"], [data-testid="fleet-hud"], [data-testid="fleet-cell-board"], [data-testid="fleet-own"], nav *')) {
+            // The pill's own box, and the card that holds it (the reserved event slot lives inside the own map card), are not things it covers.
+            if (el.closest('[data-testid="offline-chip"]') || el.contains(document.querySelector('[data-testid="offline-chip"]'))) continue
+            const r = el.getBoundingClientRect()
+            if (r.width === 0 || r.height === 0) continue
+            if (r.left < c.x + c.width && c.x < r.right && r.top < c.y + c.height && c.y < r.bottom) hit.push(el.getAttribute('data-testid') ?? el.tagName + ':' + (el.textContent ?? '').slice(0, 20))
+          }
+          return hit
+        }, chip!)
+      }
+      await context.setOffline(true)
+      await expect(page.getByTestId('offline-chip')).toHaveText('Offline: Practice only')
+      expect(await overlaps()).toEqual([])
+      await context.setOffline(false)
+      await expect(page.getByTestId('offline-chip')).toHaveCount(0)
+      await page.getByTestId('fleet-ready').click()
+      await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+      const before = await page.evaluate(() => document.documentElement.scrollHeight)
+      await context.setOffline(true)
+      await expect(page.getByTestId('offline-chip')).toHaveText('Offline: reconnecting')
+      expect(await overlaps()).toEqual([])
+      // It sits in the reserved event slot: going offline moves nothing.
+      expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(before)
+      await context.setOffline(false)
+    })
+  }
+
   test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     for (const path of ['/', '/play/chess']) {
