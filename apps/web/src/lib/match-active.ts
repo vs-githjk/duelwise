@@ -20,3 +20,25 @@ export function subscribeMatchActive(fn: () => void): () => void {
   listeners.add(fn)
   return () => void listeners.delete(fn)
 }
+
+/**
+ * Whether a rated match that the server holds is live on this page (Stormglass: the hidden fleets live on the server). Its own flag, so the offline chip can say
+ * the match is reconnecting rather than that matches wait for a connection; it never changes what `isMatchActive` reports.
+ */
+let ratedLive = false
+const ratedListeners = new Set<() => void>()
+
+export function isRatedLive(): boolean {
+  return ratedLive
+}
+
+export function setRatedLive(on: boolean): void {
+  if (ratedLive === on) return
+  ratedLive = on
+  for (const l of [...ratedListeners]) l()
+}
+
+export function subscribeRatedLive(fn: () => void): () => void {
+  ratedListeners.add(fn)
+  return () => void ratedListeners.delete(fn)
+}

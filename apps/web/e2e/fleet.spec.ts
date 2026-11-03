@@ -684,6 +684,21 @@ test.describe('fleet play details', () => {
     expect(h.y).toBeGreaterThanOrEqual(0)
   })
 
+  test('offline during a live rated match the chip says reconnecting, and the match goes on when the connection is back; setup keeps Practice only', async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/play/stormglass')
+    await page.getByTestId('fleet-ready').click()
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-counted', 'true')
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    await context.setOffline(true)
+    await expect(page.getByTestId('offline-chip')).toHaveText('Offline: reconnecting')
+    await context.setOffline(false)
+    await expect(page.getByTestId('offline-chip')).toHaveCount(0)
+    await fireAt(page, 0)
+    await expect(page.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+    await expect(page.locator('[data-testid^="fleet-cell-"]:is([data-state="hit"],[data-state="miss"],[data-state="sunk"])')).toHaveCount(1)
+  })
+
   test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     for (const path of ['/', '/play/chess']) {

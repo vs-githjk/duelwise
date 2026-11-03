@@ -11,6 +11,7 @@ import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { isOffline, subscribeConnection } from '../../lib/connection'
 import { readResignedOnLeave } from '../../lib/integrity'
+import { setRatedLive } from '../../lib/match-active'
 import { usePractice } from '../../lib/practice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { LeavingNotice } from '../../components/LeavingNotice'
@@ -657,6 +658,12 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   // Start match is tapped far down the setup page; the match page is a different layout, so start it at its HUD rather than wherever the scroll was
   // left or at the very top: the header and the training notice above it would push the board below the fold on a phone. Instant, so reduced motion has nothing to skip.
   const hudRef = useRef<HTMLDivElement>(null)
+  // A rated match the server holds is live: the offline chip then says it is reconnecting instead of "Practice only".
+  const ratedLive = game.counted && game.sealed && !practice && started && !over
+  useEffect(() => {
+    setRatedLive(ratedLive)
+    return () => setRatedLive(false)
+  }, [ratedLive])
   // On setup the Start button is pinned to the bottom of a phone's screen. Anything scrolled into view (a focused control, the hint under the board) has to stop above it.
   useEffect(() => {
     if (started) return
