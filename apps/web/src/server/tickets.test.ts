@@ -32,7 +32,8 @@ beforeEach(async () => {
 
 const G1 = { guestId: 'g-1' }
 const G2 = { guestId: 'g-2' }
-const OPTS = { agentVersion: () => 'v1', side: () => 0 as const }
+// Chess, Four and Hold'em no longer get tickets (rated-path.ts NO_OFFLINE_TICKETS); the ticket mechanics below are still exercised, on Four, as a ticket saved before that rule.
+const OPTS = { agentVersion: () => 'v1', side: () => 0 as const, noTickets: [] as never[] }
 
 function playFour(t: Ticket, version = 'v1'): MatchRecordV1 {
   const rng = makeRng(t.seed ^ 0x9e37)
@@ -106,8 +107,8 @@ describe('ticket issue', () => {
   })
 
   test('tickets for a replaced agent version stop counting against the pool', async () => {
-    await issue(5, G1, 'four', 'easy', { agentVersion: () => 'v1' })
-    const r = (await issue(5, G1, 'four', 'easy', { agentVersion: () => 'v2' })).body as { tickets: Ticket[] }
+    await issue(5, G1, 'four', 'easy', { ...OPTS, agentVersion: () => 'v1' })
+    const r = (await issue(5, G1, 'four', 'easy', { ...OPTS, agentVersion: () => 'v2' })).body as { tickets: Ticket[] }
     expect(r.tickets).toHaveLength(5)
     expect(r.tickets.every((t) => t.agentVersion === 'v2')).toBe(true)
     expect(await db.select().from(schema.match).where(eq(schema.match.status, 'expired'))).toHaveLength(5)

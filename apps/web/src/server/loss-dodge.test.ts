@@ -229,7 +229,7 @@ describe('a seat flip costs the loss: the server holds the player to seat 0', ()
     expect((await finish({ ...(await played('four', practice)), humanSeat: 1 })).body).toMatchObject({ valid: false })
     const guest = await begin('four', GUEST)
     expect((await finish({ ...(await played('four', guest)), humanSeat: 1 }, GUEST)).body).toMatchObject({ valid: false })
-    const t = (await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })).body as { tickets: Ticket[] }
+    const t = (await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const, noTickets: [] })).body as { tickets: Ticket[] }
     const ticket = t.tickets[0]!
     const r = await finish({ ...(await played('four', { matchId: ticket.matchId, seed: ticket.seed })), humanSeat: 1 })
     expect(r.body).toMatchObject({ valid: false, result: null })
@@ -332,9 +332,10 @@ describe('never charged: an honest failure looks the same', () => {
     await freeOfCharge('word', m.matchId, r)
   })
 
+  // Four no longer gets tickets (rated-path.ts NO_OFFLINE_TICKETS), so these are tickets saved before that rule; the server still settles them as issued.
   describe('an offline ticket', () => {
     async function ticket(): Promise<Ticket> {
-      const r = await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
+      const r = await issueTicketsHandler(db, { sides: 1, game: 'four', level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const, noTickets: [] })
       return (r.body as { tickets: Ticket[] }).tickets[0]!
     }
     const ticketed = async (t: Ticket) => played('four', { matchId: t.matchId, seed: t.seed })

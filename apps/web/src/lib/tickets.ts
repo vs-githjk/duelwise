@@ -168,8 +168,10 @@ export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: Tick
         await reportUnfinished(api, ledger, viewer, now).catch(() => 0)
       }
       const have = await store.list()
-      for (const t of have) if (!usable(t, now) || (viewer && !ownsTicket(t.owner, viewer))) await store.remove(t.matchId)
-      const live = have.filter((t) => usable(t, now) && (!viewer || ownsTicket(t.owner, viewer)))
+      // Tickets saved for a game that no longer has offline tickets are dropped unused: the server expires them at no cost to anyone.
+      const keep = (t: Ticket) => TICKET_GAMES.includes(t.game) && usable(t, now) && (!viewer || ownsTicket(t.owner, viewer))
+      for (const t of have) if (!keep(t)) await store.remove(t.matchId)
+      const live = have.filter(keep)
       for (const game of games) {
         if (!TICKET_GAMES.includes(game)) continue
         const played = new Set(playedLevels(game))

@@ -271,7 +271,7 @@ describe('offline tickets', () => {
     }
     expect(NO_OFFLINE_TICKETS).toContain('slack')
     expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain('slack')
-    expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('four')
+    expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('fighter')
     expect(await ratingOf()).toBeUndefined()
   })
 })

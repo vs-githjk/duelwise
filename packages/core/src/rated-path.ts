@@ -10,7 +10,9 @@ export const RATED_NOT_OPEN: readonly GameId[] = []
 
 /**
  * Games kept out of offline tickets although they are rated. A ticket lets a player play without the server and upload only the matches they won,
- * and the owner's rule is that offline matches are unrated (decisions.md), so Crosscurrent is rated only with a connection, like Stormglass, and its
- * Practice matches work offline. Four, chess and Hold'em keep their tickets (the owner's call).
+ * and the owner's rule is that offline matches are unrated (decisions.md, Nov 3 16:23), so these games are rated only with a connection, like Stormglass:
+ * offline they play a local match that counts nowhere. For the games with random sides (chess, Four, Crosscurrent) a ticket would also show its side
+ * before it is played, so a script could keep only the sides it likes. A ticket issued before this rule is never handed out again by the page
+ * (lib/tickets.ts), expires unused at no cost, and one already played still settles as issued.
  */
-export const NO_OFFLINE_TICKETS: readonly GameId[] = ['slack']
+export const NO_OFFLINE_TICKETS: readonly GameId[] = ['slack', 'chess', 'four', 'holdem']

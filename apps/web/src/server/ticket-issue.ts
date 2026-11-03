@@ -46,7 +46,11 @@ export interface TicketsBody {
   viewer: TicketOwner
 }
 
-export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'side' | 'recordsTrainable'> & { now?: () => Date }
+export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'side' | 'recordsTrainable'> & {
+  now?: () => Date
+  /** Games that get no tickets; tests inject a shorter list to exercise the ticket mechanics on a game that has none now. Default: NO_OFFLINE_TICKETS. */
+  noTickets?: readonly GameId[]
+}
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })
 
@@ -98,7 +102,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
   if (RATED_NOT_OPEN.includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no rated matches yet, so no offline tickets`)
-  if (NO_OFFLINE_TICKETS.includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets: Rated needs a connection`)
+  if ((opts.noTickets ?? NO_OFFLINE_TICKETS).includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets: Rated needs a connection`)
   if (isSealed(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets`)
   if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 0) return err(400, 'count must be a whole number, 0 or more')
   if (!who.userId && !who.guestId) return err(401, 'no player')

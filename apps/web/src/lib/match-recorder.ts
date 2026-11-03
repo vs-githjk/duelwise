@@ -213,7 +213,8 @@ export async function beginSession(
     // No server: a ticket issued earlier (while online) keeps the match counted, once its record uploads.
     // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
     // A ticket is issued as a rated match, so a practice match never takes one: it is played here and not sent anywhere.
-    const ticket = options || practice ? null : await takeTicket(game, level).catch(() => null)
+    // A game in NO_OFFLINE_TICKETS never takes one, even a ticket saved before that rule: offline there is a local match that counts nowhere.
+    const ticket = options || practice || NO_OFFLINE_TICKETS.includes(game) ? null : await takeTicket(game, level).catch(() => null)
     if (ticket) return { seed: ticket.seed, humanSeat: hasRandomSide(game) && ticket.humanSeat === 1 ? 1 : 0, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
     if (practice) return { ...localSession(game), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
     return { ...localSession(game), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }

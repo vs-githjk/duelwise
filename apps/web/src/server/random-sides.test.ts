@@ -84,9 +84,10 @@ describe('the server gives the player a side at the start', () => {
     }
   })
 
+  // Chess no longer gets tickets (rated-path.ts), so this is a ticket as the server issued it before that rule.
   test('an offline ticket carries the side it was issued with, and it is the same one the row holds', async () => {
     const seed = seedFor('chess', 1)
-    const r = await issueTicketsHandler(db, { game: 'chess', level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1', seed: () => seed })
+    const r = await issueTicketsHandler(db, { game: 'chess', level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1', seed: () => seed, noTickets: [] })
     const [t] = (r.body as { tickets: Ticket[] }).tickets
     expect(t!.humanSeat).toBe(1)
     expect((await rowOf(t!.matchId)).filterFlags).toMatchObject({ humanSeat: 1 })
@@ -174,10 +175,11 @@ describe('a page from before sides existed (no `sides: 1` marker)', () => {
       expect(await ratingOf(game)).toBeUndefined()
     })
 
-    test(`${game}: a ticket request without the marker is refused, and one with it is served`, async () => {
-      expect((await issueTicketsHandler(db, { game, level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(game === 'slack' ? 400 : 409)
+    test(`${game}: a ticket request without the marker is refused (with tickets allowed, as for a game that still had them), and a request with it is refused too: no tickets now`, async () => {
+      expect((await issueTicketsHandler(db, { game, level: 'hard', count: 1 }, USER, { agentVersion: () => 'v1', noTickets: [] })).status).toBe(409)
       expect(await open()).toBe(0)
-      if (game !== 'slack') expect((await issueTicketsHandler(db, { game, level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(200)
+      expect((await issueTicketsHandler(db, { game, level: 'hard', sides: 1, count: 1 }, USER, { agentVersion: () => 'v1' })).status).toBe(400)
+      expect(await open()).toBe(0)
     })
 
     test(`${game}: a start with the marker works for both seats`, async () => {
