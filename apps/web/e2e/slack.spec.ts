@@ -159,23 +159,67 @@ for (const width of [360, 390]) {
   })
 }
 
-test.describe('desktop 1440', () => {
+// On a laptop the board is as large as the screen allows: the whole board, the Place bar and the HUD stay on screen without scrolling. The size comes
+// from the height (the column is wider than any height here allows); a phone and a tablet keep the 520 cap.
+for (const [vw, vh, minBoard] of [[1280, 800, 430], [1440, 900, 530], [1920, 1080, 680]] as const) {
+  test.describe(`desktop ${vw} by ${vh}`, () => {
+    test.use({ viewport: { width: vw, height: vh } })
+
+    test('the whole board, the Place bar and the HUD are on screen with no scroll, the board is large, and the agent card and result sit beside it', async ({ page }) => {
+      test.setTimeout(90_000)
+      await start(page)
+      await expectNoOverflow(page, 'in play')
+      const board = (await page.getByTestId('slack-board').boundingBox())!
+      const bar = (await page.getByTestId('slack-action').boundingBox())!
+      const hudBox = (await hud(page).boundingBox())!
+      expect(await page.evaluate(() => window.scrollY)).toBe(0)
+      expect(hudBox.y).toBeGreaterThanOrEqual(0)
+      expect(board.width).toBeGreaterThanOrEqual(minBoard)
+      expect(Math.abs(board.width - board.height)).toBeLessThanOrEqual(1)
+      expect(bar.y + bar.height).toBeLessThanOrEqual(vh)
+      // the board and the bar are one column: same left edge and same width
+      expect(Math.abs(bar.x - board.x)).toBeLessThanOrEqual(1)
+      expect(Math.abs(bar.width - board.width)).toBeLessThanOrEqual(1)
+      const card = (await page.getByTestId('agent-card').boundingBox())!
+      expect(card.x).toBeGreaterThan(board.x + board.width - 1)
+      await page.getByTestId('slack-resign').click()
+      await page.getByTestId('slack-resign-yes').click()
+      const panel = (await page.getByTestId('result-panel').boundingBox())!
+      expect(panel.x).toBeGreaterThan(board.x + board.width - 1)
+      const after = (await page.getByTestId('slack-board').boundingBox())!
+      expect(Math.abs(after.width - board.width)).toBeLessThanOrEqual(1)
+      await expectNoOverflow(page, 'result')
+      await expectTargets(page, 'result')
+    })
+  })
+}
+
+test.describe('the Place button carries the pick', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('the board is 520 wide with the agent card beside it, and the result sits beside the board', async ({ page }) => {
+  test('reads "Pick a ring" and is disabled before a pick, "Place at <cell>" after, keeps its size, and Enter places', async ({ page }) => {
     test.setTimeout(90_000)
     await start(page)
-    await expectNoOverflow(page, 'in play')
-    const board = (await page.getByTestId('slack-board').boundingBox())!
-    expect(Math.round(board.width)).toBe(520)
-    const card = (await page.getByTestId('agent-card').boundingBox())!
-    expect(card.x).toBeGreaterThan(board.x + board.width - 1)
-    await page.getByTestId('slack-resign').click()
-    await page.getByTestId('slack-resign-yes').click()
-    const panel = (await page.getByTestId('result-panel').boundingBox())!
-    expect(panel.x).toBeGreaterThan(board.x + board.width - 1)
-    await expectNoOverflow(page, 'result')
-    await expectTargets(page, 'result')
+    const button = page.getByTestId('slack-action')
+    await expect(page.getByTestId('slack-chip')).toHaveCount(0)
+    await expect(button).toHaveText('Pick a ring')
+    await expect(button).toBeDisabled()
+    const before = (await button.boundingBox())!
+    const cell = legalCells(page).first()
+    const testid = (await cell.getAttribute('data-testid'))!
+    await cell.click()
+    const name = await cell.getAttribute('data-cell')
+    await expect(button).toBeEnabled()
+    await expect(button).toHaveText(/^Place at [A-H][1-8]$/)
+    const text = (await button.textContent())!
+    expect(text).toBe(`Place at ${name}`)
+    const during = (await button.boundingBox())!
+    expect(during).toEqual(before)
+    await cell.focus()
+    await page.keyboard.press('Enter')
+    await expect(button).toHaveText('Pick a ring')
+    await expect(page.locator(`[data-testid="${testid}"] .sl-disc`)).toHaveCount(1)
+    expect((await button.boundingBox())!).toEqual(before)
   })
 })
 

@@ -4,10 +4,19 @@
  * colours are object colours (--slack-* in tokens.css): the same in every theme, since their contrast is against the board, not the page.
  * Only transforms and opacity change during a move; no box ever resizes.
  */
+/* The play column. A phone and a tablet keep the 520 cap. From 1024 up the column is as wide as the height allows, so the HUD, the status row, the whole
+   board and the Place bar are on screen with no scroll: the 684 cap is the column left beside the 400 result panel in the 1100 shell, so the board never resizes when the result arrives. --sl-chrome is everything on the page that is not the board (nav, header, HUD, status, bar, gaps). */
+.sl-play { max-width: 520px; gap: 12px; --sl-chrome: 363px; }
+@media (min-width: 1024px) {
+  .sl-play { gap: 8px; max-width: min(100%, 684px, max(320px, calc(100dvh - var(--sl-chrome)))); }
+}
 .sl-board-wrap {
   container-type: inline-size;
   width: 100%;
   max-width: 520px;
+}
+@media (min-width: 1024px) {
+  .sl-board-wrap { max-width: none; }
 }
 
 .sl-board {
@@ -122,18 +131,12 @@
   .sl-disc[data-flip], .sl-disc[data-placed] { animation: none; }
 }
 
-/* status row: fixed 44px, text swaps and the box does not move */
+/* status row: fixed 44px (36px on a laptop), text swaps and the box does not move */
 .sl-status { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+@media (min-width: 1024px) {
+  .sl-status { height: 36px; }
+}
 .sl-counts { display: flex; gap: 12px; font-family: var(--font-mono, monospace); font-size: 16px; white-space: nowrap; }
 .sl-line { flex: 1; min-width: 0; text-align: right; font-size: 14px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
 
 .sl-bar { height: 56px; display: flex; gap: 8px; }
-.sl-chip {
-  width: 96px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  font-family: var(--font-mono, monospace);
-  font-size: 14px;
-}

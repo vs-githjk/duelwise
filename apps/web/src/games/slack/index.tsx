@@ -221,7 +221,7 @@ export default function SlackPage() {
           />
         </section>
       ) : m ? (
-        <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-3 lg:max-w-[520px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] content-start sl-play">
           <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
           <div className="sl-status" data-testid="slack-status-row">
             <div className="sl-counts" data-testid="slack-counts">
@@ -238,11 +238,8 @@ export default function SlackPage() {
           <Board match={m} opponent={name} legal={legal} selected={selected} preview={preview} focus={focus} onFocus={setFocus} onTap={onTap} focusKey={match.seed} />
           {over ? null : (
             <div className="sl-bar">
-              <div className="sl-chip" data-testid="slack-chip" aria-hidden={selected === null}>
-                {selected === null ? '' : cellName(selected)}
-              </div>
               <button type="button" onClick={place} disabled={!(selected !== null && pressPlace(m, selected))} data-testid="slack-action" className="min-h-11 flex-1 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-40">
-                Place
+                {selected !== null && pressPlace(m, selected) ? `Place at ${cellName(selected)}` : 'Pick a ring'}
               </button>
             </div>
           )}
