@@ -339,10 +339,20 @@ describe('no real client plays from another seat', () => {
   }
   const source = (path: string) => readFileSync(new URL(`../games/${path}`, import.meta.url), 'utf8')
 
+  // Chess, Four in a Row and Crosscurrent give the player a random side (core/sides.ts): their pages record the seat the session carries, which the server issued.
+  const RANDOM_SIDE = ['chess']
   for (const [game, { hook, seat }] of Object.entries(HOOKS)) {
+    if (RANDOM_SIDE.includes(game)) continue
     test(`${game} records the fixed seat 0`, () => {
       expect(source(seat)).toMatch(/\bconst HUMAN: Seat = 0\b/)
       expect(source(hook).match(/^\s+humanSeat: .+$/gm)?.map((l) => l.trim())).toEqual(['humanSeat: HUMAN,'])
+    })
+  }
+  for (const game of RANDOM_SIDE) {
+    const hook = game === 'slack' ? 'slack/useSlackMatch.ts' : HOOKS[game as 'chess' | 'four'].hook
+    test(`${game} records the seat of the session the server issued, never a constant`, () => {
+      expect(source(hook)).toMatch(/const mineSeat = opened\.session\.humanSeat\b/)
+      expect(source(hook).match(/^\s+humanSeat: .+,$/gm)?.map((l) => l.trim())).toEqual(['humanSeat: mineSeat,'])
     })
   }
 

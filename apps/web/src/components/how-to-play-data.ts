@@ -4,7 +4,7 @@ type Guide = { goal: string; steps: string[]; controls: { keys: string; action: 
 export const guides: Record<GameId, Guide> = {
   chess: {
     goal: 'Put the opposing king in checkmate.',
-    steps: ['You play White and move first.', 'Select a piece, then select a legal destination.', 'Protect your king from check and capture opposing pieces.', 'Choose a piece when your pawn reaches the far side.'],
+    steps: ['Each match gives you White or Black at random. White moves first, so when you are Black your opponent plays the first move.', 'Select a piece, then select a legal destination.', 'Protect your king from check and capture opposing pieces.', 'Choose a piece when your pawn reaches the far side.'],
     controls: [{ keys: 'Mouse or touch', action: 'select or drag a piece' }, { keys: 'Arrow keys', action: 'move between squares' }, { keys: 'Enter or Space', action: 'select a square' }, { keys: 'Escape', action: 'clear selection' }],
     win: 'Win by checkmate. Some positions end in a draw.', tip: 'Look for threats to your king before each move.',
   },

@@ -13,7 +13,7 @@ import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { PlayHud } from '../../components/PlayHud'
 import { boardSummary, moveAnnouncement } from './announce'
 import { ChessBoard } from './ChessBoard'
-import { HUMAN, useChessMatch } from './useChessMatch'
+import { useChessMatch } from './useChessMatch'
 import { warmChessAssets } from './warm'
 
 export const meta = { title: 'Chess' }
@@ -98,6 +98,10 @@ export default function ChessPage() {
   const turn = over ? 'over' : match.thinking ? 'ai' : 'you'
   const status = over ? 'Match over' : match.failure ? 'Stopped' : match.thinking ? `${personaFor(match.level).name} is thinking` : match.checkSquare ? 'Your move, you are in check' : 'Your move'
   const setup = match.phase === 'setup' || match.phase === 'starting'
+  // Each match gives the player White (seat 0, moves first) or Black at random.
+  const youColor = match.humanSeat === 0 ? 'White' : 'Black'
+  const theirColor = match.humanSeat === 0 ? 'Black' : 'White'
+  const swatchOf = (c: string) => (c === 'White' ? 'var(--piece-white)' : 'var(--piece-black)')
 
   return (
     <GameShell
@@ -108,10 +112,10 @@ export default function ChessPage() {
       thinking={match.thinking}
       result={over && match.result ? (
             <>
-              {match.sans.at(-1)?.endsWith('#') ? <p className="text-center font-semibold" data-testid="chess-mating-move">{moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans.at(-1), inCheck: true, over: true })}</p> : null}
+              {match.sans.at(-1)?.endsWith('#') ? <p className="text-center font-semibold" data-testid="chess-mating-move">{moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans.at(-1), inCheck: true, over: true, humanSeat: match.humanSeat })}</p> : null}
               <ResultPanel
                 result={match.result}
-                humanSeat={HUMAN}
+                humanSeat={match.humanSeat}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
                 unratedReason={match.unratedReason}
@@ -137,10 +141,10 @@ export default function ChessPage() {
               <StrengthLine siteElo={measured?.siteElo} />
               <p className="mt-2 flex items-center gap-4 text-sm">
                 <span className="inline-flex items-center gap-1.5">
-                  <i data-swatch="white" className="inline-block size-4 rounded-full border-2 border-muted bg-[var(--piece-white)]" aria-hidden="true" /> You, White
+                  <i data-swatch={youColor.toLowerCase()} className="inline-block size-4 rounded-full border-2 border-muted" style={{ background: swatchOf(youColor) }} aria-hidden="true" /> You, {youColor}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <i data-swatch="black" className="inline-block size-4 rounded-full border-2 border-muted bg-[var(--piece-black)]" aria-hidden="true" /> {personaFor(match.level).name}, Black
+                  <i data-swatch={theirColor.toLowerCase()} className="inline-block size-4 rounded-full border-2 border-muted" style={{ background: swatchOf(theirColor) }} aria-hidden="true" /> {personaFor(match.level).name}, {theirColor}
                 </span>
               </p>
             </section>
@@ -177,7 +181,7 @@ export default function ChessPage() {
     >
       {setup ? (
         <section className="grid gap-4" data-testid="chess-setup">
-          <p className="text-muted">You play White and move first. Tap a piece and then a highlighted square, or drag it. Draws by stalemate, repetition and the fifty-move rule are detected for you.</p>
+          <p className="text-muted">Each match gives you White or Black at random, and White moves first. Tap a piece and then a highlighted square, or drag it. Draws by stalemate, repetition and the fifty-move rule are detected for you.</p>
           <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.chess.slug} disabled={match.phase === 'starting'}
             action={
@@ -201,13 +205,13 @@ export default function ChessPage() {
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-          <PlayHud turn={turn} youLabel="You, White" swatch="bg-piece-white" matchKey={match.seed} />
+          <PlayHud turn={turn} youLabel={`You, ${youColor}`} swatch={match.humanSeat === 0 ? 'bg-piece-white' : 'bg-piece-black'} matchKey={match.seed} />
           <p className="text-center text-sm font-semibold text-muted" data-testid="chess-status">
             {status}
           </p>
           {/* Spoken, not shown: the opponent's move as it happens, and the whole position on request (it is read as a normal paragraph). */}
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="chess-announce">
-            {moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans[match.sans.length - 1], inCheck: match.checkSquare !== null, over })}
+            {moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans[match.sans.length - 1], inCheck: match.checkSquare !== null, over, humanSeat: match.humanSeat })}
           </p>
           <p className="sr-only" data-testid="chess-board-summary">
             {boardSummary(state.fen)}
@@ -220,6 +224,7 @@ export default function ChessPage() {
             checkSquare={match.checkSquare}
             turn={turn}
             plies={match.plies}
+            orientation={match.humanSeat === 0 ? 'w' : 'b'}
             onMove={(uci) => {
               setNotice('')
               void match.play(uci)

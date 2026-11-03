@@ -26,3 +26,13 @@ test('the opponent move is announced with its notation and the prompt to move', 
   expect(moveAnnouncement({ opponent: 'Pip', plies: 0, lastSan: undefined, inCheck: false, over: false })).toBe('Your move.')
   expect(moveAnnouncement({ opponent: 'Pip', plies: 9, lastSan: 'e4', inCheck: false, over: true })).toBe('Match over.')
 })
+
+test('announcements for a player who is Black: the opponent moves first and has just moved when the ply count is odd', () => {
+  const black = { opponent: 'Pip', inCheck: false, over: false, humanSeat: 1 as const }
+  expect(moveAnnouncement({ ...black, plies: 0, lastSan: undefined })).toBe('You are Black. Pip moves first.')
+  expect(moveAnnouncement({ ...black, plies: 1, lastSan: 'e4' })).toBe('Pip played e4. Your move.')
+  expect(moveAnnouncement({ ...black, plies: 2, lastSan: 'e5' })).toBe('')
+  expect(moveAnnouncement({ ...black, plies: 3, lastSan: 'Qh5+', inCheck: true })).toBe('Pip played Qh5+. Your move, you are in check.')
+  expect(moveAnnouncement({ ...black, plies: 6, lastSan: 'Qxf2#', over: true })).toBe('You played Qxf2#. Checkmate.')
+  expect(moveAnnouncement({ ...black, plies: 5, lastSan: 'Qxf7#', over: true })).toBe('Pip played Qxf7#. Checkmate.')
+})
