@@ -15,6 +15,7 @@ import { boardSummary, moveAnnouncement } from './announce'
 import { ChessBoard } from './ChessBoard'
 import { useChessMatch } from './useChessMatch'
 import { warmChessAssets } from './warm'
+import './chess.css'
 
 export const meta = { title: 'Chess' }
 
@@ -204,11 +205,13 @@ export default function ChessPage() {
           />
         </section>
       ) : state ? (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-          <PlayHud turn={turn} youLabel={`You, ${youColor}`} swatch={match.humanSeat === 0 ? 'bg-piece-white' : 'bg-piece-black'} matchKey={match.seed} />
-          <p className="text-center text-sm font-semibold text-muted" data-testid="chess-status">
-            {status}
-          </p>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 ch-play">
+          <div className="ch-top">
+            <PlayHud turn={turn} youLabel={`You, ${youColor}`} swatch={match.humanSeat === 0 ? 'bg-piece-white' : 'bg-piece-black'} matchKey={match.seed} />
+            <p className="ch-status text-center text-sm font-semibold text-muted" data-testid="chess-status">
+              {status}
+            </p>
+          </div>
           {/* Spoken, not shown: the opponent's move as it happens, and the whole position on request (it is read as a normal paragraph). */}
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="chess-announce">
             {moveAnnouncement({ opponent: personaFor(match.level).name, plies: match.plies, lastSan: match.sans[match.sans.length - 1], inCheck: match.checkSquare !== null, over, humanSeat: match.humanSeat })}
