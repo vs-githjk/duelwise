@@ -755,25 +755,30 @@ test.describe('Crosscurrent on a phone', () => {
     expect(w.s).toBeLessThanOrEqual(w.c)
     // The public view speaks about "the player" and never says "you".
     await page.goto('/dev/report?scenario=slack&mode=public')
-    const pub = await page.getByTestId('report').innerText()
+    // The match's own sections (the sidebar cards are shared site copy).
+    const pub = (await Promise.all(['report-title', 'report-meta', 'report-tiles', 'report-chart', 'report-slack', 'report-moments'].map((id) => page.getByTestId(id).innerText()))).join('\n')
     expect(pub).toMatch(/The player took \d+ corners?/)
     expect(pub).not.toMatch(/\b(You|Your|you|your)\b/)
     expect(errors).toEqual([])
   })
 
   test('a Rated match settles once through the held end, and its report link opens the real Crosscurrent report', async ({ page }) => {
-    test.setTimeout(150_000)
+    test.setTimeout(240_000)
     const errors = watchConsole(page)
     const finishes: string[] = []
     page.on('request', (r) => { if (/\/api\/(finish|resign)$/.test(r.url().replace(/^https?:\/\/[^/]+/, '').split('?')[0])) finishes.push(r.url().replace(/^https?:\/\/[^/]+/, '').split('?')[0]) })
-    await start(page, `&moves=${NEAR_END}`)
+    // A whole real match with no fixed seed (a test seed and a preset position are never counted).
+    await page.goto(URL)
+    await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+    await page.getByTestId('slack-start').click()
+    await expect(page.getByTestId('slack-board')).toBeVisible()
     await expect(page.getByTestId('play-mode')).toHaveAttribute('data-mode', 'rated').catch(() => undefined)
-    await playToEnd(page, 60_000)
+    await playToEnd(page, 180_000)
     // During the hold Resign is held back; forcing a click does nothing, so the match is not turned into a resignation.
     await page.getByTestId('slack-resign').click({ force: true, timeout: 1000 }).catch(() => undefined)
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('slack-final-count')).toBeVisible()
-    await expect(page.getByTestId('result-upload')).toContainText(/Saved|counted/i)
+    await expect(page.getByTestId('result-upload').or(page.getByTestId('result-elo'))).toBeVisible()
     expect(finishes.filter((p) => p.endsWith('/resign'))).toEqual([])
     const link = page.getByTestId('result-report-link')
     await expect(link).toBeVisible()

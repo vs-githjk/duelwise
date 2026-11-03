@@ -255,7 +255,8 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     test.skip(!PLAYABLE.includes('slack'), `slack has no page: ${missingReason('slack')}`)
     const seen = watchRequests(page)
     const errors = watchConsole(page)
-    await page.goto(`/play/${slug('slack')}?seed=3`)
+    // No ?seed: a fixed test seed is never counted.
+    await page.goto(`/play/${slug('slack')}`)
     await chooseLevel(page, 'Easy')
     await page.getByRole('button', { name: 'Start match' }).click()
     const hud = page.getByTestId('play-hud')
@@ -273,7 +274,8 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     }
     await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId('slack-record')).toHaveAttribute('data-record-ok', 'true')
-    await expect(page.getByTestId('result-upload')).toContainText('Saved')
+    // A Rated match is checked by the server: once counted the panel shows the rating line (a signed-in or guest rating) or the saved line.
+    await expect(page.getByTestId('result-elo').or(page.getByTestId('result-upload').filter({ hasText: 'Saved' }))).toBeVisible({ timeout: 30_000 })
     expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
     expect(errors).toEqual([])
     await expectStatsPage(page, 'slack')
