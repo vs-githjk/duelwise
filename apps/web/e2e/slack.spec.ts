@@ -250,7 +250,7 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.getByTestId('result-practice')).toHaveCount(0)
     // Practice, picked on the setup screen, marks the match as before.
     await page.goto(URL)
-    await page.locator('[data-mode-option="practice"] input').check({ force: true })
+    await page.locator('[data-mode-option="practice"]').click()
     await page.getByTestId('slack-start').click()
     await expect(page.getByTestId('practice-badge')).toBeVisible()
     await page.getByTestId('slack-resign').click()
