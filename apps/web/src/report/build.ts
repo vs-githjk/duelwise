@@ -11,6 +11,7 @@ import { wordReport } from './word'
 import { walk, humanActionCount } from './walk'
 import { holdemMoments } from './holdem'
 import { fleetMoments } from './fleet'
+import { slackReport } from './slack'
 import { realtimeFacts, realtimeMoments, realtimeCoaching } from './realtime'
 
 export interface BuildOptions {
@@ -99,8 +100,11 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
   const end: Moment = { kind: 'end', label: kind === 'realtime' ? 'Final score' : 'Result', tag: 'result', text: sentence }
   // Fleet has its own report and must never fall to the Hold'em path below.
   if (rec.game === 'fleet') return { ...base, moments: fleetMoments(rec, sentence, opponent) }
-  // Crosscurrent: result only until its own report lands, and never the Hold'em path below.
-  if (rec.game === 'slack') return { ...base, moves: humanActionCount(rec), moments: [end] }
+  // Crosscurrent has its own report and must never fall to the Hold'em path below.
+  if (rec.game === 'slack') {
+    const r = slackReport(rec, sentence, opponent)
+    return { ...base, moments: r.moments, series: r.series, slackView: r.view, note: r.note }
+  }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)

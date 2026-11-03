@@ -6,6 +6,7 @@ import { emptyReviewText, reportTiles } from './copy'
 import { playRandom, playScript } from './testing'
 import { WordGrid } from './WordGrid'
 import { FourBoard } from './FourBoard'
+import { SlackBoard } from './SlackBoard'
 import { feedLine, matchesWindow } from '../lib/copy'
 import type { FourView, ReportBody } from './types'
 
@@ -114,5 +115,18 @@ describe('KB2 small copy', () => {
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'human' })).toBe('A player beat Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'draw' })).toBe('A player drew Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'ai' })).toBe('Vesper beat a player at Chess')
+  })
+})
+
+describe('Crosscurrent final board', () => {
+  test('names the persona, counts match the cells and corners are marked', () => {
+    const body = buildReportBody(playRandom('slack', 3, 0))
+    const html = renderToStaticMarkup(<SlackBoard view={body.slackView!} opponent="Marlow" />)
+    expect(html.match(/<span title=/g)).toHaveLength(64)
+    expect(html).toContain(`You ${body.slackView!.discs[0]} discs`)
+    expect(html).toContain(`Marlow ${body.slackView!.discs[1]} discs`)
+    expect(html.match(/data-corner=/g)).toHaveLength(4)
+    expect(html).not.toMatch(/the AI/)
+    expect(renderToStaticMarkup(<SlackBoard view={body.slackView!} viewer="public" opponent="Marlow" />)).not.toMatch(/\bYou\b/)
   })
 })

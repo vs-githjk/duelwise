@@ -45,5 +45,7 @@ export function humanActionCount(rec: MatchRecordV1): number {
     const core = getCore('fleet')
     return rec.actions.filter((a) => a[1] === rec.humanSeat && (core.decodeAction(a[2] as number) as { kind: string }).kind === 'shot').length
   }
+  // Crosscurrent: a pass is not a move, so the count is discs placed.
+  if (rec.game === 'slack') return rec.actions.filter((a) => a[1] === rec.humanSeat && a[2] !== 64).length
   return rec.actions.filter((a) => a[1] === rec.humanSeat).length
 }
