@@ -247,6 +247,40 @@ test.describe('the lifted notice stays off the header and the aside card', () =>
   })
 })
 
+// Before Start, and while the match is being started (the setup page still shows, with the compact notice), the notice sits in normal flow above the page: the
+// two-column play layout and the lift into the aside belong to a running match only.
+test.describe('the setup screen keeps the base layout', () => {
+  for (const [vw, vh] of [[1280, 800], [1024, 768]] as const) {
+    for (const starting of [false, true]) {
+      test(`${vw} by ${vh}${starting ? ' while the match is starting' : ' before Start'}: the notice covers neither the intro nor the mode cards, and nothing overflows`, async ({ page }) => {
+        test.setTimeout(90_000)
+        await page.setViewportSize({ width: vw, height: vh })
+        await page.goto(`${URL}?seed=3`)
+        await expect(page.getByTestId('slack-setup')).toBeVisible()
+        if (starting) {
+          // hold the opponent's worker script so the setup page stays up in its starting state
+          await page.route(/slack\/worker/, async (route) => {
+            await new Promise((r) => setTimeout(r, 6000))
+            await route.continue().catch(() => {})
+          })
+          await page.getByTestId('slack-start').click()
+          await expect(page.getByTestId('slack-start')).toBeDisabled()
+        }
+        const notice = page.getByTestId('training-notice')
+        await expect(notice).toBeVisible()
+        const n = (await notice.boundingBox())!
+        const intro = (await page.getByTestId('slack-setup').locator('> p').first().boundingBox())!
+        expect(overlaps(n, intro)).toBe(false)
+        for (const card of await page.locator('[data-mode-option]').all()) expect(overlaps(n, (await card.boundingBox())!)).toBe(false)
+        // the notice spans the page above the content, like every other game
+        const shell = (await page.getByTestId('game-shell').boundingBox())!
+        expect(n.width).toBeGreaterThan(shell.width * 0.8)
+        await expectNoOverflow(page, 'setup')
+      })
+    }
+  }
+})
+
 // The status line never clips: when it cannot fit beside the HUD it takes its own row.
 test.describe('the status line is never clipped on a laptop', () => {
   const cases: Array<[string, number, number, string, RegExp]> = [

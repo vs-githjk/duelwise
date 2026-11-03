@@ -9,12 +9,12 @@
    HUD and score row (36), the gaps (8 above and below the row, 8 above the Place bar), the Place bar (48) and the 8px the page keeps under the bar (it scrolls to
    keep the bar on screen), 237 in all, as measured. Under 800px of height the status line takes its own 36px row (and 8px gap) under the HUD, so it never clips: 281.
    The board column and a 400 column for the agent card or the result panel sit side by side, 32 apart, centred as one block; both columns keep their width from
-   the first move to the result panel, so nothing moves when the result arrives. The "recorded for your report" notice (shared; it is only placed here) takes the top of
+   the first move to the result panel, so nothing moves when the result arrives. All of this applies only while a match is on (the content has an aside); the setup screen keeps the shell's own layout, with the notice in flow above the page. The "recorded for your report" notice (shared; it is only placed here) takes the top of
    the aside column, on the content row, so a header that wraps pushes it down with the board instead of being covered. */
 .sl-play { max-width: 520px; gap: 12px; }
 .sl-top { display: contents; }
 @media (min-width: 1024px) {
-  [data-game='slack'][data-testid='game-shell'] {
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) {
     --sl-chrome: 237px;
     --sl-w: min(668px, calc(100vw - 496px), max(320px, calc(100dvh - var(--sl-chrome))));
     grid-template-columns: var(--sl-w) 400px;
@@ -23,12 +23,12 @@
     padding-block: 4px;
     row-gap: 8px;
   }
-  [data-game='slack'] > header { grid-column: 1 / -1; grid-row: 1; }
-  [data-game='slack'] > .game-shell-content { grid-column: 1 / -1; grid-row: 2; }
-  [data-game='slack'] > [data-testid='training-notice'] { grid-column: 1 / -1; grid-row: 2; }
-  /* the full notice (setup, or after Details) keeps its own row above the content; the compact one sits over the aside's reserved top */
-  [data-game='slack']:has(> [data-testid='training-notice']:not([data-compact])) > .game-shell-content { grid-row: 3; }
-  [data-game='slack'] > [data-testid='training-notice'][data-compact] {
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > header { grid-column: 1 / -1; grid-row: 1; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > .game-shell-content { grid-column: 1 / -1; grid-row: 2; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'] { grid-column: 1 / -1; grid-row: 2; }
+  /* the full notice (after Details) keeps its own row above the content; the compact one sits over the aside's reserved top */
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice']:not([data-compact])) > .game-shell-content { grid-row: 3; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'][data-compact] {
     grid-column: 2;
     align-self: start;
     z-index: 1;
@@ -42,11 +42,11 @@
   .sl-top .play-hud { flex: none; flex-wrap: nowrap; }
   .sl-top .sl-status { flex: 1; min-width: 0; height: 36px; }
   .sl-top .sl-line { font-size: 13px; line-height: 1.15; max-height: none; }
-  [data-game='slack']:has(> [data-testid='training-notice'][data-compact]) .game-shell-aside { padding-top: 56px; }
-  [data-game='slack']:has(> [data-testid='training-notice'][data-compact]) .game-shell-result { margin-top: 56px; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-aside { padding-top: 56px; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-result { margin-top: 56px; }
 }
 @media (min-width: 1024px) and (max-height: 799px) {
-  [data-game='slack'][data-testid='game-shell'] { --sl-chrome: 281px; }
+  [data-game='slack'][data-testid='game-shell']:has(> .game-shell-content-with-aside) { --sl-chrome: 281px; }
   .sl-top { flex-wrap: wrap; height: auto; row-gap: 8px; }
   .sl-top .sl-status { flex: 1 1 100%; }
   .sl-top .sl-line { font-size: 14px; line-height: 1.25; }
