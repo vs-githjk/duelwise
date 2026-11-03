@@ -113,6 +113,26 @@ describe('Crosscurrent is open for rated play', () => {
   })
 })
 
+describe('the path card tells the truth: a rated win over Pip clears Pip, and only that', () => {
+  test('an honest rated win at Easy clears the Easy stop (so "Clear Pip to unlock Marlow" is true); a loss clears nothing', async () => {
+    let won = false
+    for (let seed = 1; seed < 80 && !won; seed++) {
+      await db.execute(sql`truncate table match, rating, profile, match_report, telemetry_event`)
+      const r = await startMatchHandler(db, { game: 'slack', level: 'easy' }, USER, { seed: () => seed, agentVersion: () => 'v1' })
+      const m = r.body as { matchId: string; seed: number }
+      const rec = await played(m, undefined, 'easy')
+      const out = await finish(rec)
+      expect(out.body).toMatchObject({ valid: true })
+      const path = await getPath(db, USER, 'slack')
+      if (rec.result.winner === 0) {
+        expect(path).toEqual({ easy: true, medium: false, hard: false, champion: false })
+        won = true
+      } else expect(path).toEqual({ easy: false, medium: false, hard: false, champion: false })
+    }
+    expect(won).toBe(true)
+  })
+})
+
 describe('a forged record never turns into a win', () => {
   test('the opponent plays legal blunders and the human is credited a win: refused, no path stop, no board row, not trainable', async () => {
     const m = await begin()

@@ -234,7 +234,7 @@ test.describe('Crosscurrent on a phone', () => {
     const reg = JSON.parse(readFileSync(join(import.meta.dirname, '../../../packages/agents/registry/slack.json'), 'utf8')) as { measured: Record<string, { siteElo: number }> }
     for (const level of ['easy', 'champion'] as const) {
       await page.goto(URL)
-      await page.locator(`[data-persona="${level}"] input`).check()
+      await page.locator(`[data-persona="${level}"]`).click()
       await page.getByTestId('slack-start').click()
       await expect(page.getByTestId('agent-card')).toContainText(`site Elo ${Math.round(reg.measured[level]!.siteElo)}`)
     }
@@ -257,6 +257,24 @@ test.describe('Crosscurrent on a phone', () => {
     await page.getByTestId('slack-resign-yes').click()
     await expect(page.getByTestId('result-practice')).toHaveText('Practice, not rated')
     await expect(page.getByTestId('result-leaderboard-link')).toHaveCount(0)
+  })
+
+  test('a first-time profile (no owner key) sees a path that is true: Pip open, the rest locked behind a rated win', async ({ browser, baseURL }) => {
+    const ctx = await browser.newContext({ baseURL: baseURL!, extraHTTPHeaders: { 'x-dw-test': '1' }, storageState: { cookies: [], origins: [] } })
+    const page = await ctx.newPage()
+    await page.addInitScript(() => {
+      localStorage.setItem('duelwise.how-to-play.slack', 'seen')
+      localStorage.setItem('duelwise.welcomed', '1')
+    })
+    await page.goto(URL)
+    await expect(page.getByTestId('play-mode')).toHaveAttribute('data-mode', 'rated')
+    await expect(page.getByText('Clear Pip to unlock Marlow')).toBeVisible()
+    await expect(page.getByTestId('path-stop-easy')).toHaveAttribute('data-state', 'current')
+    for (const level of ['medium', 'hard', 'champion']) await expect(page.getByTestId(`path-stop-${level}`)).toHaveAttribute('data-state', 'locked')
+    await expect(page.getByTestId('path-stop-medium')).toContainText('Locked, beat Pip')
+    await expect(page.locator('[data-mode-option="rated"] input')).toBeEnabled()
+    await expect(page.getByTestId('path-stop-easy')).not.toContainText('In training')
+    await ctx.close()
   })
 
   test('How to play lists arrows and keyboard play and the rules', async ({ page }) => {
@@ -292,6 +310,9 @@ test.describe('Crosscurrent on a phone', () => {
     await expectNoOverflow(page, 'confirm')
     await page.getByRole('button', { name: 'Keep playing' }).click()
     await expect(page.getByTestId('slack-resign')).toBeVisible()
+    // Closing the confirm row shortens the page, which can clamp the scroll position (the Rated aside is taller than the Practice one); put the board back in the middle before it is watched.
+    await board.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await page.waitForTimeout(300)
     await watchFrames(board)
     await watchScreen(board)
 
