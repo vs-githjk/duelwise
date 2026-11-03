@@ -7,6 +7,7 @@ import { playRandom, playScript } from './testing'
 import { WordGrid } from './WordGrid'
 import { FourBoard } from './FourBoard'
 import { SlackBoard } from './SlackBoard'
+import { EvalChart } from './EvalChart'
 import { feedLine, matchesWindow } from '../lib/copy'
 import type { FourView, ReportBody } from './types'
 
@@ -115,6 +116,22 @@ describe('KB2 small copy', () => {
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'human' })).toBe('A player beat Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'draw' })).toBe('A player drew Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'ai' })).toBe('Vesper beat a player at Chess')
+  })
+})
+
+describe('Crosscurrent chart axis and learning line', () => {
+  test('the axis counts placements, one per point, and other games keep "move n" halved', () => {
+    const body = buildReportBody(playRandom('slack', 3, 0))
+    const n = body.series!.points.length
+    const html = renderToStaticMarkup(<EvalChart series={body.series!} />)
+    expect(html).toContain('placement 1')
+    expect(html).toContain(`placement ${n}`)
+    expect(html).not.toMatch(/move \d/)
+    const chess = buildReportBody(playScript('chess', 1, ['f2f3', 'e7e5', 'g2g4', 'd8h4'], 1))
+    const chessHtml = renderToStaticMarkup(<EvalChart series={chess.series!} />)
+    expect(chessHtml).toContain('move 1')
+    expect(chessHtml).toContain('move 2')
+    expect(chessHtml).not.toContain('placement')
   })
 })
 

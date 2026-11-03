@@ -46,8 +46,8 @@ export function EvalChart({ series, viewer = 'owner' }: { series: Series; viewer
         {placed.map((l) => (
           <text key={l.text} x={l.x} y={l.y} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink)" stroke="var(--surface)" strokeWidth="3" paintOrder="stroke" data-testid="chart-label">{l.text}</text>
         ))}
-        <text x={PAD.l} y={H - 6} fontSize="11" fill="var(--muted)">move 1</text>
-        <text x={W - PAD.r} y={H - 6} textAnchor="end" fontSize="11" fill="var(--muted)">move {Math.ceil(n / 2)}</text>
+        <text x={PAD.l} y={H - 6} fontSize="11" fill="var(--muted)">{series.axis === 'placement' ? 'placement 1' : 'move 1'}</text>
+        <text x={W - PAD.r} y={H - 6} textAnchor="end" fontSize="11" fill="var(--muted)">{series.axis === 'placement' ? `placement ${n}` : `move ${Math.ceil(n / 2)}`}</text>
       </svg>
       <figcaption className="text-sm text-muted">{series.label}. {owner ? 'Above the line you are ahead' : 'Above the line the player is ahead'}, below it the AI is. Scale: {series.unit}.</figcaption>
     </figure>

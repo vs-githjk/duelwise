@@ -27,6 +27,7 @@ describe('report copy', () => {
     const l = { state: 'not_used', reason: 'not_learning' } as const
     expect(learningCopy(l, 'Vesper', 'fleet').text).toBe('Vesper is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.')
     expect(learningCopy(l, 'Vesper', 'fleet').text).not.toMatch(/yet/)
+    expect(learningCopy(l, 'Pip', 'slack').text).toBe('Pip is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.')
     expect(learningCopy(l, 'Pip', 'four').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
     expect(learningCopy(l, 'Pip').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
   })

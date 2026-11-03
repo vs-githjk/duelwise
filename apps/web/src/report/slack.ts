@@ -164,6 +164,7 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
           label: `Discs after each placement, yours minus ${opponent}'s`,
           publicLabel: `Discs after each placement, the player's minus ${opponent}'s`,
           unit: 'discs',
+          axis: 'placement',
           points: placements.map((p) => p.lead),
           marks,
         }

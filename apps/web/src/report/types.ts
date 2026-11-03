@@ -21,6 +21,8 @@ export interface Series {
   /** The label worded about "the player", for the public view. */
   publicLabel: string
   unit: string
+  /** What one point is: a half-move (the default, labelled "move n" at the end by halves) or one placement (Crosscurrent), labelled "placement n". */
+  axis?: 'placement'
   /** Value after each half-move, index 0 is after move 1. */
   points: number[]
   /** Indexes into `points` that carry a marker, with their labels. */
