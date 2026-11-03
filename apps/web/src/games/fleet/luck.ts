@@ -238,12 +238,12 @@ export interface LuckInput {
   third?: boolean
 }
 
-/** The luck line (design spec 2.6): the hits scored against the hits the chosen squares should have scored. Always ends with the verdict clause. */
+/** The luck line (design spec 2.6): the hits scored against the summed odds of the shots taken (a figure that can pass the 17 squares of a fleet, so it is never called squares). Always ends with the verdict clause. */
 export function fleetLuckLine(i: LuckInput): string {
   const verdict = luckVerdict(i.score)
   const You = i.third ? 'The player' : 'You'
   const head = i.won ? `${You} sank all five in ${i.winnerShots} shots.` : `${i.opponent} sank ${i.third ? "the player's" : 'your'} fleet in ${i.winnerShots} shots.`
   const found = i.won ? '' : ` (${COUNT_WORDS[i.found] ?? i.found} ${i.found === 1 ? 'ship' : 'ships'} found)`
   const tail = verdict === 'lucky' && !i.won ? `${You} ran lucky, and still lost on the chase.` : `${You} ran ${verdict}.`
-  return `${head} ${i.third ? 'They' : 'You'} hit ${i.score.hits} of ${i.score.shots} shots${found}; those squares should hit about ${Math.round(i.score.expected)}. ${tail}`
+  return `${head} ${i.third ? 'They' : 'You'} hit ${i.score.hits} of ${i.score.shots}${found}; ${i.third ? "the shots'" : "your shots'"} odds added up to about ${Math.round(i.score.expected)} hits. ${tail}`
 }

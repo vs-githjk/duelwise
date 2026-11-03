@@ -124,10 +124,17 @@ describe('the luck measure is skill neutral', () => {
 
 describe('the luck line', () => {
   const score = { shots: 46, hits: 21, expected: 17.6, variance: 8 }
-  test('says the hits scored, the hits the chosen squares should have scored, and the verdict', () => {
-    expect(fleetLuckLine({ won: true, winnerShots: 46, found: 5, score, opponent: 'Pip' })).toBe('You sank all five in 46 shots. You hit 21 of 46 shots; those squares should hit about 18. You ran lucky.')
-    expect(fleetLuckLine({ won: false, winnerShots: 52, found: 3, score: { ...score, hits: 12, expected: 14 }, opponent: 'Pip' })).toBe('Pip sank your fleet in 52 shots. You hit 12 of 46 shots (three ships found); those squares should hit about 14. You ran about even.')
+  test('says the hits scored, the summed odds of the shots taken, and the verdict', () => {
+    expect(fleetLuckLine({ won: true, winnerShots: 46, found: 5, score, opponent: 'Pip' })).toBe("You sank all five in 46 shots. You hit 21 of 46; your shots' odds added up to about 18 hits. You ran lucky.")
+    expect(fleetLuckLine({ won: false, winnerShots: 52, found: 3, score: { ...score, hits: 12, expected: 14 }, opponent: 'Pip' })).toBe("Pip sank your fleet in 52 shots. You hit 12 of 46 (three ships found); your shots' odds added up to about 14 hits. You ran about even.")
     expect(fleetLuckLine({ won: true, winnerShots: 46, found: 5, score, opponent: 'Pip', third: true })).not.toMatch(/\b(You|Your|you|your)\b/)
+    // The figure is summed odds, never a count of squares: it can pass 17, the size of a fleet, and the wording must not call it squares.
+    const over = fleetLuckLine({ won: true, winnerShots: 60, found: 5, score: { shots: 60, hits: 17, expected: 24.4, variance: 6 }, opponent: 'Pip' })
+    expect(over).toContain("odds added up to about 24 hits")
+    expect(over).not.toMatch(/squares/)
+    expect(fleetLuckLine({ won: true, winnerShots: 46, found: 5, score, opponent: 'Pip', third: true })).toContain("the shots' odds added up to about 18 hits")
+    // Short enough for the slot: the loss line with the longest verdict stays under 180 characters.
+    expect(fleetLuckLine({ won: false, winnerShots: 100, found: 4, score: { shots: 100, hits: 15, expected: 5, variance: 3 }, opponent: 'Marlow', third: true }).length).toBeLessThan(180)
     expect(fleetLuckLine({ won: false, winnerShots: 52, found: 4, score, opponent: 'Pip' })).toMatch(/You ran lucky, and still lost on the chase\.$/)
   })
 })

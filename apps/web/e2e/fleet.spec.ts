@@ -482,7 +482,7 @@ test.describe('the sink, the moment of the game', () => {
     await expect(page.getByTestId('result-panel')).toHaveCount(0)
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('result-reason')).toContainText('sank')
-    await expect(page.getByTestId('fleet-luck')).toContainText('should hit about')
+    await expect(page.getByTestId('fleet-luck')).toContainText('odds added up to about')
   })
 
   test('the luck line arrives after the result without moving anything: its slot is reserved, so the panel and the slot keep their sizes', async ({ page }) => {
@@ -511,7 +511,7 @@ test.describe('the sink, the moment of the game', () => {
     await page.waitForTimeout(700)
     expect(await line.textContent()).toBe('')
     const before = await boxes()
-    await expect(line).toContainText('should hit about', { timeout: 15_000 })
+    await expect(line).toContainText('odds added up to about', { timeout: 15_000 })
     await expect(line).toHaveCSS('opacity', '1')
     expect(await boxes()).toEqual(before)
   })
