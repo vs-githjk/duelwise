@@ -6,7 +6,3 @@ import type { GameId } from './product'
  * nothing checks. Crosscurrent leaves this list when it joins the server-checked games with its measured, server-checked rated path.
  */
 export const RATED_NOT_OPEN: readonly GameId[] = ['slack']
-
-export function hasRatedPath(game: GameId): boolean {
-  return !RATED_NOT_OPEN.includes(game)
-}

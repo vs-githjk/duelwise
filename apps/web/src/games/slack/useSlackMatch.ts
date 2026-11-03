@@ -7,7 +7,7 @@ import { openMatch } from '../../lib/open-match'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
 import { AGENT_SEAT, HUMAN, MIN_HOLD_MS, PASS_DELAY_MS, applyMove, legalCells, mustPass, startMatch, type SlackMatch } from './match'
 import { playCue } from './sounds'
-import { STOPPED, createWorkerAgent, type WorkerAgent } from './workerAgent'
+import { COULD_NOT_START, createWorkerAgent, failureLine, type WorkerAgent } from './workerAgent'
 
 export type Phase = 'setup' | 'starting' | 'playing' | 'over'
 
@@ -133,7 +133,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
           commit(AGENT_SEAT, code!, cur)
         }
       } catch (e) {
-        if (mine === epoch.current) setFailure(e instanceof Error && e.message !== 'disposed' ? e.message : STOPPED)
+        if (mine === epoch.current) setFailure(failureLine(e))
       } finally {
         if (mine === epoch.current) busy.current = false
       }
@@ -160,13 +160,13 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
         })
       } catch (e) {
         if (mine !== epoch.current) return
-        setFailure(e instanceof Error ? e.message : 'The match could not start.')
+        setFailure(failureLine(e))
         setPhase('setup')
         return
       }
       if (opened.kind === 'stale') return
       if (opened.kind === 'agent-failed') {
-        setFailure(opened.error instanceof Error ? opened.error.message : 'The opponent could not start.')
+        setFailure(COULD_NOT_START)
         setPhase('setup')
         return
       }

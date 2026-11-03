@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createWorkerAgent, type WorkerLike } from './workerAgent'
+import { COULD_NOT_START, GENERIC_FAILURE, STOPPED, createWorkerAgent, failureLine, type WorkerLike } from './workerAgent'
 
 /** A hand-driven Worker: the test decides what it sends back and when. */
 class FakeWorker implements WorkerLike {
@@ -133,5 +133,19 @@ describe('the Crosscurrent worker agent', () => {
     expect(w.terminated).toBe(true)
     await expect(waiting).rejects.toThrow('disposed')
     await expect(agent.act({})).rejects.toThrow('disposed')
+  })
+})
+
+describe('the line a player reads', () => {
+  test('our own lines pass through, anything else becomes one plain sentence with a way out', () => {
+    expect(failureLine(new Error(STOPPED))).toBe(STOPPED)
+    expect(failureLine(new Error(COULD_NOT_START))).toBe(COULD_NOT_START)
+    expect(failureLine(new Error('recorder: game not finished'))).toBe(GENERIC_FAILURE)
+    expect(failureLine('boom')).toBe(GENERIC_FAILURE)
+    expect(failureLine(undefined)).toBe(GENERIC_FAILURE)
+    for (const line of [STOPPED, COULD_NOT_START, GENERIC_FAILURE]) {
+      expect(line).toMatch(/\b(setup|Start)\b/)
+      expect(line).not.toMatch(/[\u2013\u2014]/)
+    }
   })
 })

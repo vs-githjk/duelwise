@@ -26,8 +26,15 @@ export interface WorkerAgentOptions {
   actMs?: number
 }
 
-export const COULD_NOT_START = 'The opponent could not start. Check your connection, then go back and try again.'
+export const COULD_NOT_START = 'The opponent could not start. Check your connection, then press Start to try again.'
 export const STOPPED = 'The opponent stopped. Go back to setup and start a new match.'
+export const GENERIC_FAILURE = 'Something went wrong with this match. Go back to setup and start a new one.'
+
+/** The line a player reads for a failure: ours as written, anything else (a thrown message meant for a developer) as one plain sentence. */
+export function failureLine(e: unknown): string {
+  const m = e instanceof Error ? e.message : ''
+  return m === STOPPED || m === COULD_NOT_START ? m : GENERIC_FAILURE
+}
 const DISPOSED = 'disposed'
 
 function realWorker(): WorkerLike {
