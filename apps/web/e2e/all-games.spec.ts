@@ -272,8 +272,8 @@ test.describe(`${GAMES.length} games, end to end`, () => {
       await page.waitForTimeout(120)
     }
     await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
-    // Every Crosscurrent match is Practice until the server can check the opponent, so nothing is saved to count; the record on the page must still replay.
     await expect(page.getByTestId('slack-record')).toHaveAttribute('data-record-ok', 'true')
+    await expect(page.getByTestId('result-upload')).toContainText('Saved')
     expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
     expect(errors).toEqual([])
     await expectStatsPage(page, 'slack')

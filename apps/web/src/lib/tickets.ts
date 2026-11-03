@@ -1,6 +1,6 @@
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { PRODUCT } from '@duelwise/core/src/product'
-import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { isSealed } from '@duelwise/core/src/sealed'
 import type { Ticket, TicketOwner } from '../server/ticket-issue'
 import { CONSUMED, TICKETS, transact } from './offline-db'
@@ -64,7 +64,7 @@ export const PLAYED_POOL = 5
 export const OTHER_POOL = 2
 
 /** Games that can have offline tickets: Word Duel keeps its seed on the server, so it plays unranked offline, and a game with no rated path has nothing to count. */
-export const ticketGamesFor = (notOpen: readonly GameId[]): GameId[] => (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g) && !notOpen.includes(g))
+export const ticketGamesFor = (notOpen: readonly GameId[]): GameId[] => (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g) && !notOpen.includes(g) && !NO_OFFLINE_TICKETS.includes(g))
 export const TICKET_GAMES: readonly GameId[] = ticketGamesFor(RATED_NOT_OPEN)
 
 const PLAYED_KEY = 'duelwise.played-levels'

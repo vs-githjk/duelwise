@@ -7,3 +7,10 @@ import type { GameId } from './product'
  * and a new game that is not server-checked joins it until it is. A test pins both the empty list and the guard that reads it.
  */
 export const RATED_NOT_OPEN: readonly GameId[] = []
+
+/**
+ * Games kept out of offline tickets although they are rated. A ticket lets a player play without the server and upload only the matches they won,
+ * and the owner's rule is that offline matches are unrated (decisions.md), so Crosscurrent is rated only with a connection, like Stormglass, and its
+ * Practice matches work offline. Four, chess and Hold'em keep their tickets (the owner's call).
+ */
+export const NO_OFFLINE_TICKETS: readonly GameId[] = ['slack']

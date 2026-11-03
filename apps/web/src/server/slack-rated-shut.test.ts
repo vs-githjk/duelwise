@@ -105,10 +105,10 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
     expect(r.status).toBe(400)
     expect(JSON.stringify(r.body)).toMatch(/Crosscurrent has no rated matches yet/)
     expect((await db.select().from(schema.match)).length).toBe(0)
-    // TICKET_GAMES is read once at load, when the list is empty; the same filter over the list as it stands now leaves the listed game out.
+    // The live list leaves Crosscurrent out whether or not its rated path is shut: tickets are refused for it either way.
     expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain('slack')
     expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('four')
-    expect(TICKET_GAMES).toContain('slack')
+    expect(TICKET_GAMES).not.toContain('slack')
     // Word and Stormglass keep their own refusal.
     expect((await issueTicketsHandler(db, { game: 'fleet', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
     expect((await issueTicketsHandler(db, { game: 'four', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(200)

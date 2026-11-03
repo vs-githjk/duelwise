@@ -1,7 +1,7 @@
 import { and, count, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
-import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { isSealed } from '@duelwise/core/src/sealed'
 import * as schema from '../db/schema'
 import { adoptTicket, issueMatchRow, mayUseTicket, trainingFor, type Caller, type HandlerResponse, type StartOptions } from './match-handlers'
@@ -94,6 +94,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
   if (RATED_NOT_OPEN.includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no rated matches yet, so no offline tickets`)
+  if (NO_OFFLINE_TICKETS.includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets: Rated needs a connection`)
   if (isSealed(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets`)
   if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 0) return err(400, 'count must be a whole number, 0 or more')
   if (!who.userId && !who.guestId) return err(401, 'no player')

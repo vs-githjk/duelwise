@@ -721,8 +721,8 @@ test.describe('Crosscurrent on a phone', () => {
     })
   }
 
-  // The report page on a fixture match played through the real core (/dev/report, seed 4, Marlow): a counted Crosscurrent match needs the server-checked
-  // rated path, which is not open yet, so the live result panel has no report link to follow. The page and the builder are the real ones.
+  // The report page on a fixture match played through the real core (/dev/report, seed 4, Marlow): the next test follows the live link from a real
+  // Rated match; this one covers owner and public views, the chart marks and the honest lines on a fixed match.
   test('the match report is a real Crosscurrent report: the disc lead over time, the final board, named moments, honest lines, owner and public', async ({ page }) => {
     test.setTimeout(60_000)
     const errors = watchConsole(page)
@@ -758,6 +758,31 @@ test.describe('Crosscurrent on a phone', () => {
     const pub = await page.getByTestId('report').innerText()
     expect(pub).toMatch(/The player took \d+ corners?/)
     expect(pub).not.toMatch(/\b(You|Your|you|your)\b/)
+    expect(errors).toEqual([])
+  })
+
+  test('a Rated match settles once through the held end, and its report link opens the real Crosscurrent report', async ({ page }) => {
+    test.setTimeout(150_000)
+    const errors = watchConsole(page)
+    const finishes: string[] = []
+    page.on('request', (r) => { if (/\/api\/(finish|resign)$/.test(r.url().replace(/^https?:\/\/[^/]+/, '').split('?')[0])) finishes.push(r.url().replace(/^https?:\/\/[^/]+/, '').split('?')[0]) })
+    await start(page, `&moves=${NEAR_END}`)
+    await expect(page.getByTestId('play-mode')).toHaveAttribute('data-mode', 'rated').catch(() => undefined)
+    await playToEnd(page, 60_000)
+    // During the hold Resign is held back; forcing a click does nothing, so the match is not turned into a resignation.
+    await page.getByTestId('slack-resign').click({ force: true, timeout: 1000 }).catch(() => undefined)
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('slack-final-count')).toBeVisible()
+    await expect(page.getByTestId('result-upload')).toContainText(/Saved|counted/i)
+    expect(finishes.filter((p) => p.endsWith('/resign'))).toEqual([])
+    const link = page.getByTestId('result-report-link')
+    await expect(link).toBeVisible()
+    await link.click()
+    await expect(page.getByTestId('report')).toHaveAttribute('data-status', 'ready')
+    await expect(page.getByTestId('report-meta')).toContainText('Crosscurrent')
+    await expect(page.getByTestId('eval-chart')).toBeVisible()
+    await expect(page.getByTestId('slack-final-board')).toBeVisible()
+    await expect(page.getByTestId('moments').locator('li').last()).toHaveAttribute('data-kind', 'end')
     expect(errors).toEqual([])
   })
 

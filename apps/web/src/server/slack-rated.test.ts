@@ -5,7 +5,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { encodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { replay } from '@duelwise/core/src/replay'
 import { slackCore } from '@duelwise/core/src/games/slack/core'
-import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { createGameAgent } from '@duelwise/agents/src/slack/agent'
@@ -18,7 +18,8 @@ import { getPath } from './path'
 import { finishedResults } from './results'
 import { finishMatchHandler, startMatchHandler, type FinishOptions } from './match-handlers'
 import { resignMatchHandler } from './resign'
-import { issueTicketsHandler, type Ticket } from './ticket-issue'
+import { issueTicketsHandler } from './ticket-issue'
+import { ticketGamesFor } from '../lib/tickets'
 import { listTrainingMatches } from './training-export'
 
 // Crosscurrent's rated path with the REAL opponent on the server (no stand-in): an honest match counts, a forged, edited or
@@ -260,41 +261,17 @@ describe('leaving a rated match is a loss', () => {
 })
 
 describe('offline tickets', () => {
-  async function ticket(): Promise<Ticket> {
-    const r = await issueTicketsHandler(db, { game: 'slack', level, count: 1 }, USER, { agentVersion: () => 'v1' })
-    expect(r.status).toBe(200)
-    return (r.body as { tickets: Ticket[] }).tickets[0]!
-  }
-
-  test('a ticket is issued for Crosscurrent, and an honest queued match counts once when it uploads', async () => {
-    const t = await ticket()
-    const rec = await played({ matchId: t.matchId, seed: t.seed })
-    expect((await finish(rec)).body).toMatchObject({ valid: true })
-    expect((await finish(rec)).status).toBe(409)
-    expect((await ratingOf())?.games).toBe(1)
-  })
-
-  test('a forged ticket record is refused and costs nothing: it was played out of the server\'s sight', async () => {
-    const t = await ticket()
-    const r = await finish(await played({ matchId: t.matchId, seed: t.seed }, 1))
-    expect(r.body).toMatchObject({ valid: false, result: null })
-    expect((r.body as { elo?: unknown }).elo).toBeUndefined()
-    expect(await ratingOf()).toBeUndefined()
-    expect(await finishedResults(db, { game: 'slack', since: new Date(0) })).toEqual([])
-  })
-
-  test('a ticket record with another seed is refused for free', async () => {
-    const t = await ticket()
-    const rec = await played({ matchId: t.matchId, seed: t.seed })
-    const r = await finish({ ...rec, seed: rec.seed + 1 })
-    expect(r.body).toMatchObject({ valid: false, result: null })
-    expect(await ratingOf()).toBeUndefined()
-  })
-
-  test('the opponent moved on while it waited in the queue: refused for free', async () => {
-    const t = await ticket()
-    const r = await finishMatchHandler(db, encodeRecord(await played({ matchId: t.matchId, seed: t.seed })), USER, { ...REAL, currentAgentVersion: () => 'v2' })
-    expect((r.body as { reason: string }).reason).toContain('updated after this offline ticket')
+  // A ticket lets a player play out of the server's sight and upload only the matches they won; the owner's rule is that offline matches are
+  // unrated, so Crosscurrent is kept out of tickets as Stormglass is: Rated needs a connection, Practice works offline.
+  test('no ticket is issued for Crosscurrent, at any level or count', async () => {
+    for (const lvl of ['easy', 'medium', 'hard', 'champion'] as const) {
+      const r = await issueTicketsHandler(db, { game: 'slack', level: lvl, count: 1 }, USER, { agentVersion: () => 'v1' })
+      expect(r.status).toBe(400)
+      expect(JSON.stringify(r.body)).toContain('no offline tickets')
+    }
+    expect(NO_OFFLINE_TICKETS).toContain('slack')
+    expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain('slack')
+    expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('four')
     expect(await ratingOf()).toBeUndefined()
   })
 })
