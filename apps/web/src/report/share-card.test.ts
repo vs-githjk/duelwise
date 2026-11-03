@@ -58,4 +58,18 @@ describe('share card', () => {
     expect(shareCardSvg({ game: 'holdem', level: 'hard', outcome: 'win', moves: 27, link: 'x' })).toContain('level, 27 moves.')
     expect(shareCardSvg({ game: 'holdem', level: 'hard', outcome: 'win', moves: 1, link: 'x' })).toContain('level, 1 move.')
   })
+
+  test('a Crosscurrent card names the game, counts moves, and every headline fits two lines of the left half', () => {
+    const svg = shareCardSvg({ game: 'slack', level: 'medium', outcome: 'win', moves: 30, link: 'x.test/report/1' })
+    expect(svg).toContain('I beat Marlow at')
+    expect(svg).toContain('level, 30 moves.')
+    for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
+      for (const outcome of ['win', 'loss', 'draw'] as const) {
+        const lines = wrapHeadline(cardHeadline({ game: 'slack', level, outcome }))
+        expect(lines.length).toBeLessThanOrEqual(2)
+        // 76 px serif is about 0.5 em a character; the left half is 760 px minus the 72 px margin.
+        for (const l of lines) expect(l.length * 76 * 0.5).toBeLessThanOrEqual(688)
+      }
+    }
+  })
 })

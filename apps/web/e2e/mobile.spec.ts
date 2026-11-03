@@ -15,7 +15,7 @@ const PHONES = [
 
 const SLUG = PRODUCT.games
 const REAL_TIME = [['fighter', SLUG.fighter.slug], ['arena', SLUG.arena.slug]] as const
-const PORTRAIT_GAMES = [['chess', SLUG.chess.slug], ['four', SLUG.four.slug], ['holdem', SLUG.holdem.slug], ['word', SLUG.word.slug], ['fleet', SLUG.fleet.slug]] as const
+const PORTRAIT_GAMES = [['chess', SLUG.chess.slug], ['four', SLUG.four.slug], ['holdem', SLUG.holdem.slug], ['word', SLUG.word.slug], ['fleet', SLUG.fleet.slug], ['slack', SLUG.slack.slug]] as const
 
 const tag = (s: string) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
 async function shot(page: Page, name: string) {

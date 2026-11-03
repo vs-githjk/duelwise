@@ -12,6 +12,16 @@ export const MIN_HOLD_MS = 500
 /** How long a forced pass for the player stays on screen before the page sends it. */
 export const PASS_DELAY_MS = 900
 
+/** The longest a move's cascade runs: the farthest ring of discs (7 away) starts 6 x 30 ms late and then takes the 200 ms flip. */
+export const CASCADE_MS = 6 * 30 + 200
+/** After the last disc has settled, the finished board is held this long before the result panel (Stormglass holds its winning sink the same way). */
+export const END_HOLD_MS = 700
+
+/** From the closing move to the result panel. With reduced motion nothing cascades, so a short beat is enough. */
+export function endDelayMs(reducedMotion: boolean): number {
+  return reducedMotion ? 400 : CASCADE_MS + END_HOLD_MS
+}
+
 export interface LastMove {
   seat: Seat
   /** The cell played, or null for a pass. */

@@ -49,6 +49,22 @@ const FINISH: Record<string, (page: Page) => Promise<void>> = {
       await page.getByTestId('word-input').press('Enter')
     }
   },
+  slack: async (page) => {
+    // The page's test start position: fifty-two moves played, eight cells left, so a few taps reach the end. The result waits for the last discs to settle.
+    await page.goto('/play/crosscurrent?seed=3&moves=F5,F4,D3,C4,E3,F6,B3,F2,E2,B4,C5,F1,G5,B2,G7,D6,B5,E6,G1,B6,D2,G4,D7,E1,A7,C7,F7,H5,B1,C6,D8,B8,B7,E7,C3,A4,H6,G6,E8,C8,G3,A2,A3,H2,A1,G2,F3,H1,A8,F8,G8,A6')
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    const hud = page.getByTestId('play-hud')
+    for (let i = 0; i < 80; i++) {
+      if ((await hud.getAttribute('data-turn')) === 'over') break
+      const cell = page.locator('[data-testid^="slack-cell-"][data-legal]').first()
+      if ((await hud.getAttribute('data-turn')) === 'you' && (await cell.count()) > 0) {
+        await cell.click()
+        await cell.click()
+      }
+      await page.waitForTimeout(120)
+    }
+  },
   fleet: async (page) => {
     // hold=0 removes the opponent's pause; a whole match is played shot by shot to the sinking of a fleet.
     await page.goto('/play/stormglass?hold=0')
@@ -144,7 +160,7 @@ for (const vp of [{ name: 'desktop-1440', use: VIEWPORTS[0].use }, { name: 'ipho
 for (const vp of VIEWPORTS) {
   test.describe(`the back control on ${vp.name}`, () => {
     test.use(vp.use)
-    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass']] as const) {
+    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent']] as const) {
       test(`${game}: "All games" is a 44 px arrow button to /play with a visible focus ring`, async ({ page }) => {
         await page.goto(`/play/${slug}`)
         const back = page.getByTestId('game-back')

@@ -150,3 +150,32 @@ test('stormglass: the board and the Fire bar stay put on every frame across six 
   }
   await expectNoFrameShift(page, 'fleet')
 })
+
+test('crosscurrent: the board, the status row and the Place bar stay put on every frame across four placements, the flips and the replies', async ({ page }) => {
+  test.setTimeout(150_000)
+  // The opponent's pause is left at its real default, so the status line changes while the page is watched.
+  await page.goto('/play/crosscurrent?seed=3')
+  await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+  await page.getByRole('button', { name: 'Start match' }).click()
+  const hud = page.getByTestId('play-hud')
+  await expect(hud).toHaveAttribute('data-turn', 'you')
+  const board = page.getByTestId('slack-board')
+  const bar = page.getByTestId('slack-action')
+  const status = page.getByTestId('slack-status-row')
+  const start = await bringIntoView(page, board)
+  const barStart = await spot(page, bar)
+  const statusStart = await spot(page, status)
+  await watchFrames(board, bar, status)
+  for (let i = 0; i < 4; i++) {
+    await expect(hud).toHaveAttribute('data-turn', 'you', { timeout: 30_000 })
+    const cell = page.locator('[data-testid^="slack-cell-"][data-legal]').first()
+    await cell.click()
+    await cell.click()
+    await expect(page.locator('.sl-disc[data-placed]').first()).toBeAttached()
+    await expect(hud).toHaveAttribute('data-turn', 'you', { timeout: 30_000 })
+    await expectStill(page, board, start, `crosscurrent after placement ${i + 1}`)
+    await expectStill(page, bar, barStart, `crosscurrent Place bar after placement ${i + 1}`)
+    await expectStill(page, status, statusStart, `crosscurrent status row after placement ${i + 1}`)
+  }
+  await expectNoFrameShift(page, 'crosscurrent')
+})

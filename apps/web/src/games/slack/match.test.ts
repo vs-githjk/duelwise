@@ -11,6 +11,9 @@ import {
   applyMove,
   cellName,
   discCounts,
+  CASCADE_MS,
+  END_HOLD_MS,
+  endDelayMs,
   flipPreview,
   holdAtLeast,
   legalCells,
@@ -268,5 +271,16 @@ describe('crosscurrent match logic', () => {
     expect(finalCount(m, 'Marlow')).toBe(`Final discs: You ${discCounts(m)[0]}, Marlow ${discCounts(m)[1]}.`)
     expect(humanMoveCount([[0, 19], [1, 18], [0, PASS], [0, 20]])).toBe(2)
     expect(humanMoveCount([])).toBe(0)
+  })
+})
+
+describe('the end of a match', () => {
+  test('the result waits for the last discs to settle plus a hold; reduced motion waits a short beat', () => {
+    // The farthest ring (7 away) starts 6 x 30 ms late and then flips for 200 ms (slack.css).
+    expect(CASCADE_MS).toBe(380)
+    expect(endDelayMs(false)).toBe(CASCADE_MS + END_HOLD_MS)
+    expect(endDelayMs(false)).toBeGreaterThan(CASCADE_MS + 500)
+    expect(endDelayMs(true)).toBeLessThan(endDelayMs(false))
+    expect(endDelayMs(true)).toBeGreaterThanOrEqual(300)
   })
 })

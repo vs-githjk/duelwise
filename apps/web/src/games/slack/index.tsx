@@ -70,9 +70,10 @@ export default function SlackPage() {
   const playing = match.phase === 'playing'
   const legal = useMemo(() => (match.canMove && m ? legalCells(m) : []), [match.canMove, m])
   const preview = selected !== null && match.canMove && m ? flipPreview(m, selected) : []
-  const turn = over ? 'over' : m && m.state.turn !== HUMAN ? 'ai' : 'you'
+  const closing = over || match.ending
+  const turn = closing ? 'over' : m && m.state.turn !== HUMAN ? 'ai' : 'you'
   const [you, them] = m ? discCounts(m) : [0, 0]
-  const verdict = match.resigned ? 'You resigned.' : over && m ? statusLine(m, name) : ''
+  const verdict = match.resigned ? 'You resigned.' : closing && m ? statusLine(m, name) : ''
   const status = match.resigned ? verdict : m ? statusLine(m, name) : ''
 
   const onTap = (cell: number) => {
@@ -141,7 +142,7 @@ export default function SlackPage() {
             {playing ? (
               confirming ? (
                 <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm resign">
-                  <button type="button" data-testid="slack-resign-yes" onClick={() => { setConfirming(false); setSelected(null); match.resign() }} className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white">
+                  <button type="button" data-testid="slack-resign-yes" disabled={match.ending} onClick={() => { setConfirming(false); setSelected(null); match.resign() }} className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white">
                     Yes, resign
                   </button>
                   <button type="button" onClick={() => setConfirming(false)} className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold">
@@ -149,7 +150,8 @@ export default function SlackPage() {
                   </button>
                 </div>
               ) : (
-                <button type="button" data-testid="slack-resign" onClick={() => setConfirming(true)} className="min-h-11 justify-self-start rounded-control border border-line bg-surface px-4 text-sm font-semibold">
+                // While the finished board is held it keeps its place but cannot be used, so nothing below the board moves before the panel.
+                <button type="button" data-testid="slack-resign" disabled={match.ending} onClick={() => setConfirming(true)} className={`min-h-11 justify-self-start rounded-control border border-line bg-surface px-4 text-sm font-semibold ${match.ending ? 'invisible' : ''}`}>
                   Resign
                 </button>
               )
@@ -212,7 +214,7 @@ export default function SlackPage() {
             </div>
           )}
           <p className="sr-only" role="status" aria-live="polite" data-testid="slack-live">
-            {match.resigned ? verdict : liveText(m, name, over, verdict)}
+            {match.resigned ? verdict : liveText(m, name, closing, verdict)}
           </p>
           {match.failure ? (
             <div className="grid justify-items-center gap-2">

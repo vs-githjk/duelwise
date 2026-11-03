@@ -600,6 +600,167 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.getByTestId('slack-setup')).toBeVisible()
   })
 
+  /** Wraps the page's AudioContext so every oscillator a cue starts is recorded with its type, first pitch and the context time it was scheduled at. */
+  async function spyAudio(page: Page) {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __osc: Array<{ type: string; f0: number; at: number }>; AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+      w.__osc = []
+      const Real = w.AudioContext ?? w.webkitAudioContext
+      if (!Real) return
+      class Spy extends Real {
+        createOscillator() {
+          const o = super.createOscillator()
+          const rec = { type: '', f0: 0, at: -1 }
+          w.__osc.push(rec)
+          const set = o.frequency.setValueAtTime.bind(o.frequency)
+          o.frequency.setValueAtTime = (v: number, t: number) => { if (!rec.f0) rec.f0 = v; return set(v, t) }
+          const start = o.start.bind(o)
+          o.start = (t?: number) => { rec.at = t ?? 0; rec.type = o.type; return start(t) }
+          return o
+        }
+      }
+      w.AudioContext = Spy as typeof AudioContext
+      w.webkitAudioContext = Spy as typeof AudioContext
+    })
+  }
+  const heard = (page: Page) => page.evaluate(() => (window as unknown as { __osc: Array<{ type: string; f0: number; at: number }> }).__osc.map((o) => ({ ...o })))
+  /** The pitch of rung n of the flip ripple: 880 Hz raised by RIPPLE_STEPS[n] semitones. */
+  const rung = (n: number) => 880 * 2 ** ([0, 2, 4, 7][n]! / 12)
+  const isTick = (o: { type: string; f0: number }) => o.type === 'sine' && [0, 1, 2, 3].some((n) => Math.abs(o.f0 - rung(n)) < 0.5)
+
+  test('sound: your disc and the reply are different cues, a flip is a short ripple, and the sound switch silences all of it', async ({ page }) => {
+    test.setTimeout(60_000)
+    await spyAudio(page)
+    await start(page)
+    expect(await heard(page)).toEqual([])
+    await playOne(page)
+    // Your disc: the firm triangle tap, plus a ripple of at most four ticks for what it turned (never one cue per disc).
+    await expect.poll(async () => (await heard(page)).some((o) => o.type === 'triangle')).toBe(true)
+    const mine = await heard(page)
+    expect(mine.filter(isTick).length).toBeGreaterThanOrEqual(1)
+    expect(mine.filter(isTick).length).toBeLessThanOrEqual(4)
+    const tap = mine.find((o) => o.type === 'triangle')!
+    // Pip's reply: its own lower, hollower cue.
+    await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
+    const both = await heard(page)
+    const reply = both.find((o) => o.type === 'sine' && Math.abs(o.f0 - 250) < 0.5)
+    expect(reply, 'the reply has its own cue').toBeTruthy()
+    expect(reply!.f0).toBeLessThan(tap.f0)
+    expect(both.length).toBeLessThanOrEqual(2 * 8)
+    // The switch in the header silences every later cue.
+    await page.getByTestId('game-sound-button').click()
+    await page.getByTestId('game-sound-panel').getByTestId('sfx-switch').uncheck()
+    await page.keyboard.press('Escape')
+    const before = (await heard(page)).length
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you')
+    await playOne(page)
+    await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
+    await page.waitForTimeout(300)
+    expect((await heard(page)).length).toBe(before)
+  })
+
+  test('sound with reduced motion: the flip is one tick, because nothing cascades', async ({ page }) => {
+    test.setTimeout(60_000)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await spyAudio(page)
+    await start(page)
+    await playOne(page)
+    // Count the ripple of your own disc: everything scheduled before Pip's reply cue (the lower hollow sine).
+    await expect.poll(async () => (await heard(page)).some((o) => o.type === 'sine' && Math.abs(o.f0 - 250) < 0.5), { timeout: 20_000 }).toBe(true)
+    const all = await heard(page)
+    const replyAt = all.find((o) => o.type === 'sine' && Math.abs(o.f0 - 250) < 0.5)!.at
+    expect(all.filter((o) => isTick(o) && o.at < replyAt)).toHaveLength(1)
+  })
+
+  /** Times the verdict on the status line against the result panel mounting, frame by frame. */
+  async function timeTheEnd(page: Page) {
+    await page.evaluate(() => {
+      const w = window as unknown as { __end: { verdict: number; panel: number; resign: string; boardTop: number[]; turnAtVerdict: string } }
+      w.__end = { verdict: 0, panel: 0, resign: '', boardTop: [], turnAtVerdict: '' }
+      const board = document.querySelector('[data-testid="slack-board"]')!
+      const tick = () => {
+        const status = document.querySelector('[data-testid="slack-status"]')?.textContent ?? ''
+        if (!w.__end.verdict && /You win|wins\.|A draw/.test(status)) {
+          w.__end.verdict = performance.now()
+          w.__end.turnAtVerdict = document.querySelector('[data-testid="play-hud"]')?.getAttribute('data-turn') ?? ''
+        }
+        if (!w.__end.panel && document.querySelector('[data-testid="result-panel"]')) {
+          w.__end.panel = performance.now()
+          return
+        }
+        if (w.__end.verdict) {
+          w.__end.boardTop.push(board.getBoundingClientRect().top + window.scrollY)
+          const r = document.querySelector('[data-testid="slack-resign"]') as HTMLButtonElement | null
+          w.__end.resign = r ? (getComputedStyle(r).visibility === 'hidden' && r.disabled ? 'held' : 'live') : 'gone'
+        }
+        requestAnimationFrame(tick)
+      }
+      tick()
+    })
+  }
+
+  for (const reduced of [false, true]) {
+    test(`the end of a match${reduced ? ' with reduced motion' : ''}: the last discs settle, the finished board is held, then the result panel; nothing moves`, async ({ page }) => {
+      test.setTimeout(90_000)
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' })
+      await start(page, `&moves=${NEAR_END}`)
+      await expect(hud(page)).toHaveAttribute('data-turn', 'you')
+      await timeTheEnd(page)
+      await playToEnd(page, 60_000)
+      await expect(page.getByTestId('result-panel')).toBeVisible()
+      const end = await page.evaluate(() => (window as unknown as { __end: { verdict: number; panel: number; resign: string; boardTop: number[]; turnAtVerdict: string } }).__end)
+      expect(end.verdict, 'the verdict showed on the status line').toBeGreaterThan(0)
+      const gap = end.panel - end.verdict
+      // Full motion: the farthest ring settles at 380 ms and the board is held 700 ms more. Reduced motion: a 400 ms beat.
+      expect(gap, 'verdict to panel').toBeGreaterThanOrEqual(reduced ? 330 : 1000)
+      expect(gap, 'verdict to panel').toBeLessThanOrEqual(reduced ? 1500 : 2500)
+      expect(end.turnAtVerdict).toBe('over')
+      expect(end.resign, 'Resign keeps its place but cannot be used while the board is held').toBe('held')
+      expect(end.boardTop.length).toBeGreaterThan(5)
+      expect(Math.max(...end.boardTop) - Math.min(...end.boardTop), 'the board did not move before the panel').toBeLessThanOrEqual(2)
+    })
+  }
+
+  // The report page on a fixture match played through the real core (/dev/report, seed 4, Marlow): a counted Crosscurrent match needs the server-checked
+  // rated path, which is not open yet, so the live result panel has no report link to follow. The page and the builder are the real ones.
+  test('the match report is a real Crosscurrent report: the disc lead over time, the final board, named moments, honest lines, owner and public', async ({ page }) => {
+    test.setTimeout(60_000)
+    const errors = watchConsole(page)
+    await page.goto('/dev/report?scenario=slack')
+    await expect(page.getByTestId('report')).toHaveAttribute('data-status', 'ready')
+    await expect(page.getByTestId('report-title')).toContainText('Marlow')
+    await expect(page.getByTestId('report-meta')).toContainText('Crosscurrent')
+    // The disc lead over time, with marks on the turns it names.
+    await expect(page.getByTestId('report-chart')).toContainText('How the game went')
+    await expect(page.getByTestId('eval-chart')).toBeVisible()
+    expect(await page.getByTestId('chart-label').count()).toBeGreaterThanOrEqual(2)
+    // The final board and its counts agree with the tile.
+    const board = page.getByTestId('slack-final-board')
+    const label = (await board.getAttribute('aria-label'))!
+    const [, you, them] = /You (\d+) discs.*Marlow (\d+) discs/.exec(label)!.map(Number) as [number, number, number]
+    await expect(page.getByTestId('report-tiles')).toContainText(`${you} to ${them}`)
+    await expect(board.locator('span.aspect-square')).toHaveCount(64)
+    await expect(board.locator('[data-corner]')).toHaveCount(4)
+    // Named moments, then the result as the last row; nothing from another game.
+    const moments = page.getByTestId('moments').locator('li')
+    expect(await moments.count()).toBeGreaterThanOrEqual(4)
+    await expect(moments.first()).toContainText('Corners')
+    await expect(moments.last()).toHaveAttribute('data-kind', 'end')
+    const owner = await page.getByTestId('report').innerText()
+    expect(owner).toMatch(/You took \d+ corners?/)
+    expect(owner).not.toMatch(/Hold.?em|chips|fold|ship|column|\bdrops?\b/i)
+    await expect(page.getByTestId('report-note').or(page.getByTestId('report-moments'))).toContainText('counts discs only')
+    // At 360 the page does not scroll sideways and the board is inside the screen.
+    const w = await page.evaluate(() => ({ s: document.documentElement.scrollWidth, c: document.documentElement.clientWidth }))
+    expect(w.s).toBeLessThanOrEqual(w.c)
+    // The public view speaks about "the player" and never says "you".
+    await page.goto('/dev/report?scenario=slack&mode=public')
+    const pub = await page.getByTestId('report').innerText()
+    expect(pub).toMatch(/The player took \d+ corners?/)
+    expect(pub).not.toMatch(/\b(You|Your|you|your)\b/)
+    expect(errors).toEqual([])
+  })
+
   test('the sound effects switch in the game header persists across a reload', async ({ page }) => {
     await page.goto(URL)
     await page.getByTestId('game-sound-button').click()

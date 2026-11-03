@@ -17,6 +17,7 @@ import { EvalChart } from './EvalChart'
 import { CARD_HEIGHT, CARD_WIDTH } from './share-card'
 import type { Moment } from './types'
 import { FourBoard } from './FourBoard'
+import { SlackBoard } from './SlackBoard'
 import { WordGrid } from './WordGrid'
 import { pollWritingReport } from './writing-poll'
 
@@ -141,6 +142,11 @@ export function ReportPageView({ page }: { page: Page }) {
           {body.fourView ? (
             <Card title="Final board and drops" testId="report-four">
               <FourBoard view={body.fourView} viewer={view.mode} opponent={persona.name} />
+            </Card>
+          ) : null}
+          {body.slackView ? (
+            <Card title="Final board" testId="report-slack">
+              <SlackBoard view={body.slackView} viewer={view.mode} opponent={persona.name} />
             </Card>
           ) : null}
           {hasKeyMoments(body) ? (

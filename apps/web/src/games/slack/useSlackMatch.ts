@@ -5,8 +5,8 @@ import type { Result, Seat } from '@duelwise/core/src/types'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
 import { openMatch } from '../../lib/open-match'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
-import { AGENT_SEAT, HUMAN, MIN_HOLD_MS, PASS_DELAY_MS, applyMove, legalCells, mustPass, startMatch, type SlackMatch } from './match'
-import { playCue } from './sounds'
+import { AGENT_SEAT, HUMAN, MIN_HOLD_MS, PASS_DELAY_MS, applyMove, endDelayMs, legalCells, mustPass, startMatch, type SlackMatch } from './match'
+import { playCue, playMove } from './sounds'
 import { COULD_NOT_START, createWorkerAgent, failureLine, type WorkerAgent } from './workerAgent'
 
 export type Phase = 'setup' | 'starting' | 'playing' | 'over'
@@ -22,6 +22,8 @@ export interface SlackLive {
   thinking: boolean
   /** True when the human may place a disc now. */
   canMove: boolean
+  /** True from the closing move until the result panel: the discs settle and the finished board is held, with the verdict on the status line. */
+  ending: boolean
   finished: FinishedMatch | null
   /** The result once the match is over, including a resignation (which has no replayable record). */
   result: Result | null
@@ -62,6 +64,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
   const [match, setMatch] = useState<SlackMatch | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [resigned, setResigned] = useState(false)
+  const [ending, setEnding] = useState(false)
   const agent = useRef<WorkerAgent | null>(null)
   const live = useRef<SlackMatch | null>(null)
   const busy = useRef(false)
@@ -85,17 +88,24 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
       const next = applyMove(cur, seat, code)
       live.current = next
       setMatch(next)
-      if (code !== PASS) playCue('place')
+      if (next.last) playMove({ seat: next.last.seat, cell: next.last.cell, flips: next.last.flips }, HUMAN, reducedMotion())
     },
     [recorder],
   )
 
+  /**
+   * The closing move is already on the board. The record is made while the last discs finish turning, then the finished board is held for a beat
+   * with the verdict on the status line, and only then does the result panel come, with the stinger. The board never changes size on the way.
+   */
   const conclude = useCallback(
-    async (cur: SlackMatch) => {
-      const out = await recorder.finish(slackCore, cur.state)
+    async (cur: SlackMatch, mine: number) => {
+      setEnding(true)
+      const [out] = await Promise.all([recorder.finish(slackCore, cur.state), sleep(endDelayMs(reducedMotion()))])
+      if (mine !== epoch.current) return
       setPhase('over')
+      setEnding(false)
       const r = out.record.result
-      playCue(r.winner === null ? 'draw' : r.winner === HUMAN ? 'win' : 'lose', reducedMotion() ? 0 : 550)
+      playCue(r.winner === null ? 'draw' : r.winner === HUMAN ? 'win' : 'lose')
     },
     [recorder],
   )
@@ -111,7 +121,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
           const ag = agent.current
           if (!cur || !ag || mine !== epoch.current) return
           if (slackCore.terminal(cur.state)) {
-            await conclude(cur)
+            await conclude(cur, mine)
             return
           }
           if (cur.state.turn === HUMAN) {
@@ -133,7 +143,10 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
           commit(AGENT_SEAT, code!, cur)
         }
       } catch (e) {
-        if (mine === epoch.current) setFailure(failureLine(e))
+        if (mine === epoch.current) {
+          setFailure(failureLine(e))
+          setEnding(false)
+        }
       } finally {
         if (mine === epoch.current) busy.current = false
       }
@@ -148,6 +161,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
       agent.current?.dispose()
       agent.current = null
       setFailure(null)
+      setEnding(false)
       setPhase('starting')
       setLevel(lvl)
       let opened
@@ -211,7 +225,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
 
   const resign = useCallback(() => {
     const cur = live.current
-    if (phase !== 'playing' || !cur) return
+    if (phase !== 'playing' || !cur || ending) return
     epoch.current++
     agent.current?.dispose()
     agent.current = null
@@ -220,7 +234,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
     setPhase('over')
     void recorder.resign(cur.log.length)
     playCue('lose', reducedMotion() ? 0 : 200)
-  }, [phase, recorder])
+  }, [phase, ending, recorder])
 
   const backToSetup = useCallback(() => {
     epoch.current++
@@ -229,6 +243,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
     agent.current = null
     live.current = null
     busy.current = false
+    setEnding(false)
     setMatch(null)
     setFailure(null)
     setPhase('setup')
@@ -246,6 +261,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
     match,
     thinking,
     canMove,
+    ending,
     finished: resigned ? null : recorder.finished,
     result,
     upload: recorder.upload,
