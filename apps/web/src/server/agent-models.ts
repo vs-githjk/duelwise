@@ -85,7 +85,8 @@ export function isTimeCapped(game: GameId, level: Level): boolean {
 
 /** The shipped agent for a check, built from model bytes this process read. Throws when a model file is missing. */
 export async function makeServerAgent(game: GameId, level: Level, seat: Seat, site: string | null): Promise<CheckAgent> {
-  if (game !== 'holdem') configureOrt()
+  // Hold'em reads a table and Crosscurrent is a plain search: neither loads the onnx runtime.
+  if (game !== 'holdem' && game !== 'slack') configureOrt()
   if (game === 'chess') {
     // The Champion needs only the value net: it runs the page's fixed node budget, so its moves match.
     if (level === 'champion') {
@@ -103,6 +104,10 @@ export async function makeServerAgent(game: GameId, level: Level, seat: Seat, si
     const modelBytes = await publicBytes(`${config.base ?? FOUR_BASE}/${config.model}`, site)
     // The check runs the full simulation count: a time cap would make the result depend on this server's speed.
     return createGameAgent('four', level, { seat, modelBytes, search: { timeCapMs: undefined } } as never) as Promise<CheckAgent>
+  }
+  if (game === 'slack') {
+    // The same factory and the same options as the page's worker (games/slack/worker.ts): a search that stops at a node count, never a clock.
+    return createGameAgent('slack', level, { seat }) as Promise<CheckAgent>
   }
   if (game === 'holdem') {
     const table = loadTable(await publicBytes(`${DEFAULT_TABLE_BASE}/${level}.bin.gz`, site))

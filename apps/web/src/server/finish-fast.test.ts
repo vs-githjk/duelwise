@@ -49,7 +49,7 @@ function gatedCheck(outcome: AgentCheck | Error) {
   return { verifyAgent, deferCheck: (p: Promise<unknown>) => void pending.push(p), open, calls, settled: () => Promise.all(pending) }
 }
 
-for (const game of ['chess', 'four', 'holdem'] as const) {
+for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
   describe(`${game}: a guest's finish answers before the agent check`, () => {
     test('the response comes back while the check is still running, the report is ready, nothing is trainable yet', async () => {
       const m = await begin(game, GUEST)

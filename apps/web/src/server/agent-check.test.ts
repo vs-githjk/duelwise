@@ -6,7 +6,7 @@ import { fakeAgent, play } from './agent-check-fixtures'
 
 const make = (game: GameId, o: Parameters<typeof fakeAgent>[1] = {}) => async () => fakeAgent(game, o)
 
-for (const game of ['chess', 'four', 'holdem'] as const) {
+for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
   describe(`${game}: server re-run of the agent (H1)`, () => {
     test('an honest record is verified, and the server opponent is disposed', async () => {
       let disposed = 0

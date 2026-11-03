@@ -101,7 +101,7 @@ async function playedWord(m: { matchId: string }, swapFirst?: string): Promise<M
 }
 
 describe('a record that contradicts its match is charged as a loss, like a resignation', () => {
-  for (const game of ['chess', 'four', 'holdem'] as const) {
+  for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
     test(`${game}: real play, the wrong seed: the same loss as a resign, and a later resign is refused`, async () => {
       const price = await resignPrice(game)
       const m = await begin(game)
@@ -195,7 +195,7 @@ describe('a seat flip costs the loss: the server holds the player to seat 0', ()
     expect(await rowOf(m.matchId)).toMatchObject({ status: 'finished', recordValid: false, record: null, trainingAllowed: false })
   })
 
-  for (const game of ['chess', 'four', 'holdem'] as const) {
+  for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
     test(`${game}: the agent check refuses seat 1: the same loss as a resign`, async () => {
       const price = await resignPrice(game)
       const m = await begin(game)

@@ -37,7 +37,7 @@ async function begin(game: GameId, who: { userId?: string; guestId?: string } = 
 }
 const ratingOf = async (game: GameId) => (await db.select().from(schema.rating).where(and(eq(schema.rating.userId, 'u-1'), eq(schema.rating.game, game))))[0]
 
-for (const game of ['chess', 'four', 'holdem'] as const) {
+for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
   describe(`${game}: finishing a counted match (H1)`, () => {
     test('an honest record is valid, rates the player, stays trainable and is stored', async () => {
       const m = await begin(game)
