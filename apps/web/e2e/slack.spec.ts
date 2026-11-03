@@ -791,6 +791,86 @@ test.describe('Crosscurrent on a phone', () => {
     expect(errors).toEqual([])
   })
 
+  /** A real unseeded Rated start: a fixed seed or a preset position is never counted. */
+  async function startRated(page: Page) {
+    await page.goto(URL)
+    await expect(page.getByTestId('slack-setup')).toBeVisible()
+    await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+    await page.getByTestId('slack-start').click()
+    await expect(page.getByTestId('slack-board')).toBeVisible()
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you')
+  }
+
+  test('offline in setup: Rated cannot start and says why in the page, Practice still starts, and nothing is covered at 390', async ({ page, context }) => {
+    test.setTimeout(60_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(URL)
+    await expect(page.getByTestId('slack-start')).toBeEnabled()
+    await context.setOffline(true)
+    const pill = page.getByTestId('offline-chip')
+    await expect(pill).toHaveText('Offline: Practice only')
+    // In the page's own flow, not fixed over Start or the header.
+    expect(await pill.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed')
+    await expect(page.getByTestId('slack-offline-line')).toContainText('Rated Crosscurrent needs a connection')
+    await expect(page.getByTestId('slack-start')).toBeDisabled()
+    await expect(page.getByTestId('slack-start')).toHaveText('Rated needs a connection')
+    // Practice works offline.
+    await page.locator('[data-mode-option="practice"]').click()
+    await expect(page.getByTestId('slack-start')).toBeEnabled()
+    await expect(page.getByTestId('slack-start')).toContainText('Start match vs Pip')
+    await page.getByTestId('slack-start').click()
+    await expect(page.getByTestId('slack-board')).toBeVisible()
+    await playOne(page)
+    await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
+    await context.setOffline(false)
+    await expect(page.getByTestId('offline-chip')).toHaveCount(0)
+  })
+
+  test('offline in a live Rated match: the pill says reconnecting in its reserved slot, nothing moves, and the match goes on when back online', async ({ page, context }) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await startRated(page)
+    const before = await page.evaluate(() => document.documentElement.scrollHeight)
+    await context.setOffline(true)
+    await expect(page.getByTestId('offline-chip')).toHaveText('Offline: reconnecting')
+    expect(await page.getByTestId('offline-chip').evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed')
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(before)
+    await context.setOffline(false)
+    await expect(page.getByTestId('offline-chip')).toHaveCount(0)
+    await playOne(page)
+    await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
+  })
+
+  test('offline: every other page keeps the fixed chip and its old line', async ({ page, context }) => {
+    await page.goto('/play/chess')
+    await page.waitForLoadState('networkidle')
+    await context.setOffline(true)
+    await expect(page.getByTestId('offline-chip')).toHaveText('Offline: matches will sync later')
+    expect(await page.getByTestId('offline-chip').evaluate((el) => getComputedStyle(el).position)).toBe('fixed')
+  })
+
+  test('a reload in the middle of a Rated match gives the match up once and setup says so', async ({ page }) => {
+    test.setTimeout(60_000)
+    const gaveUp: string[] = []
+    page.on('request', (r) => { if (/\/api\/resign/.test(r.url())) gaveUp.push(r.url()) })
+    await startRated(page)
+    await playOne(page)
+    await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
+    await page.reload()
+    await expect(page.getByTestId('slack-setup')).toBeVisible()
+    await expect(page.getByTestId('resigned-notice')).toContainText('resigned when you left the page')
+    expect(gaveUp.length).toBeLessThanOrEqual(1)
+  })
+
+  test('at 360 by 640 the Place bar is on screen when a match starts', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 640 })
+    await startRated(page)
+    await page.waitForTimeout(300)
+    const bar = (await page.getByTestId('slack-action').boundingBox())!
+    expect(bar.y).toBeGreaterThanOrEqual(0)
+    expect(bar.y + bar.height).toBeLessThanOrEqual(640)
+  })
+
   test('the sound effects switch in the game header persists across a reload', async ({ page }) => {
     await page.goto(URL)
     await page.getByTestId('game-sound-button').click()

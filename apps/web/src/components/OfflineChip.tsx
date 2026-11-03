@@ -9,13 +9,13 @@ export function useOnline(): boolean {
   return !useSyncExternalStore(subscribeConnection, isOffline, () => false)
 }
 
-/** What the chip says. Stormglass setup cannot start a rated match offline; a rated match already running there is only waiting for the connection. Every other page keeps its line. */
+/** What the chip says (`onStormglass` is true on any page that draws its own pill: Stormglass and Crosscurrent). Stormglass setup cannot start a rated match offline; a rated match already running there is only waiting for the connection. Every other page keeps its line. */
 export function chipText(onStormglass: boolean, ratedLive: boolean): string {
   if (!onStormglass) return 'Offline: matches will sync later'
   return ratedLive ? 'Offline: reconnecting' : 'Offline: Practice only'
 }
 
-/** The pill itself, for a page that shows it in its own flow (Stormglass) so it can never cover the header, the opponent or a button. */
+/** The pill itself, for a page that shows it in its own flow (Stormglass, Crosscurrent) so it can never cover the header, the opponent or a button. */
 export function OfflinePill({ text }: { text: string }) {
   return (
     <p role="status" data-testid="offline-chip" className="w-fit max-w-full rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow">
@@ -24,7 +24,9 @@ export function OfflinePill({ text }: { text: string }) {
   )
 }
 
-const STORMGLASS_PATH = `/play/${PRODUCT.games.fleet.slug}`
+/** Games that cannot start a rated match offline and draw their own pill inside the page. Every other game keeps the fixed chip. */
+const OWN_PILL_PATHS = [`/play/${PRODUCT.games.fleet.slug}`, `/play/${PRODUCT.games.slack.slug}`]
+export const drawsOwnOfflinePill = (pathname: string): boolean => OWN_PILL_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 const CHIP_CORNER = 'bottom-3 left-3'
 
 /**
@@ -34,7 +36,7 @@ const CHIP_CORNER = 'bottom-3 left-3'
 export function OfflineChip() {
   const online = useOnline()
   const ratedLive = useSyncExternalStore(subscribeRatedLive, isRatedLive, () => false)
-  const onStormglass = useRouterState({ select: (s) => s.location.pathname.startsWith(STORMGLASS_PATH) })
+  const ownPill = useRouterState({ select: (s) => drawsOwnOfflinePill(s.location.pathname) })
   // Check once on load, then often while offline (to notice the way back quickly) and rarely while online.
   useEffect(() => {
     let timer = 0
@@ -45,7 +47,7 @@ export function OfflineChip() {
     tick()
     return () => window.clearTimeout(timer)
   }, [])
-  if (online || onStormglass) return null
+  if (online || ownPill) return null
   return (
     <p role="status" data-testid="offline-chip" className={`fixed z-50 rounded-full border border-line bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn-ink shadow ${CHIP_CORNER}`}>
       {chipText(false, ratedLive)}

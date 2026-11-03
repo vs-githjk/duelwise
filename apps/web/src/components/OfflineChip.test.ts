@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { chipText } from './OfflineChip'
+import { chipText, drawsOwnOfflinePill } from './OfflineChip'
 import { isRatedLive, setRatedLive, subscribeRatedLive } from '../lib/match-active'
 
 test('the chip says what is true: Stormglass setup is Practice only, a live rated Stormglass match is reconnecting, every other page keeps its line', () => {
@@ -21,4 +21,11 @@ test('the rated-live flag notifies and clears', () => {
   expect(isRatedLive()).toBe(false)
   expect(calls).toBe(2)
   off()
+})
+
+test('Stormglass and Crosscurrent draw their own pill in the page; every other page keeps the fixed chip', () => {
+  expect(drawsOwnOfflinePill('/play/stormglass')).toBe(true)
+  expect(drawsOwnOfflinePill('/play/crosscurrent')).toBe(true)
+  expect(drawsOwnOfflinePill('/play/crosscurrent/')).toBe(true)
+  for (const p of ['/play/chess', '/play/four-in-a-row', '/play/word-duel', '/play', '/', '/dev/fleet']) expect(drawsOwnOfflinePill(p)).toBe(false)
 })

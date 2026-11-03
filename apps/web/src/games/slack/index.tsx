@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -8,7 +8,11 @@ import { PlayHud } from '../../components/PlayHud'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { ResultPanel } from '../../components/ResultPanel'
 import { StrengthLine } from '../../components/SiteElo'
+import { chipText, OfflinePill } from '../../components/OfflineChip'
+import { isOffline, subscribeConnection } from '../../lib/connection'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
+import { setRatedLive } from '../../lib/match-active'
+import { usePractice } from '../../lib/practice'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { personaFor, styleLine } from '../../personas'
 import { Board } from './Board'
@@ -51,8 +55,15 @@ export default function SlackPage() {
   const [confirming, setConfirming] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
   const [focus, setFocus] = useState(0)
+  const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
+  const practice = usePractice()
+  const hudRef = useRef<HTMLDivElement>(null)
+
+  // Rated needs the server to hold and check the match, so it does not start offline (Practice does). A fixed seed or a preset position was never counted.
+  const ratedNeedsServer = offline && !practice && fixedSeed === undefined && preset === null
 
   const begin = (level: Level) => {
+    if (ratedNeedsServer) return Promise.resolve()
     const s = fixedSeed
     const p = preset
     setFixedSeed(undefined)
@@ -71,6 +82,17 @@ export default function SlackPage() {
   const legal = useMemo(() => (match.canMove && m ? legalCells(m) : []), [match.canMove, m])
   const preview = selected !== null && match.canMove && m ? flipPreview(m, selected) : []
   const closing = over || match.ending
+  // A rated match the server holds is live: the offline pill then says it is reconnecting instead of "Practice only".
+  const ratedLive = match.counted && !practice && match.phase === 'playing'
+  useEffect(() => {
+    setRatedLive(ratedLive)
+    return () => setRatedLive(false)
+  }, [ratedLive])
+  // Start is tapped far down the setup page and the match page is a different layout: start the match at its HUD, so the board and the Place bar are on screen
+  // on a short phone. Before the first paint of the match, instant, so nothing is seen to move.
+  useLayoutEffect(() => {
+    if (match.phase === 'playing') hudRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  }, [match.seed, match.phase === 'playing'])
   const turn = closing ? 'over' : m && m.state.turn !== HUMAN ? 'ai' : 'you'
   const [you, them] = m ? discCounts(m) : [0, 0]
   const verdict = match.resigned ? 'You resigned.' : closing && m ? statusLine(m, name) : ''
@@ -123,6 +145,8 @@ export default function SlackPage() {
       aside={
         match.phase === 'setup' || match.phase === 'starting' ? undefined : (
           <div className="grid gap-4" data-testid="slack-aside">
+            {/* A slot that is always there, so going offline in a match moves nothing and the pill covers nothing. */}
+            <div className="h-10 overflow-hidden" data-testid="slack-offline-slot">{offline ? <OfflinePill text={chipText(true, ratedLive)} /> : null}</div>
             <section className="grid gap-1 rounded-card border border-line bg-surface p-4" data-testid="agent-card">
               <b className="font-display text-display-sm">
                 {name}, {LEVEL_LABEL[match.level]}
@@ -165,6 +189,12 @@ export default function SlackPage() {
           <p className="text-muted">
             Place a disc so a line of {personaFor(picked).name}&apos;s discs ends against one of yours, and every closed line flips. You play dark and move first. The most discs when neither side can move wins.
           </p>
+          {offline ? <OfflinePill text={chipText(true, false)} /> : null}
+          {offline ? (
+            <p className="text-sm text-muted" data-testid="slack-offline-line">
+              Rated Crosscurrent needs a connection, because the server checks the opponent's moves. Practice works offline.
+            </p>
+          ) : null}
           <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} descriptions={STYLE} statsSlug={PRODUCT.games.slack.slug} disabled={match.phase === 'starting'}
             action={
@@ -177,11 +207,11 @@ export default function SlackPage() {
                 <button
                   type="button"
                   data-testid="slack-start"
-                  disabled={match.phase === 'starting'}
+                  disabled={match.phase === 'starting' || ratedNeedsServer}
                   onClick={() => void begin(picked)}
                   className="start-match min-h-12 justify-self-start rounded-control bg-action px-6 font-semibold text-action-ink disabled:opacity-60"
                 >
-                  Start match vs {personaFor(picked).name}
+                  {ratedNeedsServer ? 'Rated needs a connection' : `Start match vs ${personaFor(picked).name}`}
                 </button>
               </>
             }
@@ -189,7 +219,7 @@ export default function SlackPage() {
         </section>
       ) : m ? (
         <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-3 lg:max-w-[520px]">
-          <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
+          <div ref={hudRef} className="scroll-mt-2"><PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} /></div>
           <div className="sl-status" data-testid="slack-status-row">
             <div className="sl-counts" data-testid="slack-counts">
               <span aria-hidden="true">● {you}</span>
