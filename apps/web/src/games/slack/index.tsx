@@ -222,18 +222,21 @@ export default function SlackPage() {
         </section>
       ) : m ? (
         <div className="grid grid-cols-[minmax(0,1fr)] content-start sl-play">
-          <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
-          <div className="sl-status" data-testid="slack-status-row">
-            <div className="sl-counts" data-testid="slack-counts">
-              <span aria-hidden="true">● {you}</span>
-              <span aria-hidden="true">○ {them}</span>
-              <span className="sr-only">
-                You {you} discs, {name} {them} discs.
-              </span>
+          {/* One row on a laptop (the HUD, then the score and the status line); two stacked rows on a phone. */}
+          <div className="sl-top">
+            <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
+            <div className="sl-status" data-testid="slack-status-row">
+              <div className="sl-counts" data-testid="slack-counts">
+                <span aria-hidden="true">● {you}</span>
+                <span aria-hidden="true">○ {them}</span>
+                <span className="sr-only">
+                  You {you} discs, {name} {them} discs.
+                </span>
+              </div>
+              <p className="sl-line" data-testid="slack-status">
+                {status}
+              </p>
             </div>
-            <p className="sl-line" data-testid="slack-status">
-              {status}
-            </p>
           </div>
           <Board match={m} opponent={name} legal={legal} selected={selected} preview={preview} focus={focus} onFocus={setFocus} onTap={onTap} focusKey={match.seed} />
           {over ? null : (

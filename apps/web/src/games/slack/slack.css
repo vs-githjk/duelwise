@@ -4,11 +4,40 @@
  * colours are object colours (--slack-* in tokens.css): the same in every theme, since their contrast is against the board, not the page.
  * Only transforms and opacity change during a move; no box ever resizes.
  */
-/* The play column. A phone and a tablet keep the 520 cap. From 1024 up the column is as wide as the height allows, so the HUD, the status row, the whole
-   board and the Place bar are on screen with no scroll: the 684 cap is the column left beside the 400 result panel in the 1100 shell, so the board never resizes when the result arrives. --sl-chrome is everything on the page that is not the board (nav, header, HUD, status, bar, gaps). */
-.sl-play { max-width: 520px; gap: 12px; --sl-chrome: 363px; }
+/* The play column. A phone and a tablet keep the 520 cap. From 1024 up the board is as large as the height allows, so the HUD and score row, the whole board and
+   the Place bar are on screen with no scroll. --sl-chrome is everything on the page that is not the board: the nav (64), the shell padding (4 + 4), the header (44),
+   the row of the HUD and the score (36), the gaps and the Place bar (48); the Place bar must also end 8px above the bottom edge (the page scrolls to keep it on screen); 237 is the measured sum. The board column and a 400 column for the agent card or the result panel sit
+   side by side, 32 apart, centred as one block; both columns keep their width from the first move to the result panel, so nothing moves when the result arrives.
+   The "recorded for your report" notice (shared; it only restyles here) rides in the top of the aside column instead of across the page. */
+.sl-play { max-width: 520px; gap: 12px; }
+.sl-top { display: contents; }
 @media (min-width: 1024px) {
-  .sl-play { gap: 8px; max-width: min(100%, 684px, max(320px, calc(100dvh - var(--sl-chrome)))); }
+  [data-game='slack'][data-testid='game-shell'] {
+    --sl-chrome: 237px;
+    --sl-w: min(668px, calc(100vw - 496px), max(320px, calc(100dvh - var(--sl-chrome))));
+    position: relative;
+    padding-block: 4px;
+    row-gap: 8px;
+  }
+  [data-game='slack'] .game-shell-content-with-aside { grid-template-columns: var(--sl-w) 400px; justify-content: center; column-gap: 32px; row-gap: 8px; }
+  [data-game='slack'] .game-shell-content[data-has-result] { grid-template-columns: var(--sl-w) 400px; row-gap: 8px; }
+  .sl-play { width: var(--sl-w); max-width: none; gap: 8px; }
+  .sl-top { display: flex; align-items: center; gap: 12px; height: 36px; }
+  .sl-top .play-hud { flex: none; flex-wrap: nowrap; }
+  .sl-top .sl-status { flex: 1; min-width: 0; height: 36px; }
+  .sl-bar { height: 48px; }
+  /* the shared compact notice, lifted over the top of the aside column (a fixed 48px, so the room kept for it is exact) */
+  [data-game='slack'] [data-testid='training-notice'][data-compact] {
+    position: absolute;
+    z-index: 1;
+    top: 56px;
+    left: calc((100% - var(--sl-w) - 432px) / 2 + var(--sl-w) + 32px);
+    width: 400px;
+    height: 48px;
+    overflow: hidden;
+  }
+  [data-game='slack']:has([data-testid='training-notice'][data-compact]) .game-shell-aside { padding-top: 56px; }
+  [data-game='slack']:has([data-testid='training-notice'][data-compact]) .game-shell-result { margin-top: 56px; }
 }
 .sl-board-wrap {
   container-type: inline-size;
@@ -131,11 +160,8 @@
   .sl-disc[data-flip], .sl-disc[data-placed] { animation: none; }
 }
 
-/* status row: fixed 44px (36px on a laptop), text swaps and the box does not move */
+/* status row: fixed 44px (40px on a laptop, beside the HUD), text swaps and the box does not move */
 .sl-status { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-@media (min-width: 1024px) {
-  .sl-status { height: 36px; }
-}
 .sl-counts { display: flex; gap: 12px; font-family: var(--font-mono, monospace); font-size: 16px; white-space: nowrap; }
 .sl-line { flex: 1; min-width: 0; text-align: right; font-size: 14px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
 

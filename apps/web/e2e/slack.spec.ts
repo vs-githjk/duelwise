@@ -161,7 +161,7 @@ for (const width of [360, 390]) {
 
 // On a laptop the board is as large as the screen allows: the whole board, the Place bar and the HUD stay on screen without scrolling. The size comes
 // from the height (the column is wider than any height here allows); a phone and a tablet keep the 520 cap.
-for (const [vw, vh, minBoard] of [[1280, 800, 430], [1440, 900, 530], [1920, 1080, 680]] as const) {
+for (const [vw, vh, minBoard] of [[1280, 800, 560], [1440, 900, 640], [1920, 1080, 660]] as const) {
   test.describe(`desktop ${vw} by ${vh}`, () => {
     test.use({ viewport: { width: vw, height: vh } })
 
@@ -182,12 +182,18 @@ for (const [vw, vh, minBoard] of [[1280, 800, 430], [1440, 900, 530], [1920, 108
       expect(Math.abs(bar.width - board.width)).toBeLessThanOrEqual(1)
       const card = (await page.getByTestId('agent-card').boundingBox())!
       expect(card.x).toBeGreaterThan(board.x + board.width - 1)
+      // the agent card sits right beside the board, not across a wide empty gap
+      expect(card.x - (board.x + board.width)).toBeLessThanOrEqual(40)
+      // the HUD and the score share one row above the board
+      const status = (await page.getByTestId('slack-status-row').boundingBox())!
+      expect(Math.abs(status.y - hudBox.y)).toBeLessThanOrEqual(12)
       await page.getByTestId('slack-resign').click()
       await page.getByTestId('slack-resign-yes').click()
       const panel = (await page.getByTestId('result-panel').boundingBox())!
       expect(panel.x).toBeGreaterThan(board.x + board.width - 1)
       const after = (await page.getByTestId('slack-board').boundingBox())!
       expect(Math.abs(after.width - board.width)).toBeLessThanOrEqual(1)
+      expect(Math.abs(after.x - board.x)).toBeLessThanOrEqual(1)
       await expectNoOverflow(page, 'result')
       await expectTargets(page, 'result')
     })
