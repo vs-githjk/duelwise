@@ -5,8 +5,8 @@ import { join } from 'node:path'
 import { replay } from '../../replay'
 import { encodeRecord, decodeRecord, type MatchRecordV1 } from '../../match-record'
 import { getCore } from '../index'
-import { ALLOWED_TEXT, ANSWERS_TEXT } from './lists.generated'
-import { ALLOWED, ANSWERS, allowedIndex } from './lists'
+import { ALLOWED_TEXT, ANSWERS_TEXT, GUESS_ONLY_TEXT } from './lists.generated'
+import { ALLOWED, ANSWERS, GUESS_ONLY, allowedIndex, answerIndex, isAllowed } from './lists'
 import { wordCore, MAX_GUESSES } from './core'
 import { feedback, patternCode } from './feedback'
 
@@ -114,7 +114,7 @@ describe('word lists', () => {
   })
   test('SOURCE.md records the checksum of each list file', () => {
     const source = read('SOURCE.md')
-    for (const f of ['answers.txt', 'allowed.txt', 'exclude.txt', 'keep-inflected.txt', 'drop-inflected.txt']) {
+    for (const f of ['answers.txt', 'allowed.txt', 'exclude.txt', 'keep-inflected.txt', 'drop-inflected.txt', 'guess-only.txt']) {
       expect(source).toContain(createHash('sha256').update(read(f)).digest('hex'))
     }
   })
@@ -143,7 +143,7 @@ describe('wordCore', () => {
   test('both seats act every round until the game ends', () => {
     const s = wordCore.init(1, { answer })
     expect(wordCore.toAct(s)).toEqual([0, 1])
-    expect(wordCore.legal(s, 0).length).toBe(ALLOWED.length)
+    expect(wordCore.legal(s, 0)).toEqual([...ALLOWED, ...GUESS_ONLY])
     expect(wordCore.terminal(s)).toBe(false)
     expect(wordCore.result(s)).toBeNull()
   })
@@ -214,5 +214,78 @@ describe('wordCore', () => {
     }
     expect(replay(decodeRecord(encodeRecord(record)))).toMatchObject({ ok: true, finalHash: record.finalHash })
     expect(replay({ ...record, finalHash: '0000000000000000' }).ok).toBe(false)
+  })
+})
+
+const TEN = ['cocks', 'horny', 'penis', 'prick', 'queer', 'semen', 'sexed', 'sexes', 'spunk']
+
+describe('guess-only words', () => {
+  const exclude = lines(read('exclude.txt'))
+  test('the file holds the words with an ordinary meaning; dicky is not in SCOWL size 70 or less, so it stays blocked', () => {
+    expect(lines(read('guess-only.txt'))).toEqual(TEN)
+    expect(GUESS_ONLY).toEqual(TEN)
+    expect(GUESS_ONLY_TEXT).toBe(read('guess-only.txt'))
+    expect(isAllowed('dicky')).toBe(false)
+  })
+  test('they are a guess and no answer, and the base list is exactly what it was', () => {
+    for (const w of TEN) {
+      expect(isAllowed(w)).toBe(true)
+      expect(ALLOWED).not.toContain(w)
+      expect(ANSWERS).not.toContain(w)
+      expect(answerIndex(w)).toBe(-1)
+    }
+    expect(ALLOWED.length).toBe(6377)
+    expect(createHash('sha256').update(read('allowed.txt')).digest('hex')).toBe('37a8bd2e58b71f24fd0a0961dca88237c43239e64d32234b382fbd7103183328')
+    expect(createHash('sha256').update(read('answers.txt')).digest('hex')).toBe('f38852f396ae92dd72fb2c108ffef45e11aea4ab8583dfea18de7f6815b2486e')
+  })
+  test('every other excluded word is still blocked as a guess', () => {
+    for (const w of exclude) expect(isAllowed(w)).toBe(TEN.includes(w))
+    expect(exclude.length).toBe(71)
+  })
+  test('no excluded word can ever be a hidden answer', () => {
+    for (const w of exclude) {
+      expect(ANSWERS).not.toContain(w)
+      expect(() => wordCore.init(1, { answer: w })).toThrow()
+    }
+    for (let seed = 0; seed < 3000; seed++) expect(exclude).not.toContain(wordCore.init(seed).answer)
+  })
+  test('every existing word keeps its action index; the new ones come after the last', () => {
+    ALLOWED.forEach((w, i) => {
+      if (allowedIndex(w) !== i) throw new Error(`${w} moved from ${i} to ${allowedIndex(w)}`)
+    })
+    TEN.forEach((w, i) => expect(allowedIndex(w)).toBe(ALLOWED.length + i))
+    for (const w of TEN) expect(wordCore.decodeAction(wordCore.encodeAction(w))).toBe(w)
+    expect(() => wordCore.decodeAction(ALLOWED.length + TEN.length)).toThrow()
+  })
+  test('records stored before the change replay to the same hash and result, under the same core version', () => {
+    const recs = JSON.parse(read('../fixtures/word-3-records.json')) as MatchRecordV1[]
+    expect(recs.length).toBe(60)
+    for (const r of recs) {
+      expect(r.coreVersion).toBe(wordCore.version)
+      const out = replay(r)
+      expect(out).toMatchObject({ ok: true, finalHash: r.finalHash })
+    }
+  })
+  test('a record with a guess-only word replays, survives encoding, and has the right colours', () => {
+    let s = wordCore.init(1)
+    const answer = s.answer
+    const actions: MatchRecordV1['actions'] = []
+    const plan: Array<[string, string]> = [['prick', 'spunk'], ['queer', 'penis'], [answer, 'semen']]
+    plan.forEach(([a, b], tick) => {
+      actions.push([tick, 0, wordCore.encodeAction(a)], [tick, 1, wordCore.encodeAction(b)])
+      s = wordCore.step(s, [a, b])
+    })
+    const record: MatchRecordV1 = {
+      schema: 1, matchId: 'guess-only', game: 'word', coreVersion: wordCore.version, agent: { version: 'v1', level: 'medium' },
+      seed: 1, humanSeat: 0, actions, result: wordCore.result(s)!, finalHash: wordCore.hash(s),
+      startedAt: '2026-11-03T00:00:00.000Z', endedAt: '2026-11-03T00:01:00.000Z', device: 'desktop', input: 'keyboard', trainingAllowed: true,
+    }
+    expect(replay(decodeRecord(encodeRecord(record)))).toMatchObject({ ok: true, finalHash: record.finalHash })
+    const obs = wordCore.observe(s, 0)
+    expect(obs.guesses.slice(0, 2)).toEqual(['prick', 'queer'])
+    expect(obs.feedback[0]).toEqual(Array.from(feedback('prick', answer)))
+    expect(fb('queer', 'quiet')).toBe('22020') // markers work as for any guess
+    expect(fb('sexes', 'seeds')).toBe('22012')
+    expect(() => wordCore.step(wordCore.init(1), ['dicky', 'prick'])).toThrow()
   })
 })

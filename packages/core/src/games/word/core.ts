@@ -2,7 +2,7 @@ import type { GameCore, Result, Seat } from '../../types'
 import { hashState } from '../../hash'
 import { makeRng } from '../../rng'
 import { feedback } from './feedback'
-import { ALLOWED, ANSWERS, allowedIndex, answerIndex, isAllowed } from './lists'
+import { ANSWERS, GUESSABLE, allowedIndex, answerIndex, isAllowed } from './lists'
 
 export const MAX_GUESSES = 6
 
@@ -49,7 +49,7 @@ export const wordCore: GameCore<WordState, string, WordObs> = {
     return { answer: ANSWERS[makeRng(seed).int(ANSWERS.length)]!, guesses: [[], []] }
   },
   toAct: (s) => (isOver(s) ? [] : [0, 1]),
-  legal: (s) => (isOver(s) ? [] : (ALLOWED as string[])),
+  legal: (s) => (isOver(s) ? [] : (GUESSABLE as string[])),
   step(s, actions) {
     if (isOver(s)) throw new Error('word: the game is over')
     const next: [string[], string[]] = [[...s.guesses[0]], [...s.guesses[1]]]
@@ -89,7 +89,7 @@ export const wordCore: GameCore<WordState, string, WordObs> = {
     return i
   },
   decodeAction(n) {
-    const w = ALLOWED[n]
+    const w = GUESSABLE[n]
     if (w === undefined) throw new Error(`word: no allowed word at index ${n}`)
     return w
   },

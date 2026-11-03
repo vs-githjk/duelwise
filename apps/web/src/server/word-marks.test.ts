@@ -218,6 +218,19 @@ describe('the sealed match cannot be finished with a forged record', () => {
     expect(ok.body).toMatchObject({ valid: true })
   })
 
+  test('a guess-only word is marked like any guess and its record is valid; a still-blocked word is refused', async () => {
+    const m = await startWord()
+    expect((await ask(m.matchId, ['dicky'])).status).toBe(400)
+    expect((await ask(m.matchId, ['pussy'])).status).toBe(400)
+    const first = await ask(m.matchId, ['prick'])
+    expect(first.status).toBe(200)
+    expect((first.body as WordMarksBody).marks[0]).toEqual([Array.from(feedback('prick', ANSWER))])
+    const done = (await ask(m.matchId, ['prick', ANSWER])).body as WordMarksBody
+    expect(done.over).toBe(true)
+    const ok = await finishMatchHandler(db, wordRecord(m.matchId, SEED, [['prick', ANSWER], done.reveal!.agentGuesses]), ME)
+    expect(ok.body).toMatchObject({ valid: true })
+  })
+
   test('a finished, sealed match is counted by the stats funnel with no filter reason', async () => {
     const m = await startWord()
     await ask(m.matchId, [ANSWER])

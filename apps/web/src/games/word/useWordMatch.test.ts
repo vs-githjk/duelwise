@@ -129,6 +129,20 @@ describe('useWordMatch: a late reply from an old match', () => {
     expect(calls.map((c) => c.fn)).toEqual(['start', 'setSeed', 'act', 'act', 'finish'])
   })
 
+  test('a guess-only word is accepted and sent for marking; a still-blocked word is refused before any request', async () => {
+    const asked: string[][] = []
+    const hook = mount(async (_id, guesses) => {
+      asked.push(guesses)
+      return { marks: [guesses.map(() => [0, 0, 0, 0, 0]), guesses.map(() => [0, 0, 0, 0, 0])], over: false }
+    })
+    await hook().start('easy')
+    expect(await hook().submit('dicky')).toBe('Not in the word list')
+    expect(await hook().submit('pussy')).toBe('Not in the word list')
+    expect(asked).toEqual([])
+    expect(await hook().submit('prick')).toBeNull()
+    expect(asked).toEqual([['prick']])
+  })
+
   test('an unrated match: a late agent reply after Start again writes nothing', async () => {
     unrated = true
     let release!: (c: number[]) => void
