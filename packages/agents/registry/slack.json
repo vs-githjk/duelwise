@@ -6,13 +6,150 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-03T07:00:00.000Z",
-      "promotedAt": null,
-      "status": "preview",
+      "promotedAt": "2026-11-03T08:35:42.766Z",
+      "status": "measured",
       "artifacts": {},
       "sha256": {},
       "trainedSteps": 0,
       "humanMatchesUsed": 0,
-      "gate": null
+      "gate": {
+        "rule": "adjacent levels: the stronger level, and Pip against random legal play, each need a 95% Wilson lower bound above 0.5 over 400 games on each seat, not only pooled",
+        "summary": "Each level beat the level below, and Pip beat random legal play, from both seats over 400 games a seat",
+        "strengthSource": "scripted search: each level is a hand-written algorithm (slack/levels.ts, slack/search.ts), with no trained model, no self-play and no human games",
+        "seats": "seat 0 moves first; every game starts four seeded random plies in, shared by the two colour-swapped games of a pair, so deterministic levels do not replay one game",
+        "searchLimit": "every search stops at a node count (Sable 120000), never at a clock, so a move is the same on every machine",
+        "gamesPerSeat": 400,
+        "seeds": "pair: 50000000 + 1000000 * (index of the upper level) + game index; baseline: 59000000 + game index; the two sides swap seats every game",
+        "baseline": {
+          "label": "random",
+          "n": 800,
+          "points": 636.5,
+          "score": 0.795625,
+          "ci95": [
+            0.7663,
+            0.822124
+          ],
+          "passed": true,
+          "bySeat": [
+            {
+              "seat": 0,
+              "n": 400,
+              "points": 305.5,
+              "ci95": [
+                0.7197362628593168,
+                0.8027460018009364
+              ]
+            },
+            {
+              "seat": 1,
+              "n": 400,
+              "points": 331,
+              "ci95": [
+                0.7874046541556687,
+                0.8613647929580105
+              ]
+            }
+          ]
+        },
+        "pairs": [
+          {
+            "lower": "easy",
+            "upper": "medium",
+            "n": 800,
+            "points": 684.5,
+            "score": 0.855625,
+            "ci95": [
+              0.829569,
+              0.878282
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 337,
+                "ci95": [
+                  0.8035652072313031,
+                  0.8749188710478882
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 347.5,
+                "ci95": [
+                  0.8321224352464427,
+                  0.8983622475723947
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "medium",
+            "upper": "hard",
+            "n": 800,
+            "points": 757,
+            "score": 0.94625,
+            "ci95": [
+              0.928382,
+              0.959853
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 374.5,
+                "ci95": [
+                  0.9079140972360049,
+                  0.9562864258276366
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 382.5,
+                "ci95": [
+                  0.9314945503842788,
+                  0.9723254809000454
+                ]
+              }
+            ]
+          },
+          {
+            "lower": "hard",
+            "upper": "champion",
+            "n": 800,
+            "points": 665.5,
+            "score": 0.831875,
+            "ci95": [
+              0.804388,
+              0.85619
+            ],
+            "passed": true,
+            "bySeat": [
+              {
+                "seat": 0,
+                "n": 400,
+                "points": 326,
+                "ci95": [
+                  0.774014228053449,
+                  0.8499930264223035
+                ]
+              },
+              {
+                "seat": 1,
+                "n": 400,
+                "points": 339.5,
+                "ci95": [
+                  0.810330861297147,
+                  0.8805343133010075
+                ]
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "levels": {
@@ -53,12 +190,73 @@
         "depth": 6,
         "mobility": true,
         "noise": 1,
+        "openingNoise": {
+          "above": 50,
+          "noise": 30
+        },
         "exactEmpties": 8,
         "nodeCap": 120000
       }
     }
   },
-  "measured": {},
+  "measured": {
+    "easy": {
+      "metric": "score vs random",
+      "value": 0.795625,
+      "ci95": [
+        0.7663,
+        0.822124
+      ],
+      "n": 800,
+      "opponents": "random",
+      "siteElo": 1000,
+      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "harness": "bun",
+      "commit": "ea6a445"
+    },
+    "medium": {
+      "metric": "score vs easy",
+      "value": 0.855625,
+      "ci95": [
+        0.829569,
+        0.878282
+      ],
+      "n": 800,
+      "opponents": "easy",
+      "siteElo": 1309.116587,
+      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "harness": "bun",
+      "commit": "ea6a445"
+    },
+    "hard": {
+      "metric": "score vs medium",
+      "value": 0.94625,
+      "ci95": [
+        0.928382,
+        0.959853
+      ],
+      "n": 800,
+      "opponents": "medium",
+      "siteElo": 1807.367557,
+      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "harness": "bun",
+      "commit": "ea6a445"
+    },
+    "champion": {
+      "metric": "score vs hard",
+      "value": 0.831875,
+      "ci95": [
+        0.804388,
+        0.85619
+      ],
+      "n": 800,
+      "opponents": "hard",
+      "siteElo": 2085.137867,
+      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "harness": "bun",
+      "commit": "ea6a445"
+    }
+  },
   "unpublished": {},
   "unpublishedConfig": {},
   "learnsFromHumans": false

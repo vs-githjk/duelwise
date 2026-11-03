@@ -61,6 +61,23 @@ describe('every real registry: measured or Practice per game and level', () => {
     expect(measuredSet(real('fighter'))).toEqual(['easy', 'medium', 'hard', 'champion'])
     expect(measuredSet(real('arena'))).toEqual(['easy', 'champion'])
   })
+  test('Crosscurrent: exact set, from a scripted search, with 400 games on each seat of every row and no unpublished level', () => {
+    const reg = real('slack')
+    expect(measuredSet(reg)).toEqual(['easy', 'medium', 'hard', 'champion'])
+    expect(reg.learnsFromHumans).toBe(false)
+    expect(reg.unpublished).toEqual({})
+    expect(reg.versions[0]!.status).toBe('measured')
+    const gate = reg.versions[0]!.gate as { strengthSource: string; searchLimit: string; baseline: any; pairs: any[] }
+    expect(gate.strengthSource).toContain('scripted search')
+    expect(gate.searchLimit).toContain('never at a clock')
+    expect(gate.pairs.map((p) => p.upper)).toEqual(['medium', 'hard', 'champion'])
+    for (const row of [gate.baseline, ...gate.pairs]) {
+      expect(row.bySeat.map((s: any) => [s.seat, s.n])).toEqual([[0, 400], [1, 400]])
+      expect(row.bySeat[0].points + row.bySeat[1].points).toBe(row.points)
+      expect(row.bySeat.every((s: any) => wilsonFloor(s.points, s.n) > 0.5)).toBe(true)
+      expect(row.n).toBe(800)
+    }
+  })
   test('Stormglass: exact set, from a scripted solver, with 400 games on each seat of every row', () => {
     const reg = real('fleet')
     expect(measuredSet(reg)).toEqual(['easy', 'medium', 'hard', 'champion'])
