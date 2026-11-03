@@ -31,8 +31,8 @@ export function pretrainingSentence(reg: Registry | null): string | null {
   return `${who} learned from Lichess human games (${band}).`
 }
 
-/** Stormglass has no model at all: its levels are hand-written algorithms, so "yet" would promise training that can never happen. */
-const isScripted = (game: GameId): boolean => game === 'fleet'
+/** Stormglass and Crosscurrent have no model at all: their levels are hand-written algorithms (a flip counter and three searches), so "yet" would promise training that can never happen. */
+const isScripted = (game: GameId): boolean => game === 'fleet' || game === 'slack'
 const NOTHING_TO_TRAIN = 'is a scripted solver and does not learn from matches'
 
 export interface TrainingNoticeCopy {

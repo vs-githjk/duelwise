@@ -12,7 +12,7 @@ const f2 = (v: number) => v.toFixed(2)
 
 /** The graph's heading. A scripted game has nothing to learn, so it names what the graph really shows. */
 export function learnHeading(game: GameId): string {
-  return game === 'fleet' ? `${PRODUCT.games.fleet.displayName} against people` : 'Watch the AI learn'
+  return game === 'fleet' || game === 'slack' ? `${PRODUCT.games[game].displayName} against people` : 'Watch the AI learn'
 }
 
 /**
@@ -34,7 +34,7 @@ export function gateLine(gate: unknown): string | null {
  */
 export function learnCopy(i: { game: GameId; learns: boolean; champion: ChampionFacts | null; sinceCount: number; sinceEligible: number }): { title: string; body: string } {
   const name = PRODUCT.games[i.game].displayName
-  if (i.game === 'fleet') {
+  if (i.game === 'fleet' || i.game === 'slack') {
     return {
       title: `${name} is a scripted solver with nothing to train.`,
       body: `${name} is a scripted solver, not a learned model: each level is a different algorithm, so there is nothing to train. Your match is recorded for your report and the board.`,

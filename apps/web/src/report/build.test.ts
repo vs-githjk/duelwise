@@ -206,3 +206,14 @@ describe('Fleet report', () => {
     expect(r.moments.map((m) => m.kind)).toEqual(['end'])
   })
 })
+
+describe('Crosscurrent report (result only until its own report lands)', () => {
+  test('a Crosscurrent record is not read as a Hold\'em hand', () => {
+    const r = buildReportBody(playRandom('slack', 3, 0))
+    expect(r.game).toBe('slack')
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+    expect(r.moments[0]!.text).toMatch(/discs/)
+    expect(r.evaluator).toBe('none')
+    expect(r.moves).toBeGreaterThan(0)
+  })
+})

@@ -73,6 +73,10 @@ export function resultSentence(result: Result, humanSeat: Seat, opponent: string
       return humanWon ? `${opponent} conceded.` : `${You} conceded.`
     case 'fleet sunk':
       return humanWon ? `${You} sank all five of ${opponent}'s ships.` : `${opponent} sank ${third ? "the player's" : 'your'} whole fleet.`
+    case 'most discs':
+      return humanWon ? `${You} finished with more discs than ${opponent}.` : `${opponent} finished with more discs than ${you}.`
+    case 'level on discs':
+      return 'Both sides finished with the same number of discs, so the game is a draw.'
     case 'four in a row':
       return `${who} connected four in a row.`
     case 'board full':

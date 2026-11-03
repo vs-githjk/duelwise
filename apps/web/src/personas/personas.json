@@ -18,7 +18,8 @@
         "word": "Guesses any word that fits what it knows, and sometimes overlooks a clue.",
         "fighter": "Short strings, blocks late, never punishes.",
         "arena": "Walks open lanes and aims after you do.",
-        "fleet": "Fires at random and usually forgets to follow up a hit."
+        "fleet": "Fires at random and usually forgets to follow up a hit.",
+        "slack": "Grabs the most discs it can and loves a corner."
       }
     },
     "medium": {
@@ -33,7 +34,8 @@
         "word": "Guesses the most common word that fits every clue.",
         "fighter": "Anti-airs on reaction, drops long combos.",
         "arena": "Holds angles, trades evenly in open fights.",
-        "fleet": "Hunts every other square, then works around a hit."
+        "fleet": "Hunts every other square, then works around a hit.",
+        "slack": "Knows which squares matter and looks at your reply."
       }
     },
     "hard": {
@@ -48,7 +50,8 @@
         "word": "Picks the guess from the remaining candidates that splits them best.",
         "fighter": "Whiff punishes and full combos on counter hit.",
         "arena": "Pre-aims common peeks and wins first contact.",
-        "fleet": "Hunts where ships fit best, then works around a hit."
+        "fleet": "Hunts where ships fit best, then works around a hit.",
+        "slack": "Looks a few moves ahead and limits your options."
       }
     },
     "champion": {
@@ -63,7 +66,8 @@
         "word": "Looks a further guess ahead, choosing from every allowed word.",
         "fighter": "Reacts at the minimum delay; still blocks like a person.",
         "arena": "Quick counter-aim at any range.",
-        "fleet": "Fires at the most likely square every time, hunting or finishing."
+        "fleet": "Fires at the most likely square every time, hunting or finishing.",
+        "slack": "Looks furthest ahead and works out the endgame exactly when it can."
       }
     }
   },

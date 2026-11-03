@@ -13,10 +13,11 @@ const BASE: Record<GameId, string> = {
   fighter: '2.5D fighter, best of 3.',
   arena: 'First-person 1v1 shooter, first to 7 rounds.',
   fleet: 'Hidden fleets, ten by ten. Find theirs first.',
+  slack: 'Close a line of their discs between two of yours and it flips.',
 }
 
 /** The noun the tile counts this week's matches in. */
-export const MATCH_NOUN: Record<GameId, string> = { chess: 'games', four: 'games', holdem: 'matches', word: 'duels', fighter: 'fights', arena: 'matches', fleet: 'matches' }
+export const MATCH_NOUN: Record<GameId, string> = { chess: 'games', four: 'games', holdem: 'matches', word: 'duels', fighter: 'fights', arena: 'matches', fleet: 'matches', slack: 'games' }
 
 const named = (level: Level) => personaFor(level).name
 const SIM_HZ = 60

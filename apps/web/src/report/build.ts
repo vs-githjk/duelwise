@@ -99,6 +99,8 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
   const end: Moment = { kind: 'end', label: kind === 'realtime' ? 'Final score' : 'Result', tag: 'result', text: sentence }
   // Fleet has its own report and must never fall to the Hold'em path below.
   if (rec.game === 'fleet') return { ...base, moments: fleetMoments(rec, sentence, opponent) }
+  // Crosscurrent: result only until its own report lands, and never the Hold'em path below.
+  if (rec.game === 'slack') return { ...base, moves: humanActionCount(rec), moments: [end] }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)

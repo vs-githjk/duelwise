@@ -44,6 +44,12 @@ export const guides: Record<GameId, Guide> = {
     controls: [{ keys: 'Touch or mouse', action: 'tap a square to aim, tap again or press Fire to shoot' }, { keys: 'Enter or Space', action: 'aim, then fire' }, { keys: 'Arrow keys', action: 'move between squares on a grid' }, { keys: 'R', action: 'rotate the ship you are placing' }],
     win: 'Sink all five ships first. The first fleet to go down loses, so there are no draws.', tip: 'Their smallest ship is 2 long: when only it is left, it hides in the gaps you have not checked.',
   },
+  slack: {
+    goal: 'Finish with more discs than your opponent when neither side can move.',
+    steps: ['You play the dark discs and move first. Place a disc on an empty cell so that a straight line of their pale discs, across, down or diagonally, ends in another of your discs. Every pale disc in that line flips to dark.', 'A ring marks each cell where you may place. Tap a ring to pick it: small dots show the discs that would flip. Tap it again, or press Place, to play it.', 'If you have no legal cell, you pass and your opponent plays again. The game ends when neither side can move, usually when the board is full.', 'Corners can never be flipped. Edges are hard to flip.'],
+    controls: [{ keys: 'Touch or mouse', action: 'tap a ringed cell to pick it, tap it again or press Place to play it' }, { keys: 'Arrow keys', action: 'move between cells' }, { keys: 'Home or End', action: 'jump to the first or last cell in a row' }, { keys: 'Enter or Space', action: 'pick the focused cell, then play it' }],
+    win: 'When neither side can move, the side with more discs wins. Equal discs is a draw.', tip: 'Flipping the most discs is rarely the best move. Giving your opponent few cells to play often is.',
+  },
 }
 
 const seen = new Set<GameId>()

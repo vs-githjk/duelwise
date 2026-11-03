@@ -1,10 +1,10 @@
 # Duelwise
 
-[![Duelwise: Can you beat my agents? Seven games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
+[![Duelwise: Can you beat my agents? Eight games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
 
 **Can you beat my agents?**
 
-Seven games. Learning from you, starting with Four in a Row. Beat them if you can.
+Eight games. Learning from you, starting with Four in a Row. Beat them if you can.
 
 **[Play now at duelwise.app](https://duelwise.app)**. No sign-up and no email: a name is enough. Google or GitHub sign-in is optional.
 
@@ -12,7 +12,7 @@ Pick a game and sit down across from Pip, Marlow, Vesper or Sable. Pip is easy t
 
 ## The games
 
-Seven games, each with a built-in opponent at four levels:
+Eight games, each with a built-in opponent at four levels:
 
 | Game | What it is |
 |---|---|
@@ -23,6 +23,7 @@ Seven games, each with a built-in opponent at four levels:
 | Tinderbox | A 2.5D fighter. Real time. |
 | Coldstore | A first-person arena shooter. Real time. |
 | Stormglass | Hidden fleets on a ten by ten grid. Find theirs first. |
+| Crosscurrent | Close a line of their discs between two of yours and it flips. Most discs wins. |
 
 The four opponents are the same four characters in every game, one per level, each with its own style per game (`apps/web/src/personas/personas.json`):
 

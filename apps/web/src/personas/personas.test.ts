@@ -169,3 +169,13 @@ test('Pip on Stormglass follows up a hit only 35 percent of the time, so the lin
   expect(styleLine('easy', 'fleet')).toBe('Fires at random and usually forgets to follow up a hit.')
   expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and no look-ahead.')
 })
+
+test('Crosscurrent has a true style line for each level and its Sable is a search program, not a human-like player', () => {
+  expect(styleLine('easy', 'slack')).toBe('Grabs the most discs it can and loves a corner.')
+  expect(styleLine('medium', 'slack')).toBe('Knows which squares matter and looks at your reply.')
+  expect(styleLine('hard', 'slack')).toBe('Looks a few moves ahead and limits your options.')
+  expect(styleLine('champion', 'slack')).toMatch(/endgame/)
+  expect(bioFor('champion', 'slack')).toBe('The house champion. A search program, not a learned player.')
+  expect(bioFor('champion', 'slack')).not.toMatch(/Human-like|reaction limit/)
+  for (const level of ['easy', 'medium', 'hard'] as const) expect(bioFor(level, 'slack')).toBe(personaFor(level).bio)
+})

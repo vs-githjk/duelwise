@@ -117,3 +117,10 @@ test('a practice match with buy-backs says its chips count every stack', () => {
   expect(resultSentence(r(null, 'chips level after 10 hands'), 0, 'Pip', false, 2)).toBe('Chips were level after 10 hands, counting all 3 stacks.')
   expect(resultSentence(r(1, 'ahead by 300 chips after 10 hands'), 0, 'Pip')).toBe('Pip finished 300 chips ahead after 10 hands.')
 })
+
+test('Crosscurrent results name the disc rule, never the raw reason', () => {
+  const win: Result = { winner: 0, score: [1, 0], reason: 'most discs' }
+  expect(resultSentence(win, 0, 'Pip')).toBe('You finished with more discs than Pip.')
+  expect(resultSentence({ winner: 1, score: [0, 1], reason: 'most discs' }, 0, 'Pip')).toBe('Pip finished with more discs than you.')
+  expect(resultSentence({ winner: null, score: [0.5, 0.5], reason: 'level on discs' } as Result, 0, 'Pip')).toMatch(/same number of discs.*draw/)
+})

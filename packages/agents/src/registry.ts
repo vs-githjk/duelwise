@@ -38,7 +38,7 @@ export const VersionSchema = z.object({
 })
 
 export const RegistrySchema = z.object({
-  game: z.enum(['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet']),
+  game: z.enum(['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack']),
   champion: z.string().min(1),
   versions: z.array(VersionSchema).min(1),
   levels: z.partialRecord(LevelKey, z.object({ version: z.string().min(1), config: z.record(z.string(), z.unknown()) })),

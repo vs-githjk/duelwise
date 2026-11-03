@@ -1,4 +1,4 @@
-export type GameId = 'chess' | 'four' | 'holdem' | 'word' | 'fighter' | 'arena' | 'fleet'
+export type GameId = 'chess' | 'four' | 'holdem' | 'word' | 'fighter' | 'arena' | 'fleet' | 'slack'
 export type Level = 'easy' | 'medium' | 'hard' | 'champion'
 
 export interface GameConfig {
@@ -25,6 +25,7 @@ const GAMES: Record<GameId, GameConfig> = {
   fighter: { displayName: 'Tinderbox', slug: 'tinderbox', kind: 'realtime', devices: 'desktop' },
   arena: { displayName: 'Coldstore', slug: 'coldstore', kind: 'realtime', devices: 'desktop' },
   fleet: { displayName: 'Stormglass', slug: 'stormglass', kind: 'turn', devices: 'all' },
+  slack: { displayName: 'Crosscurrent', slug: 'crosscurrent', kind: 'turn', devices: 'all' },
 }
 
 // The only place the product name lives. A game is playable when

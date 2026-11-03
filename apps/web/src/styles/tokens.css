@@ -49,6 +49,14 @@
   --game-fighter: #e8500e;
   --game-arena: #0a95b8;
   --game-fleet: #1b4d7a;
+  --game-slack: #2f7f78;
+
+  /* crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board */
+  --slack-water: #4f8580;
+  --slack-water-deep: #477a75;
+  --slack-line: #3a6763;
+  --slack-dark: #1f2a30;
+  --slack-pale: #f6efe3;
 
   /* stormglass surfaces */
   --sea: #dcecf6;
@@ -188,6 +196,12 @@
   --color-game-fighter: var(--game-fighter);
   --color-game-arena: var(--game-arena);
   --color-game-fleet: var(--game-fleet);
+  --color-game-slack: var(--game-slack);
+  --color-slack-water: var(--slack-water);
+  --color-slack-water-deep: var(--slack-water-deep);
+  --color-slack-line: var(--slack-line);
+  --color-slack-dark: var(--slack-dark);
+  --color-slack-pale: var(--slack-pale);
   --color-sea: var(--sea);
   --color-sea-line: var(--sea-line);
   --color-sea-deep: var(--sea-deep);

@@ -1,0 +1,65 @@
+{
+  "game": "slack",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-11-03T07:00:00.000Z",
+      "promotedAt": null,
+      "status": "preview",
+      "artifacts": {},
+      "sha256": {},
+      "trainedSteps": 0,
+      "humanMatchesUsed": 0,
+      "gate": null
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "algorithm": "greedy-flips-with-corner-pull",
+        "kind": "greedy",
+        "cornerBonus": 20,
+        "randomPercent": 20
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "algorithm": "search-2-ply",
+        "kind": "search",
+        "depth": 2,
+        "mobility": false,
+        "noise": 4
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "algorithm": "search-4-ply-mobility",
+        "kind": "search",
+        "depth": 4,
+        "mobility": true,
+        "noise": 2
+      }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "algorithm": "search-6-ply-mobility-exact-endgame",
+        "kind": "search",
+        "depth": 6,
+        "mobility": true,
+        "noise": 1,
+        "exactEmpties": 8,
+        "nodeCap": 120000
+      }
+    }
+  },
+  "measured": {},
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": false
+}
