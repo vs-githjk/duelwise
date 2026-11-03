@@ -511,10 +511,12 @@ test.describe('Crosscurrent on a phone', () => {
     })
     // The page's own title does not change size or place when the match starts (the dev page shrank its heading, which moved everything below it).
     const title = page.getByRole('heading', { level: 1 })
-    const titleBefore = (await title.boundingBox())!
+    // Measured on the page, not the screen: on a short phone the page may scroll to bring the Place bar up, which is not the title moving.
+    const docBox = () => title.evaluate((el) => { const r = el.getBoundingClientRect(); return { y: r.top + window.scrollY, height: r.height } })
+    const titleBefore = await docBox()
     await page.getByTestId('slack-start').click()
     await expect(page.getByTestId('slack-board')).toBeVisible()
-    const titleAfter = (await title.boundingBox())!
+    const titleAfter = await docBox()
     expect(Math.abs(titleAfter.y - titleBefore.y)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(titleAfter.height - titleBefore.height)).toBeLessThanOrEqual(0.5)
     await playOne(page)
