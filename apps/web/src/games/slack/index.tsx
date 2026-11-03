@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -57,7 +57,6 @@ export default function SlackPage() {
   const [focus, setFocus] = useState(0)
   const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
   const practice = usePractice()
-  const hudRef = useRef<HTMLDivElement>(null)
 
   // Rated needs the server to hold and check the match, so it does not start offline (Practice does). A fixed seed or a preset position was never counted.
   const ratedNeedsServer = offline && !practice && fixedSeed === undefined && preset === null
@@ -88,10 +87,14 @@ export default function SlackPage() {
     setRatedLive(ratedLive)
     return () => setRatedLive(false)
   }, [ratedLive])
-  // Start is tapped far down the setup page and the match page is a different layout: start the match at its HUD, so the board and the Place bar are on screen
-  // on a short phone. Before the first paint of the match, instant, so nothing is seen to move.
+  // On a short phone the Place bar can start below the fold. Before the first paint of a match, scroll just far enough to bring it on screen (instant, so nothing is
+  // seen to move); where it already fits, nothing scrolls and the page stays exactly where it was.
   useLayoutEffect(() => {
-    if (match.phase === 'playing') hudRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    if (match.phase !== 'playing') return
+    const bar = document.querySelector('[data-testid="slack-action"]')
+    if (!bar) return
+    const over = bar.getBoundingClientRect().bottom - window.innerHeight + 8
+    if (over > 0) window.scrollBy({ top: over, behavior: 'instant' })
   }, [match.seed, match.phase === 'playing'])
   const turn = closing ? 'over' : m && m.state.turn !== HUMAN ? 'ai' : 'you'
   const [you, them] = m ? discCounts(m) : [0, 0]
@@ -219,7 +222,7 @@ export default function SlackPage() {
         </section>
       ) : m ? (
         <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-3 lg:max-w-[520px]">
-          <div ref={hudRef} className="scroll-mt-2"><PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} /></div>
+          <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
           <div className="sl-status" data-testid="slack-status-row">
             <div className="sl-counts" data-testid="slack-counts">
               <span aria-hidden="true">● {you}</span>
