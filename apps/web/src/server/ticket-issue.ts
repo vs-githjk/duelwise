@@ -3,6 +3,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { isSealed } from '@duelwise/core/src/sealed'
+import type { Seat } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
 import { adoptTicket, issueMatchRow, mayUseTicket, trainingFor, type Caller, type HandlerResponse, type StartOptions } from './match-handlers'
 import { ABANDONED_ROW, settleAbandoned, type AbandonOptions } from './abandon'
@@ -32,6 +33,8 @@ export interface Ticket {
   level: Level
   seed: number
   agentVersion: string
+  /** The side the server gave this match (games with random sides). Absent on a ticket issued before sides existed, which is seat 0. */
+  humanSeat?: Seat
   /** Epoch milliseconds. */
   expiresAt: number
 }
@@ -42,7 +45,7 @@ export interface TicketsBody {
   viewer: TicketOwner
 }
 
-export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'recordsTrainable'> & { now?: () => Date }
+export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'side' | 'recordsTrainable'> & { now?: () => Date }
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })
 
@@ -124,7 +127,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
     for (let i = 0; i < room; i++) {
       const flags: TicketFlags = { ticketIssuedAt: now.getTime(), ticketExpiresAt: now.getTime() + TICKET_TTL_MS, ticketPlayerAllowed: playerAllowed }
       const row = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { status: 'ticket', filterFlags: flags as unknown as Record<string, unknown> })
-      tickets.push({ matchId: row.matchId, owner, game: game as GameId, level: level as Level, seed: row.seed, agentVersion: row.agentVersion, expiresAt: flags.ticketExpiresAt })
+      tickets.push({ matchId: row.matchId, owner, game: game as GameId, level: level as Level, seed: row.seed, agentVersion: row.agentVersion, ...(row.humanSeat === undefined ? {} : { humanSeat: row.humanSeat }), expiresAt: flags.ticketExpiresAt })
     }
     // Read the counts again: rows another process committed meanwhile show up now, and this request gives back what no longer fits.
     const after = await usage(db, who, game, level, now)

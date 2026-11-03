@@ -31,7 +31,7 @@ const USER = { userId: 'u-1' }
 const CHECKED: FinishOptions = { verifyAgent: (rec) => checkAgentMoves(rec, { makeAgent: async (g) => fakeAgent(g) }) }
 
 async function begin(game: GameId, who: { userId?: string; guestId?: string } = USER, seed = 21) {
-  const r = await startMatchHandler(db, { game, level: 'hard' }, who, { seed: () => seed })
+  const r = await startMatchHandler(db, { game, level: 'hard' }, who, { seed: () => seed, side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }

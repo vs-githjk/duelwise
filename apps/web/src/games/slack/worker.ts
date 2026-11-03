@@ -5,7 +5,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent } from '@duelwise/agents/src/slack/agent'
 import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 
-export type ToWorker = { type: 'reset'; level: Level; seed: number } | { type: 'act'; id: number; obs: unknown }
+export type ToWorker = { type: 'reset'; level: Level; seed: number; seat?: 0 | 1 } | { type: 'act'; id: number; obs: unknown }
 /** `loaded` means the script and the search module are in. `failed` with id 0 is an agent that could not be built; any other id answers one `act`. */
 export type FromWorker = { type: 'loaded' } | { type: 'ready' } | { type: 'acted'; id: number; action: number } | { type: 'failed'; id: number; message: string }
 
@@ -17,8 +17,8 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
   if (msg.type === 'reset') {
     ready = (async () => {
       agent?.dispose()
-      agent = await createGameAgent(msg.level, { seat: 1 })
-      agent.reset(msg.seed)
+      agent = await createGameAgent(msg.level, { seat: msg.seat ?? 1 })
+      agent.reset(msg.seed, msg.seat)
       ;(self as unknown as Worker).postMessage({ type: 'ready' } satisfies FromWorker)
     })().catch((err) => {
       agent = null

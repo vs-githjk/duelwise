@@ -4,7 +4,7 @@ import type { Agent, PreviewAgent } from '../agent-types'
 
 export type WorkerRequest =
   | { id: number; type: 'init'; game: GameId; level: Level; seat?: 0 | 1; factoryModule?: string }
-  | { id: number; type: 'reset'; seed: number }
+  | { id: number; type: 'reset'; seed: number; seat?: 0 | 1 }
   | { id: number; type: 'act'; obs: unknown; state?: unknown }
   | { id: number; type: 'dispose' }
 
@@ -33,7 +33,7 @@ export function createWorkerHost(factory: Factory = defaultFactory): (msg: Worke
         }
         case 'reset':
           if (!agent) throw new Error('agent not initialised')
-          agent.reset(msg.seed)
+          agent.reset(msg.seed, msg.seat)
           return { id: msg.id, ok: true }
         case 'act':
           if (!agent) throw new Error('agent not initialised')

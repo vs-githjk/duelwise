@@ -7,7 +7,8 @@ import { replay } from '@duelwise/core/src/replay'
 import { isSealed } from '@duelwise/core/src/sealed'
 import { loggedOutcome, recordMatchesLog } from '@duelwise/core/src/sealed-log'
 import { wordCore } from '@duelwise/core/src/games/word/core'
-import type { Result } from '@duelwise/core/src/types'
+import { assignedSeat, HUMAN_SEAT_FLAG, hasRandomSide, sideForSeed } from '@duelwise/core/src/sides'
+import type { Result, Seat } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
 import { defaultTrainingAllowed, guestOptedOut } from './profile'
 import { sweepOpenOverCap } from './abandon'
@@ -48,6 +49,8 @@ export interface StartBody {
   agentVersion: string
   /** True when the seed is withheld because it would give away hidden information (Word Duel's answer). */
   sealed?: boolean
+  /** The side the server gave the player: 0 moves first (White in chess), 1 moves second. Present only for a game with random sides; absent means 0. */
+  humanSeat?: Seat
 }
 
 export interface FinishBody {
@@ -95,6 +98,8 @@ export interface StartOptions {
   agentVersion?: (game: GameId, level: Level) => string
   /** Seed source; tests inject one. Default: crypto, an unsigned 32-bit integer. */
   seed?: () => number
+  /** The player's side for a game with random sides, from the match seed; tests inject one. Default: sideForSeed. */
+  side?: (game: GameId, seed: number) => Seat
   /** The request's browser string; only its device class is stored (telemetry). */
   userAgent?: string | null
   /** Whether the game's records may be trainable at all; a game that does not learn from humans starts untrainable. Default: yes. */
@@ -163,11 +168,14 @@ export async function issueMatchRow(
   game: GameId,
   level: Level,
   trainingAllowed: boolean,
-  opts: Pick<StartOptions, 'agentVersion' | 'seed'>,
+  opts: Pick<StartOptions, 'agentVersion' | 'seed' | 'side'>,
   row: { status?: schema.MatchStatus; filterFlags?: Record<string, unknown>; call?: Level | null } = {},
-): Promise<{ matchId: string; seed: number; agentVersion: string }> {
+): Promise<{ matchId: string; seed: number; agentVersion: string; humanSeat?: Seat }> {
   const agentVersion = (opts.agentVersion ?? (() => 'v1'))(game, level)
   const seed = (opts.seed ?? randomSeed)()
+  // The side is the server's, fixed here with the seed and stored with the row; the finish step holds the uploaded record to it. A row with no flag is seat 0.
+  const humanSeat = hasRandomSide(game) ? (opts.side ?? sideForSeed)(game, seed) : undefined
+  const filterFlags = humanSeat === undefined ? row.filterFlags : { ...(row.filterFlags ?? {}), [HUMAN_SEAT_FLAG]: humanSeat }
   const matchId = crypto.randomUUID()
   await db.insert(schema.match).values({
     id: matchId,
@@ -180,10 +188,10 @@ export async function issueMatchRow(
     traffic: who.traffic ?? null,
     status: row.status ?? 'started',
     trainingAllowed,
-    ...(row.filterFlags ? { filterFlags: row.filterFlags } : {}),
+    ...(filterFlags ? { filterFlags } : {}),
     ...(row.call ? { call: row.call } : {}),
   })
-  return { matchId, seed, agentVersion }
+  return { matchId, seed, agentVersion, ...(humanSeat === undefined ? {} : { humanSeat }) }
 }
 
 /** Issues the seed. Rated matches must use this seed, so a player cannot pick the position. */
@@ -223,12 +231,12 @@ export async function startMatchHandler(
 
   // The call ("How far do you think you get?") is optional and only a level name; anything else is ignored.
   const calledLevel = typeof call === 'string' && LEVELS.includes(call) ? (call as Level) : null
-  const { matchId, seed, agentVersion } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel, ...(chosen || isPracticeMatch ? { filterFlags: { ...(chosen ? { holdemOptions: chosen } : {}), ...(isPracticeMatch ? { [PRACTICE_FLAG]: true } : {}) } } : {}) })
+  const { matchId, seed, agentVersion, humanSeat } = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { call: calledLevel, ...(chosen || isPracticeMatch ? { filterFlags: { ...(chosen ? { holdemOptions: chosen } : {}), ...(isPracticeMatch ? { [PRACTICE_FLAG]: true } : {}) } } : {}) })
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
   if (isSealed(game as GameId)) return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
-  return { status: 200, body: { matchId, seed, agentVersion } }
+  return { status: 200, body: { matchId, seed, agentVersion, ...(humanSeat === undefined ? {} : { humanSeat }) } }
 }
 
 /**
@@ -380,6 +388,7 @@ export async function finishMatchHandler(
   else if (ticketed && rec.agent.version !== row.agentVersion) reason = `this offline match was played against agent ${rec.agent.version}, but its ticket was issued for ${row.agentVersion}`
   else if (ticketed && opts.currentAgentVersion && opts.currentAgentVersion(row.game as GameId, row.level as Level) !== row.agentVersion) reason = 'the opponent was updated after this offline ticket was issued, so the match cannot be checked'
   // The player is always seat 0 in a real-time game and replay never reads this field, so a seat-1 upload would put a lost match on the board and the path as a win.
+  else if (hasRandomSide(row.game as GameId) && rec.humanSeat !== assignedSeat(row.filterFlags)) reason = `seat does not match the side issued for this match (issued seat ${assignedSeat(row.filterFlags)}, record says seat ${rec.humanSeat})`
   else if (PRODUCT.games[row.game as GameId].kind === 'realtime' && rec.humanSeat !== 0) reason = 'a real-time match is played from seat 0'
   else {
     const out = replay(rec)
@@ -449,11 +458,11 @@ export async function finishMatchHandler(
   if (!valid) {
     // The game, level and seed are the server's own values and every build only echoes them, so a record that contradicts one was edited
     // to throw the match away: a loss at this match's rating, as if resigned. The seat is the same in the games the server holds to seat 0:
-    // every page records the fixed seat 0, so a flip costs the loss instead of escaping free. The compare-and-set above makes it once only.
+    // every page records the seat the server gave it (seat 0 where the game has no random side), so a flip costs the loss instead of escaping free. The compare-and-set above makes it once only.
     // Elsewhere everything else stays free, because it cannot be told from an honest failure: a stale build (core version, match length), a client bug
     // (the page uploads records its own replay failed), a model changed mid-match (agent check) and an offline ticket (played unseen).
     const seatHeld = isSealed(row.game as GameId) || SERVER_CHECKED.includes(row.game as GameId)
-    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed || (seatHeld && rec.humanSeat !== 0)
+    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed || (seatHeld && rec.humanSeat !== assignedSeat(row.filterFlags))
     // A sealed turn game needs no guess: the seed is revealed after a loss, so an edit can look like anything, but the server holds the match itself.
     // The agent won: the loss, whatever went wrong with the record. Still running: the page uploads only after the server says the match is over
     // (useFleetMatch finishCounted), so no honest build sends this; it is giving up. The player won: nothing, no gain and no charge.

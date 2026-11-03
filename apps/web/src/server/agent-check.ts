@@ -2,6 +2,7 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { getCore } from '@duelwise/core/src/games/index'
 import { isLegal } from '@duelwise/core/src/games/holdem/match'
+import { hasRandomSide } from '@duelwise/core/src/sides'
 import type { Seat } from '@duelwise/core/src/types'
 
 /** Games whose agent is re-run on the server. Word Duel plays its agent on the server already; the real-time games have no check yet. Crosscurrent's search is a pure function of the position and a seeded rng with a node cap and no clock, so the server reproduces every move. */
@@ -10,7 +11,7 @@ export const SERVER_CHECKED: readonly GameId[] = ['chess', 'four', 'holdem', 'sl
 /** The agent surface the check needs (a subset of the agents package's PreviewAgent). */
 export interface CheckAgent {
   act(obs: unknown, state?: unknown): Promise<number[]>
-  reset(seed: number): void
+  reset(seed: number, seat?: Seat): void
   dispose(): void
   preview: boolean
 }
@@ -61,10 +62,10 @@ export const CHECK_CLAIM_MS = Math.max(CHAMPION_CHECK_BUDGET_MS, CHESS_CHAMPION_
  */
 export async function checkAgentMoves(rec: MatchRecordV1, opts: AgentCheckOptions): Promise<AgentCheck> {
   if (!SERVER_CHECKED.includes(rec.game)) return { kind: 'unverified', reason: `${rec.game} agent moves are not checked on the server` }
-  if (rec.humanSeat !== 0) return { kind: 'unverified', reason: 'only a human in seat 0 can be checked' }
+  if (rec.humanSeat !== 0 && !hasRandomSide(rec.game)) return { kind: 'unverified', reason: 'only a human in seat 0 can be checked' }
   const now = opts.now ?? Date.now
   const deadline = now() + (opts.budgetMs ?? DEFAULT_CHECK_BUDGET_MS)
-  const agentSeat: Seat = 1
+  const agentSeat: Seat = rec.humanSeat === 0 ? 1 : 0
   let agent: CheckAgent | null = null
   try {
     try {
@@ -74,7 +75,7 @@ export async function checkAgentMoves(rec: MatchRecordV1, opts: AgentCheckOption
     }
     if (agent.preview) return { kind: 'unverified', reason: 'the opponent for this level is a preview with no fixed play' }
     const core = getCore(rec.game)
-    agent.reset(rec.seed)
+    agent.reset(rec.seed, agentSeat)
     let s = core.init(rec.seed, rec.options)
     let i = 0
     let tick = 0

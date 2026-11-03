@@ -117,6 +117,21 @@ describe('the answer depends only on the observation and the rng', () => {
     a0.dispose()
     a1.dispose()
   })
+
+  test('reset(seed, seat) re-seats an agent made for the other seat: it then plays exactly as one made for that seat', async () => {
+    // A page builds the opponent before the server says which side the player has, so the seat arrives with the reset.
+    const states = positions(120, 33).filter((s) => slackCore.legal(s, s.turn).length > 2)
+    const made = await createGameAgent('easy', { seat: 1 })
+    const direct = await createGameAgent('easy', { seat: 0 })
+    made.reset(9, 0)
+    direct.reset(9)
+    for (const s of states) {
+      const o = obsOf(s)
+      expect(await made.act(o)).toEqual(await direct.act(o))
+    }
+    made.dispose()
+    direct.dispose()
+  })
 })
 
 describe('level parameters', () => {

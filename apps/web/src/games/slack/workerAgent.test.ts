@@ -39,6 +39,16 @@ describe('the Crosscurrent worker agent', () => {
     expect(w.posted).toEqual([{ type: 'reset', level: 'hard', seed: 7 }])
   })
 
+  test('reset carries the seat when the page gives one, and omits it otherwise', async () => {
+    const w = new FakeWorker()
+    const p = start(w)
+    w.say({ type: 'loaded' })
+    const agent = await p
+    agent.reset(7, 0)
+    agent.reset(8)
+    expect(w.posted).toEqual([{ type: 'reset', level: 'hard', seed: 7, seat: 0 }, { type: 'reset', level: 'hard', seed: 8 }])
+  })
+
   test('answers an act with the worker\'s action, matched by id', async () => {
     const w = new FakeWorker()
     const p = start(w)

@@ -4,6 +4,7 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { encodeRecordAsync } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
+import { hasRandomSide, sideForSeed } from '@duelwise/core/src/sides'
 import { isSealed } from '@duelwise/core/src/sealed'
 import { NO_OFFLINE_TICKETS } from '@duelwise/core/src/rated-path'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
@@ -160,6 +161,8 @@ export type Upload =
 
 export interface Session {
   seed: number
+  /** The side this match gives the player: 0 moves first (White in chess), 1 moves second. The server's choice for a counted match, the seed's for an unrated one; always 0 in a game with no random side. */
+  humanSeat: Seat
   /** Set only for a counted match: the server issued this seed and will check the record against it. */
   matchId?: string
   agentVersion?: string
@@ -178,6 +181,12 @@ export interface Session {
 
 const randomLocalSeed = (): number => crypto.getRandomValues(new Uint32Array(1))[0]!
 
+/** A seed made on this device and the side it gives: for a match no server knows about. */
+function localSession(game: GameId): { seed: number; humanSeat: Seat } {
+  const seed = randomLocalSeed()
+  return { seed, humanSeat: sideForSeed(game, seed) }
+}
+
 /**
  * The seed for a new match, on every page. A counted match takes its seed from the server (startMatch),
  * so a player cannot choose the position. `devSeed` (the ?seed query) makes an unrated match for tests
@@ -193,19 +202,19 @@ export async function beginSession(
   options?: MatchRecordV1['options'],
   practice = false,
 ): Promise<Session> {
-  if (devSeed !== undefined) return { seed: devSeed, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
+  if (devSeed !== undefined) return { seed: devSeed, humanSeat: sideForSeed(game, devSeed), rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
     const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
-    return { seed: s.seed, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
+    return { seed: s.seed, humanSeat: hasRandomSide(game) ? (s.humanSeat === 1 ? 1 : 0) : 0, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
   } catch {
     // No server: a ticket issued earlier (while online) keeps the match counted, once its record uploads.
     // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
     // A ticket is issued as a rated match, so a practice match never takes one: it is played here and not sent anywhere.
     const ticket = options || practice ? null : await takeTicket(game, level).catch(() => null)
-    if (ticket) return { seed: ticket.seed, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
-    if (practice) return { seed: randomLocalSeed(), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
-    return { seed: randomLocalSeed(), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
+    if (ticket) return { seed: ticket.seed, humanSeat: hasRandomSide(game) && ticket.humanSeat === 1 ? 1 : 0, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
+    if (practice) return { ...localSession(game), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
+    return { ...localSession(game), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
   }
 }
 

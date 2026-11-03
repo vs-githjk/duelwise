@@ -52,7 +52,7 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const finish = (rec: MatchRecordV1) => finishMatchHandler(db, encodeRecord(rec), USER, REAL)
 
 async function begin(seed = 21) {
-  const r = await startMatchHandler(db, { game: 'slack', level }, USER, { seed: () => seed, agentVersion: () => 'v1' })
+  const r = await startMatchHandler(db, { game: 'slack', level }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }
@@ -98,7 +98,7 @@ describe('Crosscurrent is open for rated play', () => {
   test('no game is left without a rated path, and a start that says Rated is stored as Rated', async () => {
     expect([...RATED_NOT_OPEN]).toEqual([])
     const m = await begin()
-    expect((await rowOf(m.matchId)).filterFlags).toBeNull()
+    expect((await rowOf(m.matchId)).filterFlags).toEqual({ humanSeat: 0 })
   })
 
   test('an honest match is verified by the real server opponent, counts once, moves the rating, and is stored', async () => {
@@ -119,7 +119,7 @@ describe('the path card tells the truth: a rated win over Pip clears Pip, and on
     let won = false
     for (let seed = 1; seed < 80 && !won; seed++) {
       await db.execute(sql`truncate table match, rating, profile, match_report, telemetry_event`)
-      const r = await startMatchHandler(db, { game: 'slack', level: 'easy' }, USER, { seed: () => seed, agentVersion: () => 'v1' })
+      const r = await startMatchHandler(db, { game: 'slack', level: 'easy' }, USER, { seed: () => seed, agentVersion: () => 'v1', side: () => 0 as const })
       const m = r.body as { matchId: string; seed: number }
       const rec = await played(m, undefined, 'easy')
       const out = await finish(rec)
@@ -222,13 +222,13 @@ describe('a forged record never turns into a win', () => {
   test('a seat flip costs the loss, like every checked game: the server holds the player to seat 0', async () => {
     const m = await begin()
     const r = await finish({ ...(await played(m)), humanSeat: 1 })
-    expect((r.body as { reason: string }).reason).toContain('only a human in seat 0 can be checked')
+    expect((r.body as { reason: string }).reason).toContain('seat does not match the side issued')
     expect(r.body).toMatchObject({ valid: false, result: null })
     expect(((await ratingOf())?.elo ?? 1000)).toBeLessThan(1000)
   })
 
   test('the wrong seed is charged as a loss, the same as a resignation', async () => {
-    const control = await startMatchHandler(db, { game: 'slack', level }, { userId: 'u-control' }, { seed: () => 3, agentVersion: () => 'v1' })
+    const control = await startMatchHandler(db, { game: 'slack', level }, { userId: 'u-control' }, { seed: () => 3, agentVersion: () => 'v1', side: () => 0 as const })
     expect((await resignMatchHandler(db, { matchId: (control.body as { matchId: string }).matchId, tick: 3 }, { userId: 'u-control' }, REAL)).status).toBe(200)
     const price = (await db.select().from(schema.rating).where(eq(schema.rating.userId, 'u-control')))[0]!.elo
     const m = await begin()
@@ -265,7 +265,7 @@ describe('offline tickets', () => {
   // unrated, so Crosscurrent is kept out of tickets as Stormglass is: Rated needs a connection, Practice works offline.
   test('no ticket is issued for Crosscurrent, at any level or count', async () => {
     for (const lvl of ['easy', 'medium', 'hard', 'champion'] as const) {
-      const r = await issueTicketsHandler(db, { game: 'slack', level: lvl, count: 1 }, USER, { agentVersion: () => 'v1' })
+      const r = await issueTicketsHandler(db, { game: 'slack', level: lvl, count: 1 }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
       expect(r.status).toBe(400)
       expect(JSON.stringify(r.body)).toContain('no offline tickets')
     }

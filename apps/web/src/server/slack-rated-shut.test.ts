@@ -39,7 +39,7 @@ beforeEach(async () => {
 })
 
 const USER = { userId: 'u-1' }
-const startOpts = { agentVersion: () => 'v1' }
+const startOpts = { agentVersion: () => 'v1', side: () => 0 as const }
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
 
 /** A whole Crosscurrent game by random legal moves for both seats, as a record. */
@@ -116,6 +116,6 @@ describe('a game with no rated path yet (Crosscurrent, listed for these tests)',
 
   test('other games are untouched: a Four start without Practice writes no flag', async () => {
     const f = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, startOpts)
-    expect((await rowOf((f.body as { matchId: string }).matchId)).filterFlags).toBeNull()
+    expect((await rowOf((f.body as { matchId: string }).matchId)).filterFlags).toEqual({ humanSeat: 0 })
   })
 })

@@ -84,7 +84,7 @@ describe('abandoned rated matches', () => {
 
 describe('resign', () => {
   async function started(who: { userId?: string; guestId?: string } = USER) {
-    const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1' })
+    const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1', side: () => 0 as const })
     return (r.body as { matchId: string }).matchId
   }
 

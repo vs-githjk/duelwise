@@ -61,7 +61,7 @@ function playFour(matchId: string, seed: number, level: MatchRecordV1['agent']['
 async function start(who = GUEST) {
   await db.insert(schema.guest).values({ id: 'g-1' }).onConflictDoNothing()
   await db.insert(schema.guest).values({ id: 'g-2' }).onConflictDoNothing()
-  const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1' })
+  const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1', side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number; agentVersion: string }
 }

@@ -50,7 +50,7 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const ratingOf = async (game: GameId) => (await db.select().from(schema.rating).where(and(eq(schema.rating.userId, 'u-1'), eq(schema.rating.game, game))))[0]
 
 async function begin(game: GameId, level: Level, who: Caller, seed: number, extra: Record<string, unknown> = {}) {
-  const r = await startMatchHandler(db, { game, level, ...extra }, who, { agentVersion: () => 'v1', seed: () => seed })
+  const r = await startMatchHandler(db, { game, level, ...extra }, who, { agentVersion: () => 'v1', seed: () => seed, side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string }
 }
@@ -282,7 +282,7 @@ for (const [game, seeds] of [['chess', { win: 11, loss: 4 }], ['four', { win: 1,
       const { matchId } = await begin(game, 'hard', USER, seeds.loss)
       const r = await finishMatchHandler(db, encodeRecord({ ...(await lost(matchId)), humanSeat: 1 }), USER, CHECKED)
       expect(body(r).valid).toBe(false)
-      expect(body(r).reason).toContain('only a human in seat 0 can be checked')
+      expect(body(r).reason).toContain(game === 'holdem' ? 'only a human in seat 0 can be checked' : 'seat does not match the side issued')
       expect(await rowOf(matchId)).toMatchObject({ recordValid: false, record: null, trainingAllowed: false })
       expect((await ratingOf(game))!.elo).toBeLessThan(1000)
       expect(await standing(game, 'hard', USER)).toEqual({ ...NOT_A_WIN })

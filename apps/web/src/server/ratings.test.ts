@@ -109,7 +109,7 @@ function playFour(matchId: string, seed: number, level: MatchRecordV1['agent']['
   }
 }
 
-const opts = { agentVersion: () => 'v1', siteElo: () => null as number | null }
+const opts = { agentVersion: () => 'v1', side: () => 0 as const, siteElo: () => null as number | null }
 
 async function playOne(who: { userId?: string; guestId?: string }, tamper?: (r: MatchRecordV1) => void) {
   const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, opts)

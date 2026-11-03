@@ -80,8 +80,8 @@ function fakeRecorder(session: Session) {
   return { port, log }
 }
 
-const SEALED: Session = { seed: 0, matchId: 'm-1', agentVersion: 'v1', rated: true, sealed: true }
-const UNRATED: Session = { seed: 4242, rated: false, unratedReason: 'This match used a fixed test seed, so it is not counted.' }
+const SEALED: Session = { seed: 0, humanSeat: 0, matchId: 'm-1', agentVersion: 'v1', rated: true, sealed: true }
+const UNRATED: Session = { seed: 4242, humanSeat: 0, rated: false, unratedReason: 'This match used a fixed test seed, so it is not counted.' }
 
 function engineFor(session: Session, server: ReturnType<typeof fakeServer>) {
   const r = fakeRecorder(session)

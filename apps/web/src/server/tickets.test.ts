@@ -32,7 +32,7 @@ beforeEach(async () => {
 
 const G1 = { guestId: 'g-1' }
 const G2 = { guestId: 'g-2' }
-const OPTS = { agentVersion: () => 'v1' }
+const OPTS = { agentVersion: () => 'v1', side: () => 0 as const }
 
 function playFour(t: Ticket, version = 'v1'): MatchRecordV1 {
   const rng = makeRng(t.seed ^ 0x9e37)

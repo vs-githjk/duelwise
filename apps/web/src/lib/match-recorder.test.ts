@@ -7,6 +7,7 @@ import { replay } from '@duelwise/core/src/replay'
 import { createCounterGame, createDriftGame } from '@duelwise/core/src/testing/counter-game'
 import { openMatch } from './open-match'
 import { listPending, retryPending, savePending, type KeyValueStore } from './integrity'
+import { sideForSeed } from '@duelwise/core/src/sides'
 import { beginSession, createMatchRecorder, offlineReason, uploadMatch, useMatchRecorder, type MatchApi, type RecorderInit } from './match-recorder'
 
 const clock = () => {
@@ -192,6 +193,46 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     const s = await beginSession(down, 'four', 'easy', undefined, async () => null)
     expect(s.rated).toBe(false)
     expect(s.matchId).toBeUndefined()
+  })
+
+  describe('the side a match gives the player', () => {
+    const reply = (humanSeat?: 0 | 1) => fakeApi({ start: async () => ({ matchId: 'srv-1', seed: 7, agentVersion: 'v9', ...(humanSeat === undefined ? {} : { humanSeat }) }) })
+
+    test('a counted match takes the server side; a reply with no side (an older server, or a game with none) is seat 0', async () => {
+      expect((await beginSession(reply(1), 'chess', 'hard')).humanSeat).toBe(1)
+      expect((await beginSession(reply(0), 'four', 'hard')).humanSeat).toBe(0)
+      expect((await beginSession(reply(), 'slack', 'hard')).humanSeat).toBe(0)
+    })
+
+    test('a game with no random side stays in seat 0 whatever the reply says', async () => {
+      expect((await beginSession(reply(1), 'holdem', 'hard')).humanSeat).toBe(0)
+      expect((await beginSession(reply(1), 'fleet', 'hard')).humanSeat).toBe(0)
+    })
+
+    test('a fixed test seed gives the side the seed gives, so a test can force either one', async () => {
+      const seeds = { 0: [] as number[], 1: [] as number[] }
+      for (let seed = 1; seeds[0].length < 3 || seeds[1].length < 3; seed++) seeds[sideForSeed('chess', seed)].push(seed)
+      for (const side of [0, 1] as const) for (const seed of seeds[side].slice(0, 3)) expect((await beginSession(fakeApi(), 'chess', 'easy', seed)).humanSeat).toBe(side)
+      expect((await beginSession(fakeApi(), 'word', 'easy', 123)).humanSeat).toBe(0)
+    })
+
+    test('an offline ticket keeps its side; a ticket issued before sides existed is seat 0', async () => {
+      const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
+      const base = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'four' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
+      expect((await beginSession(down, 'four', 'easy', undefined, async () => ({ ...base, humanSeat: 1 as const }))).humanSeat).toBe(1)
+      expect((await beginSession(down, 'four', 'easy', undefined, async () => base)).humanSeat).toBe(0)
+    })
+
+    test('a match with no server at all gets a side from its local seed, and both sides come up', async () => {
+      const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
+      const seen = new Set<number>()
+      for (let i = 0; i < 40; i++) {
+        const s = await beginSession(down, 'chess', 'easy', undefined, async () => null, undefined, undefined, i % 2 === 0)
+        expect(s.humanSeat).toBe(sideForSeed('chess', s.seed))
+        seen.add(s.humanSeat)
+      }
+      expect([...seen].sort()).toEqual([0, 1])
+    })
   })
 
   test('offline Word Duel plays unranked on this device; other games say how to get saved match slots', () => {

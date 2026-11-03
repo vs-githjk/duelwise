@@ -11,7 +11,7 @@ export interface WorkerLike {
 
 export interface WorkerAgent {
   /** Seeds the opponent's own noise for a new match; the worker rebuilds its agent and queues every later act behind that. */
-  reset(seed: number): void
+  reset(seed: number, seat?: 0 | 1): void
   /** The opponent's action code for an observation, as `[code]`. Rejects, and never hangs, when the worker is gone. */
   act(obs: unknown): Promise<number[]>
   dispose(): void
@@ -105,8 +105,8 @@ export function createWorkerAgent(level: Level, opts: WorkerAgentOptions = {}): 
     loaded = null
     loadFailed = null
     const agent: WorkerAgent = {
-      reset(seed) {
-        if (dead === null) worker.postMessage({ type: 'reset', level, seed } satisfies ToWorker)
+      reset(seed, seat) {
+        if (dead === null) worker.postMessage({ type: 'reset', level, seed, ...(seat === undefined ? {} : { seat }) } satisfies ToWorker)
       },
       act(obs) {
         if (dead !== null) return Promise.reject(new Error(dead))

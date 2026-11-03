@@ -73,7 +73,7 @@ describe('the AI the browser runs is the AI the server checks', () => {
     const worker = readFileSync(join(import.meta.dir, '..', 'games', 'slack', 'worker.ts'), 'utf8')
     const models = readFileSync(join(import.meta.dir, 'agent-models.ts'), 'utf8')
     expect(worker).toContain("from '@duelwise/agents/src/slack/agent'")
-    expect(worker).toContain('createGameAgent(msg.level, { seat: 1 })')
+    expect(worker).toContain('createGameAgent(msg.level, { seat: msg.seat ?? 1 })')
     expect(models).toContain("createGameAgent('slack', level, { seat })")
   })
 
