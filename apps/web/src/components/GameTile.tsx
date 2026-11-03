@@ -295,7 +295,34 @@ function Arena(): ReactNode {
   )
 }
 
-const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena }
+/** Stormglass: pale water, a 7 by 5 chart grid, grey misses, two flames, one sunk three-long hull, a fleet tally and a crosshair on open water. */
+function Fleet(): ReactNode {
+  const X0 = 24
+  const Y0 = 12
+  const C = 16
+  const cx = (c: number) => X0 + c * C + C / 2
+  const cy = (r: number) => Y0 + r * C + C / 2
+  return (
+    <>
+      <rect width={W} height={H} fill="#dcecf6" />
+      <g stroke="#9fbfd6" strokeWidth={1}>
+        {Array.from({ length: 8 }, (_, i) => <line key={`v${i}`} x1={X0 + i * C} y1={Y0} x2={X0 + i * C} y2={Y0 + 5 * C} />)}
+        {Array.from({ length: 6 }, (_, i) => <line key={`h${i}`} x1={X0} y1={Y0 + i * C} x2={X0 + 7 * C} y2={Y0 + i * C} />)}
+      </g>
+      <g fill="#64748b">{[[1, 0], [5, 1], [0, 3]].map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c!)} cy={cy(r!)} r={1.5} />)}</g>
+      <rect x={X0 + 3 * C + 2} y={Y0 + 2 * C + 3} width={3 * C - 4} height={C - 6} rx={5} fill="#8f1f1b" />
+      <g fill="#e8500e">{[3, 4, 5].map((c) => <circle key={c} cx={cx(c)} cy={cy(2)} r={3} />)}</g>
+      <g fill="#e8500e"><circle cx={cx(2)} cy={cy(4)} r={3} /><circle cx={cx(2) + 7} cy={cy(4)} r={3} /></g>
+      <g transform="translate(100 3)">
+        {[5, 4, 3, 3, 2].map((n, i) => <rect key={i} x={i * 9} y={0} width={7} height={4} rx={1.5} fill={i === 2 ? '#8f1f1b' : '#4a5568'} />)}
+        <line x1={18} y1={-1} x2={25} y2={5} stroke="#8f1f1b" strokeWidth={1} />
+      </g>
+      <g fill="none" stroke="var(--action)" strokeWidth={1.5}><circle cx={cx(0)} cy={cy(4)} r={5} /><line x1={cx(0) - 8} y1={cy(4)} x2={cx(0) + 8} y2={cy(4)} /><line x1={cx(0)} y1={cy(4) - 8} x2={cx(0)} y2={cy(4) + 8} /></g>
+    </>
+  )
+}
+
+const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet }
 
 /** One game's miniature. Decorative: the card around it names the game. */
 export function GameTile({ game, className }: { game: GameId; className?: string }) {

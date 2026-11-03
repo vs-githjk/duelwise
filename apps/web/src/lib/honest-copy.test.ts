@@ -106,6 +106,10 @@ test('the privacy sentence lists every game whose registry has learnsFromHumans 
     else expect(sentence).toContain(PRODUCT.games[g].displayName)
   }
   expect(sentence).not.toMatch(/[\u2013\u2014]/)
+  // Stormglass can never train, so it is not in the "yet" clause; every other game's wording is unchanged.
+  expect(sentence).toMatch(/Stormglass is a scripted solver with nothing to train\.$/)
+  expect(sentence.split('Stormglass is a scripted')[0]).not.toContain('Stormglass')
+  expect(sentence).toMatch(/those agents do not learn from human matches yet\. Stormglass/)
   expect(notTrainedSentence({})).toMatch(/Chess.*Four in a Row.*Tinderbox.*Coldstore/)
 })
 

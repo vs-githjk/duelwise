@@ -1,10 +1,16 @@
 import { expect, test } from 'bun:test'
-import { axisMax, learnCopy, pointsFor } from './learn-copy'
+import { axisMax, gateLine, learnCopy, learnHeading, pointsFor } from './learn-copy'
 
 test('a game that does not learn says self-play and test bots, never that every match trains', () => {
   const c = learnCopy({ game: 'word', learns: false, champion: null, sinceCount: 9, sinceEligible: 0 })
   expect(c.body).toBe('Word Duel trains by self-play and against test bots, not from your matches yet. Your match is recorded for your report and the board.')
   expect(c.body).not.toMatch(/every match/i)
+})
+test('Stormglass is a scripted solver: it never claims self-play or training', () => {
+  const c = learnCopy({ game: 'fleet', learns: false, champion: null, sinceCount: 4, sinceEligible: 0 })
+  expect(`${c.title} ${c.body}`).not.toMatch(/self-play|trains/i)
+  expect(c.body).toContain('scripted solver')
+  expect(c.body).toContain('Your match is recorded for your report and the board.')
 })
 test('a learning game reports what the newest version used and beat, from the gate', () => {
   const c = learnCopy({ game: 'four', learns: true, champion: { version: 'v2', parent: 'v1', humanMatchesUsed: 1800, gate: { score: 0.61125, n: 400, ci95: [0.562637, 0.657747] } }, sinceCount: 2140, sinceEligible: 1900 })
@@ -23,4 +29,19 @@ test('points are thin under 30 matches, gaps are null, the axis grows in steps o
   expect(axisMax(pts)).toBe(100)
   expect(axisMax(pts.slice(0, 1))).toBe(60)
   expect(axisMax([])).toBe(30)
+})
+
+test('the graph heading: Stormglass has nothing to learn, every other game reads as before', () => {
+  expect(learnHeading('fleet')).not.toMatch(/learn|\byet\b/i)
+  for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(learnHeading(game)).toBe('Watch the AI learn')
+})
+
+test('a gate with its own summary shows it whole; without one the old first clause stands', () => {
+  const rule = 'adjacent levels: the stronger level, and Pip against random legal play, each need a 95% Wilson lower bound'
+  expect(gateLine({ rule, summary: 'Each level beat the level below from both seats.' })).toBe('Each level beat the level below from both seats.')
+  expect(gateLine({ rule })).toBe('adjacent levels')
+  expect(gateLine({ rule: 'R15: 400 matches per bot on each seat, bots under the same limits; a level publishes' })).toBe('400 matches per bot on each seat, bots under the same limits')
+  expect(gateLine({ rule: 'x'.repeat(120) })).toBe(`${'x'.repeat(107)}...`)
+  expect(gateLine({})).toBeNull()
+  expect(gateLine(null)).toBeNull()
 })

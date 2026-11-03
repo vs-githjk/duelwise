@@ -21,6 +21,9 @@ export interface TicketFlags {
   ticketUsedAt?: number
 }
 
+/** Whether this match began on an offline ticket. The row keeps saying so after takeTicket commits, so an upload that died mid-check does not turn its retry into an online match. */
+export const ticketUsed = (flags: Record<string, unknown> | null): boolean => (flags as Partial<TicketFlags> | null)?.ticketUsedAt !== undefined
+
 export type TicketTaken = { ok: true; startedAt: Date; playerAllowed: boolean } | { ok: false; status: number; message: string }
 
 /**

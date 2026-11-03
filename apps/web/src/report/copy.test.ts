@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { duration, headline, learningCopy, shareControlsNote } from './copy'
+import { duration, headline, learningCopy, recordLine, shareControlsNote } from './copy'
 
 describe('report copy', () => {
   test('owner and public headlines', () => {
@@ -21,6 +21,14 @@ describe('report copy', () => {
     for (const l of [{ state: 'stats_only', reason: 'opt_out' }, { state: 'not_used', reason: 'resigned' }, { state: 'not_used', reason: 'abandoned' }, { state: 'not_used', reason: 'rejected' }, { state: 'not_used', reason: 'not_learning' }] as const) {
       expect(learningCopy(l, 'Marlow').text).not.toMatch(/can learn from|next challenger/)
     }
+  })
+
+  test('Stormglass is a scripted solver with nothing to train: no "yet"; other games keep it', () => {
+    const l = { state: 'not_used', reason: 'not_learning' } as const
+    expect(learningCopy(l, 'Vesper', 'fleet').text).toBe('Vesper is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.')
+    expect(learningCopy(l, 'Vesper', 'fleet').text).not.toMatch(/yet/)
+    expect(learningCopy(l, 'Pip', 'four').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
+    expect(learningCopy(l, 'Pip').text).toBe('Pip does not learn from human matches yet, so this match is kept for your report and is not used to train.')
   })
 
   test('the share note says what the page and the card show, and what stays private', () => {
@@ -52,4 +60,9 @@ describe('report copy', () => {
     expect(shareControlsNote('Marlow', { signedIn: false, linkPublic: true, gameView: false })).toMatch(/shows the result and the key moments,/)
     expect(shareControlsNote('Marlow', { signedIn: false, linkPublic: true })).toMatch(/shows the result, how the game went and the key moments,/)
   })
+})
+
+test('Stormglass has no draws, so its record line drops them; every game that can draw keeps all three', () => {
+  expect(recordLine('fleet', { wins: 0, losses: 1, draws: 0 })).toEqual({ line: '0-1', label: 'wins, losses' })
+  for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(recordLine(game, { wins: 2, losses: 1, draws: 3 })).toEqual({ line: '2-1-3', label: 'wins, losses, draws' })
 })

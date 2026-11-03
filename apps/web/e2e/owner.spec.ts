@@ -5,8 +5,8 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 const OWNER_NAME = 'eowner'
 const OWNER_EMAIL = 'eowner@dev.invalid'
 
-async function signedIn(browser: Browser, baseURL: string, name: string, opts: { width?: number; dark?: boolean } = {}) {
-  const context = await browser.newContext({ baseURL, viewport: { width: opts.width ?? 1280, height: 900 }, colorScheme: opts.dark ? 'dark' : 'light' })
+async function signedIn(browser: Browser, baseURL: string, name: string, opts: { width?: number; dark?: boolean; timezoneId?: string } = {}) {
+  const context = await browser.newContext({ baseURL, ...(opts.timezoneId ? { timezoneId: opts.timezoneId } : {}), viewport: { width: opts.width ?? 1280, height: 900 }, colorScheme: opts.dark ? 'dark' : 'light' })
   const page = await context.newPage()
   await page.goto('/signin')
   await page.waitForLoadState('networkidle')
@@ -44,6 +44,17 @@ test.describe('owner dashboard', () => {
     expect(r2!.status()).toBe(404)
     await expect(page.getByTestId('not-found')).toBeVisible()
     await expect(page.getByTestId('owner-page')).toHaveCount(0)
+    await context.close()
+  })
+
+  test('times and days follow the browser time zone, named in plain words, with no UTC wording', async ({ browser, baseURL }) => {
+    const { context, page } = await signedIn(browser, baseURL!, OWNER_NAME, { timezoneId: 'Asia/Kolkata' })
+    const res = await page.goto('/owner?who=all')
+    expect(res!.status()).toBe(200)
+    await expect(page.getByTestId('owner-page')).toBeVisible()
+    await expect(page.getByTestId('owner-zone')).toHaveText(/^Times are India Standard Time \(/)
+    await expect(page.getByTestId('owner-active')).toContainText('India Standard Time')
+    await expect(page.getByTestId('owner-page')).not.toContainText('UTC')
     await context.close()
   })
 

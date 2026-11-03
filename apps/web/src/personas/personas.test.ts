@@ -6,7 +6,7 @@ import type { Registry } from '@duelwise/agents/src/registry'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import { CHESS_LEVELS } from '@duelwise/agents/src/chess/agent'
 import { LEVELS } from '../lib/level-info'
-import { PERSONAS, personaFor, reactionLimit, styleLine } from './index'
+import { bioFor, PERSONAS, personaFor, reactionLimit, styleLine } from './index'
 import { buildCast } from './cast'
 import { AVATAR_SVG } from './avatar-svg'
 
@@ -149,4 +149,23 @@ test('no Champion line claims an action cap: the Champion has no APM cap and the
     expect(personaFor('champion').bio).not.toMatch(/\bcap\b/i)
     for (const l of ['easy', 'medium', 'hard'] as const) expect(LEVEL_LIMITS[g][l].apmCap).not.toBeNull()
   }
+})
+
+test('Stormglass tells the truth about Sable: a scripted solver, not human-like play with a reaction limit; every other game and persona keeps its bio', () => {
+  expect(bioFor('champion', 'fleet')).toBe('The house champion. A scripted solver, not a learned player.')
+  // The style line already says how it fires, so the bio must not repeat it.
+  expect(bioFor('champion', 'fleet')).not.toMatch(/most likely square/)
+  expect(styleLine('champion', 'fleet')).toMatch(/most likely square/)
+  expect(bioFor('champion', 'fleet')).not.toMatch(/Human-like|reaction limit/)
+  for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
+    for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(bioFor(level, game)).toBe(personaFor(level).bio)
+    expect(bioFor(level)).toBe(personaFor(level).bio)
+  }
+  for (const level of ['easy', 'medium', 'hard'] as const) expect(bioFor(level, 'fleet')).toBe(personaFor(level).bio)
+  expect(personaFor('champion').bio).toBe('The house champion. Human-like play with a carefully recorded reaction limit.')
+})
+
+test('Pip on Stormglass follows up a hit only 35 percent of the time, so the line says he usually forgets; the other games keep their lines', () => {
+  expect(styleLine('easy', 'fleet')).toBe('Fires at random and usually forgets to follow up a hit.')
+  expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and no look-ahead.')
 })

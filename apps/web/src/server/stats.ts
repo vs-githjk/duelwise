@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, gte, notInArray, sql } from 'drizzle-orm'
-import { competitive } from './competitive'
+import { competitive, LOGGED_WIN_FLAG } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
@@ -80,7 +80,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
  * seat is read from the stored record, because the match row does not keep it.
  */
 /** Bookkeeping written by the deferred agent check; not a reason a match was filtered. */
-const INTERNAL_FLAGS = new Set(['deferredCheckAt', 'deferredTrainingRevoked', 'leftTable', 'practice'])
+const INTERNAL_FLAGS = new Set(['deferredCheckAt', 'deferredTrainingRevoked', 'leftTable', 'practice', LOGGED_WIN_FLAG])
 
 /** The same rule the funnel uses for its last step: the player allowed training and no filter flag is set. */
 export function trainingEligible(m: { filterFlags: unknown; trainingAllowed: boolean }): boolean {

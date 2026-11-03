@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { PRODUCT } from '@duelwise/core/src/product.ts'
 
 /**
- * Reloading in the middle of a match, for all six games, and a page that was opened before a new deploy.
+ * Reloading in the middle of a match, for every game, and a page that was opened before a new deploy.
  * Bug report: "my friend reloaded the app in the middle of a game and it just died". A reload must always come back to a clean,
  * working setup screen (the unfinished counted match is given up by the page-hide beacon), and a script that a deploy removed must
  * end in one fresh load, never a dead page.
@@ -14,6 +14,8 @@ interface Game {
   inMatch: (page: Page) => ReturnType<Page['locator']>
   /** Real-time games keep their stage on screen at setup; the phase tells setup from play. */
   phased?: boolean
+  /** The setup screen's start button when it is not the shared "Start match" one (Stormglass places a fleet, then its own start button). */
+  startButton?: (page: Page) => ReturnType<Page['locator']>
   /** A few inputs a player would make. */
   play: (page: Page) => Promise<void>
 }
@@ -23,6 +25,7 @@ const GAMES: Game[] = [
   { key: 'four', inMatch: (p) => p.getByTestId('four-board'), play: async (p) => { await p.getByTestId('col-3').click() } },
   { key: 'holdem', inMatch: (p) => p.getByTestId('holdem-table'), play: async (p) => { await p.keyboard.press('Tab') } },
   { key: 'word', inMatch: (p) => p.getByTestId('word-input'), play: async (p) => { await p.getByTestId('word-input').fill('crane'); await p.getByTestId('word-input').press('Enter') } },
+  { key: 'fleet', startButton: (p) => p.getByTestId('fleet-ready'), inMatch: (p) => p.getByTestId('fleet-fire'), play: async (p) => { const c = p.locator('[data-testid^="fleet-cell-"][data-state="open"]').first(); await c.click(); await c.click() } },
   { key: 'fighter', phased: true, inMatch: (p) => p.getByTestId('fighter-stage'), play: async (p) => { for (const k of ['ArrowRight', 'KeyJ', 'ArrowLeft']) { await p.keyboard.down(k); await p.waitForTimeout(150); await p.keyboard.up(k) } } },
   { key: 'arena', phased: true, inMatch: (p) => p.getByTestId('arena-stage'), play: async (p) => { for (const k of ['KeyW', 'KeyD', 'Space']) { await p.keyboard.down(k); await p.waitForTimeout(150); await p.keyboard.up(k) } } },
 ]
@@ -36,7 +39,8 @@ function watch(page: Page): string[] {
   return problems
 }
 
-async function startMatch(page: Page) {
+async function startMatch(page: Page, g?: Game) {
+  if (g?.startButton) return g.startButton(page).click()
   await page.getByRole('button', { name: /^(Start match|Choose your fighter)/ }).first().waitFor()
   const fighter = page.getByRole('button', { name: 'Choose your fighter' })
   if (await fighter.count()) await fighter.click()
@@ -48,7 +52,7 @@ async function expectCleanSetup(page: Page, g: Game) {
   await expect(page.getByTestId('error-fallback')).toHaveCount(0)
   await expect(page.getByTestId('new-version-fallback')).toHaveCount(0)
   await expect(page.getByTestId('offline-state')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /^(Start match|Choose your fighter)/ }).first()).toBeEnabled({ timeout: 20_000 })
+  await expect((g.startButton?.(page) ?? page.getByRole('button', { name: /^(Start match|Choose your fighter)/ }).first())).toBeEnabled({ timeout: 20_000 })
   if (g.phased) await expect(g.inMatch(page)).not.toHaveAttribute('data-phase', 'playing')
   else await expect(g.inMatch(page)).toHaveCount(0)
 }
@@ -65,7 +69,7 @@ for (const g of GAMES) {
       test.setTimeout(180_000)
       const problems = watch(page)
       await page.goto(`/play/${slug}`)
-      await startMatch(page)
+      await startMatch(page, g)
       await expectPlaying(page, g)
       await g.play(page)
 
@@ -81,7 +85,7 @@ for (const g of GAMES) {
       await expectCleanSetup(page, g)
 
       // The unfinished match left nothing behind that blocks a new one.
-      await startMatch(page)
+      await startMatch(page, g)
       await expectPlaying(page, g)
       expect(problems).toEqual([])
     })
@@ -90,7 +94,7 @@ for (const g of GAMES) {
       test.setTimeout(120_000)
       const problems = watch(page)
       await page.goto(`/play/${slug}`)
-      await startMatch(page)
+      await startMatch(page, g)
       await page.reload()
       await expectCleanSetup(page, g)
       expect(problems).toEqual([])

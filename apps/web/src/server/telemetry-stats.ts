@@ -2,6 +2,7 @@ import { expected } from '@duelwise/core/src/elo'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { personaFor } from '../personas'
 import type { TelemetryKind } from '../db/schema'
+import { addDays, dayKeyIn, dayStartIn, shortDayKey, timeIn } from './owner-zone'
 
 /** The pure aggregation behind the owner dashboard: telemetry rows in, panel data out. No database here. */
 
@@ -61,6 +62,8 @@ export interface OwnerViewInput {
   /** Sign-in provider of each signed-in player's reference. */
   providers: Map<string, string>
   now: Date
+  /** The IANA zone the bucket labels use. UTC when absent. */
+  zone?: string
   range: Range
   game?: GameId | undefined
   level?: Level | undefined
@@ -135,6 +138,8 @@ export interface PlayerRow {
 
 export interface OwnerView {
   range: Range
+  /** The zone every label and day on the page uses. */
+  zone: string
   generatedAt: string
   bucketLabels: string[]
   empty: boolean
@@ -157,6 +162,10 @@ export interface OwnerView {
 export type Lens = 'human' | 'owner' | 'test' | 'all'
 /** The owner view for one lens, plus the headline numbers of every class so none is hidden. */
 export interface OwnerViewBody extends OwnerView {
+  /** True when the asked-for zone was missing or invalid and UTC was used. */
+  zoneFallback: boolean
+  /** True when the request named a zone at all; false for the first server render, which does not know the browser's zone. */
+  zoneAsked: boolean
   who: Lens
   kpisBy: Record<'human' | 'owner' | 'test' | 'total', Kpis>
 }
@@ -224,24 +233,30 @@ function trainingOf(result: RecentRow['result'], optedOut: boolean): RecentRow['
 
 export function buildOwnerView(input: OwnerViewInput): OwnerView {
   const { now, range } = input
-  const span = RANGE_MS[range]
-  const since = now.getTime() - span
-  const filtered = input.events.filter((e) => (!input.game || e.game === input.game) && (!input.level || e.level === input.level))
-  const cur = filtered.filter((e) => e.at.getTime() >= since && e.at.getTime() <= now.getTime())
-  const prev = filtered.filter((e) => e.at.getTime() >= since - span && e.at.getTime() < since)
-  const isNew = (ref: string) => (input.firstSeen.get(ref)?.getTime() ?? Infinity) >= since
-
-  // Buckets: hourly for 24 h, daily otherwise. Labels are UTC so the server and the browser agree.
+  const zone = input.zone ?? 'UTC'
   const hourly = range === '24h'
   const count = hourly ? 24 : range === '7d' ? 7 : 30
-  const step = span / count
+  // 24 h is a rolling day of hourly buckets. 7 and 30 days are whole calendar days in the zone: today plus the days before it,
+  // from local midnight of the first day. The comparison period is the same number of days just before, cut off after the same elapsed time as the current period, so a flat week reads as no change at any hour.
+  const dayKeys = Array.from({ length: count }, (_, i) => addDays(dayKeyIn(now, zone), -(count - 1 - i)))
+  const span = RANGE_MS['24h']
+  const since = hourly ? now.getTime() - span : dayStartIn(dayKeys[0]!, zone)
+  const prevSince = hourly ? since - span : dayStartIn(addDays(dayKeys[0]!, -count), zone)
+  const filtered = input.events.filter((e) => (!input.game || e.game === input.game) && (!input.level || e.level === input.level))
+  const cur = filtered.filter((e) => e.at.getTime() >= since && e.at.getTime() <= now.getTime())
+  const prevEnd = Math.min(since, prevSince + (now.getTime() - since))
+  const prev = filtered.filter((e) => e.at.getTime() >= prevSince && e.at.getTime() < prevEnd)
+  const isNew = (ref: string) => (input.firstSeen.get(ref)?.getTime() ?? Infinity) >= since
+
+  // Buckets: hourly for 24 h, one per calendar day otherwise. Labels are on the clock and calendar of the asked zone.
   const buckets: EventRow[][] = Array.from({ length: count }, () => [])
-  for (const e of cur) buckets[Math.min(count - 1, Math.floor((e.at.getTime() - since) / step))]!.push(e)
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const bucketLabels = buckets.map((_, i) => {
-    const d = new Date(since + i * step + step)
-    return hourly ? `${String(d.getUTCHours()).padStart(2, '0')}:00` : `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
-  })
+  const step = hourly ? span / count : 0
+  const slot = new Map(dayKeys.map((k, i) => [k, i]))
+  for (const e of cur) {
+    const i = hourly ? Math.min(count - 1, Math.floor((e.at.getTime() - since) / step)) : slot.get(dayKeyIn(e.at, zone))
+    if (i !== undefined) buckets[i]!.push(e)
+  }
+  const bucketLabels = buckets.map((_, i) => (hourly ? `${timeIn(new Date(since + (i + 1) * step).toISOString(), zone).slice(0, 2)}:00` : shortDayKey(dayKeys[i]!)))
   const per = buckets.map((b) => kpiSet(b, isNew))
 
   const k = kpiSet(cur, isNew)
@@ -376,6 +391,7 @@ export function buildOwnerView(input: OwnerViewInput): OwnerView {
 
   return {
     range,
+    zone,
     generatedAt: now.toISOString(),
     bucketLabels,
     empty: cur.length === 0,

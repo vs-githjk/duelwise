@@ -38,6 +38,12 @@ export const guides: Record<GameId, Guide> = {
     controls: [{ keys: 'Touch', action: 'left stick moves; drag the right side to aim; hold Fire to shoot; tap buttons to jump, crouch, reload, view scores or pause' }, { keys: 'W A S D or arrows', action: 'move' }, { keys: 'Mouse or trackpad', action: 'aim' }, { keys: 'Left click or F', action: 'fire (hold to keep firing)' }, { keys: 'Space', action: 'jump' }, { keys: 'C or Ctrl', action: 'crouch' }, { keys: 'Shift', action: 'walk' }, { keys: 'R', action: 'reload' }, { keys: 'Tab', action: 'scores' }, { keys: 'Escape', action: 'pause and release the mouse' }],
     win: 'The match ends at seven round wins or after 13 rounds. More round wins takes the match; equal wins are a draw. At time out, more health wins the round.', tip: 'Use cover while you reload.',
   },
+  fleet: {
+    goal: 'Sink all five of the other fleet before yours goes down.',
+    steps: ['Place five ships on your grid: lengths 5, 4, 3, 3 and 2. Tap a ship, then tap where its front goes. Rotate switches across and down. Shuffle fleet does it in one tap.', 'Take turns firing at the other grid. Tap a square to aim, then tap it again or press Fire.', 'A flame means a hit, a grey dot means a miss. When every square of a ship is hit, it is sunk and shown in full.', 'The fleet tally shows which of their ships are still afloat.'],
+    controls: [{ keys: 'Touch or mouse', action: 'tap a square to aim, tap again or press Fire to shoot' }, { keys: 'Enter or Space', action: 'aim, then fire' }, { keys: 'Arrow keys', action: 'move between squares on a grid' }, { keys: 'R', action: 'rotate the ship you are placing' }],
+    win: 'Sink all five ships first. The first fleet to go down loses, so there are no draws.', tip: 'Their smallest ship is 2 long: when only it is left, it hides in the gaps you have not checked.',
+  },
 }
 
 const seen = new Set<GameId>()

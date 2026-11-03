@@ -76,6 +76,13 @@ function Page() {
         </p>
       </section>
 
+      <section className="grid gap-2" data-testid="privacy-hidden-setup">
+        <h2 className="font-display text-display-sm">Hidden setups</h2>
+        <p className="text-muted">
+          In a game where each side hides a setup, such as the fleet you place in Stormglass, the setup is saved with the match record the same way every move is. It holds no name or email, and it is deleted with your account like the rest of the record.
+        </p>
+      </section>
+
       <section className="grid gap-2" data-testid="privacy-deletion">
         <h2 className="font-display text-display-sm">Deleting your data</h2>
         <p className="text-muted">

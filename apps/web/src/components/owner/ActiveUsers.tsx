@@ -1,6 +1,7 @@
 import type { ActiveUsers } from '../../server/admin-owner'
 import { getAdminActive } from '../../server/admin-fns'
 import { shortDate } from '../charts/format'
+import { zoneLabel } from '../../server/owner-zone'
 import { useLoad } from './Admin'
 import { Legend, SplitTile, StackBar } from './Breakdown'
 import { Card } from './Card'
@@ -8,13 +9,13 @@ import { Card } from './Card'
 const REFRESH_MS = 60_000
 
 /** Active players from finished matches (guests and accounts), human first, with the owner, test and total beside it and a 30-day daily chart. */
-export function ActiveCards() {
-  const { data, error, retry } = useLoad<ActiveUsers>(() => getAdminActive(), [], REFRESH_MS)
+export function ActiveCards({ zone }: { zone: string }) {
+  const { data, error, retry } = useLoad<ActiveUsers>(() => getAdminActive({ data: { tz: zone } }), [zone], REFRESH_MS)
   const first = data?.perDay[0]?.day
   const last = data?.perDay[data.perDay.length - 1]?.day
   const max = Math.max(1, ...(data?.perDay.map((d) => d.total) ?? [1]))
   return (
-    <Card title="Active players" note="finished matches, guests and accounts, UTC days" testId="owner-active">
+    <Card title="Active players" note={`finished matches, guests and accounts, days in ${zoneLabel(data?.zone ?? zone)}`} testId="owner-active">
       {error ? (
         <p role="alert" className="rounded-control bg-warn-soft p-3 text-sm text-warn-ink">
           Active players did not load. <button type="button" className="font-semibold underline" onClick={retry}>Try again</button>

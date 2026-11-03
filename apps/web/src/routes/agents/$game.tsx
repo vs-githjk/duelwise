@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord, type GameId, type Level } from '@duelwise/core/src/product'
 import { gameBySlug } from '../../games/registry'
 import { getAgentsView, type AgentsView, type OverviewRow } from '../../server/stats-fns'
 import type { Funnel, JobRow } from '../../server/stats'
@@ -9,7 +9,7 @@ import { LevelTable } from '../../components/charts/LevelTable'
 import { LEVEL_NAME, compactCount, deltaPoints, pct, rate, shortDate, signed } from '../../components/charts/format'
 import { cn } from '../../lib/cn'
 import { jobLine } from '../../lib/copy'
-import { learnsNote, trainingStripLabel } from '../../lib/honest-copy'
+import { funnelNotes, learnsNote, trainingStripLabel } from '../../lib/honest-copy'
 import { EloExplainer } from '../../components/SiteElo'
 import { LearnGraph } from '../../components/LearnGraph'
 import { getLearnView, type LearnView } from '../../server/learn-fns'
@@ -74,7 +74,7 @@ function Pips({ published }: { published: number }) {
 
 function Strip({ rows, current }: { rows: OverviewRow[]; current: GameId }) {
   return (
-    <ul className="hidden lg:grid lg:gap-0 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-surface lg:shadow-card" data-testid="agent-strip" aria-label="All six agents">
+    <ul className="hidden lg:grid lg:gap-0 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-surface lg:shadow-card" data-testid="agent-strip" aria-label={`All ${gameCountWord().toLowerCase()} agents`}>
       <li className="hidden grid-cols-[1.4fr_0.8fr_1.4fr_1.6fr_1.5fr_1.6fr] gap-4 border-b border-line px-5 py-3 text-sm text-muted lg:grid" aria-hidden>
         <span>Agent</span>
         <span>Version</span>
@@ -111,7 +111,7 @@ function Strip({ rows, current }: { rows: OverviewRow[]; current: GameId }) {
               </span>
               <span className="hidden lg:block">
                 <span className="inline-flex h-6 items-center rounded-full bg-neutral-soft px-2.5 text-xs font-semibold text-neutral-ink" data-testid={`strip-learns-${r.game}`}>
-                  {trainingStripLabel(r.learns)}
+                  {trainingStripLabel(r.learns, r.game)}
                 </span>
               </span>
               <span className="hidden text-sm text-muted lg:block">{r.lastRun ? `${r.lastRun.challenger}, ${r.lastRun.promoted ? 'promoted' : 'not promoted'}` : 'none yet'}</span>
@@ -133,7 +133,8 @@ function Tile({ label, value, sub, testId }: { label: string; value: ReactNode; 
   )
 }
 
-function Funnelbars({ f, name }: { f: Funnel; name: string }) {
+function Funnelbars({ f, name, game }: { f: Funnel; name: string; game: GameId }) {
+  const notes = funnelNotes(game)
   const rows: Array<[string, number, string]> = [
     ['Played', f.played, 'funnel-played'],
     ['Finished', f.finished, 'funnel-finished'],
@@ -157,12 +158,12 @@ function Funnelbars({ f, name }: { f: Funnel; name: string }) {
         ))}
       </ul>
       <p className="text-sm text-muted" data-testid="funnel-note">
-        {f.used === 0 ? 'Nothing is used for training yet. ' : ''}
+        {f.used === 0 ? `${notes.nothingUsed} ` : ''}
         <span data-testid="funnel-optout">{f.optedOut}</span> opted-out {f.optedOut === 1 ? 'match never leaves' : 'matches never leave'} the database.
         {f.notLearning > 0 ? (
           <>
             {' '}
-            <span data-testid="funnel-notlearning">{f.notLearning}</span> not used: this agent does not learn from people yet.
+            <span data-testid="funnel-notlearning">{f.notLearning}</span> {notes.notLearning}
           </>
         ) : null}
       </p>
@@ -336,7 +337,7 @@ function Detail({ view }: { view: AgentsView & { learn: LearnView } }) {
           </Card>
         ) : null}
         <Card title={`Human matches, ${name}`} note="where they go" testId="card-funnel">
-          <Funnelbars f={stats.funnel} name={name} />
+          <Funnelbars f={stats.funnel} name={name} game={view.game} />
         </Card>
         <Card title={registry.changes ? `What changed in ${registry.changes.version}` : 'What changed'} note="measured, not described" testId="card-changes">
           {registry.changes ? (

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Result } from '@duelwise/core/src/types'
 import { OpponentContext } from '../personas/context'
-import { mayClear, ResultPanel, toggleSpeaksNow } from './ResultPanel'
+import { mayClear, progressCounts, ResultPanel, toggleSpeaksNow } from './ResultPanel'
 import type { Upload } from '../lib/match-recorder'
 
 const won: Result = { winner: 0, score: [1, 0], reason: 'ahead by 300 chips after 4 hands' }
@@ -59,6 +59,21 @@ test('a win is announced as a clear only after the server accepts it; until then
   }
 })
 
+test('a win the server never counted (its log had it won before the player gave up) claims no progress: no clear, no next level, no counted line, no share', () => {
+  const counted = renderWith({ status: 'counted', matchId: 'm' })
+  const html = renderWith({ status: 'counted', matchId: 'm', loggedWin: true })
+  expect(counted).toContain('Beaten')
+  expect(counted).toContain('up next')
+  for (const bad of ['is unlocked', 'Checking your result', 'play-next', 'Play Marlow', 'share-block', 'Beaten', 'up next', 'Sign in to get a rating']) expect(html).not.toContain(bad)
+  expect(html).toContain('Your last shot had already sunk their fleet, so nothing was counted.')
+  expect(html).toContain('data-testid="rematch"')
+  expect(progressCounts({ status: 'counted', matchId: 'm', loggedWin: true })).toBe(false)
+  expect(progressCounts({ status: 'counted', matchId: 'm' })).toBe(true)
+  expect(progressCounts({ status: 'synced', matchId: 'm' })).toBe(true)
+  expect(progressCounts({ status: 'uploading' })).toBe(false)
+  expect(progressCounts(undefined)).toBe(false)
+})
+
 test('a rejected, failed, not-counted or unrated (fixed seed) win never says it unlocked anything', () => {
   for (const upload of [{ status: 'rejected', reason: 'x' }, { status: 'failed', message: 'x' }, { status: 'not-counted', matchId: 'm', reason: 'x' }, { status: 'none' }] as Upload[]) {
     const html = renderWith(upload)
@@ -66,6 +81,23 @@ test('a rejected, failed, not-counted or unrated (fixed seed) win never says it 
     expect(html).not.toContain('Checking your result')
     expect(html).not.toContain('play-next')
   }
+})
+
+test('a refused record that moved the rating says it was charged as a loss and shows the fall, never that it was not counted', () => {
+  const html = renderWith({ status: 'rejected', reason: 'seed does not match the one issued for this match', elo: { before: 1000, after: 980 }, provisional: true })
+  expect(html).toContain('This match could not be verified, so it was charged as a loss.')
+  expect(html).not.toContain('not counted')
+  expect(html).toContain('data-testid="result-elo"')
+  expect(html).toContain('Rating 1000 to 980')
+  expect(html).toContain('data-testid="result-elo-provisional"')
+  expect(html).not.toContain('is unlocked')
+})
+
+test('a refused record that moved no rating still says it was not counted', () => {
+  const html = renderWith({ status: 'rejected', reason: 'replay failed' })
+  expect(html).toContain('This match could not be verified, so it was not counted.')
+  expect(html).not.toContain('charged')
+  expect(html).not.toContain('data-testid="result-elo"')
 })
 
 test('mayClear: only an accepted, rated, played-out win moves the path', () => {
@@ -103,4 +135,26 @@ test('turning the voice on while a rated win is settling does not speak the prov
   expect(toggleSpeaksNow('on', true)).toBe(false)
   expect(toggleSpeaksNow('on', false)).toBe(true)
   expect(toggleSpeaksNow('off', false)).toBe(false)
+})
+
+test("a resignation after the server's log already says the player won says nothing was counted, never a sign-in prompt", () => {
+  const lost: Result = { winner: 1, score: [0, 1], reason: 'resigned' }
+  const html = renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'fleet', level: 'easy' }}>
+      <ResultPanel result={lost} humanSeat={0} onRematch={() => {}} onChangeLevel={() => {}} upload={{ status: 'counted', matchId: 'm', loggedWin: true }} />
+    </OpponentContext.Provider>,
+  )
+  expect(html).toContain('Your last shot had already sunk their fleet, so nothing was counted.')
+  expect(html).not.toContain('Sign in to get a rating')
+})
+
+test('a resignation before the first shot says it does not count, with or without an account', () => {
+  const lost: Result = { winner: 1, score: [0, 1], reason: 'resigned' }
+  const html = renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'fleet', level: 'easy' }}>
+      <ResultPanel result={lost} humanSeat={0} onRematch={() => {}} onChangeLevel={() => {}} upload={{ status: 'counted', matchId: 'm', unplayed: true }} />
+    </OpponentContext.Provider>,
+  )
+  expect(html).toContain('No shot was fired, so this match does not count.')
+  expect(html).not.toContain('Sign in to get a rating')
 })

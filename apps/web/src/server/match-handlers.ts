@@ -4,6 +4,8 @@ import { decodeRecord, RecordError, type MatchRecordV1 } from '@duelwise/core/sr
 import { optionsProblem, sameChoice, type MatchOptions } from '@duelwise/core/src/games/holdem/match'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
+import { isSealed } from '@duelwise/core/src/sealed'
+import { loggedOutcome, recordMatchesLog } from '@duelwise/core/src/sealed-log'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import type { Result } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
@@ -12,9 +14,9 @@ import { sweepOpenOverCap } from './abandon'
 import { type AgentCheck, CHECK_CLAIM_MS, SERVER_CHECKED } from './agent-check'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
-import { isPractice, LEFT_FLAG, PRACTICE_FLAG } from './competitive'
+import { isPractice, isUnplayed, LEFT_FLAG, PRACTICE_FLAG, sealedLogStill } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
-import { takeTicket } from './tickets'
+import { takeTicket, ticketUsed } from './tickets'
 import type { Traffic } from './traffic'
 
 type Db = PgDatabase<any, typeof schema>
@@ -51,7 +53,7 @@ export interface FinishBody {
   valid: boolean
   reason?: string
   result: Result | null
-  /** Set only for a valid match by a signed-in user; never for an invalid record or a guest. */
+  /** The signed-in player's rating move: a valid match, or the loss charged for a record that contradicts its match (never a gain for an invalid record); never a guest. */
   elo?: { before: number; after: number }
   /** True when the rating was earned against a level that has no measured site Elo yet. */
   provisional?: boolean
@@ -223,7 +225,7 @@ export async function startMatchHandler(
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
-  if (game === 'word') return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
+  if (isSealed(game as GameId)) return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
   return { status: 200, body: { matchId, seed, agentVersion } }
 }
 
@@ -318,10 +320,14 @@ export async function sweepDeferredChecks(db: Db, now: Date = new Date()): Promi
   return rows.length
 }
 
+/** The loss for a record that contradicts its match. Only used to score the rating, like a resignation. */
+const INVALID_LOSS: Result = { winner: 1, score: [0, 1], reason: 'invalid record' }
+
 /**
  * Decodes an uploaded gzip record, replays it from the SEED THE SERVER ISSUED (never the one the
- * client claims), and stores the outcome. A record that does not replay is kept for inspection
- * with valid = false and a reason; it never reaches ratings or training.
+ * client claims), and stores the outcome. A record that does not replay is settled with valid = false
+ * and a reason; it is never rated as a win and never reaches training. Most such records cost nothing,
+ * because an honest failure looks the same; one that contradicts its own match is charged as a loss (see below).
  */
 export async function finishMatchHandler(
   db: Db,
@@ -361,6 +367,7 @@ export async function finishMatchHandler(
   // The answer says whether the earlier result was a counted one, so a copy of the same record sent twice (page and worker) is told the truth.
   if (row.status !== 'started') return { status: 409, body: { error: `match is already ${row.status}`, valid: row.status === 'finished' && row.recordValid === true } }
 
+  const sealedTurn = isSealed(row.game as GameId) && row.game !== 'word'
   let reason: string | undefined
   let result: Result | null = null
   let deferred = false
@@ -370,11 +377,17 @@ export async function finishMatchHandler(
   else if (!sameChoice(rec.options, chosenOptions(row.filterFlags))) reason = `match length does not match the one chosen at the start (started ${describeChoice(chosenOptions(row.filterFlags))}, record says ${describeChoice(rec.options)})`
   else if (ticketed && rec.agent.version !== row.agentVersion) reason = `this offline match was played against agent ${rec.agent.version}, but its ticket was issued for ${row.agentVersion}`
   else if (ticketed && opts.currentAgentVersion && opts.currentAgentVersion(row.game as GameId, row.level as Level) !== row.agentVersion) reason = 'the opponent was updated after this offline ticket was issued, so the match cannot be checked'
+  // The player is always seat 0 in a real-time game and replay never reads this field, so a seat-1 upload would put a lost match on the board and the path as a win.
+  else if (PRODUCT.games[row.game as GameId].kind === 'realtime' && rec.humanSeat !== 0) reason = 'a real-time match is played from seat 0'
   else {
     const out = replay(rec)
     result = out.result
     if (!out.ok) reason = out.error ?? 'replay failed'
+    // The player is always seat 0 in a sealed game; replay and the log compare never read this field, so a seat-1 upload would turn a loss into a win.
+    else if (isSealed(row.game as GameId) && rec.humanSeat !== 0) reason = 'a sealed match is played from seat 0'
     else if (row.game === 'word' && !wordRecordMatchesMarks(rec, row.seed, row.filterFlags)) reason = 'record does not match the marked rounds'
+    // Every other sealed game keeps a log of the server's own turns (server/sealed-duel.ts); the record must be exactly that, to the end.
+    else if (sealedTurn && !recordMatchesLog(rec, row.filterFlags)) reason = 'record does not match the logged turns'
     else if (SERVER_CHECKED.includes(rec.game)) {
       // The check is the expensive step (seconds of CPU), so one request claims the match first; copies sent at the same time stop here.
       // 503, not 409: the match is still 'started', and the client keeps a record on any 5xx and retries it (lib/integrity.ts retryPending).
@@ -387,6 +400,8 @@ export async function finishMatchHandler(
     }
   }
   const valid = reason === undefined
+  // A refused sealed turn match is settled by the server's log, read before the write so the row keeps what happened and not what the upload claims.
+  const logged = !valid && sealedTurn ? loggedOutcome(row.game as GameId, row.seed, row.filterFlags) : null
   // Left before its chosen end: kept as a result and for training, marked so no competitive read counts it.
   const left = rec.options?.leftAfter !== undefined
   const trainable = valid && row.trainingAllowed && rec.trainingAllowed && (opts.recordsTrainable ?? (() => true))(row.game as GameId)
@@ -395,7 +410,8 @@ export async function finishMatchHandler(
     .update(schema.match)
     .set({
       status: 'finished',
-      result: rec.result,
+      // Refused in a sealed turn game: the logged result, whoever won, or none for a game that did not end. Readers count only rows with a record, so a refused win scores nowhere.
+      result: !valid && sealedTurn ? (logged?.result ?? null) : rec.result,
       // Only a record the server accepted is kept; a rejected one is not stored (it can be as large as the cap allows).
       record: valid ? bytes : null,
       recordValid: valid,
@@ -406,7 +422,8 @@ export async function finishMatchHandler(
       ...(deferred ? { filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) || ${JSON.stringify({ deferredCheckAt: Date.now(), ...(left ? { [LEFT_FLAG]: true } : {}) })}::jsonb || jsonb_build_object('deferredTrainingRevoked', not ${schema.match.trainingAllowed})` } : left ? { filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) || ${JSON.stringify({ [LEFT_FLAG]: true })}::jsonb` } : {}),
       finishedAt: new Date(),
     })
-    .where(and(eq(schema.match.id, row.id), eq(schema.match.status, 'started')))
+    // In a sealed turn game the decision rests on the log it read: a shot that lands first sends this upload back (409) to read it again.
+    .where(and(eq(schema.match.id, row.id), eq(schema.match.status, 'started'), sealedTurn ? sealedLogStill(row.filterFlags) : undefined))
     .returning({ id: schema.match.id })
   if (updated.length === 0) return err(409, 'match was finished by another request')
 
@@ -427,7 +444,32 @@ export async function finishMatchHandler(
     opts.deferCheck!(settleDeferredCheck(db, row.id, rec, trainable, opts, finishedEvent))
   } else await finishedEvent(reason)
 
-  if (!valid) return { status: 200, body: { valid, reason, result: null } }
+  if (!valid) {
+    // The game, level and seed are the server's own values and every build only echoes them, so a record that contradicts one was edited
+    // to throw the match away: a loss at this match's rating, as if resigned. The seat is the same in the games the server holds to seat 0:
+    // every page records the fixed seat 0, so a flip costs the loss instead of escaping free. The compare-and-set above makes it once only.
+    // Elsewhere everything else stays free, because it cannot be told from an honest failure: a stale build (core version, match length), a client bug
+    // (the page uploads records its own replay failed), a model changed mid-match (agent check) and an offline ticket (played unseen).
+    const seatHeld = isSealed(row.game as GameId) || SERVER_CHECKED.includes(row.game as GameId)
+    const contradicts = rec.game !== row.game || rec.agent.level !== row.level || rec.seed !== row.seed || (seatHeld && rec.humanSeat !== 0)
+    // A sealed turn game needs no guess: the seed is revealed after a loss, so an edit can look like anything, but the server holds the match itself.
+    // The agent won: the loss, whatever went wrong with the record. Still running: the page uploads only after the server says the match is over
+    // (useFleetMatch finishCounted), so no honest build sends this; it is giving up. The player won: nothing, no gain and no charge.
+    const owesLoss = logged ? logged.result === null || logged.result.winner === 1 : contradicts
+    // The flag covers a retry: an earlier upload that died mid-check already moved the row to 'started', so `ticketed` is false here.
+    if (!owesLoss || ticketed || ticketUsed(row.filterFlags) || !row.userId || isPractice(row.filterFlags) || isUnplayed(row.game, row.filterFlags)) return { status: 200, body: { valid, reason, result: null } }
+    const change = await applyRatingIfRanked(db, {
+      userId: row.userId,
+      game: row.game as GameId,
+      level: row.level as Level,
+      humanSeat: 0,
+      result: INVALID_LOSS,
+      siteElo: opts.siteElo?.(row.game as GameId, row.level as Level, row.agentVersion) ?? null,
+    })
+    if (!change) return { status: 200, body: { valid, reason, result: null } }
+    await saveRatingChange(db, row.id, change)
+    return { status: 200, body: { valid, reason, result: null, elo: { before: change.before, after: change.after }, provisional: change.provisional } }
+  }
   // Read from the row the server wrote at the start, never from the upload.
   if (isPractice(row.filterFlags)) return { status: 200, body: { valid, result, unranked: true, practice: true } }
   if (PRODUCT.games[row.game as GameId].kind === 'realtime') return { status: 200, body: { valid, result, unranked: true } }

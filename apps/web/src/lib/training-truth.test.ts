@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { validateRegistry, type Registry } from '@duelwise/agents/src/registry'
-import { HERO_SUBLINE, howItLearnsClosing, learnsNote, matchesTrainAgent, notTrainedSentence, recordsTrainable, reportLearnsCard, resultTrainingNote, settingsTrainingLine, trainingStripLabel, trainingSurfaces } from './honest-copy'
+import { funnelNotes, HERO_SUBLINE, howItLearnsClosing, learnsNote, matchesTrainAgent, notTrainedSentence, recordsTrainable, reportLearnsCard, resultTrainingNote, settingsTrainingLine, trainingNoticeText, trainingStripLabel, trainingSurfaces } from './honest-copy'
 
 const GAMES = Object.keys(PRODUCT.games) as GameId[]
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -124,4 +124,21 @@ test('no source file outside honest-copy.ts hard-codes a training line', () => {
     .filter((p) => HARD_CODED.test(readFileSync(p, 'utf8')))
     .map((p) => p.slice(SRC.length + 1))
   expect(offenders).toEqual([])
+})
+
+test('Stormglass is a scripted solver: its stats copy never says "yet" about training, and every other game reads as before', () => {
+  const note = (game: GameId) => learnsNote({ learns: false, hasLearned: false, pretraining: null, selfPlay: false, game })
+  expect(trainingStripLabel(false, 'fleet')).toBe('Scripted')
+  expect(note('fleet')).toBe('Scripted solver: does not learn from site matches, because there is nothing to train.')
+  expect(funnelNotes('fleet')).toEqual({ nothingUsed: 'Nothing is used for training.', notLearning: 'not used: this agent is scripted and has nothing to train.' })
+  expect(`${resultTrainingNote('fleet', fake(false), true)} ${reportLearnsCard('fleet', fake(false)).text} ${trainingNoticeText('fleet', false, 'opt-in').text}`).not.toMatch(/\byet\b/i)
+  for (const game of GAMES.filter((g) => g !== 'fleet')) {
+    expect(trainingStripLabel(false, game)).toBe('Not yet')
+    expect(trainingStripLabel(true, game)).toBe('Trains on site matches')
+    expect(funnelNotes(game)).toEqual({ nothingUsed: 'Nothing is used for training yet.', notLearning: 'not used: this agent does not learn from people yet.' })
+    expect(note(game)).toContain('Does not learn from site matches yet.')
+    expect(resultTrainingNote(game, fake(false), true)).toContain('does not learn from human matches yet')
+    expect(reportLearnsCard(game, fake(false)).text).toContain('does not learn from human matches yet')
+    expect(trainingNoticeText(game, false, 'opt-in').text).toContain('does not learn from human matches yet')
+  }
 })

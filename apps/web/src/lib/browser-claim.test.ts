@@ -16,4 +16,6 @@ test('landing and terms do not claim every opponent runs in the browser', () => 
   expect(landing).toContain('counted Word Duel match the server picks')
   expect(terms).not.toMatch(/The agents run in your browser/)
   expect(terms).toContain('counted Word Duel match the server keeps')
+  expect(landing).toContain('counted Stormglass match it keeps the enemy fleet')
+  expect(terms).toContain('counted Stormglass match the server keeps the enemy fleet')
 })

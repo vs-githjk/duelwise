@@ -8,7 +8,8 @@ import { cn } from '../../lib/cn'
 import { shortDate } from '../charts/format'
 import { Card } from './Card'
 import { CLASS_COLOR, Legend, Parts, StackBar, TrafficTag } from './Breakdown'
-import { ago, utcTime } from './format'
+import { ago } from './format'
+import { useWhen } from './zone'
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 const GAMES = Object.keys(PRODUCT.games) as GameId[]
@@ -159,6 +160,7 @@ function PerGameChips({ p }: { p: PersonRow }) {
 }
 
 function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | null; onRefs: (refs: string[]) => void; onOpen: (p: PersonRow) => void }) {
+  const when = useWhen()
   const [s, setS] = useState<PeopleState>({ sort: 'last', dir: 'desc', page: 0, q: '' })
   const [typed, setTyped] = useState('')
   useEffect(() => {
@@ -248,7 +250,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
                   </button>
                 </td>
                 <td className="px-2 py-2"><span className="flex flex-wrap gap-1"><TrafficTag t={p.traffic} />{p.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}</span></td>
-                <td className="whitespace-nowrap px-2 py-2">{shortDate(p.joinedAt)}</td>
+                <td className="whitespace-nowrap px-2 py-2">{when.date(p.joinedAt)}</td>
                 <td className="whitespace-nowrap px-2 py-2">{at ? ago(p.lastSeenAt, at) : ''}</td>
                 <td className="px-2 py-2 text-right tabular">{p.matches}</td>
                 <td className="px-2 py-2"><PerGameChips p={p} /></td>
@@ -280,7 +282,7 @@ function People({ emails, onRefs, onOpen }: { emails: Record<string, string> | n
                 </span>
               </span>
               <span className="grid grid-cols-3 gap-2 text-xs text-muted">
-                <span>Joined<br /><b className="text-sm font-semibold text-ink">{shortDate(p.joinedAt)}</b></span>
+                <span>Joined<br /><b className="text-sm font-semibold text-ink">{when.date(p.joinedAt)}</b></span>
                 <span>Last seen<br /><b className="text-sm font-semibold text-ink">{at ? ago(p.lastSeenAt, at) : ''}</b></span>
                 <span>Matches<br /><b className="text-sm font-semibold text-ink tabular">{p.matches}</b></span>
               </span>
@@ -338,6 +340,7 @@ function CountedChips({ m }: { m: HistoryRow }) {
 }
 
 function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; emails: Record<string, string> | null; onClose: () => void }) {
+  const when = useWhen()
   const dialog = useRef<HTMLDialogElement>(null)
   const ref = p?.ref ?? null
   const { data, error, retry } = useLoad<PlayerDetail>(() => (ref ? getAdminPlayer({ data: { ref } }) : Promise.resolve(null)), [ref])
@@ -369,7 +372,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
                   <TrafficTag t={detail.traffic} />
                   {detail.kind === 'guest' ? <Outline>guest</Outline> : <Chip tone="bg-action text-action-ink">signed in</Chip>}
                   {detail.hidden ? <Chip tone="bg-warn-soft text-warn-ink">hidden from the board</Chip> : <Outline>shown on the board</Outline>}
-                  <span>Joined {shortDate(detail.joinedAt)}, last seen {shortDate(detail.lastSeenAt)} {utcTime(detail.lastSeenAt)} UTC</span>
+                  <span>Joined {when.date(detail.joinedAt)}, last seen {when.both(detail.lastSeenAt)}</span>
                 </p>
               ) : null}
             </div>
@@ -422,7 +425,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
                       <tbody>
                         {detail.matches.map((m) => (
                           <tr key={m.matchId} className="border-t border-line" data-testid="history-row" data-result={m.result}>
-                            <td className="whitespace-nowrap px-2 py-2 tabular">{shortDate(m.at)} {utcTime(m.at)}</td>
+                            <td className="whitespace-nowrap px-2 py-2 tabular">{when.both(m.at)}</td>
                             <td className="px-2 py-2">{gameName(m.game)}</td>
                             <td className="px-2 py-2"><span className="inline-flex items-center gap-2"><Avatar level={m.level} size={20} decorative />{personaFor(m.level).name}</span></td>
                             <td className="px-2 py-2"><Chip tone={RESULT_TONE[m.result]!}>{m.result}</Chip></td>
@@ -442,7 +445,7 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
                         <span className="inline-flex items-center gap-2"><Avatar level={m.level} size={22} decorative /><b>{gameName(m.game)}</b> <span className="text-muted">{personaFor(m.level).name}</span></span>
                         <Chip tone={RESULT_TONE[m.result]!}>{m.result}</Chip>
                       </span>
-                      <span className="flex items-center justify-between gap-2 text-muted"><span>{shortDate(m.at)} {utcTime(m.at)} UTC</span>{m.result !== 'in progress' ? <a className="text-action underline" href={`/report/${m.matchId}`}>Report</a> : null}</span>
+                      <span className="flex items-center justify-between gap-2 text-muted"><span>{when.both(m.at)}</span>{m.result !== 'in progress' ? <a className="text-action underline" href={`/report/${m.matchId}`}>Report</a> : null}</span>
                       <CountedChips m={m} />
                       {m.invalidReason ? <span className="text-bad-ink">{m.invalidReason}</span> : null}
                     </li>
@@ -462,8 +465,8 @@ function PlayerSheet({ p, emails, onClose }: { p: PersonRow | FeedRow | null; em
  * page paints (the first screen never waits on it), refreshes every minute, and reports the account refs on screen so the page's
  * audited "Reveal emails" switch can cover them.
  */
-export function AdminSection({ emails, onRefs }: { emails: Record<string, string> | null; onRefs: (refs: string[]) => void }) {
-  const overview = useLoad<AdminOverview>(() => getAdminOverview(), [], REFRESH_MS)
+export function AdminSection({ emails, onRefs, zone }: { emails: Record<string, string> | null; onRefs: (refs: string[]) => void; zone: string }) {
+  const overview = useLoad<AdminOverview>(() => getAdminOverview({ data: { tz: zone } }), [zone], REFRESH_MS)
   const [open, setOpen] = useState<PersonRow | FeedRow | null>(null)
   const peopleRefs = useRef<string[]>([])
   const feedRefs = useRef<string[]>([])

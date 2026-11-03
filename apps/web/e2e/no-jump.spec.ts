@@ -14,21 +14,27 @@ async function bringIntoView(page: Page, board: Locator) {
   return spot(page, board)
 }
 /** Records the element's position on every frame, so a shift that undoes itself between two checks (a line that appears while the AI thinks) still counts. */
-async function watchFrames(locator: Locator) {
-  await locator.evaluate((el) => {
-    const w = window as unknown as { __tops: number[] }
-    w.__tops = []
-    const tick = () => {
-      w.__tops.push(el.getBoundingClientRect().top + window.scrollY)
-      requestAnimationFrame(tick)
-    }
-    tick()
-  })
+async function watchFrames(...locators: Locator[]) {
+  for (const [i, locator] of locators.entries()) {
+    await locator.evaluate((el, n) => {
+      const w = window as unknown as { __tops: Record<number, number[]> }
+      w.__tops ??= {}
+      w.__tops[n] = []
+      const tick = () => {
+        w.__tops[n].push(el.getBoundingClientRect().top + window.scrollY)
+        requestAnimationFrame(tick)
+      }
+      tick()
+    }, i)
+  }
 }
 async function expectNoFrameShift(page: Page, label: string) {
-  const tops = await page.evaluate(() => (window as unknown as { __tops: number[] }).__tops)
-  expect(tops.length, `${label}: frames were recorded`).toBeGreaterThan(10)
-  expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
+  const all = await page.evaluate(() => Object.values((window as unknown as { __tops: Record<number, number[]> }).__tops))
+  expect(all.length, `${label}: something was watched`).toBeGreaterThan(0)
+  for (const tops of all) {
+    expect(tops.length, `${label}: frames were recorded`).toBeGreaterThan(10)
+    expect(Math.max(...tops) - Math.min(...tops), `${label}: moved during a frame`).toBeLessThanOrEqual(2)
+  }
 }
 async function expectStill(page: Page, board: Locator, start: { y: number; x: number; top: number }, label: string) {
   const now = await spot(page, board)
@@ -116,4 +122,31 @@ test('word duel: the ledger stays put across three guesses', async ({ page }) =>
     await page.waitForTimeout(900)
     await expectStill(page, ledger, start, `word after ${w}`)
   }
+})
+
+test('stormglass: the board and the Fire bar stay put on every frame across six shots and the replies', async ({ page }) => {
+  test.setTimeout(150_000)
+  // The opponent's pause is left at its real default, so the "thinking" and "fired at" lines come and go while the page is watched.
+  await page.goto('/play/stormglass')
+  await page.getByTestId('fleet-ready').click()
+  const root = page.getByTestId('fleet-page')
+  await expect(root).toHaveAttribute('data-turn', 'you')
+  const board = page.getByTestId('fleet-cell-board')
+  const fire = page.getByTestId('fleet-fire')
+  const start = await bringIntoView(page, board)
+  const fireStart = await spot(page, fire)
+  await watchFrames(board, fire)
+  for (let i = 0; i < 6; i++) {
+    await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+    if ((await root.getAttribute('data-turn')) === 'over') break
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    const id = (await cell.getAttribute('data-testid'))!
+    await cell.click()
+    await cell.click()
+    await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+    await expectStill(page, board, start, `fleet after shot ${i + 1}`)
+    await expectStill(page, fire, fireStart, `fleet fire bar after shot ${i + 1}`)
+  }
+  await expectNoFrameShift(page, 'fleet')
 })

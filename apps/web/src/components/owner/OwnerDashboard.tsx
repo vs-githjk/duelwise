@@ -5,7 +5,9 @@ import { revealOwnerEmails } from '../../server/telemetry-fns'
 import { cn } from '../../lib/cn'
 import { LEVEL_NAME } from '../charts/format'
 import { personaFor } from '../../personas'
-import { ago, recentCsv, utcTime } from './format'
+import { timeIn, zoneLabel } from '../../server/owner-zone'
+import { ago, recentCsv } from './format'
+import { ZoneProvider } from './zone'
 import { DevicesPanel, DriftPanel, KpiRow, LengthPanel, PerGamePanel, WinsPanel } from './Panels'
 import { RecentPanel, WhoPlayedPanel } from './Tables'
 import { AdminSection } from './Admin'
@@ -30,7 +32,18 @@ const STALE_MS = 5 * 60_000
 const REFRESH_MS = 60_000
 const control = 'inline-flex min-h-11 items-center rounded-control border border-line bg-surface px-3 text-base text-ink'
 
-export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerViewBody; filters: OwnerFilters; onFilters: (f: Partial<OwnerFilters>) => void; onRefresh: () => void }) {
+type DashboardProps = { v: OwnerViewBody; filters: OwnerFilters; onFilters: (f: Partial<OwnerFilters>) => void; onRefresh: () => void }
+
+/** Every time and day on the page is on the clock of `v.zone`, the zone the server used for the numbers. */
+export function OwnerDashboard(props: DashboardProps) {
+  return (
+    <ZoneProvider value={props.v.zone}>
+      <OwnerDashboardBody {...props} />
+    </ZoneProvider>
+  )
+}
+
+function OwnerDashboardBody({ v, filters, onFilters, onRefresh }: DashboardProps) {
   const [emails, setEmails] = useState<Record<string, string> | null>(null)
   const [asking, setAsking] = useState(false)
   const [revealError, setRevealError] = useState(false)
@@ -150,7 +163,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
 
       {stale ? (
         <div role="status" className="rounded-control bg-warn-soft p-3 text-sm text-warn-ink" data-testid="owner-stale">
-          <strong>This page is {behindMin} minutes behind.</strong> The last refresh was at {utcTime(v.generatedAt)} UTC. It retries every minute; reload if it stays behind.
+          <strong>This page is {behindMin} minutes behind.</strong> The last refresh was at {timeIn(v.generatedAt, v.zone)}. It retries every minute; reload if it stays behind.
         </div>
       ) : null}
 
@@ -158,7 +171,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
         Every number shows the human figure first, then Owner (your own games) and Test (our automated runs). Counts add up: Human + Owner + Test = Total. Rates and medians do not add, so each group has its own and the last figure is over all matches together. AI training games run on your own machine and never write to this database.
       </p>
       <p className="text-sm text-muted" data-testid="owner-last-event">
-        {v.lastEventAt ? `Last event ${ago(v.lastEventAt, v.generatedAt)}, at ${utcTime(v.lastEventAt)} UTC.` : 'No event has been recorded yet.'} Times are UTC. Numbers come from server events only; nothing is sent to a third party.
+        {v.lastEventAt ? `Last event ${ago(v.lastEventAt, v.generatedAt)}, at ${timeIn(v.lastEventAt, v.zone)}.` : 'No event has been recorded yet.'} <span data-testid="owner-zone">{v.zoneFallback ? 'Times are UTC, because this browser did not give a usable time zone.' : `Times are ${zoneLabel(v.zone, new Date(v.generatedAt))}.`}</span> Numbers come from server events only; nothing is sent to a third party.
       </p>
 
       {v.empty ? (
@@ -167,7 +180,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
         </Card>
       ) : null}
 
-      <ActiveCards />
+      <ActiveCards zone={v.zone} />
       <KpiRow v={v} />
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Traffic shown in the panels below" data-testid="owner-lens">
         <span className="text-sm text-muted">Panels below show</span>
@@ -202,7 +215,7 @@ export function OwnerDashboard({ v, filters, onFilters, onRefresh }: { v: OwnerV
         </button>
       </div>
 
-      <AdminSection emails={emails} onRefs={setAdminRefs} />
+      <AdminSection emails={emails} onRefs={setAdminRefs} zone={v.zone} />
 
       <RecentPanel v={v} emails={emails} onPage={(page) => onFilters({ page })} onCsv={downloadCsv} />
       <WhoPlayedPanel v={v} emails={emails} />

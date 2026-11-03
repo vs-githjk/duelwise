@@ -197,6 +197,7 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       setState(init)
       setLastMove(null)
       recorder.start({
+        matchId: opened.session.matchId,
         seed: s,
         humanSeat: HUMAN,
         agent: { version: agentVersion(lvl), level: lvl },

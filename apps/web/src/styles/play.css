@@ -23,6 +23,10 @@
   --glow: rgba(255, 214, 90, 0.9);
   --piece-white-shade: #cfc4a6;
   --piece-black-light: #4a453d;
+  --fleet-rim-a: #2c6797;
+  --fleet-rim-b: #123654;
+  --fleet-sea-shade: rgba(27, 77, 122, 0.28);
+  --fleet-sunk-edge: #5e1412;
 }
 
 /* The surface a board sits on: a lamp from above, a vignette to the edges. */
@@ -182,4 +186,88 @@
   .result-panel .result-verdict { grid-column: 1; grid-row: 2; }
   .result-panel [data-testid="says-line"] { font-size: 0.9375rem; line-height: 1.25 }
   .result-panel [data-testid="result-headline"] { font-size: 1.75rem }
+}
+
+/*
+  Stormglass (design spec section 2). The board is a deep-water slab beside Four's blue one: a rim, then the water, then the hulls, then the
+  clear cells that carry marks and rings. The sink is the game's one big moment: the sea darkens round the ship for 360 ms, its hull surfaces,
+  a wake runs off it, and the tally is struck through. Everything moves by transform and opacity, so no frame changes the layout.
+*/
+.fleet-board {
+  position: relative;
+  padding: 4px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--fleet-rim-a), var(--game-fleet) 55%, var(--fleet-rim-b));
+  box-shadow: 0 1px 0 var(--sheen) inset, 0 0 0 1px var(--fleet-rim-b), 0 5px 0 -1px var(--fleet-rim-b), 0 16px 18px -8px var(--cast);
+}
+.fleet-board[data-size="mini"] { padding: 2px; border-radius: 6px; box-shadow: 0 0 0 1px var(--fleet-rim-b), 0 4px 8px -4px var(--cast); }
+.fleet-gutter { color: var(--sea); }
+.fleet-sea {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 7px;
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 0%, var(--sheen), transparent 70%),
+    linear-gradient(to right, var(--sea-line) 1px, transparent 1px) 0 0 / 10% 10%,
+    linear-gradient(to bottom, var(--sea-line) 1px, transparent 1px) 0 0 / 10% 10%,
+    repeating-conic-gradient(var(--sea-deep) 0 25%, var(--sea) 0 50%) 0 0 / 20% 20%;
+  box-shadow: inset 0 0 14px var(--fleet-sea-shade);
+}
+.fleet-board[data-size="mini"] .fleet-sea { border-radius: 4px; }
+.fleet-cell { cursor: pointer; }
+.fleet-cell[aria-disabled="true"] { cursor: default; }
+.fleet-cell:focus-visible { outline: 3px solid var(--action); outline-offset: -3px; }
+
+.fleet-hull { position: absolute; }
+.fleet-hull[data-sunk] { opacity: 0.7; }
+.fleet-hull-body { fill: var(--hull); stroke: var(--hull-edge); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.fleet-hull-body[data-selected] { stroke: var(--action); stroke-width: 3px; }
+.fleet-hull[data-sunk] .fleet-hull-body { fill: var(--sunk); stroke: var(--fleet-sunk-edge); }
+.fleet-hull-sheen { fill: none; stroke: var(--sheen); stroke-width: 2px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fleet-hull-deck { fill: var(--hull-edge); opacity: 0.5; }
+[data-size="mini"] .fleet-hull-sheen, [data-size="mini"] .fleet-hull-deck { display: none; }
+[data-size="mini"] .fleet-hull-body { stroke-width: 1px; }
+
+.fleet-miss { display: block; width: 26%; aspect-ratio: 1; border-radius: 50%; background: var(--miss); }
+.fleet-flame { display: block; width: 62%; height: auto; overflow: visible; }
+.fleet-flame-outer { fill: var(--hit); stroke: var(--sea); stroke-width: 1.2px; paint-order: stroke; }
+.fleet-flame-core { fill: var(--ball-solid); }
+.fleet-land { animation: fleet-land var(--duration-base) var(--ease-out) both; }
+@keyframes fleet-land { from { opacity: 0; transform: scale(0.35); } 70% { opacity: 1; transform: scale(1.15); } to { opacity: 1; transform: none; } }
+.fleet-ping { position: absolute; inset: 0; background: var(--action-soft); opacity: 0; animation: fleet-ping var(--duration-slow) var(--ease-out); }
+@keyframes fleet-ping { from { opacity: 1; } to { opacity: 0; } }
+
+/* Aim: one line across the row and one down the column, 35 percent, sliding with the aim. */
+.fleet-cross { position: absolute; left: 0; top: 0; width: 100%; height: 10%; pointer-events: none; opacity: 0; transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out); }
+.fleet-cross[data-cross="col"] { width: 10%; height: 100%; }
+.fleet-cross[data-on] { opacity: 0.35; }
+.fleet-cross::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; background: var(--action); }
+.fleet-cross[data-cross="col"]::after { left: calc(50% - 0.5px); right: auto; top: 0; bottom: 0; width: 1px; height: auto; }
+
+/* The sink. */
+.fleet-sea-dark { position: absolute; inset: 0; opacity: 0; background: radial-gradient(circle at var(--sink-x) var(--sink-y), transparent 6%, var(--fleet-rim-b) 62%); animation: fleet-sea-dark var(--duration-slow) var(--ease-in-out); }
+@keyframes fleet-sea-dark { 0% { opacity: 0; } 30% { opacity: 0.72; } 100% { opacity: 0; } }
+.fleet-hull[data-surfacing] { animation: fleet-surface var(--duration-slow) var(--ease-out) both; }
+@keyframes fleet-surface { from { opacity: 0; transform: translateY(3px) scale(0.9); } to { opacity: 0.7; transform: none; } }
+.fleet-wake { position: absolute; border: 2px solid var(--sea); border-radius: 999px; opacity: 0; animation: fleet-wake var(--duration-slow) var(--ease-out); }
+@keyframes fleet-wake { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.35); } }
+.fleet-strike { transform-origin: left center; }
+.fleet-tally-ship[data-fresh] .fleet-strike { animation: fleet-strike var(--duration-slow) var(--ease-out) 120ms both; }
+@keyframes fleet-strike { from { transform: scaleX(0); } to { transform: none; } }
+.fleet-tally-ship[data-fresh] { animation: fleet-tally var(--duration-slow) var(--ease-out); }
+@keyframes fleet-tally { 40% { transform: scale(1.35); } }
+
+/* The stage holds both boards and the Fire bar; on it the small print reads in ink, since the stage is darker than the page. */
+@media (min-width: 641px) {
+  .fleet-stage .text-muted { color: var(--ink); }
+}
+@media (min-width: 1024px) {
+  .stage.fleet-stage { padding: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fleet-land, .fleet-hull[data-surfacing], .fleet-tally-ship[data-fresh], .fleet-tally-ship[data-fresh] .fleet-strike, .fleet-ping { animation: none; }
+  .fleet-sea-dark, .fleet-wake { animation: none; display: none; }
+  .fleet-cross { transition: none; }
 }

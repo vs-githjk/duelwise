@@ -4,7 +4,7 @@ import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { cn } from '../lib/cn'
 import { LEVEL_LABEL } from '../lib/level-info'
 import { Avatar } from '../personas/Avatar'
-import { personaFor, styleLine } from '../personas'
+import { bioFor, personaFor, styleLine } from '../personas'
 import { RECORD_WINDOW, type ReportView } from '../server/report'
 import type { ReportPage as Page } from '../server/report-fns'
 import { saveReportSettings } from '../server/report-fns'
@@ -12,7 +12,7 @@ import { matchesWindow, provisionalNote } from '../lib/copy'
 import { reportLearnsCard } from '../lib/honest-copy'
 import { registryFor } from '../lib/registries'
 import { verifiedStrength } from '../lib/strength-gates'
-import { emptyReviewText, hasGameView, hasKeyMoments, headline, learningCopy, reportTiles, shareControlsNote } from './copy'
+import { emptyReviewText, hasGameView, hasKeyMoments, headline, learningCopy, recordLine, reportTiles, shareControlsNote } from './copy'
 import { EvalChart } from './EvalChart'
 import { CARD_HEIGHT, CARD_WIDTH } from './share-card'
 import type { Moment } from './types'
@@ -162,7 +162,7 @@ export function ReportPageView({ page }: { page: Page }) {
               <Avatar level={view.level} size={56} decorative />
               <p className="font-semibold">{persona.name}, {LEVEL_LABEL[view.level]}</p>
             </div>
-            <p className="text-base text-muted">{persona.bio}</p>
+            <p className="text-base text-muted">{bioFor(view.level, view.game)}</p>
             <p className="text-base">{verifiedStrength(registryFor(view.game), view.level) ? styleLine(view.level, view.game) : 'In training: this opponent\'s strength is still being checked.'}</p>
           </Card>
         </aside>
@@ -196,7 +196,7 @@ function PublicSide({ game }: { game: GameId }) {
 function OwnerSide({ view, delta, link }: { view: ReportView; delta: number | null; link: string }) {
   const owner = view.owner!
   const persona = personaFor(view.level)
-  const learn = learningCopy(owner.learning, persona.name)
+  const learn = learningCopy(owner.learning, persona.name, view.game)
   return (
     <>
       {owner.rating && delta !== null ? (
@@ -245,8 +245,8 @@ function RecordCard({ view }: { view: ReportView }) {
   return (
     <Card title={`You vs ${persona.name}`} note={total > 0 ? `${PRODUCT.games[view.game].displayName}, ${matchesWindow(Math.min(total, RECORD_WINDOW))}` : undefined} testId="report-record">
       <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span className="font-display text-display-md tabular" data-testid="report-record-line">{`${rec.wins}-${rec.losses}-${rec.draws}`}</span>
-        <span className="text-sm text-muted">wins, losses, draws</span>
+        <span className="font-display text-display-md tabular" data-testid="report-record-line">{recordLine(view.game, rec).line}</span>
+        <span className="text-sm text-muted">{recordLine(view.game, rec).label}</span>
       </p>
       {rec.recent.length > 0 ? (
         <p className="flex flex-wrap items-center gap-2" data-testid="report-record-recent">

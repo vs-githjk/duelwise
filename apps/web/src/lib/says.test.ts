@@ -53,3 +53,13 @@ test('an uncounted or practice win never promises the next opponent', () => {
   expect(sayLine({ ...base, level: 'easy', progress: 'counted' }).text).toContain('Marlow is up next')
   expect(sayLine({ ...base, level: 'easy' }).text).toContain('Marlow is up next')
 })
+
+test('Stormglass: a loss one shot short of sinking the last ship is a close match, and nothing else is', () => {
+  const lost = { winner: 1 as const, score: [0, 1] as [number, number], reason: 'fleet sunk' }
+  const at = (shortBy?: number) => isCloseLoss({ game: 'fleet', result: lost, humanSeat: 0, humanMoves: 60, ...(shortBy === undefined ? {} : { shortBy }) })
+  expect(at(1)).toBe(true)
+  expect(at(2)).toBe(false)
+  expect(at(0)).toBe(false)
+  expect(at()).toBe(false)
+  expect(sayLine({ ...base, game: 'fleet', level: 'easy', result: lost, shortBy: 1 }).text).toBe('One shot short against Pip. That one stings. Run it back.')
+})

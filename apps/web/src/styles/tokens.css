@@ -48,6 +48,17 @@
   --game-word: #8a3ff5;
   --game-fighter: #e8500e;
   --game-arena: #0a95b8;
+  --game-fleet: #1b4d7a;
+
+  /* stormglass surfaces */
+  --sea: #dcecf6;
+  --sea-line: #9fbfd6;
+  --sea-deep: #b7d3e6;
+  --hull: #4a5568;
+  --hull-edge: #2d3748;
+  --hit: #e8500e;
+  --miss: #64748b;
+  --sunk: #8f1f1b;
 
   /* game surfaces */
   --board-light: #ece3d0;
@@ -176,6 +187,15 @@
   --color-game-word: var(--game-word);
   --color-game-fighter: var(--game-fighter);
   --color-game-arena: var(--game-arena);
+  --color-game-fleet: var(--game-fleet);
+  --color-sea: var(--sea);
+  --color-sea-line: var(--sea-line);
+  --color-sea-deep: var(--sea-deep);
+  --color-hull: var(--hull);
+  --color-hull-edge: var(--hull-edge);
+  --color-hit: var(--hit);
+  --color-miss: var(--miss);
+  --color-sunk: var(--sunk);
   --color-board-light: var(--board-light);
   --color-board-dark: var(--board-dark);
   --color-coord-on-light: var(--coord-on-light);

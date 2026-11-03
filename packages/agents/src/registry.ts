@@ -4,6 +4,13 @@ import { LEVELS } from './runtime/levels'
 const LevelKey = z.enum(['easy', 'medium', 'hard', 'champion'])
 const Iso = z.string().min(1)
 
+/** Stormglass: the mean shots a level needs to sink a random fleet alone. A fleet is 17 cells, so a smaller mean is a score in the wrong place. */
+export const MeanShotsSchema = z.object({
+  mean: z.number().min(17).max(100),
+  ci95: z.tuple([z.number(), z.number()]),
+  n: z.number().int().positive(),
+})
+
 export const MeasuredSchema = z.object({
   metric: z.string().min(1),
   value: z.number(),
@@ -14,6 +21,7 @@ export const MeasuredSchema = z.object({
   measuredAt: Iso,
   harness: z.enum(['bun', 'node', 'python']),
   commit: z.string().min(1),
+  meanShots: MeanShotsSchema.optional(),
 })
 
 export const VersionSchema = z.object({
@@ -30,7 +38,7 @@ export const VersionSchema = z.object({
 })
 
 export const RegistrySchema = z.object({
-  game: z.enum(['chess', 'four', 'holdem', 'word', 'fighter', 'arena']),
+  game: z.enum(['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet']),
   champion: z.string().min(1),
   versions: z.array(VersionSchema).min(1),
   levels: z.partialRecord(LevelKey, z.object({ version: z.string().min(1), config: z.record(z.string(), z.unknown()) })),

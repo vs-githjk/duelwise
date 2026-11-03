@@ -1,10 +1,10 @@
 # Duelwise
 
-[![Duelwise: Can you beat my agents? Six games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
+[![Duelwise: Can you beat my agents? Seven games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
 
 **Can you beat my agents?**
 
-Six games. Learning from you, starting with Four in a Row. Beat them if you can.
+Seven games. Learning from you, starting with Four in a Row. Beat them if you can.
 
 **[Play now at duelwise.app](https://duelwise.app)**. No sign-up and no email: a name is enough. Google or GitHub sign-in is optional.
 
@@ -12,7 +12,7 @@ Pick a game and sit down across from Pip, Marlow, Vesper or Sable. Pip is easy t
 
 ## The games
 
-Six games, each with a built-in opponent at four levels:
+Seven games, each with a built-in opponent at four levels:
 
 | Game | What it is |
 |---|---|
@@ -22,6 +22,7 @@ Six games, each with a built-in opponent at four levels:
 | Word Duel | Guess the hidden word in a duel. |
 | Tinderbox | A 2.5D fighter. Real time. |
 | Coldstore | A first-person arena shooter. Real time. |
+| Stormglass | Hidden fleets on a ten by ten grid. Find theirs first. |
 
 The four opponents are the same four characters in every game, one per level, each with its own style per game (`apps/web/src/personas/personas.json`):
 
@@ -53,6 +54,7 @@ The four opponents are the same four characters in every game, one per level, ea
 | Word Duel | Solvers, not learned models. Easy sometimes overlooks a clue, Medium favours common words, Hard picks the most informative guess and Champion looks two steps ahead. | No (nothing to train) |
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. Easy, Medium and Hard share one network under different limits, and Champion has its own. | No |
 | Coldstore | The same method as Tinderbox. | No |
+| Stormglass | A scripted solver, not a learned model. Each level is a different algorithm. | No (nothing to train) |
 
 Making human matches train every learned agent is planned, under "What's coming next".
 
@@ -68,7 +70,7 @@ flowchart LR
   Page -- "match record<br/>(seed + moves, gzip)" --> Server["Server<br/>TanStack Start + Nitro"]
   Server --> Core2["Same rules replay the match<br/>from the issued seed"]
   Core2 -- "valid" --> DB[("Postgres<br/>PGlite locally, Neon in production")]
-  Core2 -- "invalid" --> Reject["stored as invalid,<br/>never rated or trained on"]
+  Core2 -- "invalid" --> Reject["stored as invalid: never gains<br/>rating, never trained on"]
   DB --> Export["Filtered human matches"]
   Export --> Train["Training<br/>training/ (PyTorch)"]
   Train -- "challenger" --> Gate["Strength gates<br/>packages/agents/src/measure"]
@@ -76,9 +78,9 @@ flowchart LR
   Registry --> Page
 ```
 
-Every finished match is stored as a small replayable record: the seed and the moves. The server replays the record from the seed it issued, and only a record that replays cleanly counts toward ratings or training.
+Every finished match is stored as a small replayable record: the seed and the moves. The server replays the record from the seed it issued, and only a record that replays cleanly can gain rating or reach training. An invalid record never gains rating and is never trained on.
 
-- **`packages/core`** (TypeScript): six deterministic, seeded, headless game simulations behind one `GameCore` interface, the match record format, replay, Elo and the human input limiter. The same code runs in the browser, on the server and in training.
+- **`packages/core`** (TypeScript): seven deterministic, seeded, headless game simulations behind one `GameCore` interface, the match record format, replay, Elo and the human input limiter. The same code runs in the browser, on the server and in training.
 - **`packages/agents`** (TypeScript): the browser agent runtime, search and strategy code per game, level configs, the measurement harness, and `registry/<game>.json`, the file every strength number is read from.
 - **`apps/web`**: TanStack Start on Vite and Nitro, React 19, Tailwind 4. Drizzle on PGlite locally and Neon in production, Better Auth for optional Google and GitHub sign-in, Sentry in the browser. The installable offline app (service worker, queued uploads) is described in `docs/offline.md`.
 - **`training`** (Python 3.12, PyTorch): one supervisor that runs resumable, niced jobs under a CPU and GPU budget, a trainer per game (package `trainer`), ONNX export, and the evaluation ladder that writes the registry.
@@ -111,7 +113,7 @@ The registry files are the source for the strength results in this README.
 
 ## What's coming next
 
-Two new games are in progress: **Stormglass** (a hidden-fleet naval duel on a 10 by 10 grid) and **8-Ball**.
+A new game is in progress: **8-Ball**.
 
 Also planned:
 

@@ -1,6 +1,7 @@
 import { and, count, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { isSealed } from '@duelwise/core/src/sealed'
 import * as schema from '../db/schema'
 import { adoptTicket, issueMatchRow, mayUseTicket, trainingFor, type Caller, type HandlerResponse, type StartOptions } from './match-handlers'
 import { ABANDONED_ROW, settleAbandoned, type AbandonOptions } from './abandon'
@@ -91,7 +92,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   const { game, level, count: wanted } = input as { game?: unknown; level?: unknown; count?: unknown }
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
-  if (game === 'word') return err(400, 'Word Duel has no offline tickets')
+  if (isSealed(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets`)
   if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 0) return err(400, 'count must be a whole number, 0 or more')
   if (!who.userId && !who.guestId) return err(401, 'no player')
   const viewer = viewerOf(who)

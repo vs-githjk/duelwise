@@ -10,7 +10,8 @@ import { expect, test, type Page } from '@playwright/test'
 const FOUR = '/play/four-in-a-row'
 const TINDERBOX = '/play/tinderbox'
 
-test.use({ serviceWorkers: 'allow' })
+// No x-dw-test header here: the prod config sends it, which tags the match as test traffic and the landing board drops it.
+test.use({ serviceWorkers: 'allow', extraHTTPHeaders: {} })
 
 async function queued(page: Page): Promise<number> {
   return page.evaluate(
@@ -58,7 +59,7 @@ async function boardCount(page: Page): Promise<number> {
 test('installs, plays Four in a Row offline on a ticket, and the match counts once back online', async ({ page, context }) => {
   test.setTimeout(240_000)
   await context.addInitScript(() => {
-    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
+    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
   })
 
   // 1. Online: the worker installs and takes over the page.
