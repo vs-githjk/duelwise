@@ -601,3 +601,43 @@ test('fleet: the match-ending reply is lost and the player resigns: a win in the
   }
   expect((await upload.count()) > 0 && ((await upload.textContent()) ?? '').includes('nothing was counted') && (await elo.count()) > 0).toBe(false)
 })
+
+test('fleet: a page that cannot make the record after the final reply keeps Resign, says so in two lines at 360 wide, and the resign settles the match', async ({ page }) => {
+  test.setTimeout(180_000)
+  await devSignIn(page, 'norecord')
+  // No compression API: the record cannot be encoded, which is only found out after the match has ended.
+  await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).CompressionStream })
+  await page.setViewportSize({ width: 360, height: 740 })
+  await page.goto('/play/stormglass?hold=0')
+  await page.getByTestId('fleet-ready').click()
+  const root = page.getByTestId('fleet-page')
+  await expect(root).toHaveAttribute('data-turn', 'you')
+  // The same careful hunt as above, to the end of the match.
+  const queue: number[] = []
+  const tried = new Set<number>()
+  const hunt = Array.from({ length: 100 }, (_, c) => c).sort((a, b) => ((Math.floor(a / 10) + a) % 2) - ((Math.floor(b / 10) + b) % 2) || a - b)
+  const failure = page.getByTestId('fleet-failure')
+  while ((await failure.count()) === 0 && (await root.getAttribute('data-turn')) !== 'over') {
+    const cell = queue.shift() ?? hunt.find((c) => !tried.has(c))
+    if (cell === undefined) break
+    tried.add(cell)
+    const c = page.getByTestId(`fleet-cell-${cell}`)
+    if ((await c.getAttribute('data-state')) !== 'open') continue
+    await c.click()
+    await c.click()
+    await expect(async () => {
+      expect((await root.getAttribute('data-turn')) === 'you' || (await failure.count()) > 0).toBe(true)
+    }).toPass({ timeout: 15_000 })
+    if ((await c.getAttribute('data-state')) === 'hit') {
+      const r = Math.floor(cell / 10)
+      for (const n of [cell - 10, cell + 10, r === Math.floor((cell - 1) / 10) ? cell - 1 : -1, r === Math.floor((cell + 1) / 10) ? cell + 1 : -1]) if (n >= 0 && n < 100 && !tried.has(n)) queue.unshift(n)
+    }
+  }
+  await expect(failure).toHaveText(/not saved\. Press Resign to settle it\./)
+  const box = await failure.evaluate((el) => ({ clipped: el.scrollHeight > el.clientHeight }))
+  expect(box.clipped).toBe(false)
+  await page.getByTestId('fleet-resign').click()
+  await page.getByTestId('fleet-resign-yes').click()
+  await expect(root).toHaveAttribute('data-turn', 'over')
+  await expect(page.getByTestId('result-panel')).toBeVisible()
+})

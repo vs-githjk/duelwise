@@ -10,6 +10,11 @@ export const CELLS = FLEET_SIZE * FLEET_SIZE
 
 const COLS = 'ABCDEFGHIJ'
 
+/** The shot count a result shows. A win the server's log had but the page never saw (the last reply was lost) is one shot longer than the view: the unseen winning shot. */
+export function resultMoves(shotsSeen: number, loggedWin: boolean): number {
+  return shotsSeen + (loggedWin ? 1 : 0)
+}
+
 /** "D7" for a cell index. Copy uses this form; aria labels spell it "D, 7". */
 export function coord(cell: number): string {
   return `${COLS[cell % FLEET_SIZE]}${Math.floor(cell / FLEET_SIZE) + 1}`

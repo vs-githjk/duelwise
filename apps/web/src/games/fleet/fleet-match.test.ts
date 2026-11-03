@@ -15,6 +15,7 @@ import {
   humanView,
   isOver,
   moveShip,
+  resultMoves,
   rotateShip,
   shipAt,
   shotKind,
@@ -192,4 +193,10 @@ test('unhitCells counts what the fleet still needed: one means the next shot on 
   expect(unhitCells(fleet, shots)).toBe(1)
   expect(unhitCells(fleet, [...shots, { cell: 40, hit: true }])).toBe(0)
   expect(unhitCells(fleet, [])).toBe(5)
+})
+
+test('the shot count of a result: a win the server log had but the page never saw counts the unseen winning shot too', () => {
+  expect(resultMoves(46, false)).toBe(46)
+  expect(resultMoves(46, true)).toBe(47)
+  expect(resultMoves(0, true)).toBe(1)
 })

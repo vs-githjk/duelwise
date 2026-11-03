@@ -19,6 +19,9 @@ const SHOT_BASE = 200
 /** What the page says when the server could not be reached for a request; never the server's own wording. */
 export const SETUP_FAILED = 'The match could not start. Check your connection and press Start match again.'
 /** The line after a shot whose reply never came; it names the square so the player knows which shot Fire will send. */
+/** The final reply is in but this page could not make the record of the match. Resign is back, and the server settles the match from its own log. Short: it must fit two lines at 360 wide. */
+export const RECORD_FAILED = 'Match over, but not saved. Press Resign to settle it.'
+
 export const shotFailed = (cell: number): string => `Shot at ${coord(cell)} not sent. Press Fire to send it again.`
 export const MATCH_ENDED = 'This match has ended. Place your fleet to start a new one.'
 
@@ -382,7 +385,12 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
         roundStart = performance.now()
         return null
       } catch (e) {
-        if (mine === epoch) set({ failure: e instanceof Error ? e.message : 'Something went wrong.', thinking: false })
+        if (mine === epoch) {
+          // After the final reply the match is ending and Resign is off; a record that cannot be made must not leave the player with no way out.
+          // The server's own plain lines (a reveal that does not add up) are kept; anything else, such as a missing compression API, becomes plain copy.
+          if (snap.ending) set({ failure: e instanceof Error && e.message.startsWith('The server ') ? `${e.message} Press Resign.` : RECORD_FAILED, thinking: false, ending: false })
+          else set({ failure: e instanceof Error ? e.message : 'Something went wrong.', thinking: false })
+        }
         return null
       } finally {
         busy = false
@@ -393,10 +401,11 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
       // Once the final reply is in the match is over and being recorded: a resignation now would settle it twice or lose the record.
       if (snap.phase !== 'play' || snap.ending) return
       const tick = snap.view ? stepsPlayed(snap.view) : 0
-      epoch++
+      const mine = ++epoch
       set({ phase: 'over', resigned: true, thinking: false, failure: null, unsentCell: null })
       await rec().resign(tick)
-      clearMatch()
+      // A slow reply may land after a Rematch and a new Start: it must not clear that match.
+      if (mine === epoch) clearMatch()
     },
 
     backToSetup() {

@@ -23,7 +23,7 @@ import { playCue } from './sounds'
 import { strengthSentence } from './strength'
 import { fleetLuckLine, luckScoreSliced, type LuckInput } from './luck'
 import { useFleetMatch } from './useFleetMatch'
-import { coord, coordLabel, describeShotIn, moveShip, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
+import { coord, coordLabel, describeShotIn, moveShip, resultMoves, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
@@ -730,7 +730,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
         onChangeLevel={backToSetup}
         levels={levelInfo}
         // The winning shot of a win the server's log had is not in this view (its reply never came), so it counts one more.
-        moves={view.shots.length + (loggedWon ? 1 : 0)}
+        moves={resultMoves(view.shots.length, loggedWon)}
         {...(view.reveal ? { shortBy: unhitCells(view.reveal, view.shots) } : {})}
         reveal={
           view.reveal ? (

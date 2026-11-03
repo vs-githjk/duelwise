@@ -8,7 +8,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { randomFleet } from '@duelwise/agents/src/fleet/placer'
 import { buildSealedLog, FLEET_SPEC } from '../../server/sealed-duel'
 import { TurnRefused, type FetchTurn, type FleetTurnReply } from './api'
-import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, SETUP_FAILED, shotFailed, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
+import { createFleetEngine, recordFromLists, setupCodes, MATCH_ENDED, RECORD_FAILED, SETUP_FAILED, shotFailed, shotCode, type FleetSnapshot, type RecorderPort } from './useFleetMatch'
 
 const SEED = 987654321
 const FLEET: Placement[] = randomFleet(makeRng(7))
@@ -45,7 +45,7 @@ function fakeServer(opts: { tamper?: (r: FleetTurnReply) => FleetTurnReply; fail
 /** The match recorder without React, with a log of what the engine told it and when. */
 function fakeRecorder(session: Session) {
   let rec: ReturnType<typeof createMatchRecorder> | null = null
-  const log = { discards: 0, startSeed: -1, setSeedAt: [] as number[], beginLevel: null as Level | null, beginSeed: undefined as number | undefined, finished: null as FinishedMatch | null, resigned: 0, events: [] as string[], finishHold: null as Promise<void> | null }
+  const log = { discards: 0, startSeed: -1, setSeedAt: [] as number[], beginLevel: null as Level | null, beginSeed: undefined as number | undefined, finished: null as FinishedMatch | null, resigned: 0, events: [] as string[], finishHold: null as Promise<void> | null, finishFail: false, resignHold: null as Promise<void> | null }
   const port: RecorderPort = {
     async begin(level, devSeed) {
       log.beginLevel = level
@@ -65,11 +65,13 @@ function fakeRecorder(session: Session) {
     async finish(core, state) {
       log.events.push('finish')
       if (log.finishHold) await log.finishHold
+      if (log.finishFail) throw new Error('encode failed')
       log.finished = await rec!.finish(core, state)
       return log.finished
     },
     async resign() {
       log.resigned++
+      if (log.resignHold) await log.resignHold
     },
     discard() {
       log.discards++
@@ -189,6 +191,8 @@ describe('counted match through the engine', () => {
     expect(log.finished).toBeNull()
     expect(engine.snapshot().phase).not.toBe('over')
     expect(engine.snapshot().failure).toMatch(/does not add up/)
+    // Resign is back, so the player is not stuck on a finished board.
+    expect(engine.snapshot().ending).toBe(false)
   })
 
   test('a dropped reply is retried with the same request and the match goes on', async () => {
@@ -437,6 +441,46 @@ describe('the final reply of a counted match paints before the record work', () 
     release()
     await done
     expect(g.engine.snapshot().phase).toBe('setup')
+  })
+
+  test('the record cannot be made after the final reply: Resign comes back, the line says what is true, and the server log settles it', async () => {
+    const g = await gated()
+    g.log.finishFail = true
+    const done = (await fireToEnd(g, g.hits))!.pending
+    g.gate.open()
+    await done
+    const s = g.engine.snapshot()
+    expect(s).toMatchObject({ phase: 'play', ending: false, thinking: false, failure: RECORD_FAILED })
+    // Plain copy, never the thrown text, and it points at the one thing that works.
+    expect(s.failure).not.toMatch(/encode failed/)
+    expect(RECORD_FAILED).toMatch(/Resign/)
+    await g.engine.resign()
+    expect(g.log.resigned).toBe(1)
+    expect(g.engine.snapshot()).toMatchObject({ phase: 'over', resigned: true })
+  })
+
+  test('a resign reply that lands after Rematch and a new Start does not wipe the new match', async () => {
+    let server = fakeServer()
+    const r = fakeRecorder(SEALED)
+    const snaps: FleetSnapshot[] = []
+    const engine = createFleetEngine({ recorder: () => r.port, fetchTurn: (id, a) => server.fetchTurn(id, a), hold: 0, onChange: (x) => snaps.push(x), trainingAllowed: false })
+    await engine.start('easy', FLEET)
+    await engine.fire(0)
+    let release = () => {}
+    r.log.resignHold = new Promise<void>((res) => { release = res })
+    const late = engine.resign()
+    engine.backToSetup()
+    server = fakeServer()
+    await engine.start('easy', FLEET)
+    expect(engine.snapshot().phase).toBe('play')
+    release()
+    await late
+    // The late reply must not have cleared the new match: its shots still go to the server and show.
+    const calls = server.calls.length
+    await engine.fire(5)
+    expect(server.calls.length).toBe(calls + 1)
+    expect(engine.snapshot().view!.shots.map((x) => x.cell)).toEqual([5])
+    expect(engine.snapshot().resigned).toBe(false)
   })
 
   /** Plays water shots until the opponent sinks the fleet; the killing reply waits at the paint gate. */
