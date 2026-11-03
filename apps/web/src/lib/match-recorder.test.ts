@@ -302,6 +302,52 @@ describe('a stale begin never pairs one match with another', () => {
   }
 })
 
+describe('a finish that cannot encode leaves the match live, so Resign and the leave path still reach the server', () => {
+  function hook(api: MatchApi) {
+    let got!: ReturnType<typeof useMatchRecorder>
+    const Probe = () => {
+      got = useMatchRecorder('four', api)
+      return null
+    }
+    renderToStaticMarkup(createElement(Probe))
+    return got
+  }
+  async function playedOut(api: MatchApi) {
+    const r = hook(api)
+    const a = await r.begin('easy', undefined, undefined, false)
+    r.start({ seed: a.seed, humanSeat: 0, agent: { version: 'v0', level: 'easy' }, trainingAllowed: true, device: 'desktop', matchId: 'srv-x' })
+    const core = createCounterGame('four')
+    let s = core.init(a.seed)
+    for (let tick = 0; !core.terminal(s); tick++) {
+      const seat = core.toAct(s)[0]!
+      const action = seat === 0 ? 3 : 1
+      r.act(tick, seat, action)
+      s = core.step(s, seat === 0 ? [action, null] : [null, action])
+    }
+    return { r, core, s }
+  }
+
+  test('finish throws: Resign sends exactly one request for the match', async () => {
+    const resigns: string[] = []
+    const api = fakeApi({ start: async () => ({ matchId: 'srv-x', seed: 5, agentVersion: 'v0' }), resign: async (id) => { resigns.push(id); return { resigned: true } } })
+    const { r, core, s } = await playedOut(api)
+    const broken = { ...core, hash: () => { throw new Error('encode failed') } }
+    await expect(r.finish(broken as never, s)).rejects.toThrow('encode failed')
+    await r.resign(9)
+    await r.resign(9)
+    expect(resigns).toEqual(['srv-x'])
+  })
+
+  test('finish succeeds: unchanged, the match is settled by its upload and a later Resign sends nothing', async () => {
+    const resigns: string[] = []
+    const api = fakeApi({ start: async () => ({ matchId: 'srv-x', seed: 5, agentVersion: 'v0' }), resign: async (id) => { resigns.push(id); return { resigned: true } } })
+    const { r, core, s } = await playedOut(api)
+    await r.finish(core, s)
+    await r.resign(9)
+    expect(resigns).toEqual([])
+  })
+})
+
 describe('a finished match is never left started', () => {
   test('a record whose upload failed is kept, and the next load delivers it and drops it', async () => {
     const store = fakeStore()

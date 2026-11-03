@@ -391,9 +391,19 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
 
   const finish = useCallback(async (core: GameCore<any, any, any>, finalState: unknown) => {
     if (!recorder.current) throw new Error('useMatchRecorder: start() was not called')
+    const was = live.current
     live.current = null
     setCounted(false)
-    const out = await recorder.current.finish(core, finalState)
+    let out: FinishedMatch
+    try {
+      out = await recorder.current.finish(core, finalState)
+    } catch (e) {
+      // The record could not be made (encoding failed). The match is still open on the server, so it stays live: Resign and the leave beacon must reach it,
+      // or a win would wait for the abandon sweep to charge it as a loss. Nothing was uploaded, so nothing can be sent twice.
+      live.current = was
+      setCounted(was !== null)
+      throw e
+    }
     recorder.current = null
     setFinished(out)
     setMatchActive(false)
