@@ -87,10 +87,11 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
     for (const p of placements) if (p.mine === mine && p.flips >= BIG_TURN && (!top || p.flips > top.flips)) top = p
     return top
   }
+  const numbered: Array<{ n: number; m: Moment }> = []
   const bestMine = biggest(true)
   const bestTheirs = biggest(false)
   if (bestMine) {
-    moments.push({
+    numbered.push({ n: bestMine.n, m: {
       kind: 'best',
       label: `Placement ${bestMine.n}: ${cellName(bestMine.cell)}`,
       tag: 'biggest turn',
@@ -98,10 +99,10 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
       publicText: `The player's placement at ${cellName(bestMine.cell)} flipped ${bestMine.flips} of ${opponent}'s discs at once.`,
       value: `+${bestMine.flips}`,
       valueLabel: 'flips',
-    })
+    } })
   }
   if (bestTheirs) {
-    moments.push({
+    numbered.push({ n: bestTheirs.n, m: {
       kind: 'turning',
       label: `Placement ${bestTheirs.n}: ${cellName(bestTheirs.cell)}`,
       tag: `${opponent}'s biggest turn`,
@@ -109,7 +110,7 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
       publicText: `${opponent} flipped ${bestTheirs.flips} of the player's discs by placing at ${cellName(bestTheirs.cell)}.`,
       value: `+${bestTheirs.flips}`,
       valueLabel: 'flips',
-    })
+    } })
   }
 
   // Where the disc lead last changed hands: the last placement after which the lead sat on the other side from where the game ended.
@@ -125,7 +126,7 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
   }
   if (lastChange) {
     const ahead = finalSign > 0
-    moments.push({
+    numbered.push({ n: lastChange.n, m: {
       kind: 'turning',
       label: `Placement ${lastChange.n}`,
       tag: 'the lead changed for good',
@@ -135,8 +136,10 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
       publicText: ahead
         ? `After ${cellName(lastChange.cell)} the player went ahead on discs and stayed there to the end.`
         : `After ${cellName(lastChange.cell)} ${opponent} went ahead on discs and stayed there to the end.`,
-    })
+    } })
   }
+  // The named turns read in the order they happened.
+  moments.push(...numbered.sort((a, b) => a.n - b.n).map((x) => x.m))
 
   if (passes[0] + passes[1] > 0) {
     moments.push({
@@ -170,6 +173,6 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
     moments,
     series,
     view,
-    note: 'The chart counts discs only. Holding fewer discs for much of the game is common for the side that goes on to win, so read it with the corners.',
+    note: 'The chart counts discs only. Until the last moves a side with fewer discs can still be better placed, because corners and edges matter more than the count.',
   }
 }

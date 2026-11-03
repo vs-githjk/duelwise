@@ -58,7 +58,7 @@ async function ownerPage(browser: Browser, baseURL: string, vp: (typeof VIEWPORT
   return { context, page }
 }
 
-const GAMES = [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass']] as const
+const GAMES = [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent']] as const
 
 for (const vp of VIEWPORTS) {
   test.describe(`fit on ${vp.name}`, () => {

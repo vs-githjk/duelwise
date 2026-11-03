@@ -250,6 +250,35 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     await expectStatsPage(page, 'fleet')
   })
 
+  test('slack: a full match is played to the end on the real page, its record is valid and saved, then its stats page renders', async ({ page, baseURL }) => {
+    test.setTimeout(240_000)
+    test.skip(!PLAYABLE.includes('slack'), `slack has no page: ${missingReason('slack')}`)
+    const seen = watchRequests(page)
+    const errors = watchConsole(page)
+    await page.goto(`/play/${slug('slack')}?seed=3`)
+    await chooseLevel(page, 'Easy')
+    await page.getByRole('button', { name: 'Start match' }).click()
+    const hud = page.getByTestId('play-hud')
+    await expect(page.getByTestId('slack-board')).toBeVisible()
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('slack').includes('easy') ? 0 : 1)
+    for (let i = 0; i < 200; i++) {
+      if (await page.getByTestId('result-panel').isVisible()) break
+      const turn = await hud.getAttribute('data-turn')
+      const cell = page.locator('[data-testid^="slack-cell-"][data-legal]').first()
+      if (turn === 'you' && (await cell.count()) > 0) {
+        await cell.click()
+        await cell.click()
+      }
+      await page.waitForTimeout(120)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
+    // Every Crosscurrent match is Practice until the server can check the opponent, so nothing is saved to count; the record on the page must still replay.
+    await expect(page.getByTestId('slack-record')).toHaveAttribute('data-record-ok', 'true')
+    expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
+    expect(errors).toEqual([])
+    await expectStatsPage(page, 'slack')
+  })
+
   test('fighter: a fast-forwarded match at the lowest published level finishes with a valid record, then its stats page renders', async ({ page, baseURL }) => {
     test.setTimeout(300_000)
     test.skip(!PLAYABLE.includes('fighter'), `fighter has no page: ${missingReason('fighter')}`)
