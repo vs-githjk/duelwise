@@ -10,7 +10,7 @@ import { ResultPanel } from '../../components/ResultPanel'
 import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { isOffline, subscribeConnection } from '../../lib/connection'
-import { readResignedOnLeave } from '../../lib/integrity'
+import { noteWonBeforeLeave, readResignedOnLeave, readWonBeforeLeave } from '../../lib/integrity'
 import { setRatedLive } from '../../lib/match-active'
 import { usePractice } from '../../lib/practice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
@@ -24,7 +24,7 @@ import { playCue } from './sounds'
 import { strengthSentence } from './strength'
 import { fleetLuckLine, luckScoreSliced, type LuckInput } from './luck'
 import { useFleetMatch } from './useFleetMatch'
-import { coord, coordLabel, describeShotIn, moveShip, resultMoves, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
+import { coord, coordLabel, describeShotIn, leftMatchLine, moveShip, resultMoves, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
@@ -74,12 +74,6 @@ function cue(kind: 'sunk' | 'hit' | 'miss' | null, gain = 1): void {
 const SINK_MS = 480
 /** The winning shot's sink plays out before the result covers the board. */
 const LAST_SINK_HOLD_MS = 720
-
-/** What a page line says after the page was left mid-match: the recorder already gave the match up, and a counted match costs a loss. */
-function leftMatchLine(): string {
-  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-  return nav?.type === 'reload' ? 'Reloading ended the match. It counts as a loss.' : 'Leaving the page ended the match. It counts as a loss.'
-}
 
 // ---- Board drawing ---------------------------------------------------------------------------
 
@@ -485,8 +479,25 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   // The page came back on setup after a counted match was given up by leaving (the recorder left the note); the next match clears it.
   useEffect(() => {
     if (started) setLeftLine(null)
-    else if (readResignedOnLeave('fleet')) setLeftLine(leftMatchLine())
+    else if (readResignedOnLeave('fleet')) {
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+      setLeftLine(leftMatchLine(nav?.type === 'reload', readWonBeforeLeave('fleet')))
+    }
   }, [started])
+
+  // The final reply was applied (every enemy ship sunk in the view) but the record could not be made: the match is won in the server's log, so leaving now costs nothing and the next load says so.
+  const wonUnsaved = game.finalSeen && !over && !!game.failure && !!view && view.enemyLeft.length === 0
+  // Written when it becomes true and removed only when it stops being true on this page: never on mount, or a reload (and React's second dev pass) would erase the note it is about to read.
+  const wonNoted = useRef(false)
+  useEffect(() => {
+    if (wonUnsaved) {
+      noteWonBeforeLeave('fleet', true)
+      wonNoted.current = true
+    } else if (wonNoted.current) {
+      noteWonBeforeLeave('fleet', false)
+      wonNoted.current = false
+    }
+  }, [wonUnsaved])
 
   // ---- Setup interactions
   const reject = useCallback((cell: number) => setFlash({ cell, kind: 'bad' }), [])

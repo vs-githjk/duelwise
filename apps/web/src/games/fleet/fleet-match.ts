@@ -166,3 +166,10 @@ export function statusLineIn(v: FleetObs, opponent: string, yourTurn: boolean): 
 }
 
 export const statusLine = (m: FleetMatch, opponent: string): string => statusLineIn(humanView(m), opponent, whoseTurn(m) === 'you')
+
+/** What a page line says after the page was left mid-match: the recorder already gave the match up, and a counted match costs a loss. */
+export function leftMatchLine(reload: boolean, wonBefore: boolean): string {
+  const how = reload ? 'Reloading' : 'Leaving the page'
+  // The page already knew the last shot had won it (the record could not be saved): the server's log has a win, so nothing is charged.
+  return wonBefore ? `${how} ended the match. Your last shot had already won it, so nothing was counted.` : `${how} ended the match. It counts as a loss.`
+}

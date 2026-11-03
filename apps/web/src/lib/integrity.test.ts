@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { beaconResign, clearResignedOnLeave, clearResignedOnRestore, listPending, postResign, readResignedOnLeave, resignOnPageLeave, retryPending, RESIGN_URL, savePending, type KeyValueStore } from './integrity'
+import { beaconResign, clearResignedOnLeave, noteWonBeforeLeave, readWonBeforeLeave, clearResignedOnRestore, listPending, postResign, readResignedOnLeave, resignOnPageLeave, retryPending, RESIGN_URL, savePending, type KeyValueStore } from './integrity'
 
 describe('beaconResign', () => {
   test('sends the match id and tick to the resign endpoint', async () => {
@@ -74,6 +74,23 @@ describe('the resigned-on-leave note', () => {
     expect(readResignedOnLeave('four', s)).toBe(false)
     clearResignedOnLeave(s)
     expect(readResignedOnLeave('chess', s)).toBe(false)
+  })
+
+  test('a game that had already won when its page was left can say so: the note is per game, and starting a match clears it; every other game reads none', () => {
+    const s = mem()
+    expect(readWonBeforeLeave('fleet', s)).toBe(false)
+    noteWonBeforeLeave('fleet', true, s)
+    expect(readWonBeforeLeave('fleet', s)).toBe(true)
+    expect(readWonBeforeLeave('chess', s)).toBe(false)
+    noteWonBeforeLeave('fleet', false, s)
+    expect(readWonBeforeLeave('fleet', s)).toBe(false)
+    noteWonBeforeLeave('fleet', true, s)
+    clearResignedOnLeave(s)
+    expect(readWonBeforeLeave('fleet', s)).toBe(false)
+    // The ordinary leave note of another game is untouched by any of this.
+    expect(resignOnPageLeave('chess', 'm-1', 5, taken, s)).toBe(true)
+    expect(readResignedOnLeave('chess', s)).toBe(true)
+    expect(readWonBeforeLeave('chess', s)).toBe(false)
   })
 
   test('no note when the resignation was not actually sent, or nothing was left', () => {

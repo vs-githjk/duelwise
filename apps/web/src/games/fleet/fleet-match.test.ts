@@ -14,6 +14,7 @@ import {
   fleetIsValid,
   humanView,
   isOver,
+  leftMatchLine,
   moveShip,
   resultMoves,
   rotateShip,
@@ -199,4 +200,11 @@ test('the shot count of a result: a win the server log had but the page never sa
   expect(resultMoves(46, false)).toBe(46)
   expect(resultMoves(46, true)).toBe(47)
   expect(resultMoves(0, true)).toBe(1)
+})
+
+test('the line after a page leave mid-match: a loss unless the page already knew the last shot had won, and then nothing was counted', () => {
+  expect(leftMatchLine(true, false)).toBe('Reloading ended the match. It counts as a loss.')
+  expect(leftMatchLine(false, false)).toBe('Leaving the page ended the match. It counts as a loss.')
+  expect(leftMatchLine(true, true)).toBe('Reloading ended the match. Your last shot had already won it, so nothing was counted.')
+  expect(leftMatchLine(false, true)).not.toMatch(/loss/)
 })

@@ -53,6 +53,25 @@ export function resignOnPageLeave(game: string, matchId: string, tick: number, n
   return true
 }
 
+/** Written by a page that already knows its player has won but could not save the record: leaving then costs nothing, and the next load must not say it counts as a loss. */
+export const WON_BEFORE_LEAVE_KEY = 'duelwise.won-before-leave'
+
+export function noteWonBeforeLeave(game: string, on: boolean, store: Pick<KeyValueStore, 'setItem' | 'removeItem'> | undefined = defaultStore()): void {
+  try {
+    if (on) store?.setItem(WON_BEFORE_LEAVE_KEY, JSON.stringify({ game }))
+    else store?.removeItem(WON_BEFORE_LEAVE_KEY)
+  } catch {}
+}
+
+export function readWonBeforeLeave(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
+  try {
+    const raw = store?.getItem(WON_BEFORE_LEAVE_KEY)
+    return raw ? (JSON.parse(raw) as { game?: unknown }).game === game : false
+  } catch {
+    return false
+  }
+}
+
 /** Whether the last match of this game was resigned by a page leave and the player has not started another since. */
 export function readResignedOnLeave(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
   try {
@@ -72,6 +91,7 @@ export function clearResignedOnRestore(persisted: boolean, store?: Pick<KeyValue
 export function clearResignedOnLeave(store: Pick<KeyValueStore, 'removeItem'> | undefined = defaultStore()): void {
   try {
     store?.removeItem(RESIGNED_KEY)
+    store?.removeItem(WON_BEFORE_LEAVE_KEY)
   } catch {}
 }
 
