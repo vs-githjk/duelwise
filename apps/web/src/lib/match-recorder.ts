@@ -10,6 +10,7 @@ import { NO_OFFLINE_TICKETS } from '@duelwise/core/src/rated-path'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
 import { enqueueUpload, drainUploads, uploadStore, QUEUE_EVENT, type UploadOutcome } from './upload-queue'
 import { notePlayed, refillTickets, settleConsumed, takeLocalTicket, type Ticket, type TicketOwner } from './tickets'
+import { devSide } from './dev-side'
 import { recordOffline, tallyLine } from './offline-record'
 import { requestWakeDrain } from './pwa'
 import { takeCall } from './progress'
@@ -202,7 +203,7 @@ export async function beginSession(
   options?: MatchRecordV1['options'],
   practice = false,
 ): Promise<Session> {
-  if (devSeed !== undefined) return { seed: devSeed, humanSeat: sideForSeed(game, devSeed), rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
+  if (devSeed !== undefined) return { seed: devSeed, humanSeat: hasRandomSide(game) ? (devSide() ?? sideForSeed(game, devSeed)) : 0, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
     const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
