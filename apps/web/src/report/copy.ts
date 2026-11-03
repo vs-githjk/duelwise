@@ -13,6 +13,11 @@ export function headline(view: Pick<ReportView, 'mode' | 'playerName'> & { level
   return outcome === 'win' ? `${start} beat ${opp}.` : outcome === 'loss' ? `${opp} beat ${mid}.` : `${start} drew with ${opp}.`
 }
 
+/** The "wins, losses, draws" figure of the record card. Stormglass cannot end level (the first fleet to go down loses), so it shows no draws; every other game keeps all three. */
+export function recordLine(game: GameId, rec: { wins: number; losses: number; draws: number }): { line: string; label: string } {
+  return game === 'fleet' ? { line: `${rec.wins}-${rec.losses}`, label: 'wins, losses' } : { line: `${rec.wins}-${rec.losses}-${rec.draws}`, label: 'wins, losses, draws' }
+}
+
 export function duration(ms: number): string {
   if (ms <= 0) return 'not recorded'
   const s = Math.round(ms / 1000)

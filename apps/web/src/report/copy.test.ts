@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { duration, headline, learningCopy, shareControlsNote } from './copy'
+import { duration, headline, learningCopy, recordLine, shareControlsNote } from './copy'
 
 describe('report copy', () => {
   test('owner and public headlines', () => {
@@ -60,4 +60,9 @@ describe('report copy', () => {
     expect(shareControlsNote('Marlow', { signedIn: false, linkPublic: true, gameView: false })).toMatch(/shows the result and the key moments,/)
     expect(shareControlsNote('Marlow', { signedIn: false, linkPublic: true })).toMatch(/shows the result, how the game went and the key moments,/)
   })
+})
+
+test('Stormglass has no draws, so its record line drops them; every game that can draw keeps all three', () => {
+  expect(recordLine('fleet', { wins: 0, losses: 1, draws: 0 })).toEqual({ line: '0-1', label: 'wins, losses' })
+  for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as const) expect(recordLine(game, { wins: 2, losses: 1, draws: 3 })).toEqual({ line: '2-1-3', label: 'wins, losses, draws' })
 })

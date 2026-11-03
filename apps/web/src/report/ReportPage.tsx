@@ -12,7 +12,7 @@ import { matchesWindow, provisionalNote } from '../lib/copy'
 import { reportLearnsCard } from '../lib/honest-copy'
 import { registryFor } from '../lib/registries'
 import { verifiedStrength } from '../lib/strength-gates'
-import { emptyReviewText, hasGameView, hasKeyMoments, headline, learningCopy, reportTiles, shareControlsNote } from './copy'
+import { emptyReviewText, hasGameView, hasKeyMoments, headline, learningCopy, recordLine, reportTiles, shareControlsNote } from './copy'
 import { EvalChart } from './EvalChart'
 import { CARD_HEIGHT, CARD_WIDTH } from './share-card'
 import type { Moment } from './types'
@@ -245,8 +245,8 @@ function RecordCard({ view }: { view: ReportView }) {
   return (
     <Card title={`You vs ${persona.name}`} note={total > 0 ? `${PRODUCT.games[view.game].displayName}, ${matchesWindow(Math.min(total, RECORD_WINDOW))}` : undefined} testId="report-record">
       <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span className="font-display text-display-md tabular" data-testid="report-record-line">{`${rec.wins}-${rec.losses}-${rec.draws}`}</span>
-        <span className="text-sm text-muted">wins, losses, draws</span>
+        <span className="font-display text-display-md tabular" data-testid="report-record-line">{recordLine(view.game, rec).line}</span>
+        <span className="text-sm text-muted">{recordLine(view.game, rec).label}</span>
       </p>
       {rec.recent.length > 0 ? (
         <p className="flex flex-wrap items-center gap-2" data-testid="report-record-recent">
