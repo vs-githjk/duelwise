@@ -195,6 +195,17 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.getByTestId('game-leaderboard-link')).toBeVisible()
   })
 
+  test('its leaderboard and agent pages open and name Crosscurrent', async ({ page }) => {
+    for (const path of ['/leaderboard/crosscurrent', '/agents/crosscurrent']) {
+      const res = await page.goto(path)
+      expect(res!.status(), path).toBe(200)
+      await expect(page.locator('body')).toContainText('Crosscurrent')
+      await expect(page.locator('body')).not.toContainText(/not found/i)
+    }
+    // The agents page says plainly that every level is still in training and the opponent is a program with nothing to train.
+    await expect(page.locator('body')).toContainText(/scripted|search/i)
+  })
+
   test('Rated is shut with the reason and Practice is picked, so no match can count for a record nothing checks', async ({ page }) => {
     await page.goto(URL)
     const mode = page.getByTestId('play-mode')
@@ -497,7 +508,8 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.getByTestId('slack-setup')).toBeVisible()
     await expect(page.getByTestId('slack-start')).toBeEnabled()
     await expect(page.getByTestId('result-panel')).toHaveCount(0)
-    expect(errors.filter((e) => !/Failed to load resource|net::/.test(e))).toEqual([])
+    // A reload cancels whatever the dev server was still sending; Vite prints that as an error line in dev only, and it is not the page's.
+    expect(errors.filter((e) => !/Failed to load resource|net::|\[vite\] Internal Server Error\s+aborted/.test(e))).toEqual([])
   })
 
   test('a worker that cannot load ends in a visible line and the start can be tried again', async ({ page }) => {
