@@ -708,3 +708,36 @@ for (const [want, mode] of [['won', 'hunt'], ['lost', 'scatter']] as const) {
     }
   })
 }
+
+/** Tab B: an ordinary rated Stormglass match in the same signed-in context, one shot fired and left open. */
+async function openSecondMatch(page: Page) {
+  const b = await page.context().newPage()
+  await b.setViewportSize({ width: 360, height: 740 })
+  await b.goto('/play/stormglass?hold=0')
+  await b.getByTestId('fleet-ready').click()
+  await expect(b.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+  await b.getByTestId('fleet-cell-0').click()
+  await b.getByTestId('fleet-cell-0').click()
+  await expect(b.getByTestId('fleet-page')).toHaveAttribute('data-turn', 'you')
+  return b
+}
+
+test('fleet: two tabs of one player: tab A won but could not save, tab B has an open match: B reloading reads the loss line, never A\'s win', async ({ page }) => {
+  test.setTimeout(540_000)
+  await devSignIn(page, 'twotab-b')
+  const b = await openSecondMatch(page)
+  const { page: a } = await reachRecordFailure(page, 'won', 'hunt', 'twotab-b-reload')
+  await b.reload()
+  await expect(b.getByTestId('fleet-left-line')).toHaveText('Reloading ended the match. It counts as a loss.')
+  void a
+})
+
+test('fleet: two tabs of one player: tab A won but could not save, tab B then begins a match: A reloading still reads its own win line', async ({ page }) => {
+  test.setTimeout(540_000)
+  await devSignIn(page, 'twotab-a')
+  const { page: a } = await reachRecordFailure(page, 'won', 'hunt', 'twotab-a-reload')
+  // B's start clears the shared resign note; it must not clear A's note of its own win.
+  await openSecondMatch(a)
+  await a.reload()
+  await expect(a.getByTestId('fleet-left-line')).toHaveText('Reloading ended the match. Your last shot had already won it, so nothing was counted.')
+})
