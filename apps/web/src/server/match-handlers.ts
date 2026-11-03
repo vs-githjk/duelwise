@@ -11,6 +11,7 @@ import type { Result } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
 import { defaultTrainingAllowed, guestOptedOut } from './profile'
 import { sweepOpenOverCap } from './abandon'
+import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { type AgentCheck, CHECK_CLAIM_MS, SERVER_CHECKED } from './agent-check'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
@@ -199,7 +200,8 @@ export async function startMatchHandler(
   if (!who.userId && !who.guestId) return err(401, 'no player')
   // Practice is chosen here, once, and stored with the match; the finish step reads the stored flag and never anything the upload says.
   if (practice !== undefined && typeof practice !== 'boolean') return err(400, 'practice must be true or false')
-  const isPracticeMatch = practice === true
+  // A game whose opponent the server cannot check yet has no rated path: its matches are Practice whatever the request says.
+  const isPracticeMatch = practice === true || RATED_NOT_OPEN.includes(game as GameId)
 
   // Hold'em's match length is chosen here and stored with the match, so the finish step can reject a record that claims another.
   let chosen: MatchOptions | undefined
