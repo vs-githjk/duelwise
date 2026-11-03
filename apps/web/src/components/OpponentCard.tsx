@@ -2,7 +2,7 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 import { cn } from '../lib/cn'
 import { LEVEL_LABEL } from '../lib/level-info'
 import { Avatar } from '../personas/Avatar'
-import { personaFor, styleLine } from '../personas'
+import { bioFor, personaFor, styleLine } from '../personas'
 
 export interface OpponentCardProps {
   level: Level
@@ -23,7 +23,7 @@ export function OpponentCard({ level, game, strength, dim, className }: Opponent
         <p className="text-base font-semibold text-ink" data-testid="opponent-name">
           {`${p.name} (${LEVEL_LABEL[level]})`}
         </p>
-        <p className="text-sm text-muted">{p.bio}</p>
+        <p className="text-sm text-muted">{bioFor(level, game)}</p>
         {game ? <p className="text-sm text-ink" data-testid="opponent-style">{styleLine(level, game)}</p> : null}
         {strength ? <p className="font-mono text-xs text-muted tabular">{strength}</p> : null}
       </div>

@@ -4,7 +4,7 @@ import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { cn } from '../lib/cn'
 import { LEVEL_LABEL } from '../lib/level-info'
 import { Avatar } from '../personas/Avatar'
-import { personaFor, styleLine } from '../personas'
+import { bioFor, personaFor, styleLine } from '../personas'
 import { RECORD_WINDOW, type ReportView } from '../server/report'
 import type { ReportPage as Page } from '../server/report-fns'
 import { saveReportSettings } from '../server/report-fns'
@@ -162,7 +162,7 @@ export function ReportPageView({ page }: { page: Page }) {
               <Avatar level={view.level} size={56} decorative />
               <p className="font-semibold">{persona.name}, {LEVEL_LABEL[view.level]}</p>
             </div>
-            <p className="text-base text-muted">{persona.bio}</p>
+            <p className="text-base text-muted">{bioFor(view.level, view.game)}</p>
             <p className="text-base">{verifiedStrength(registryFor(view.game), view.level) ? styleLine(view.level, view.game) : 'In training: this opponent\'s strength is still being checked.'}</p>
           </Card>
         </aside>

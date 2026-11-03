@@ -21,6 +21,16 @@ export function personaFor(level: Level): Persona {
   return PERSONAS[level]
 }
 
+/** Stormglass's opponents are hand-written solvers, so its Sable cannot carry the shared "human-like play with a reaction limit" line. Every other game and persona keeps the shared bio. */
+const GAME_BIOS: Partial<Record<GameId, Partial<Record<Level, string>>>> = {
+  fleet: { champion: 'The house champion. A scripted solver: it fires at the most likely square every time, hunting or finishing.' },
+}
+
+/** The persona's one-line bio in this game: its own line where a game has one, else the shared bio. */
+export function bioFor(level: Level, game?: GameId): string {
+  return (game && GAME_BIOS[game]?.[level]) ?? PERSONAS[level].bio
+}
+
 export function styleLine(level: Level, game: GameId): string {
   return PERSONAS[level].style[game]
 }
