@@ -199,6 +199,9 @@ test.describe('Crosscurrent on a phone', () => {
     for (const path of ['/leaderboard/crosscurrent', '/agents/crosscurrent']) {
       const res = await page.goto(path)
       expect(res!.status(), path).toBe(200)
+      // Let the page finish its own client navigation before the next goto, or WebKit reports the next one as interrupted.
+      await page.waitForLoadState('networkidle')
+      await expect(page).toHaveURL(new RegExp(`${path}$`))
       await expect(page.locator('body')).toContainText('Crosscurrent')
       await expect(page.locator('body')).not.toContainText(/not found/i)
     }
