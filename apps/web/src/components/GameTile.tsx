@@ -322,30 +322,29 @@ function Fleet(): ReactNode {
   )
 }
 
-/** Crosscurrent: a crop of the sea-glass board, a run of pale discs closed between two slate ones, one disc caught mid-flip, and ringed cells where the next disc may go. */
+/** Crosscurrent: a calm crop of the sea-glass board that fills the whole tile (no pale band), whole pale and slate discs and the ringed cells where the next disc may go. No disc is drawn mid-flip. */
 function Slack(): ReactNode {
-  const OX = 0
-  const OY = 5
-  const cx = (c: number) => OX + c * CELL + CELL / 2
+  // The grid starts above the tile and runs past its bottom edge, so the water meets every side and a slim row shows at the top and the bottom.
+  const OY = -15
+  const ROWS = 6
+  const cx = (c: number) => c * CELL + CELL / 2
   const cy = (r: number) => OY + r * CELL + CELL / 2
-  const dark: Array<[number, number]> = [[1, 1], [2, 1], [3, 2], [4, 2], [5, 1], [2, 3]]
-  const pale: Array<[number, number]> = [[3, 1], [4, 1], [2, 2], [5, 2], [6, 2], [3, 3]]
-  const rings: Array<[number, number]> = [[0, 1], [1, 2], [6, 1], [7, 2], [4, 3]]
+  const dark: Array<[number, number]> = [[1, 2], [2, 2], [3, 3], [4, 3], [5, 2], [2, 4]]
+  const pale: Array<[number, number]> = [[3, 2], [4, 2], [2, 3], [5, 3], [6, 3], [3, 4]]
+  const rings: Array<[number, number]> = [[0, 2], [1, 3], [6, 2], [7, 3], [4, 4]]
   const cells: Array<[number, number]> = []
-  for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) if ((row + col) % 2 === 1) cells.push([col, row])
+  for (let row = 0; row < ROWS; row++) for (let col = 0; col < 8; col++) if ((row + col) % 2 === 1) cells.push([col, row])
   return (
     <>
-      <rect width={W} height={H} fill="#d6ebe7" />
-      <rect y={OY} width={W} height={4 * CELL} fill="var(--slack-water)" />
+      <rect width={W} height={H} fill="var(--slack-water)" />
       <g fill="var(--slack-water-deep)">{cells.map(([c, r]) => <rect key={`${c}-${r}`} x={c * CELL} y={OY + r * CELL} width={CELL} height={CELL} />)}</g>
       <g stroke="var(--slack-line)" strokeWidth={0.6}>
-        {Array.from({ length: 9 }, (_, i) => <line key={`v${i}`} x1={i * CELL} y1={OY} x2={i * CELL} y2={OY + 4 * CELL} />)}
-        {Array.from({ length: 5 }, (_, i) => <line key={`h${i}`} x1={0} y1={OY + i * CELL} x2={W} y2={OY + i * CELL} />)}
+        {Array.from({ length: 9 }, (_, i) => <line key={`v${i}`} x1={i * CELL} y1={OY} x2={i * CELL} y2={OY + ROWS * CELL} />)}
+        {Array.from({ length: ROWS + 1 }, (_, i) => <line key={`h${i}`} x1={0} y1={OY + i * CELL} x2={W} y2={OY + i * CELL} />)}
       </g>
       <g fill="none" stroke="var(--slack-pale)" strokeWidth={1.6}>{rings.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={3.2} />)}</g>
-      <g fill="var(--slack-pale)">{pale.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
-      <g fill="var(--slack-dark)">{dark.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
-      <ellipse cx={cx(4)} cy={cy(1)} rx={2.4} ry={7.6} fill="var(--slack-dark)" />
+      <g fill="var(--slack-pale)" data-disc="pale">{pale.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
+      <g fill="var(--slack-dark)" data-disc="dark">{dark.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
     </>
   )
 }
