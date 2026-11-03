@@ -64,7 +64,8 @@ export const PLAYED_POOL = 5
 export const OTHER_POOL = 2
 
 /** Games that can have offline tickets: Word Duel keeps its seed on the server, so it plays unranked offline, and a game with no rated path has nothing to count. */
-export const TICKET_GAMES: readonly GameId[] = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g) && !RATED_NOT_OPEN.includes(g))
+export const ticketGamesFor = (notOpen: readonly GameId[]): GameId[] => (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g) && !notOpen.includes(g))
+export const TICKET_GAMES: readonly GameId[] = ticketGamesFor(RATED_NOT_OPEN)
 
 const PLAYED_KEY = 'duelwise.played-levels'
 type Played = Partial<Record<GameId, Level[]>>

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { eq, sql } from 'drizzle-orm'
@@ -12,11 +12,14 @@ import { finishUnchecked as finish } from './finish-unchecked'
 import { getPath } from './path'
 import { finishedResults } from './results'
 import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import type { GameId } from '@duelwise/core/src/product'
 import { issueTicketsHandler } from './ticket-issue'
-import { TICKET_GAMES } from '../lib/tickets'
+import { TICKET_GAMES, ticketGamesFor } from '../lib/tickets'
 
-// Crosscurrent has no rated path until the server can re-run its opponent (part 2). Until then a start that does not say Practice must still be
-// stored as Practice, so a hand-made client cannot post an opponent that plays badly and take a rated win, a path clear or a leaderboard row.
+// A game with no rated path (one listed in RATED_NOT_OPEN, because the server cannot re-run its opponent) must have a start that does not say Practice
+// stored as Practice anyway, so a hand-made client cannot post an opponent that plays badly and take a rated win, a path clear or a leaderboard row.
+// Crosscurrent was the game on that list until its opponent joined the server-checked games; the guard is kept and proven here by putting it on the
+// list for the length of each test, so the mechanism stays pinned for the next game that ships before its check does.
 
 type Db = PgliteDatabase<typeof schema>
 let client: PGlite
@@ -28,7 +31,9 @@ beforeAll(async () => {
   await migrateDb(db)
 })
 afterAll(() => client.close())
+const listed = RATED_NOT_OPEN as GameId[]
 beforeEach(async () => {
+  listed.push('slack')
   await db.execute(sql`truncate table match, guest, rating, profile, "user" cascade`)
   await db.insert(schema.user).values({ id: 'u-1', name: 'u-1', email: 'u-1@example.test' })
 })
@@ -59,8 +64,12 @@ function playSlack(matchId: string, seed: number): MatchRecordV1 {
   }
 }
 
-describe('Crosscurrent has no rated path yet', () => {
-  test('the list of games without one names Crosscurrent only', () => {
+afterEach(() => {
+  listed.length = 0
+})
+
+describe('a game with no rated path yet (Crosscurrent, listed for these tests)', () => {
+  test('the list holds the game for the length of a test and is empty again after it', () => {
     expect([...RATED_NOT_OPEN]).toEqual(['slack'])
   })
 
@@ -96,8 +105,10 @@ describe('Crosscurrent has no rated path yet', () => {
     expect(r.status).toBe(400)
     expect(JSON.stringify(r.body)).toMatch(/Crosscurrent has no rated matches yet/)
     expect((await db.select().from(schema.match)).length).toBe(0)
-    expect(TICKET_GAMES).not.toContain('slack')
-    expect(TICKET_GAMES).toContain('four')
+    // TICKET_GAMES is read once at load, when the list is empty; the same filter over the list as it stands now leaves the listed game out.
+    expect(ticketGamesFor(RATED_NOT_OPEN)).not.toContain('slack')
+    expect(ticketGamesFor(RATED_NOT_OPEN)).toContain('four')
+    expect(TICKET_GAMES).toContain('slack')
     // Word and Stormglass keep their own refusal.
     expect((await issueTicketsHandler(db, { game: 'fleet', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(400)
     expect((await issueTicketsHandler(db, { game: 'four', level: 'easy', count: 1 }, USER, startOpts)).status).toBe(200)
