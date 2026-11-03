@@ -6,10 +6,10 @@ import './slack.css'
 const FILES = 'ABCDEFGH'
 
 /** The accessible name of one cell: where it is, who holds it, and whether the player may place there. */
-export function cellLabel(i: number, v: number, legal: boolean, opponent: string): string {
+export function cellLabel(i: number, v: number, legal: boolean, opponent: string, humanSeat = 0): string {
   const where = `${FILES[i % SIZE]}, ${Math.floor(i / SIZE) + 1}`
-  if (v === 1) return `${where}, yours`
-  if (v === 2) return `${where}, ${opponent}'s`
+  // Cell value 1 is seat 0's disc (dark) and 2 is seat 1's (pale), whoever the player is.
+  if (v !== 0) return v - 1 === humanSeat ? `${where}, yours` : `${where}, ${opponent}'s`
   return `${where}, empty${legal ? ', legal' : ''}`
 }
 
@@ -77,7 +77,7 @@ export function Board({ match, opponent, legal, selected, preview, focus, onFocu
 
   return (
     <div className="sl-board-wrap">
-      <div className="sl-board" data-testid="slack-board">
+      <div className="sl-board" data-testid="slack-board" data-you={match.human === 0 ? 'dark' : 'pale'}>
         {Array.from({ length: SIZE }, (_, k) => (
           <span key={`f${k}`} className="sl-coord sl-coord-file" style={{ '--k': k } as CSSProperties} aria-hidden="true">
             {FILES[k]}
@@ -113,7 +113,7 @@ export function Board({ match, opponent, legal, selected, preview, focus, onFocu
                     data-legal={isLegal ? '' : undefined}
                     data-selected={selected === i ? '' : undefined}
                     tabIndex={i === focus ? 0 : -1}
-                    aria-label={cellLabel(i, v, isLegal, opponent)}
+                    aria-label={cellLabel(i, v, isLegal, opponent, match.human)}
                     aria-selected={selected === i}
                     onClick={() => onTap(i)}
                     onKeyDown={(e) => onKey(e, i)}
@@ -122,7 +122,8 @@ export function Board({ match, opponent, legal, selected, preview, focus, onFocu
                       <span
                         key={placed || flipped ? `m${match.log.length}` : 'd'}
                         className="sl-disc"
-                        data-owner={v === 1 ? 'you' : 'them'}
+                        data-owner={v - 1 === match.human ? 'you' : 'them'}
+                        data-color={v === 1 ? 'dark' : 'pale'}
                         data-last={match.ring === i ? '' : undefined}
                         data-flip={flipped ? '' : undefined}
                         data-placed={placed ? '' : undefined}

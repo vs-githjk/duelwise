@@ -32,9 +32,9 @@ import {
 const empty = () => new Array<number>(64).fill(0)
 
 /** A hand-made match at a position. Seat 0 holds value 1 (dark), seat 1 holds value 2 (pale). */
-function at(cells: number[], turn: 0 | 1, log: SlackMatch['log'] = []): SlackMatch {
+function at(cells: number[], turn: 0 | 1, log: SlackMatch['log'] = [], human: 0 | 1 = 0): SlackMatch {
   const state: SlackState = { cells, turn }
-  return { state, log, last: null, ring: null }
+  return { human, state, log, last: null, ring: null }
 }
 
 /** Seat 0 has no move and seat 1 has one: row 0 reads pale, dark, empty. Pale can close at cell 2. */
@@ -284,3 +284,90 @@ describe('the end of a match', () => {
     expect(endDelayMs(true)).toBeGreaterThanOrEqual(300)
   })
 })
+
+describe('crosscurrent match logic for a player who is pale (seat 1, the opponent opens)', () => {
+  /** Plays a whole match with the player in seat 1: the agent has seat 0 and opens. */
+  async function playPale(level: Level, seed: number): Promise<SlackMatch> {
+    const agent = await createGameAgent(level, { seat: 1 })
+    agent.reset(seed, 0)
+    let m = startMatch(1)
+    for (let i = 0; i < 200 && !slackCore.terminal(m.state); i++) {
+      if (m.state.turn === 1) {
+        if (mustPass(m) === 1) m = applyMove(m, 1, PASS)
+        else m = applyMove(m, 1, humanPick(m, i))
+      } else m = applyMove(m, 0, await agentChoose(m, agent))
+    }
+    return m
+  }
+
+  test('at the start it is the opponent\'s turn: the player has no cells, taps and Place do nothing, and the agent is asked as seat 0', async () => {
+    const m = startMatch(1)
+    expect(m.human).toBe(1)
+    expect(legalCells(m)).toEqual([])
+    expect(tapCell(m, null, 19)).toEqual({ selected: null, commit: false })
+    expect(pressPlace(m, 19)).toBe(false)
+    expect(flipPreview(m, 19)).toEqual([])
+    const agent = await createGameAgent('easy', { seat: 1 })
+    agent.reset(4, 0)
+    const code = await agentChoose(m, agent)
+    expect(slackCore.legal(m.state, 0)).toContain(code)
+  })
+
+  test.each(LEVELS as Level[])('a whole match at %s ends with the player pale, and its log replays to the same hash', async (level) => {
+    const m = await playPale(level, 9)
+    expect(slackCore.terminal(m.state)).toBe(true)
+    expect(m.log[0]![0]).toBe(0)
+    expect(replay(m)).toBe(slackCore.hash(m.state))
+    expect(finalCount(m, 'Pip')).toMatch(/^Final discs: You \d+, Pip \d+\.$/)
+    expect(humanMoveCount(m.log, 1)).toBe(m.log.filter(([seat, code]) => seat === 1 && code !== PASS).length)
+  })
+
+  test('the counts, the preview, the status and the live line all speak from seat 1', () => {
+    let m = startMatch(1)
+    m = applyMove(m, 0, slackCore.legal(m.state, 0)[0]!)
+    expect(m.state.turn).toBe(1)
+    const [you, them] = discCounts(m)
+    expect([you, them]).toEqual([slackCore.observe(m.state, 1).discs[0], slackCore.observe(m.state, 1).discs[1]])
+    expect(you).toBe(1)
+    expect(them).toBe(4)
+    const cell = legalCells(m)[0]!
+    const preview = flipPreview(m, cell)
+    expect(preview.length).toBeGreaterThan(0)
+    const after = applyMove(m, 1, cell)
+    expect([...after.last!.flips].sort()).toEqual([...preview].sort())
+    expect(announce(m, 'Pip')).toMatch(/^Pip placed at/)
+    expect(announce(after, 'Pip')).toMatch(/^You placed at/)
+    expect(statusLine(m, 'Pip')).toBe('Move 2')
+  })
+
+  test('a forced pass for the pale player is named, and the result words use the player seat', () => {
+    // `stuck`: row 0 reads pale, dark, empty with seat 0 to act, so seat 0 (the opponent) has no move. `darkStuck` swaps the colours, so seat 1 (the player) has none.
+    const c = new Array<number>(64).fill(0)
+    c[0] = 2
+    c[1] = 1
+    const stuck: SlackMatch = at(c, 0, [], 1)
+    const darkStuck = at(c.map((v) => (v === 0 ? 0 : 3 - v)), 1, [], 1)
+    expect(mustPass(darkStuck)).toBe(1)
+    expect(statusLine(darkStuck, 'Pip')).toBe('No move for you. Pip plays again.')
+    expect(mustPass(stuck)).toBe(0)
+    const handed = applyMove(stuck, 0, PASS)
+    expect(statusLine(handed, 'Pip')).toBe('Pip has no move. Your turn again.')
+  })
+
+  test('the final verdict follows the seat: the same board is a win for one seat and a loss for the other', () => {
+    const c = new Array<number>(64).fill(1)
+    c[63] = 2
+    const over = (human: 0 | 1): SlackMatch => ({ ...at(c, 0, [], human), state: { cells: c, turn: 0 } })
+    expect(slackCore.result(over(0).state)!.winner).toBe(0)
+    expect(statusLine(over(0), 'Pip')).toBe('You win.')
+    expect(statusLine(over(1), 'Pip')).toBe('Pip wins.')
+  })
+
+  test('a test-only moves list keeps the side it is started for', () => {
+    const m = parseMoves('D3,C3', 1)!
+    expect(m.human).toBe(1)
+    expect(m.log).toEqual([[0, 19], [1, 18]])
+    expect(m.state.turn).toBe(0)
+  })
+})
+

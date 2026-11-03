@@ -340,7 +340,7 @@ describe('no real client plays from another seat', () => {
   const source = (path: string) => readFileSync(new URL(`../games/${path}`, import.meta.url), 'utf8')
 
   // Chess, Four in a Row and Crosscurrent give the player a random side (core/sides.ts): their pages record the seat the session carries, which the server issued.
-  const RANDOM_SIDE = ['chess', 'four']
+  const RANDOM_SIDE = ['chess', 'four', 'slack']
   for (const [game, { hook, seat }] of Object.entries(HOOKS)) {
     if (RANDOM_SIDE.includes(game)) continue
     test(`${game} records the fixed seat 0`, () => {

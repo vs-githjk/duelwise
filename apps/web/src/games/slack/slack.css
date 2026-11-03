@@ -128,8 +128,8 @@
   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
-.sl-disc[data-owner='you'] { background: var(--slack-dark); --ring: var(--slack-pale); --from: var(--slack-pale); --to: var(--slack-dark); }
-.sl-disc[data-owner='them'] { background: var(--slack-pale); --ring: var(--slack-dark); --from: var(--slack-dark); --to: var(--slack-pale); }
+.sl-disc[data-color='dark'] { background: var(--slack-dark); --ring: var(--slack-pale); --from: var(--slack-pale); --to: var(--slack-dark); }
+.sl-disc[data-color='pale'] { background: var(--slack-pale); --ring: var(--slack-dark); --from: var(--slack-dark); --to: var(--slack-pale); }
 /* the last placed disc keeps a 2px ring until the next move */
 .sl-disc[data-last] { box-shadow: inset 0 0 0 2px var(--ring), inset 0 -2px 3px rgba(0, 0, 0, 0.22); }
 

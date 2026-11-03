@@ -4,19 +4,24 @@ const FILES = 'ABCDEFGH'
 const CORNER_AT = [0, 7, 56, 63]
 
 /**
- * The final Crosscurrent position. Discs are shape plus colour (filled dark for the player, pale and ringed for the AI), never colour alone,
- * and a corner someone placed on carries a small ring marker. The sentence under the board gives the same facts for a screen reader.
+ * The final Crosscurrent position. Each disc is its colour plus a ring in the other colour, never colour alone. The player's discs are dark when they
+ * moved first and pale when they moved second (view.youColor). A corner someone placed on carries a small ring marker. The sentence under the board gives the same facts for a screen reader.
  */
 export function SlackBoard({ view, viewer = 'owner', opponent = 'The AI' }: { view: SlackView; viewer?: 'owner' | 'public'; opponent?: string }) {
   const you = viewer === 'owner' ? 'You' : 'The player'
   const [mine, theirs] = view.discs
+  // The player's discs are dark when they moved first and pale when they moved second; the AI has the other colour.
+  const youColor = view.youColor ?? 'dark'
+  const themColor = youColor === 'dark' ? 'pale' : 'dark'
+  const paint = (v: 1 | 2) => `var(--slack-${(v === 1 ? youColor : themColor)})`
+  const ringOf = (v: 1 | 2) => `var(--slack-${(v === 1 ? themColor : youColor)})`
   return (
     <div className="grid gap-3" data-testid="slack-final">
       <div
         className="mx-auto grid w-full max-w-xs grid-cols-8 overflow-hidden rounded-control border border-line"
         style={{ background: 'var(--slack-water)' }}
         role="img"
-        aria-label={`Final board. ${you} ${mine} discs, dark and filled. ${opponent} ${theirs} discs, pale and ringed.`}
+        aria-label={`Final board. ${you} ${mine} discs, ${youColor} with a ${themColor} ring. ${opponent} ${theirs} discs, ${themColor} with a ${youColor} ring.`}
         data-testid="slack-final-board"
       >
         {view.cells.map((v, i) => {
@@ -34,8 +39,8 @@ export function SlackBoard({ view, viewer = 'owner', opponent = 'The AI' }: { vi
                   className="block w-4/5 rounded-full"
                   style={{
                     aspectRatio: '1',
-                    background: v === 1 ? 'var(--slack-dark)' : 'var(--slack-pale)',
-                    boxShadow: v === 2 ? 'inset 0 0 0 2px var(--slack-dark)' : 'inset 0 0 0 2px var(--slack-pale)',
+                    background: paint(v as 1 | 2),
+                    boxShadow: `inset 0 0 0 2px ${ringOf(v as 1 | 2)}`,
                     outline: corner >= 0 ? '2px solid var(--action)' : undefined,
                     outlineOffset: 1,
                   }}
@@ -46,7 +51,7 @@ export function SlackBoard({ view, viewer = 'owner', opponent = 'The AI' }: { vi
         })}
       </div>
       <p className="text-center text-sm text-muted">
-        {you}: dark discs, {mine}. {opponent}: pale discs with a dark ring, {theirs}. A blue outline marks a corner disc, which can never flip.
+        {you}: {youColor} discs with a {themColor} ring, {mine}. {opponent}: {themColor} discs with a {youColor} ring, {theirs}. A blue outline marks a corner disc, which can never flip.
       </p>
     </div>
   )

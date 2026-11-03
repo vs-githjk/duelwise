@@ -63,7 +63,7 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
     return (v === 0 ? 0 : v === mineValue ? 1 : 2) as 0 | 1 | 2
   })
   const discs: [number, number] = [cells.filter((c) => c === 1).length, cells.filter((c) => c === 2).length]
-  const view: SlackView = { cells, discs, corners }
+  const view: SlackView = { cells, discs, corners, youColor: me === 0 ? 'dark' : 'pale' }
 
   const moments: Moment[] = []
   const youCorners = corners.filter((c) => c === 'player').length

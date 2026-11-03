@@ -17,7 +17,7 @@ import { visibleRegistry } from '../../lib/strength-gates'
 import { personaFor, styleLine } from '../../personas'
 import { Board } from './Board'
 import { discCounts, finalCount, flipPreview, humanMoveCount, legalCells, liveText, parseMoves, pressPlace, statusLine, startMatch, tapCell, cellName, type SlackMatch } from './match'
-import { HUMAN, useSlackMatch } from './useSlackMatch'
+import { useSlackMatch } from './useSlackMatch'
 
 export const meta = { title: 'Crosscurrent' }
 
@@ -96,7 +96,11 @@ export default function SlackPage() {
     const over = bar.getBoundingClientRect().bottom - window.innerHeight + 8
     if (over > 0) window.scrollBy({ top: over, behavior: 'instant' })
   }, [match.seed, match.phase === 'playing'])
-  const turn = closing ? 'over' : m && m.state.turn !== HUMAN ? 'ai' : 'you'
+  const turn = closing ? 'over' : m && m.state.turn !== m.human ? 'ai' : 'you'
+  // Each match gives the player the dark discs (they move first) or the pale discs at random.
+  const youColor = match.humanSeat === 0 ? 'dark' : 'pale'
+  const themColor = match.humanSeat === 0 ? 'pale' : 'dark'
+  const youOrder = match.humanSeat === 0 ? 'move first' : 'move second'
   const [you, them] = m ? discCounts(m) : [0, 0]
   const verdict = match.resigned ? 'You resigned.' : closing && m ? statusLine(m, name) : ''
   const status = match.resigned ? verdict : m ? statusLine(m, name) : ''
@@ -129,14 +133,14 @@ export default function SlackPage() {
         <>
           <ResultPanel
             result={match.result}
-            humanSeat={HUMAN}
+            humanSeat={match.humanSeat}
             recordOk={match.finished ? match.finished.ok : true}
             upload={match.upload}
             unratedReason={match.unratedReason}
             onRematch={() => void begin(match.level)}
             onPlayLevel={(l) => void begin(l)}
             levels={levelInfo}
-            moves={m ? humanMoveCount(m.log) : 0}
+            moves={m ? humanMoveCount(m.log, m.human) : 0}
             reveal={!match.resigned && m ? <p className="text-sm text-ink" data-testid="slack-final-count">{finalCount(m, name)}</p> : null}
             onChangeLevel={match.backToSetup}
           />
@@ -159,10 +163,10 @@ export default function SlackPage() {
               <p className="text-sm text-muted">Rings mark where you can place. Small dots show the discs a pick would flip.</p>
               <p className="mt-2 flex items-center gap-4 text-sm">
                 <span className="inline-flex items-center gap-1.5">
-                  <i data-swatch="you" className="inline-block size-4 rounded-full border-2 border-muted bg-slack-dark" aria-hidden="true" /> You, dark, move first
+                  <i data-swatch="you" className={`inline-block size-4 rounded-full border-2 border-muted ${youColor === 'dark' ? 'bg-slack-dark' : 'bg-slack-pale'}`} aria-hidden="true" /> You, {youColor}, {youOrder}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <i data-swatch="ai" className="inline-block size-4 rounded-full border-2 border-muted bg-slack-pale" aria-hidden="true" /> {name}
+                  <i data-swatch="ai" className={`inline-block size-4 rounded-full border-2 border-muted ${themColor === 'dark' ? 'bg-slack-dark' : 'bg-slack-pale'}`} aria-hidden="true" /> {name}, {themColor}
                 </span>
               </p>
             </section>
@@ -190,7 +194,7 @@ export default function SlackPage() {
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="slack-setup">
           <p className="text-muted">
-            Place a disc so a line of {personaFor(picked).name}&apos;s discs ends against one of yours, and every closed line flips. You play dark and move first. The most discs when neither side can move wins.
+            Place a disc so a line of {personaFor(picked).name}&apos;s discs ends against one of yours, and every closed line flips. Each match gives you the dark discs (you move first) or the pale discs (your opponent moves first) at random. The most discs when neither side can move wins.
           </p>
           {offline ? <OfflinePill text={chipText(true, false)} /> : null}
           {offline ? (
@@ -224,7 +228,7 @@ export default function SlackPage() {
         <div className="grid grid-cols-[minmax(0,1fr)] content-start sl-play">
           {/* One row on a laptop (the HUD, then the score and the status line); two stacked rows on a phone. */}
           <div className="sl-top">
-            <PlayHud turn={turn} swatch="bg-slack-dark" matchKey={match.seed} />
+            <PlayHud turn={turn} youLabel={`You, ${youColor}`} swatch={match.humanSeat === 0 ? 'bg-slack-dark' : 'bg-slack-pale'} matchKey={match.seed} />
             <div className="sl-status" data-testid="slack-status-row">
               <div className="sl-counts" data-testid="slack-counts">
                 <span aria-hidden="true">● {you}</span>

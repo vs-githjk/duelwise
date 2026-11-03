@@ -243,3 +243,99 @@ test.describe('Four in a Row: first or second drop, at random each match', () =>
     expect(errors).toEqual([])
   })
 })
+
+test.describe('Crosscurrent: dark or pale, at random each match', () => {
+  const board = (page: Page) => page.getByTestId('slack-board')
+  const hud = (page: Page) => page.getByTestId('play-hud')
+  const legalCells = (page: Page) => page.locator('[data-testid^="slack-cell-"][data-legal]')
+
+  async function open(page: Page, side: 0 | 1) {
+    await page.goto(`/play/crosscurrent?seed=${seedFor('slack', side)}&side=seed`)
+    await expect(page.getByTestId('slack-setup')).toBeVisible()
+    await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+    await page.getByTestId('slack-start').click()
+    await expect(board(page)).toBeVisible()
+  }
+
+  /** One real move: tap the first ringed cell twice (the second tap commits). */
+  async function playOne(page: Page) {
+    const cell = legalCells(page).first()
+    await cell.click()
+    await expect(cell).toHaveAttribute('data-selected', '')
+    await cell.click()
+  }
+
+  test('the setup page says the colour is random', async ({ page }) => {
+    await page.goto('/play/crosscurrent')
+    await expect(page.getByTestId('slack-setup')).toContainText('dark discs (you move first) or the pale discs (your opponent moves first) at random')
+    await expect(page.getByTestId('slack-setup')).not.toContainText('You play dark and move first')
+  })
+
+  test('dark: the chips say dark and move first, it is your move, and your discs are dark', async ({ page }) => {
+    const errors = watchConsole(page)
+    await open(page, 0)
+    await expect(board(page)).toHaveAttribute('data-you', 'dark')
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you')
+    await expect(page.getByTestId('play-hud-you')).toContainText('You, dark')
+    await expect(page.getByTestId('agent-card')).toContainText('You, dark, move first')
+    await expect(page.getByTestId('agent-card')).toContainText('Pip, pale')
+    await expect(page.getByTestId('slack-status')).toHaveText('Move 1')
+    await expect(legalCells(page)).toHaveCount(4)
+    await expect(page.locator('.sl-disc[data-owner="you"]').first()).toHaveAttribute('data-color', 'dark')
+    await playOne(page)
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you', { timeout: 15_000 })
+    expect(errors).toEqual([])
+  })
+
+  test('pale: the opponent opens at once, the turn shows from the first frame, and your discs are pale', async ({ page }) => {
+    const errors = watchConsole(page)
+    await page.goto(`/play/crosscurrent?seed=${seedFor('slack', 1)}&side=seed`)
+    await page.getByTestId('level-picker').getByRole('radio', { name: /Pip/ }).check()
+    const t0 = Date.now()
+    await page.getByTestId('slack-start').click()
+    await expect(board(page)).toBeVisible()
+    await expect(hud(page)).toHaveAttribute('data-turn', 'ai')
+    await expect(page.getByTestId('play-hud-ai')).toHaveAttribute('data-active', '')
+    await expect(legalCells(page)).toHaveCount(0)
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you')
+    expect(Date.now() - t0).toBeLessThan(5000)
+    await expect(board(page)).toHaveAttribute('data-you', 'pale')
+    await expect(page.getByTestId('play-hud-you')).toContainText('You, pale')
+    await expect(page.getByTestId('agent-card')).toContainText('You, pale, move second')
+    await expect(page.getByTestId('agent-card')).toContainText('Pip, dark')
+    await expect(page.getByTestId('slack-status')).toHaveText('Move 2')
+    // The opening move was Pip's: one dark disc placed and one flipped, so you hold one pale disc and Pip four dark ones.
+    await expect(page.locator('.sl-disc[data-owner="you"]')).toHaveCount(1)
+    await expect(page.locator('.sl-disc[data-owner="them"]')).toHaveCount(4)
+    await expect(page.locator('.sl-disc[data-owner="you"]').first()).toHaveAttribute('data-color', 'pale')
+    await expect(page.locator('.sl-disc[data-owner="them"]').first()).toHaveAttribute('data-color', 'dark')
+    await expect(page.getByTestId('slack-live')).toContainText('Pip placed at')
+    await expect(legalCells(page).first()).toBeVisible()
+    await playOne(page)
+    await expect(page.locator('.sl-disc[data-last]')).toHaveAttribute('data-owner', /you|them/)
+    await expect(hud(page)).toHaveAttribute('data-turn', 'you', { timeout: 15_000 })
+    expect(errors).toEqual([])
+  })
+
+  test('a whole match as pale ends in a result, and the record (opponent first) replays to its final hash', async ({ page }) => {
+    test.setTimeout(150_000)
+    const errors = watchConsole(page)
+    await open(page, 1)
+    const until = Date.now() + 120_000
+    for (;;) {
+      if (Date.now() > until) throw new Error('the match did not finish in time')
+      const turn = await hud(page).getAttribute('data-turn')
+      if (turn === 'over') break
+      if (turn === 'you' && (await legalCells(page).count()) > 0) {
+        await playOne(page)
+        await page.waitForTimeout(80)
+      } else await page.waitForTimeout(120)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    const record = page.getByTestId('slack-record')
+    await expect(record).toHaveAttribute('data-record-ok', 'true')
+    await expect(record).toHaveAttribute('data-final-hash', /^[0-9a-f]{16}$/)
+    await expect(page.getByTestId('slack-final-count')).toContainText('Final discs: You')
+    expect(errors).toEqual([])
+  })
+})

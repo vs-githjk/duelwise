@@ -5,18 +5,20 @@ import type { Result, Seat } from '@duelwise/core/src/types'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
 import { openMatch } from '../../lib/open-match'
 import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from '../../lib/match-recorder'
-import { AGENT_SEAT, HUMAN, MIN_HOLD_MS, PASS_DELAY_MS, applyMove, endDelayMs, legalCells, mustPass, startMatch, type SlackMatch } from './match'
+import { HUMAN, MIN_HOLD_MS, OPENING_HOLD_MS, PASS_DELAY_MS, applyMove, endDelayMs, legalCells, mustPass, startMatch, type SlackMatch } from './match'
 import { playCue, playMove } from './sounds'
 import { COULD_NOT_START, createWorkerAgent, failureLine, type WorkerAgent } from './workerAgent'
 
 export type Phase = 'setup' | 'starting' | 'playing' | 'over'
 
-export { AGENT_SEAT, HUMAN }
+export { HUMAN }
 
 export interface SlackLive {
   phase: Phase
   level: Level
   seed: number | null
+  /** The side this match gave the player: 0 is dark and moves first, 1 is pale and the opponent moves first. */
+  humanSeat: Seat
   match: SlackMatch | null
   /** True while it is the opponent's turn and the match is running. */
   thinking: boolean
@@ -40,7 +42,11 @@ export interface SlackLive {
   backToSetup: () => void
 }
 
-const RESIGNED: Result = { winner: AGENT_SEAT, score: [0, 1], reason: 'resigned' }
+/** A resignation is a win for the opponent's seat. */
+function resignedResult(human: Seat): Result {
+  const agentSeat = (1 - human) as Seat
+  return { winner: agentSeat, score: agentSeat === 0 ? [1, 0] : [0, 1], reason: 'resigned' }
+}
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -49,8 +55,8 @@ function reducedMotion(): boolean {
 }
 
 /**
- * Owns one Crosscurrent match: the pure match state, the opponent in its Worker and the match recorder. The human is seat 0 (dark discs) and
- * moves first. The opponent's reply is held to a minimum beat so Pip does not answer instantly, and a forced pass for the human is sent by
+ * Owns one Crosscurrent match: the pure match state, the opponent in its Worker and the match recorder. The match gives the human dark (seat 0, moves
+ * first) or pale (seat 1) at random; when the human is pale the opponent opens, right after Start. The opponent's reply is held to a minimum beat so Pip does not answer instantly, and a forced pass for the human is sent by
  * the page after a short pause; neither hold changes what is recorded.
  *
  * Rated or Practice is the player's pick (the site-wide flag the recorder reads). A Rated match counts only after the server has re-run the
@@ -61,6 +67,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
   const [phase, setPhase] = useState<Phase>('setup')
   const [level, setLevel] = useState<Level>('easy')
   const [seed, setSeed] = useState<number | null>(null)
+  const [humanSeat, setHumanSeat] = useState<Seat>(0)
   const [match, setMatch] = useState<SlackMatch | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [resigned, setResigned] = useState(false)
@@ -83,12 +90,12 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
 
   const commit = useCallback(
     (seat: Seat, code: number, cur: SlackMatch) => {
-      const humanMs = seat === HUMAN && code !== PASS ? performance.now() - moveStart.current : undefined
+      const humanMs = seat === cur.human && code !== PASS ? performance.now() - moveStart.current : undefined
       recorder.act(cur.log.length, seat, code, humanMs)
       const next = applyMove(cur, seat, code)
       live.current = next
       setMatch(next)
-      if (next.last) playMove({ seat: next.last.seat, cell: next.last.cell, flips: next.last.flips }, HUMAN, reducedMotion())
+      if (next.last) playMove({ seat: next.last.seat, cell: next.last.cell, flips: next.last.flips }, cur.human, reducedMotion())
     },
     [recorder],
   )
@@ -105,7 +112,7 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
       setPhase('over')
       setEnding(false)
       const r = out.record.result
-      playCue(r.winner === null ? 'draw' : r.winner === HUMAN ? 'win' : 'lose')
+      playCue(r.winner === null ? 'draw' : r.winner === cur.human ? 'win' : 'lose')
     },
     [recorder],
   )
@@ -124,23 +131,26 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
             await conclude(cur, mine)
             return
           }
-          if (cur.state.turn === HUMAN) {
-            if (mustPass(cur) !== HUMAN) {
+          if (cur.state.turn === cur.human) {
+            if (mustPass(cur) !== cur.human) {
               moveStart.current = performance.now()
               return
             }
             await sleep(reducedMotion() ? 300 : PASS_DELAY_MS)
             if (mine !== epoch.current) return
-            commit(HUMAN, PASS, cur)
+            commit(cur.human, PASS, cur)
             continue
           }
           const t0 = performance.now()
-          const [code] = await ag.act(slackCore.observe(cur.state, AGENT_SEAT))
+          const agentSeat = (1 - cur.human) as Seat
+          const [code] = await ag.act(slackCore.observe(cur.state, agentSeat))
           if (mine !== epoch.current) return
-          const hold = (reducedMotion() ? 150 : MIN_HOLD_MS) - (performance.now() - t0)
+          // The opening move (the player is pale) gets a shorter beat than a reply, so the match does not open on a dead wait.
+          const opening = cur.log.length === 0
+          const hold = (reducedMotion() ? (opening ? 60 : 150) : opening ? OPENING_HOLD_MS : MIN_HOLD_MS) - (performance.now() - t0)
           if (hold > 0) await sleep(hold)
           if (mine !== epoch.current) return
-          commit(AGENT_SEAT, code!, cur)
+          commit(agentSeat, code!, cur)
         }
       } catch (e) {
         if (mine === epoch.current) {
@@ -186,17 +196,19 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
       }
       const made = opened.agent
       const s = opened.session.seed
+      const mineSeat = opened.session.humanSeat
       agent.current = made
-      made.reset(s)
-      const init = preset ?? startMatch()
+      made.reset(s, (1 - mineSeat) as Seat)
+      const init: SlackMatch = preset ? { ...preset, human: mineSeat } : startMatch(mineSeat)
       live.current = init
       busy.current = false
       setSeed(s)
+      setHumanSeat(mineSeat)
       setMatch(init)
       recorder.start({
         matchId: opened.session.matchId,
         seed: s,
-        humanSeat: HUMAN,
+        humanSeat: mineSeat,
         agent: { version: agentVersion(lvl), level: lvl },
         trainingAllowed: recordTrainingAllowed('slack', { learnsFromHumans }),
         input: detectDevice() === 'desktop' ? 'mouse' : 'touch',
@@ -215,9 +227,9 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
   const play = useCallback(
     (cell: number): void => {
       const cur = live.current
-      if (!cur || !agent.current || busy.current || slackCore.terminal(cur.state) || cur.state.turn !== HUMAN) return
+      if (!cur || !agent.current || busy.current || slackCore.terminal(cur.state) || cur.state.turn !== cur.human) return
       if (!legalCells(cur).includes(cell)) return
-      commit(HUMAN, cell, cur)
+      commit(cur.human, cell, cur)
       void advance(epoch.current)
     },
     [commit, advance],
@@ -250,14 +262,15 @@ export function useSlackMatch(agentVersion: (level: Level) => string, learnsFrom
   }, [])
 
   const over = phase === 'over'
-  const thinking = phase === 'playing' && !failure && match !== null && !slackCore.terminal(match.state) && match.state.turn === AGENT_SEAT
-  const canMove = phase === 'playing' && !failure && match !== null && !slackCore.terminal(match.state) && match.state.turn === HUMAN && legalCells(match).length > 0
-  const result = resigned ? RESIGNED : (over ? (recorder.finished?.record.result ?? null) : null)
+  const thinking = phase === 'playing' && !failure && match !== null && !slackCore.terminal(match.state) && match.state.turn !== match.human
+  const canMove = phase === 'playing' && !failure && match !== null && !slackCore.terminal(match.state) && match.state.turn === match.human && legalCells(match).length > 0
+  const result = resigned ? resignedResult(humanSeat) : (over ? (recorder.finished?.record.result ?? null) : null)
 
   return {
     phase,
     level,
     seed,
+    humanSeat,
     match,
     thinking,
     canMove,

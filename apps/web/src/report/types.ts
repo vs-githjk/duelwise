@@ -52,6 +52,8 @@ export interface SlackView {
   discs: [number, number]
   /** The corner cells (0, 7, 56, 63) in that order and who placed each, or null where nobody did. */
   corners: Array<'player' | 'ai' | null>
+  /** The player's disc colour: dark when they moved first, pale when they moved second. Absent (an older body) means dark. */
+  youColor?: 'dark' | 'pale'
 }
 
 /** What the report says about the match itself: derived from the record alone (no account, no rating). */
