@@ -231,8 +231,9 @@ export default function SlackPage() {
             <PlayHud turn={turn} youLabel={`You, ${youColor}`} swatch={match.humanSeat === 0 ? 'bg-slack-dark' : 'bg-slack-pale'} matchKey={match.seed} />
             <div className="sl-status" data-testid="slack-status-row">
               <div className="sl-counts" data-testid="slack-counts">
-                <span aria-hidden="true">● {you}</span>
-                <span aria-hidden="true">○ {them}</span>
+                {/* The filled dot is the dark discs and the open dot the pale ones, so the dot beside your count is the colour you play. */}
+                <span aria-hidden="true">{youColor === 'dark' ? '●' : '○'} {you}</span>
+                <span aria-hidden="true">{themColor === 'dark' ? '●' : '○'} {them}</span>
                 <span className="sr-only">
                   You {you} discs, {name} {them} discs.
                 </span>
