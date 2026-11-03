@@ -200,6 +200,76 @@ for (const [vw, vh, minBoard] of [[1280, 800, 560], [1440, 900, 640], [1920, 108
   })
 }
 
+/** Starts at a width and height with a chosen level (and optionally Practice), through a forced check so a covering element cannot hide the radio. */
+async function startAt(page: Page, vw: number, vh: number, opts: { level?: RegExp; practice?: boolean; query?: string } = {}) {
+  await page.setViewportSize({ width: vw, height: vh })
+  await page.goto(`${URL}?seed=3${opts.query ?? ''}`)
+  await expect(page.getByTestId('slack-setup')).toBeVisible()
+  if (opts.practice) await page.locator('[data-mode-option="practice"]').click()
+  await page.getByTestId('level-picker').getByRole('radio', { name: opts.level ?? /Pip/ }).check({ force: true })
+  await page.getByTestId('slack-start').click()
+  await expect(page.getByTestId('slack-board')).toBeVisible()
+}
+
+const overlaps = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+// The "recorded for your report" notice rides in the top of the aside column. It follows the content row (not a fixed offset), so a header that wraps cannot be covered.
+test.describe('the lifted notice stays off the header and the aside card', () => {
+  for (const [vw, vh] of [[1024, 768], [1280, 800], [1440, 900]] as const) {
+    test(`${vw} by ${vh}: the notice meets neither the header nor the agent card`, async ({ page }) => {
+      test.setTimeout(90_000)
+      await startAt(page, vw, vh)
+      const notice = page.getByTestId('training-notice')
+      await expect(notice).toBeVisible()
+      const n = (await notice.boundingBox())!
+      const header = (await page.getByTestId('game-shell').locator('header').boundingBox())!
+      const card = (await page.getByTestId('agent-card').boundingBox())!
+      expect(overlaps(n, header)).toBe(false)
+      expect(overlaps(n, card)).toBe(false)
+      expect(n.y).toBeGreaterThanOrEqual(header.y + header.height)
+    })
+  }
+
+  test('1024 by 768, Practice and Sable: the header wraps, and its "?", sound and Leaderboard controls are still the topmost thing at their centres', async ({ page }) => {
+    test.setTimeout(90_000)
+    await startAt(page, 1024, 768, { level: /Sable/, practice: true })
+    // the wrapped header makes the page a little taller than the screen at this size, so look from the top, where a covered control would show
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const notice = (await page.getByTestId('training-notice').boundingBox())!
+    const header = (await page.getByTestId('game-shell').locator('header').boundingBox())!
+    expect(overlaps(notice, header)).toBe(false)
+    for (const target of [page.getByRole('button', { name: 'How to play' }), page.getByTestId('game-sound-button'), page.getByTestId('game-leaderboard-link')]) {
+      const box = (await target.boundingBox())!
+      const hit = await target.evaluate((el, [x, y]) => document.elementFromPoint(x!, y!) === el || el.contains(document.elementFromPoint(x!, y!)), [box.x + box.width / 2, box.y + box.height / 2])
+      expect(hit).toBe(true)
+    }
+  })
+})
+
+// The status line never clips: when it cannot fit beside the HUD it takes its own row.
+test.describe('the status line is never clipped on a laptop', () => {
+  const cases: Array<[string, number, number, string, RegExp]> = [
+    ['Pip has no move, 1366 by 657', 1366, 657, OPPONENT_PASS, /Pip/],
+    ['no move for you, 1024 by 600', 1024, 600, PASS_POSITION, /Pip/],
+    ['no move for you, Sable, 1280 by 720', 1280, 720, PASS_POSITION, /Sable/],
+    ['no move for you, Marlow, 1280 by 800', 1280, 800, PASS_POSITION, /Marlow/],
+    ['no move for you, Vesper, 1440 by 900', 1440, 900, PASS_POSITION, /Vesper/],
+  ]
+  for (const [label, vw, vh, moves, level] of cases) {
+    test(label, async ({ page }) => {
+      test.setTimeout(90_000)
+      await startAt(page, vw, vh, { level, query: `&moves=${moves}` })
+      const line = page.getByTestId('slack-status')
+      await expect(line).toHaveText(/no move/i)
+      const fits = await line.evaluate((el) => ({ w: el.scrollWidth <= el.clientWidth, h: el.scrollHeight <= el.clientHeight, text: el.textContent }))
+      expect(fits, fits.text ?? '').toMatchObject({ w: true, h: true })
+      const bar = (await page.getByTestId('slack-action').boundingBox())!
+      expect(bar.y + bar.height).toBeLessThanOrEqual(vh)
+    })
+  }
+})
+
 test.describe('the Place button carries the pick', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
