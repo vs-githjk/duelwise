@@ -113,12 +113,12 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
     } })
   }
 
-  // Where the disc lead last changed hands: the last placement after which the lead sat on the other side from where the game ended.
+  // Where the disc lead last changed hands: the last placement after which the lead was not where the game ended (a tie counts as not ahead yet).
   const finalSign = Math.sign(discs[0] - discs[1])
   let lastChange: Placement | null = null
   if (finalSign !== 0) {
     for (let i = placements.length - 1; i >= 0; i--) {
-      if (Math.sign(placements[i]!.lead) === -finalSign) {
+      if (Math.sign(placements[i]!.lead) !== finalSign) {
         lastChange = placements[i + 1] ?? null
         break
       }

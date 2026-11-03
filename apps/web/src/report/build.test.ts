@@ -293,6 +293,23 @@ describe('Crosscurrent report', () => {
     else expect(worst).toBeUndefined()
   })
 
+  test('the "lead changed for good" line names a placement after which the leader led and kept leading to the end', () => {
+    let named = 0
+    for (const seed of [44, ...Array.from({ length: 150 }, (_, i) => i + 1)]) {
+      const rr = playRandom('slack', seed, 0)
+      const f = facts(rr)
+      const m = buildReportBody(rr).moments.find((x) => x.tag === 'the lead changed for good')
+      if (!m) continue
+      named++
+      const n = Number(/Placement (\d+)/.exec(m.label)![1]) - 1
+      const final = Math.sign(f.out.at(-1)!.lead)
+      expect(final).not.toBe(0)
+      for (const x of f.out.slice(n)) expect(Math.sign(x.lead)).toBe(final)
+      expect(Math.sign(f.out[n - 1]?.lead ?? 0)).not.toBe(final)
+    }
+    expect(named).toBeGreaterThan(20)
+  })
+
   test('the passes line matches the record', () => {
     for (const seed of [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
       const rr = playRandom('slack', seed, 0)
