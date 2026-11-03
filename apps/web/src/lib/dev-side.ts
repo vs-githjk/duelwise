@@ -9,7 +9,7 @@ import type { Seat } from '@duelwise/core/src/types'
 export function devSide(
   search: string | undefined = typeof window === 'undefined' ? undefined : window.location.search,
   dev: boolean = import.meta.env?.DEV === true,
-  fallback: string | undefined = import.meta.env?.VITE_DUELWISE_SIDE,
+  fallback: string | null | undefined = import.meta.env?.VITE_DUELWISE_SIDE,
 ): Seat | undefined {
   if (!dev || search === undefined) return undefined
   const q = new URLSearchParams(search).get('side') ?? fallback

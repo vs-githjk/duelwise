@@ -64,7 +64,11 @@ describe('what the check refuses to call verified', () => {
 
   test('only a human in seat 0 can be checked, and real-time or Word Duel records are not checked here', async () => {
     const rec = await play('four', 19)
-    expect((await checkAgentMoves({ ...rec, humanSeat: 1 }, { makeAgent: make('four') })).kind).toBe('unverified')
+    // Hold'em is always seat 0. Four, chess and Crosscurrent have random sides (the finish step holds the record to the issued one), so the check itself
+    // never calls a record that claims the wrong seat verified.
+    const holdem = await play('holdem', 19)
+    expect((await checkAgentMoves({ ...holdem, humanSeat: 1 }, { makeAgent: make('holdem') })).kind).toBe('unverified')
+    expect((await checkAgentMoves({ ...rec, humanSeat: 1 }, { makeAgent: make('four') })).kind).not.toBe('verified')
     for (const game of ['word', 'fighter', 'arena'] as const) {
       expect((await checkAgentMoves({ ...rec, game }, { makeAgent: make('four') })).kind).toBe('unverified')
     }
