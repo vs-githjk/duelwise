@@ -10,7 +10,7 @@ import { ResultPanel } from '../../components/ResultPanel'
 import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { isOffline, subscribeConnection } from '../../lib/connection'
-import { noteWonBeforeLeave, readResignedOnLeave, readWonBeforeLeave } from '../../lib/integrity'
+import { leftWonLine, noteWonBeforeLeave, readResignedOnLeave } from '../../lib/integrity'
 import { setRatedLive } from '../../lib/match-active'
 import { usePractice } from '../../lib/practice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
@@ -481,23 +481,24 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
     if (started) setLeftLine(null)
     else if (readResignedOnLeave('fleet')) {
       const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-      setLeftLine(leftMatchLine(nav?.type === 'reload', readWonBeforeLeave('fleet')))
+      setLeftLine(leftMatchLine(nav?.type === 'reload', leftWonLine('fleet')))
     }
   }, [started])
 
   // The final reply was applied (every enemy ship sunk in the view) but the record could not be made: the match is won in the server's log, so leaving now costs nothing and the next load says so.
   const wonUnsaved = game.finalSeen && !over && !!game.failure && !!view && view.enemyLeft.length === 0
   // Written when it becomes true and removed only when it stops being true on this page: never on mount, or a reload (and React's second dev pass) would erase the note it is about to read.
-  const wonNoted = useRef(false)
+  const wonNoted = useRef<string | null>(null)
+  const wonMatchId = game.matchId
   useEffect(() => {
-    if (wonUnsaved) {
-      noteWonBeforeLeave('fleet', true)
-      wonNoted.current = true
-    } else if (wonNoted.current) {
-      noteWonBeforeLeave('fleet', false)
-      wonNoted.current = false
+    if (wonUnsaved && wonMatchId) {
+      noteWonBeforeLeave('fleet', wonMatchId, true)
+      wonNoted.current = wonMatchId
+    } else if (!wonUnsaved && wonNoted.current) {
+      noteWonBeforeLeave('fleet', wonNoted.current, false)
+      wonNoted.current = null
     }
-  }, [wonUnsaved])
+  }, [wonUnsaved, wonMatchId])
 
   // ---- Setup interactions
   const reject = useCallback((cell: number) => setFlash({ cell, kind: 'bad' }), [])

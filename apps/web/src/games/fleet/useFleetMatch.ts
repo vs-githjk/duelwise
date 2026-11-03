@@ -40,13 +40,15 @@ export interface FleetSnapshot {
   unsentCell: number | null
   /** True from the moment the server's final reply is in: the match is over and being settled, so Resign is gone and does nothing. */
   ending: boolean
+  /** The server's id of the counted match on screen, null for an unrated one or none. */
+  matchId: string | null
   /** True once the server's final reply has been applied to the view (the winning or killing shot is in it). False when that reply never arrived, so a win the server's log has is one shot longer than the view. */
   finalSeen: boolean
   /** True when the server holds the enemy fleet (a counted match). */
   sealed: boolean
 }
 
-const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, ending: false, finalSeen: false, sealed: false }
+const INITIAL: FleetSnapshot = { phase: 'setup', level: 'easy', view: null, thinking: false, resigned: false, failure: null, unsentCell: null, ending: false, finalSeen: false, matchId: null, sealed: false }
 
 /** The five setup actions, in ship order, as the server and the record expect them. */
 export function setupCodes(fleet: Placement[]): number[] {
@@ -275,7 +277,7 @@ export function createFleetEngine(deps: EngineDeps): FleetEngine {
           if (reply.over || reply.view.phase !== 'play') throw new Error('The server answered the setup with a match that is not ready.')
           rec().reach(SHIPS.length)
           roundStart = performance.now()
-          set({ phase: 'play', view: reply.view, sealed: true, thinking: false })
+          set({ phase: 'play', view: reply.view, sealed: true, thinking: false, matchId })
           return
         }
         agent = opened.agent

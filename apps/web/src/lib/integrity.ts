@@ -53,23 +53,60 @@ export function resignOnPageLeave(game: string, matchId: string, tick: number, n
   return true
 }
 
-/** Written by a page that already knows its player has won but could not save the record: leaving then costs nothing, and the next load must not say it counts as a loss. */
+/** Written by a page that already knows its player has won a match but could not save the record: leaving then costs nothing, and the next load must not say it counts as a loss. */
 export const WON_BEFORE_LEAVE_KEY = 'duelwise.won-before-leave'
+const WON_KEEP = 8
+const WON_MAX_AGE_MS = 24 * 3600_000
 
-export function noteWonBeforeLeave(game: string, on: boolean, store: Pick<KeyValueStore, 'setItem' | 'removeItem'> | undefined = defaultStore()): void {
+type WonNotes = Record<string, { game: string; at: number }>
+
+function readWonNotes(store: Pick<KeyValueStore, 'getItem'> | undefined): WonNotes {
   try {
-    if (on) store?.setItem(WON_BEFORE_LEAVE_KEY, JSON.stringify({ game }))
-    else store?.removeItem(WON_BEFORE_LEAVE_KEY)
+    const raw = store?.getItem(WON_BEFORE_LEAVE_KEY)
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? (parsed as WonNotes) : {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * One small entry per match, so two tabs of the same player cannot read or clear each other's: `on` adds this match, `off` drops only this match. Entries older than a
+ * day, and all but the newest few, are pruned on every write.
+ */
+export function noteWonBeforeLeave(game: string, matchId: string, on: boolean, store: Pick<KeyValueStore, 'getItem' | 'setItem' | 'removeItem'> | undefined = defaultStore(), now: number = Date.now()): void {
+  try {
+    const notes = readWonNotes(store)
+    if (on) notes[matchId] = { game, at: now }
+    else delete notes[matchId]
+    const kept = Object.entries(notes)
+      .filter(([, v]) => typeof v?.at === 'number' && now - v.at < WON_MAX_AGE_MS)
+      .sort((a, b) => b[1].at - a[1].at)
+      .slice(0, WON_KEEP)
+    if (kept.length === 0) store?.removeItem(WON_BEFORE_LEAVE_KEY)
+    else store?.setItem(WON_BEFORE_LEAVE_KEY, JSON.stringify(Object.fromEntries(kept)))
   } catch {}
 }
 
-export function readWonBeforeLeave(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
+export function readWonBeforeLeave(game: string, matchId: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
+  return readWonNotes(store)[matchId]?.game === game
+}
+
+/** The resign note of the last page leave for this game, or null: which match was given up. */
+export function readResignedNote(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): { matchId: string } | null {
   try {
-    const raw = store?.getItem(WON_BEFORE_LEAVE_KEY)
-    return raw ? (JSON.parse(raw) as { game?: unknown }).game === game : false
+    const raw = store?.getItem(RESIGNED_KEY)
+    const n = raw ? (JSON.parse(raw) as { game?: unknown; matchId?: unknown }) : null
+    return n && n.game === game && typeof n.matchId === 'string' ? { matchId: n.matchId } : null
   } catch {
-    return false
+    return null
   }
+}
+
+/** Whether the match given up by the last page leave of this game is one its page had already won: both notes name the same match. */
+export function leftWonLine(game: string, store: Pick<KeyValueStore, 'getItem'> | undefined = defaultStore()): boolean {
+  const note = readResignedNote(game, store)
+  return note !== null && readWonBeforeLeave(game, note.matchId, store)
 }
 
 /** Whether the last match of this game was resigned by a page leave and the player has not started another since. */
@@ -91,7 +128,6 @@ export function clearResignedOnRestore(persisted: boolean, store?: Pick<KeyValue
 export function clearResignedOnLeave(store: Pick<KeyValueStore, 'removeItem'> | undefined = defaultStore()): void {
   try {
     store?.removeItem(RESIGNED_KEY)
-    store?.removeItem(WON_BEFORE_LEAVE_KEY)
   } catch {}
 }
 

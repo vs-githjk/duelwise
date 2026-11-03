@@ -110,6 +110,8 @@ describe('counted match through the engine', () => {
     await engine.start('easy', FLEET)
     expect(engine.snapshot().phase).toBe('play')
     expect(server.calls[0]).toEqual(setupCodes(FLEET))
+    // The page keys its won-before-leave note by this id, so two tabs of one player never read each other's.
+    expect(engine.snapshot().matchId).toBe('m-1')
     await playOut(engine)
     expect(engine.snapshot().phase).toBe('over')
     const setup = setupCodes(FLEET)
