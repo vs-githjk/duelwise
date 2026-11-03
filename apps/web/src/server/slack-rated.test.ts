@@ -137,16 +137,22 @@ describe('a forged record never turns into a win', () => {
   test('the opponent plays legal blunders and the human is credited a win: refused, no path stop, no board row, not trainable', async () => {
     const m = await begin()
     // A legal game in which the "opponent" always plays its last legal cell, so the human wins it: the forger's best case.
-    const human = makeRng(m.seed ^ 0x99)
+    // The human's draws change until the blundering opponent loses, which it nearly always does.
     let s = slackCore.init(m.seed)
-    const actions: MatchRecordV1['actions'] = []
-    let tick = 0
-    while (!slackCore.terminal(s)) {
-      const seat = slackCore.toAct(s)[0]!
-      const legal = slackCore.legal(s, seat)
-      const a = seat === 0 ? legal[human.int(legal.length)] : legal[legal.length - 1]
-      actions.push([tick++, seat, slackCore.encodeAction(a)])
-      s = slackCore.step(s, seat === 0 ? [a, null] : [null, a])
+    let actions: MatchRecordV1['actions'] = []
+    for (let salt = 0; salt < 200; salt++) {
+      const human = makeRng(m.seed ^ 0x99 ^ (salt * 7919))
+      s = slackCore.init(m.seed)
+      actions = []
+      let tick = 0
+      while (!slackCore.terminal(s)) {
+        const seat = slackCore.toAct(s)[0]!
+        const legal = slackCore.legal(s, seat)
+        const a = seat === 0 ? legal[human.int(legal.length)] : legal[legal.length - 1]
+        actions.push([tick++, seat, slackCore.encodeAction(a)])
+        s = slackCore.step(s, seat === 0 ? [a, null] : [null, a])
+      }
+      if (slackCore.result(s)!.winner === 0) break
     }
     const base = await played(m)
     const forged: MatchRecordV1 = { ...base, actions, result: slackCore.result(s)!, finalHash: slackCore.hash(s) }
