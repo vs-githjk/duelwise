@@ -116,8 +116,9 @@ Lining numerals are set once on `body` (`font-variant-numeric: lining-nums`), an
 
 - Files: `apps/web/public/assets/audio/opengameart/crowd/*.mp3`, made 2026-11-04 from the recordings below (trimmed, mixed, faded and re-encoded; details in `cc0-music/CREDITS.md`). Used by `apps/web/src/games/penalty/sounds.ts`.
 - Licence of every source: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. No attribution is required; we credit anyway.
-- "Cheers" (https://opengameart.org/content/cheers-0), "Happy Halloween! (Group)" (https://opengameart.org/content/happy-halloween-group) and "OoOoOoOoOoOoOo" (https://opengameart.org/content/oooooooooooooo): recorded by AuraVoice, posted on OpenGameArt by Nocturnal_Vanguard.
-- "Applause in a large hall or church" (https://opengameart.org/content/applause-in-a-large-hall-or-church): eXpl0it3r.
+- "Match amical France-USA - 58241 spectateurs - Action ratee sur faute 21h38" (a stadium crowd; https://commons.wikimedia.org/wiki/File:Match_amical_France-USA_-_58241_spectateurs_-_Action_rat%C3%A9e_sur_faute_21h38.ogg): Romainbehar.
+- "applause-2" (https://commons.wikimedia.org/wiki/File:277021_sandermotions_applause-2.wav, from https://freesound.org/people/Sandermotions/sounds/277021/): Sandermotions.
+- "OoOoOoOoOoOoOo" (https://opengameart.org/content/oooooooooooooo): recorded by AuraVoice, posted on OpenGameArt by Nocturnal_Vanguard.
 - "Referee's whistle blowing inside a gymnasium" (https://commons.wikimedia.org/wiki/File:218318_splicesound_referee-whistle-blow-gymnasium.wav, from https://freesound.org/people/SpliceSound/sounds/218318/): SpliceSound.
 
 ## Quaternius paid animation clips (P2, Oct 23)

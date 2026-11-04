@@ -267,7 +267,7 @@ function crowd(ctx: BaseAudioContext, out: AudioNode, t0: number, o: { len: numb
 /** The sources a cue starts, so the cap can reserve them first. */
 const SOURCES: Record<PenaltyCue, number> = { strike: 2, net: 2, glove: 2, wide: 1, whistleStart: 3, whistleFull: 9, cheer: 1, cheerSave: 1, cheerBig: 1, groan: 1, groanBig: 1 }
 /** How long a cue sounds, in seconds, for the same reservation. */
-const LENGTH: Record<PenaltyCue, number> = { strike: 0.12, net: 0.5, glove: 0.2, wide: 0.35, whistleStart: 0.4, whistleFull: 1.2, cheer: 1.6, cheerSave: 0.9, cheerBig: 3, groan: 1.3, groanBig: 1.8 }
+const LENGTH: Record<PenaltyCue, number> = { strike: 0.12, net: 0.5, glove: 0.2, wide: 0.35, whistleStart: 0.4, whistleFull: 1.2, cheer: 2.2, cheerSave: 1.3, cheerBig: 3.6, groan: 1.5, groanBig: 2.1 }
 
 /** Plays a decoded recording through the cue bus at the cue's file gain. */
 function playFile(ctx: BaseAudioContext, out: AudioNode, cue: PenaltyCue, buf: AudioBuffer, t0: number, vol: number): void {

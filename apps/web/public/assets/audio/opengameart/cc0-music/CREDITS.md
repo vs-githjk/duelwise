@@ -20,24 +20,23 @@ Twelve Yards' ball cues (the boot on the ball, the net, the keeper's glove, a ba
 
 ## Twelve Yards crowd and whistle (`../crowd/`)
 
-Downloaded 2026-11-04. Each source page states CC0 (OpenGameArt: licence field "CC0"; Wikimedia Commons: licence "CC0 1.0 Universal Public Domain Dedication"). No sign-up or payment was needed. Re-encoded to mono 44.1 kHz MP3 at 64 kbps, trimmed, faded, mixed where noted, and levelled to the peak shown, tags removed.
+Downloaded 2026-11-04. Each source page states CC0 (OpenGameArt: licence field "CC0"; Wikimedia Commons: licence "CC0 1.0 Universal Public Domain Dedication"). No sign-up or payment was needed. Re-encoded to mono 44.1 kHz MP3 at 64 kbps, trimmed, faded, mixed where noted, and levelled to the peak shown, tags removed. No cheer contains a spoken word: the cheers are a real stadium crowd and applause (checked with Whisper base speech recognition, see below).
 
 | Source recording | Author | Source page | Licence |
 |---|---|---|---|
-| `cheers_1.ogg` (Cheers) | AuraVoice, posted by Nocturnal_Vanguard | https://opengameart.org/content/cheers-0 | CC0 |
-| `happy_halloween.ogg` (Happy Halloween! (Group)) | AuraVoice, posted by Nocturnal_Vanguard | https://opengameart.org/content/happy-halloween-group | CC0 |
-| `oooooooooo.ogg` (OoOoOoOoOoOoOo) | AuraVoice, posted by Nocturnal_Vanguard | https://opengameart.org/content/oooooooooooooo | CC0 |
-| `applause-clapping-church-crowd-immersive.wav` (Applause in a large hall or church) | eXpl0it3r | https://opengameart.org/content/applause-in-a-large-hall-or-church | CC0 |
+| `Match amical France-USA - 58241 spectateurs - Action ratee sur faute 21h38.ogg` (a stadium crowd, 49.8 s) | Romainbehar | https://commons.wikimedia.org/wiki/File:Match_amical_France-USA_-_58241_spectateurs_-_Action_rat%C3%A9e_sur_faute_21h38.ogg | CC0 |
+| `277021_sandermotions_applause-2.wav` (applause) | Sandermotions | https://commons.wikimedia.org/wiki/File:277021_sandermotions_applause-2.wav (from https://freesound.org/people/Sandermotions/sounds/277021/) | CC0 |
+| `oooooooooo.ogg` (OoOoOoOoOoOoOo, a group "ooh", used for the two groans) | AuraVoice, posted by Nocturnal_Vanguard | https://opengameart.org/content/oooooooooooooo | CC0 |
 | `218318_splicesound_referee-whistle-blow-gymnasium.wav` (Referee's whistle blowing inside a gymnasium) | SpliceSound | https://commons.wikimedia.org/wiki/File:218318_splicesound_referee-whistle-blow-gymnasium.wav (from https://freesound.org/people/SpliceSound/sounds/218318/) | CC0 |
 
-| File here | Made from | Length | Size | Peak |
-|---|---|---|---|---|
-| `crowd/cheer.mp3` (your goal) | Cheers (first 1.9 s) mixed with applause (2 s from 20 s, at 0.6) | 2.0 s | 16.6 KB | -6.6 dBFS |
-| `crowd/cheerBig.mp3` (you win) | Cheers, Happy Halloween (delayed 0.45 s) and applause (3.6 s from 18 s) | 3.4 s | 27.8 KB | -4.3 dBFS |
-| `crowd/cheerSave.mp3` (your save) | applause, 1.3 s from 24 s, compressed | 1.3 s | 10.9 KB | -8.8 dBFS |
-| `crowd/groan.mp3` (your kick fails) | OoOoOo, 1.5 s from 0.15 s, low-passed at 3.8 kHz | 1.5 s | 12.6 KB | -9.5 dBFS |
-| `crowd/groanBig.mp3` (you lose) | OoOoOo slowed by 15 percent (deeper), 2.1 s | 2.1 s | 17.4 KB | -8.5 dBFS |
-| `crowd/whistleStart.mp3` (kick-off) | the whistle's first blast (0.128 s to 0.548 s) | 0.42 s | 4.0 KB | -9.1 dBFS |
-| `crowd/whistleFull.mp3` (full time) | the same blast cut to two short ones (0.17 s) and a long one (0.42 s) | 1.04 s | 8.8 KB | -10.4 dBFS |
+| File here | Made from | Length | Size | Peak | Whisper (base) |
+|---|---|---|---|---|---|
+| `crowd/cheer.mp3` (your goal) | stadium crowd 33.5 s to 35.7 s mixed with applause 12 s to 14.2 s (at 0.8) | 2.2 s | 18.2 KB | -6.6 dBFS | empty |
+| `crowd/cheerBig.mp3` (you win) | stadium crowd 32.5 s to 36.1 s mixed with applause 12 s to 15.6 s | 3.6 s | 29.3 KB | -4.3 dBFS | "Oh" |
+| `crowd/cheerSave.mp3` (your save) | stadium crowd 12 s to 13.3 s | 1.3 s | 10.9 KB | -9.4 dBFS | empty |
+| `crowd/groan.mp3` (your kick fails) | OoOoOo, 1.5 s from 0.15 s, low-passed at 3.8 kHz | 1.5 s | 12.6 KB | -9.5 dBFS | "Oh" / "Mmm" |
+| `crowd/groanBig.mp3` (you lose) | OoOoOo from 0.1 s, slowed by 7 percent (deeper), 2.1 s | 2.1 s | 17.4 KB | -8.4 dBFS | empty / "Mmm" |
+| `crowd/whistleStart.mp3` (kick-off) | the whistle's first blast (0.128 s to 0.548 s) | 0.42 s | 4.0 KB | -9.1 dBFS | empty |
+| `crowd/whistleFull.mp3` (full time) | the same blast cut to two short ones (0.17 s) and a long one (0.42 s) | 1.04 s | 8.8 KB | -10.4 dBFS | empty |
 
-The page plays each file at a gain of 0.55 to 0.7 (`FILE_GAIN` in `sounds.ts`), so the loudest cue peaks at about 0.43 of full scale before the master volume, under the boot on the ball (0.5).
+Speech check: `whisper` base model, `transcribe(file, fp16=False, language='en')`, run three times per file (its default decoding is random when unsure, so it also invents stock phrases on any noisy clip, even pure applause). The vocables and empty results above were stable across runs. The page plays each file at a gain of 0.55 to 0.7 (`FILE_GAIN` in `sounds.ts`), so the loudest cue peaks at about 0.43 of full scale before the master volume, under the boot on the ball (0.5).
