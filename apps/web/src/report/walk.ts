@@ -47,5 +47,7 @@ export function humanActionCount(rec: MatchRecordV1): number {
   }
   // Crosscurrent: a pass is not a move, so the count is discs placed.
   if (rec.game === 'slack') return rec.actions.filter((a) => a[1] === rec.humanSeat && a[2] !== 64).length
+  // Twelve Yards: both seats pick on every tick, and the shooter is seat tick % 2, so the player's moves are the kicks they took (their dives are not counted as kicks).
+  if (rec.game === 'penalty') return rec.actions.filter((a) => a[1] === rec.humanSeat && a[0] % 2 === rec.humanSeat).length
   return rec.actions.filter((a) => a[1] === rec.humanSeat).length
 }

@@ -2,8 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { buildReportBody } from './build'
 import { layoutLabels, type LabelIn } from './chart-labels'
-import { emptyReviewText, reportTiles } from './copy'
-import { playRandom, playScript } from './testing'
+import { emptyReviewText, hasGameView, reportTiles } from './copy'
+import { shareCardSvg } from './share-card'
+import { PenaltyMap } from './PenaltyMap'
+import { playPairs, playRandom, playScript } from './testing'
 import { WordGrid } from './WordGrid'
 import { FourBoard } from './FourBoard'
 import { SlackBoard } from './SlackBoard'
@@ -181,5 +183,48 @@ describe('reports for a player who had the second move (seat 1): chess, Four in 
     const view = { ...buildReportBody(playRandom('slack', 3, 0)).slackView! }
     delete view.youColor
     expect(renderToStaticMarkup(<SlackBoard view={view} opponent="Marlow" />)).toContain('You: dark discs')
+  })
+})
+
+describe('Twelve Yards kick map', () => {
+  const rec = playPairs('penalty', 5, Array.from({ length: 40 }, (_, t): [number, number] => (t % 2 === 0 ? [[6, 6, 2, 6, 8][(t / 2) % 5]!, 1] : [2, [0, 8, 2, 6][((t - 1) / 2) % 4]!])), 0)
+
+  test('one numbered mark per kick the player took, a word for each outcome, and every kick of the shootout in the list', () => {
+    const body = buildReportBody(rec)
+    const html = renderToStaticMarkup(<PenaltyMap view={body.penaltyView!} opponent="Marlow" />)
+    const mine = body.penaltyView!.kicks.filter((k) => k.byMe)
+    expect(html.match(/data-testid="pen-mark-\d+"/g)).toHaveLength(mine.length)
+    for (const k of mine) expect(html).toContain(`data-testid="pen-mark-${k.n}" data-outcome="${k.outcome}"`)
+    expect(html.match(/<li /g)).toHaveLength(body.penaltyView!.kicks.length)
+    expect(html).toContain('You shot')
+    expect(html).toContain('Marlow shot')
+    expect(html).toContain('Your kick map. Kick 1')
+    expect(html).toMatch(/a blue disc is a goal \(\d+\), a ringed disc is a save \(\d+\), a dashed ring is over the bar or wide \(\d+\)/)
+  })
+
+  test('the public map says the player and never you', () => {
+    const body = buildReportBody(rec)
+    const html = renderToStaticMarkup(<PenaltyMap view={body.penaltyView!} viewer="public" opponent="Marlow" />)
+    expect(html).not.toMatch(/\bYou(r)?\b/)
+    expect(html).toContain('The player shot')
+  })
+
+  test('kicks to one spot are spread so none hides another, and a miss sits outside the frame', () => {
+    const body = buildReportBody(rec)
+    const html = renderToStaticMarkup(<PenaltyMap view={body.penaltyView!} opponent="Marlow" />)
+    const centres = [...html.matchAll(/data-testid="pen-mark-\d+"[^>]*><circle cx="([\d.]+)" cy="([\d.]+)"/g)].map((m) => `${m[1]},${m[2]}`)
+    expect(new Set(centres).size).toBe(centres.length)
+  })
+
+  test('the tiles give goals, kicks and saves; the share card counts kicks', () => {
+    const body = buildReportBody(rec)
+    const tiles = reportTiles({ game: 'penalty', mode: 'owner', status: 'ready', level: 'medium' }, body)
+    const labels = tiles.map((t) => t.label)
+    expect(labels).toContain('Goals')
+    expect(labels).toContain('Your kicks')
+    expect(labels).toContain('Your saves')
+    expect(tiles.find((t) => t.label === 'Goals')!.value).toBe(`${body.penaltyView!.goals[0]} to ${body.penaltyView!.goals[1]}`)
+    expect(hasGameView(body)).toBe(true)
+    expect(shareCardSvg({ game: 'penalty', level: 'medium', outcome: 'win', moves: 5, link: 'x' })).toContain('level, 5 kicks.')
   })
 })

@@ -67,7 +67,7 @@ export function hasKeyMoments(body: ReportBody): boolean {
 
 /** Whether the page draws something under "How the game went", "Guess by guess", "Final board and drops" or "Final board". */
 export function hasGameView(body: ReportBody): boolean {
-  return body.series !== null || body.wordRows !== null || (body.fourView ?? null) !== null || (body.slackView ?? null) !== null
+  return body.series !== null || body.wordRows !== null || (body.fourView ?? null) !== null || (body.slackView ?? null) !== null || (body.penaltyView ?? null) !== null
 }
 
 /**
@@ -100,12 +100,18 @@ export function reportTiles(view: { game: GameId; mode: 'owner' | 'public'; stat
       out.push({ value: `${view.mode === 'owner' ? 'You' : 'Player'} ${body.rounds.you}, ${(view.level ? personaFor(view.level).name : 'Opponent')} ${body.rounds.ai}`, label: 'Rounds won' })
       out.push({ value: String(body.moves), label: 'Recorded inputs' })
     }
-    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.game === 'fleet' ? (view.mode === 'owner' ? 'Your shots' : 'Shots fired') : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
+    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.game === 'fleet' ? (view.mode === 'owner' ? 'Your shots' : 'Shots fired') : view.game === 'penalty' ? (view.mode === 'owner' ? 'Your kicks' : 'Kicks taken') : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
     if (body.blunders !== null) out.push({ value: String(body.blunders), label: 'Costly moves', sub: body.evaluator === 'value-net' ? "by the AI's own position score" : 'by material count' })
     if (body.slackView) {
       const [you, them] = body.slackView.discs
       const opp = view.level ? personaFor(view.level).name : 'Opponent'
       out.push({ value: `${you} to ${them}`, label: 'Final discs', sub: `${view.mode === 'owner' ? 'You' : 'Player'} ${you}, ${opp} ${them}` })
+    }
+    if (body.penaltyView) {
+      const [you, them] = body.penaltyView.goals
+      const opp = view.level ? personaFor(view.level).name : 'Opponent'
+      out.push({ value: `${you} to ${them}`, label: 'Goals', sub: `${view.mode === 'owner' ? 'You' : 'Player'} ${you}, ${opp} ${them}` })
+      out.push({ value: String(body.penaltyView.kicks.filter((k) => !k.byMe && k.outcome === 'saved').length), label: view.mode === 'owner' ? 'Your saves' : 'Saves' })
     }
     if (hasKeyMoments(body)) out.push({ value: String(body.moments.filter((m) => m.kind !== 'end').length), label: 'Named moments' })
   }

@@ -6,7 +6,8 @@ import { wordCore } from '@duelwise/core/src/games/word/core'
 import { buildReportBody } from './build'
 import { MATERIAL } from './chess'
 import { publicBody, reportTiles } from './copy'
-import { playRandom, playScript } from './testing'
+import { playPairs, playRandom, playScript } from './testing'
+import { habitSentence } from './penalty'
 import { humanActionCount } from './walk'
 
 // 1. f3 e5 2. g4 Qh4#: Black checkmates in two.
@@ -354,5 +355,143 @@ describe('Crosscurrent report', () => {
 
   test('the closing note says what the chart counts', () => {
     expect(buildReportBody(rec).note).toMatch(/discs/i)
+  })
+})
+
+describe('Twelve Yards report', () => {
+  const core = getCore('penalty')
+  /** The player's picks and the keeper's, one pair per tick: seat 0 kicks on even ticks. `mine` is used for the player's own seat, whichever it is. */
+  function pairs(human: 0 | 1, shots: number[], dives: number[], theirShots: number[], theirDives: number[], ticks = 40): Array<[number, number]> {
+    const out: Array<[number, number]> = []
+    let a = 0
+    let b = 0
+    let c = 0
+    let d = 0
+    for (let t = 0; t < ticks; t++) {
+      const humanShoots = t % 2 === human
+      const mine = humanShoots ? shots[a++ % shots.length]! : dives[b++ % dives.length]!
+      const theirs = humanShoots ? theirDives[c++ % theirDives.length]! : theirShots[d++ % theirShots.length]!
+      out.push(human === 0 ? [mine, theirs] : [theirs, mine])
+    }
+    return out
+  }
+  /** Independent replay of the record: each kick with its roll's outcome, read straight from the core. */
+  function kicksOf(r: ReturnType<typeof playPairs>) {
+    let s = core.init(r.seed) as { kicks: Array<{ kicker: number; zone: number; dive: number; goal: boolean; onTarget: boolean }> }
+    for (let t = 0; !core.terminal(s as never); t++) {
+      const cur: [number | null, number | null] = [null, null]
+      for (const [tick, seat, n] of r.actions) if (tick === t) cur[seat as 0 | 1] = n
+      s = core.step(s as never, cur as never) as typeof s
+    }
+    return s.kicks
+  }
+  const rec = playPairs('penalty', 5, pairs(0, [6, 6, 2, 6, 8], [0, 1, 2], [0, 8, 2, 6], [2, 0, 3]), 0)
+
+  test('is its own report: a kick map, real counts and the closing row, nothing from another game', () => {
+    const r = buildReportBody(rec)
+    expect(r.game).toBe('penalty')
+    expect(r.penaltyView).toBeTruthy()
+    expect(r.moments.at(-1)!.kind).toBe('end')
+    expect(r.moments.at(-1)!.text).toContain(r.reason)
+    expect(r.moments.some((m) => /hand|chip|fold|disc|column|guess/i.test(m.text))).toBe(false)
+    expect(r.series).toBeNull()
+    expect(r.evaluator).toBe('none')
+  })
+
+  test('the map is the shootout as the core played it: every kick, its spot, the dive and the outcome, and the goals add up to the result', () => {
+    const r = buildReportBody(rec)
+    const ks = kicksOf(rec)
+    const v = r.penaltyView!
+    expect(v.kicks).toHaveLength(ks.length)
+    ks.forEach((k, i) => {
+      const row = v.kicks[i]!
+      expect(row.n).toBe(i + 1)
+      expect(row.zone).toBe(k.zone)
+      expect(row.dive).toBe(k.dive)
+      expect(row.byMe).toBe(k.kicker === rec.humanSeat)
+      expect(row.outcome === 'goal').toBe(k.goal)
+      expect(row.outcome === 'saved').toBe(k.onTarget && !k.goal)
+      expect(row.outcome === 'over' || row.outcome === 'wide').toBe(!k.onTarget)
+    })
+    expect(v.goals).toEqual([rec.result.score[rec.humanSeat], rec.result.score[1 - rec.humanSeat]])
+  })
+
+  test('the player\'s kick count is the kicks they took, from either seat; dives are not kicks', () => {
+    for (const human of [0, 1] as const) {
+      const rr = playPairs('penalty', 5, pairs(human, [6, 6, 2, 6, 8], [0, 1, 2], [0, 8, 2, 6], [2, 0, 3]), human)
+      const r = buildReportBody(rr)
+      const took = kicksOf(rr).filter((k) => k.kicker === human).length
+      expect(r.moves).toBe(took)
+      expect(humanActionCount(rr)).toBe(took)
+      expect(r.penaltyView!.kicks.filter((k) => k.byMe)).toHaveLength(took)
+      expect(r.penaltyView!.youFirst).toBe(human === 0)
+    }
+  })
+
+  test('a habit is only named when it repeated, in the player\'s own kicks', () => {
+    expect(habitSentence([6, 6, 2, 6, 8])!.text).toBe('You went bottom left 3 of 5 times.')
+    expect(habitSentence([6, 6, 6])!.text).toBe('You went bottom left every time, 3 of 3.')
+    expect(habitSentence([4, 4, 4, 4, 4])!.text).toContain('down the middle every time, 5 of 5')
+    expect(habitSentence([0, 3, 6, 1, 8])!.text).toBe('You aimed on the left of the goal 3 of 5 times, at 3 spots.')
+    expect(habitSentence([6, 7, 8, 0, 4])!.text).toBe('You aimed low 3 of 5 times.')
+    expect(habitSentence([0, 2, 7, 4, 3])!.text).toBe('No habit showed: your 5 kicks went to 5 different spots.')
+    expect(habitSentence([6, 6])).toBeNull()
+    expect(habitSentence([6, 6, 2], false)!.text).toBe('No habit showed: the player\'s 3 kicks went to 2 different spots.')
+    expect(habitSentence([6, 6, 6, 6, 6], false)!.text).toBe('The player went bottom left every time, 5 of 5.')
+    // The report shows the same sentence for the kicks the record holds.
+    const mine = kicksOf(rec).filter((k) => k.kicker === rec.humanSeat).map((k) => k.zone)
+    expect(buildReportBody(rec).moments.find((m) => m.label === 'Your kicks')!.text).toBe(habitSentence(mine)!.text)
+  })
+
+  test('the keeper line counts the dives that went the player\'s way, from the record', () => {
+    const r = buildReportBody(rec)
+    const mine = kicksOf(rec).filter((k) => k.kicker === rec.humanSeat)
+    const side = (d: number) => (d === 2 ? 1 : d < 2 ? 0 : 2)
+    const read = mine.filter((k) => side(k.dive) === k.zone % 3).length
+    const m = r.moments.find((x) => x.tag === 'who guessed your side')!
+    expect(m.text).toContain(`on ${read} of your ${mine.length} kicks`)
+  })
+
+  test('the owner\'s lines say you, and the public lines say the player and never you', () => {
+    const r = buildReportBody(rec)
+    const pub = publicBody(r)
+    expect(r.moments.some((m) => /\byou\b/i.test(m.text))).toBe(true)
+    for (const m of pub.moments) expect(m.text).not.toMatch(/\byou(r|rs)?\b/i)
+    expect(pub.reason).not.toMatch(/\byou\b/i)
+  })
+
+  test('a shootout that reached sudden death says so and names the round it ended in', () => {
+    let sudden: ReturnType<typeof playPairs> | null = null
+    for (let seed = 1; seed < 400 && !sudden; seed++) {
+      try {
+        const rr = playPairs('penalty', seed, pairs(0, [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4], [8, 7, 6, 5, 4], [2, 1, 0]), 0)
+        if (kicksOf(rr).length > 10) sudden = rr
+      } catch {
+        // this seed did not finish inside the picks given
+      }
+    }
+    expect(sudden).not.toBeNull()
+    const r = buildReportBody(sudden!)
+    expect(r.penaltyView!.sudden).toBe(true)
+    const m = r.moments.find((x) => x.tag === 'sudden death')!
+    expect(m.text).toContain(`round ${r.penaltyView!.kicks.at(-1)!.round}`)
+    expect(r.penaltyView!.kicks.some((k) => k.sudden)).toBe(true)
+    expect(r.penaltyView!.kicks.filter((k) => !k.sudden)).toHaveLength(10)
+  })
+
+  test('a resigned match reports the result alone, and a record from an older core gets the plain result', () => {
+    const cut = { ...rec, actions: rec.actions.slice(0, 6), result: { winner: 1 as const, score: [0, 1] as [number, number], reason: 'resigned' } }
+    const r = buildReportBody(cut)
+    expect(r.penaltyView).toBeNull()
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+    const old = buildReportBody({ ...rec, coreVersion: 'penalty-1' })
+    expect(old.penaltyView ?? null).toBeNull()
+    expect(old.note).toMatch(/older version/)
+  })
+
+  test('no em or en dash anywhere in the words the report writes', () => {
+    const r = buildReportBody(rec)
+    const all = [...r.moments.flatMap((m) => [m.label, m.tag, m.text, m.publicText ?? '']), r.note ?? '', r.reason]
+    for (const t of all) expect(t).not.toMatch(/[–—]/)
   })
 })

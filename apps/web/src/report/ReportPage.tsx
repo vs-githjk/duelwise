@@ -18,6 +18,7 @@ import { CARD_HEIGHT, CARD_WIDTH } from './share-card'
 import type { Moment } from './types'
 import { FourBoard } from './FourBoard'
 import { SlackBoard } from './SlackBoard'
+import { PenaltyMap } from './PenaltyMap'
 import { WordGrid } from './WordGrid'
 import { pollWritingReport } from './writing-poll'
 
@@ -147,6 +148,11 @@ export function ReportPageView({ page }: { page: Page }) {
           {body.slackView ? (
             <Card title="Final board" testId="report-slack">
               <SlackBoard view={body.slackView} viewer={view.mode} opponent={persona.name} />
+            </Card>
+          ) : null}
+          {body.penaltyView ? (
+            <Card title="Kick map" testId="report-penalty">
+              <PenaltyMap view={body.penaltyView} viewer={view.mode} opponent={persona.name} />
             </Card>
           ) : null}
           {hasKeyMoments(body) ? (

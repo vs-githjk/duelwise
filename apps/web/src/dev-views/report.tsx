@@ -7,14 +7,16 @@ import type { ReportView } from '../server/report'
 
 /**
  * Dev-only: the report page on fixture matches played on the real cores, for design checks.
- * /dev/report?scenario=chess|four|word|slack and &mode=public|owner.
+ * /dev/report?scenario=chess|four|word|slack|penalty, &mode=public|owner, and for penalty &seed=<n>&seat=0|1.
  */
 export default function ReportDevView() {
   const q = new URLSearchParams(typeof location === 'undefined' ? '' : location.search)
-  const scenario = (q.get('scenario') ?? 'chess') as 'chess' | 'four' | 'word' | 'slack'
+  const scenario = (q.get('scenario') ?? 'chess') as 'chess' | 'four' | 'word' | 'slack' | 'penalty'
+  const seed = Number(q.get('seed') ?? (scenario === 'chess' ? 12 : 4)) || 4
+  const seat = q.get('seat') === '1' ? 1 : 0
   const mode = q.get('mode') === 'public' ? 'public' : 'owner'
   const view = useMemo<ReportView>(() => {
-    const rec = playRandom(scenario, scenario === 'chess' ? 12 : 4, 0, 'medium')
+    const rec = playRandom(scenario, seed, seat, 'medium')
     const full = buildReportBody(rec)
     const body = mode === 'public' ? publicBody(full) : full
     return {
@@ -28,6 +30,6 @@ export default function ReportDevView() {
       playerName: null,
       owner: mode === 'owner' ? { rating: { before: 1012, after: 1041, provisional: false }, signedIn: true, learning: { state: 'stored' }, linkPublic: true, showName: false, record: { wins: 3, losses: 1, draws: 1, recent: ['win', 'loss', 'win', 'draw', 'win'] } } : null,
     }
-  }, [scenario, mode])
+  }, [scenario, mode, seed, seat])
   return <ReportPageView page={{ view, origin: 'http://localhost' }} />
 }

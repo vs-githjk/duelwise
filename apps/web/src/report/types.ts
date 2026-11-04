@@ -56,6 +56,32 @@ export interface SlackView {
   youColor?: 'dark' | 'pale'
 }
 
+/** One penalty of a Twelve Yards shootout, from the player's side. */
+export interface PenaltyKickRow {
+  /** 1-based kick number across the whole shootout. */
+  n: number
+  /** The round it belongs to (a round is one kick each), and whether that round was sudden death. */
+  round: number
+  sudden: boolean
+  /** True when the player took it; false when the opponent did and the player kept goal. */
+  byMe: boolean
+  /** Where the shooter aimed (0..8, top left to bottom right) and which way the keeper went (0..4: left high, left low, stay, right high, right low). */
+  zone: number
+  dive: number
+  outcome: 'goal' | 'saved' | 'over' | 'wide'
+}
+
+/** Twelve Yards: every kick of the shootout and the final goals. Absent on reports built before it existed. */
+export interface PenaltyView {
+  kicks: PenaltyKickRow[]
+  /** Goals: the player's, then the opponent's. */
+  goals: [number, number]
+  /** Whether the player kicked first. */
+  youFirst: boolean
+  /** The shootout went past five kicks each. */
+  sudden: boolean
+}
+
 /** What the report says about the match itself: derived from the record alone (no account, no rating). */
 export interface ReportBody {
   game: GameId
@@ -81,6 +107,8 @@ export interface ReportBody {
   fourView?: FourView | null
   /** Crosscurrent: the final board and disc counts. */
   slackView?: SlackView | null
+  /** Twelve Yards: the kick map data. */
+  penaltyView?: PenaltyView | null
   /** A persona line built from the moments, or null when the match gave it nothing true to say. */
   reaction: string | null
   /** Honest caveat shown under the moments (for example "from the first stone the solver checks"). */

@@ -23,6 +23,19 @@ export function playRandom(game: GameId, seed: number, humanSeat: Seat = 0, leve
   return record(game, seed, humanSeat, level, actions, core.result(s)!, core.hash(s))
 }
 
+/** Plays a simultaneous-pick game (Twelve Yards) on the real core from chosen picks: one [seat 0, seat 1] pair per tick, stopping when the game ends (tests only). */
+export function playPairs(game: GameId, seed: number, pairs: Array<[number, number]>, humanSeat: Seat = 0, level: MatchRecordV1['agent']['level'] = 'medium'): MatchRecordV1 {
+  const core = getCore(game)
+  let s = core.init(seed)
+  const actions: MatchRecordV1['actions'] = []
+  for (let tick = 0; tick < pairs.length && !core.terminal(s); tick++) {
+    for (const seat of [0, 1] as const) actions.push([tick, seat, pairs[tick]![seat]])
+    s = core.step(s, [core.decodeAction(pairs[tick]![0]), core.decodeAction(pairs[tick]![1])] as never)
+  }
+  if (!core.terminal(s)) throw new Error('picks do not finish the game')
+  return record(game, seed, humanSeat, level, actions, core.result(s)!, core.hash(s))
+}
+
 /** Plays the given moves (in the game's own action type) in order, from seat 0 on. Turn-based single-mover games only. */
 export function playScript(
   game: GameId,

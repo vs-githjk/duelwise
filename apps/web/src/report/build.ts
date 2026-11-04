@@ -12,6 +12,7 @@ import { walk, humanActionCount } from './walk'
 import { holdemMoments } from './holdem'
 import { fleetMoments } from './fleet'
 import { slackReport } from './slack'
+import { penaltyReport } from './penalty'
 import { realtimeFacts, realtimeMoments, realtimeCoaching } from './realtime'
 
 export interface BuildOptions {
@@ -105,8 +106,11 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     const r = slackReport(rec, sentence, opponent)
     return { ...base, moments: r.moments, series: r.series, slackView: r.view, note: r.note }
   }
-  // Twelve Yards: result only until its own report lands (promotion part 3), and never the Hold'em path below.
-  if (rec.game === 'penalty') return { ...base, moves: humanActionCount(rec), moments: [end] }
+  // Twelve Yards has its own report and must never fall to the Hold'em path below.
+  if (rec.game === 'penalty') {
+    const r = penaltyReport(rec, sentence, opponent)
+    return { ...base, moves: r.yourKicks, moments: r.moments, penaltyView: r.view, note: r.note }
+  }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)
