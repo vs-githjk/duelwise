@@ -60,7 +60,7 @@ describe('every real registry: measured or Practice per game and level', () => {
   })
   test('fighter and arena on this branch: exact sets', () => {
     expect(measuredSet(real('fighter'))).toEqual(['easy', 'medium', 'hard', 'champion'])
-    expect(measuredSet(real('arena'))).toEqual(['easy', 'champion'])
+    expect(measuredSet(real('arena'))).toEqual(['easy', 'medium', 'hard', 'champion'])
   })
   test('Crosscurrent: exact set, from a scripted search, with 400 games on each seat of every row and no unpublished level', () => {
     const reg = real('slack')
@@ -141,8 +141,9 @@ test('arena ladder shape (lowerBound95, no bySeat) is read; a failing bound demo
   const pair = arena.versions[0].gate.ladder.pairs[0]
   expect(pair.lowerBound95).toBeGreaterThan(0.5)
   pair.lowerBound95 = 0.4
-  expect(ladderPairsOk(arena.versions[0].gate.ladder.pairs, 'champion')).toBe(false)
-  expect(ladderPairsOk(arena.versions[0].gate.ladder.pairs, 'medium')).toBe(true)
+  expect(arena.versions[0].gate.ladder.pairs.map((p: any) => `${p.lower}>${p.upper}`)).toEqual(['easy>medium', 'medium>hard', 'hard>champion'])
+  for (const level of ['medium', 'hard', 'champion'] as const) expect(ladderPairsOk(arena.versions[0].gate.ladder.pairs, level)).toBe(false)
+  expect(ladderPairsOk(arena.versions[0].gate.ladder.pairs, 'easy')).toBe(true)
 })
 
 test('the old fighter registry lacks the new fireball25 gate', () => {
