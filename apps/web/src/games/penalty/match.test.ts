@@ -28,7 +28,7 @@ import {
   playTick,
   tapZone,
   type PenaltyMatch,
-} from './penalty-match'
+} from './match'
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 
@@ -212,7 +212,7 @@ describe('penalty match logic', () => {
   })
 
   // Hand-built kicks: the words are literal, so a swapped branch or seat cannot hide behind a played match.
-  const withKick = (k: Kick): PenaltyMatch => ({ state: { seed: 1, kicks: [k] }, log: [] })
+  const withKick = (k: Kick): PenaltyMatch => ({ state: { seed: 1, kicks: [k] }, human: HUMAN, log: [] })
   const goal: Kick = { kicker: HUMAN, zone: 0, dive: 3, goal: true, onTarget: true }
   const saved: Kick = { kicker: AGENT_SEAT, zone: 4, dive: 2, goal: false, onTarget: true }
   const wide: Kick = { kicker: HUMAN, zone: 8, dive: 0, goal: false, onTarget: false }
@@ -311,7 +311,7 @@ describe('penalty match logic', () => {
       kicks.push({ kicker: HUMAN, zone: 0, dive: 1, goal: ys[r]!, onTarget: ys[r]! })
       kicks.push({ kicker: AGENT_SEAT, zone: 2, dive: 1, goal: ps[r]!, onTarget: ps[r]! })
     }
-    const m: PenaltyMatch = { state: { seed: 1, kicks }, log: [] }
+    const m: PenaltyMatch = { state: { seed: 1, kicks }, human: HUMAN, log: [] }
     expect(penaltyCore.terminal(m.state)).toBe(true)
     expect(penaltyCore.result(m.state)!.score).toEqual([3, 1])
     expect(resultLine(m, 'Pip')).toBe('You 3, Pip 1')

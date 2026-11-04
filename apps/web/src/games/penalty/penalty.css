@@ -1,18 +1,57 @@
 /*
- * Twelve Yards dev page. The scene is drawn in a 328 x 300 box and scaled by --u (container width / 328), so it is exact at 360
+ * Twelve Yards. The scene is drawn in a 328 x 300 box and scaled by --u (container width / 328), so it is exact at 360
  * wide and grows to 520 on a desktop with the same proportions. Pitch and goal colours are object colours: the same in light
- * and dark, since their contrast is against the grass, not the page. Promotion moves them to tokens.
+ * and dark, since their contrast is against the grass, not the page. They are tokens (--pitch, --pitch-stripe, --goal-post, --keeper-you, --keeper-them in tokens.css).
  * A kick only changes transform and opacity; no box ever resizes. --flight matches FLIGHT_MS in penalty-match.ts.
  */
 .pen {
-  --pitch: #2f7d46;
-  --pitch-stripe: #38904f;
-  --goal-post: #ffffff;
   --goal-net: rgba(255, 255, 255, 0.15);
-  --game-penalty: #5f8f1f;
-  --keeper-you: #2166f0;
-  --keeper-them: #f2a11f;
   --flight: 420ms;
+}
+
+/* The play column. A phone and a tablet keep the 520 cap. From 1024 up the scene is as large as the height allows, so the HUD and score, the role line, the whole goal and the
+   action bar are on screen with no scroll. --pn-chrome is everything on the page that is not the scene: the nav, the shell padding, the header, the HUD and score row (44),
+   the role line (28), the gaps and the action bar (56), as measured. The scene column and a 400 column for the agent card or the result panel sit side by side, 32 apart,
+   centred as one block; both keep their width from the first kick to the result panel, so nothing moves when the result arrives. All of this applies only while a match is
+   on (the content has an aside); the setup screen keeps the shell's own layout. The "recorded for your report" notice (shared; it is only placed here) takes the top of
+   the aside column, on the content row, so a header that wraps pushes it down with the scene instead of being covered. */
+.pen-play { max-width: 520px; }
+/* Both players pick at the same moment, so nobody is ever "thinking": the header keeps no empty slot for the indicator and a long header stays on one row. */
+[data-game='penalty'] [data-testid='thinking'] { min-width: 0; }
+/* At full time the result panel sits below the scene on a phone, so nothing is inserted above the goal: it does not move from the last kick to the result. */
+[data-game='penalty'] .game-shell-result { order: 0; }
+[data-game='penalty'] .game-shell-aside:has(> [hidden]) { display: none; }
+.pen-top { display: contents; }
+@media (min-width: 1024px) {
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside) {
+    --pn-chrome: 281px;
+    --pn-w: min(668px, calc(100vw - 496px), max(320px, calc((100dvh - var(--pn-chrome)) / 0.9146)));
+    grid-template-columns: var(--pn-w) 400px;
+    justify-content: center;
+    column-gap: 32px;
+    padding-block: 4px;
+    row-gap: 8px;
+  }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > header { grid-column: 1 / -1; grid-row: 1; }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > .game-shell-content { grid-column: 1 / -1; grid-row: 2; }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'] { grid-column: 1 / -1; grid-row: 2; }
+  /* the full notice (after Details) keeps its own row above the content; the compact one sits over the aside's reserved top */
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice']:not([data-compact])) > .game-shell-content { grid-row: 3; }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'][data-compact] {
+    grid-column: 2;
+    align-self: start;
+    z-index: 1;
+    height: 48px;
+    overflow: hidden;
+  }
+  [data-game='penalty'] .game-shell-content-with-aside { grid-template-columns: var(--pn-w) 400px; justify-content: center; column-gap: 32px; row-gap: 8px; }
+  [data-game='penalty'] .game-shell-content[data-has-result] { grid-template-columns: var(--pn-w) 400px; row-gap: 8px; }
+  .pen-play { width: var(--pn-w); max-width: none; gap: 8px; }
+  .pen-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 44px; }
+  .pen-top .play-hud { flex: none; flex-wrap: nowrap; }
+  .pen-play .pen-scene-wrap { max-width: none; }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-aside { padding-top: 56px; }
+  [data-game='penalty'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-result { margin-top: 56px; }
 }
 
 .pen-scene-wrap {

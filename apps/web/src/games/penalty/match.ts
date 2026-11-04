@@ -2,8 +2,9 @@ import { KICKS, penaltyCore, type Kick, type PenaltyState, type Zone } from '@du
 import type { Seat } from '@duelwise/core/src/types'
 import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 
-// Pure match logic for the Twelve Yards dev page. No React here, so a unit test can drive a whole match.
+// Pure match logic for the Twelve Yards page. No React here, so a unit test can drive a whole match.
 
+/** Seat 0 kicks first. A match gives the player seat 0 or seat 1 at random (sideForSeed); these are the defaults and the names tests use. */
 export const HUMAN: Seat = 0
 export const AGENT_SEAT: Seat = 1
 
@@ -22,6 +23,8 @@ export const SKIP_AFTER_MS = 250
 /** In this file a pick is an action code: a zone 0..8 for the shooter, a dive 0..4 for the keeper. */
 export interface PenaltyMatch {
   state: PenaltyState
+  /** The player's seat: 0 kicks first, 1 keeps goal first. */
+  human: Seat
   /** One entry per kick, both seats' picks as [seat 0, seat 1]. A real game stores these as the match record's actions. */
   log: Array<[Zone, Zone]>
 }
@@ -39,8 +42,8 @@ export function pickLabel(role: Role, pick: number): string {
   return role === 'shooter' ? ZONE_LABEL[pick]! : DIVE_LABEL[pick]!
 }
 
-export function startMatch(seed: number): PenaltyMatch {
-  return { state: penaltyCore.init(seed), log: [] }
+export function startMatch(seed: number, human: Seat = HUMAN): PenaltyMatch {
+  return { state: penaltyCore.init(seed), human, log: [] }
 }
 
 /**
@@ -48,7 +51,7 @@ export function startMatch(seed: number): PenaltyMatch {
  * pick of the player's. The page and the later sealed work rely on this, so the call takes the match, never a player zone.
  */
 export async function agentChoose(m: PenaltyMatch, agent: PreviewAgent): Promise<Zone> {
-  const [code] = await agent.act(penaltyCore.observe(m.state, AGENT_SEAT), m.state)
+  const [code] = await agent.act(penaltyCore.observe(m.state, (1 - m.human) as Seat), m.state)
   return penaltyCore.decodeAction(code!)
 }
 
@@ -60,8 +63,8 @@ export async function playTick(m: PenaltyMatch, agent: PreviewAgent, readPlayer:
   if (penaltyCore.terminal(m.state)) throw new Error('penalty: the shootout is over')
   const theirs = await agentChoose(m, agent)
   const mine = readPlayer()
-  const pair: [Zone, Zone] = HUMAN === 0 ? [mine, theirs] : [theirs, mine]
-  return { state: penaltyCore.step(m.state, pair), log: [...m.log, pair] }
+  const pair: [Zone, Zone] = m.human === 0 ? [mine, theirs] : [theirs, mine]
+  return { ...m, state: penaltyCore.step(m.state, pair), log: [...m.log, pair] }
 }
 
 /** First tap on a zone selects it; a second tap on the selected zone commits. A tap never changes the match. */
@@ -162,9 +165,11 @@ export function diveOf(k: Kick): { kx: number; ky: number; kr: number; fall: num
   }
 }
 
-export function roleLine(m: PenaltyMatch): string {
-  const o = penaltyCore.observe(m.state, HUMAN)
+export function roleLine(m: PenaltyMatch, name?: string): string {
+  const o = penaltyCore.observe(m.state, m.human)
   if (o.role === null) return 'Full time.'
+  // The first kick says who kicks first, so a player given the second kick sees it at once.
+  if (name !== undefined && m.state.kicks.length === 0) return o.role === 'shooter' ? 'You kick first. You shoot.' : `${name} kicks first. You're in goal.`
   const base = o.role === 'shooter' ? 'You shoot.' : "You're in goal."
   return o.sudden ? `Sudden death. ${base}` : base
 }
@@ -180,7 +185,7 @@ export function scoreSlots(m: PenaltyMatch, seat: Seat): Slot[] {
 export function lastKickLine(m: PenaltyMatch, name: string): string {
   const k = m.state.kicks[m.state.kicks.length - 1]
   if (!k) return ''
-  const mine = k.kicker === HUMAN
+  const mine = k.kicker === m.human
   const shooter = mine ? 'You' : name
   const keeper = mine ? name : 'You'
   const went = k.zone === 4 ? 'went down the middle' : `went ${zoneWord(k.zone)}`
@@ -188,6 +193,6 @@ export function lastKickLine(m: PenaltyMatch, name: string): string {
 }
 
 export function resultLine(m: PenaltyMatch, name: string): string {
-  const o = penaltyCore.observe(m.state, HUMAN)
+  const o = penaltyCore.observe(m.state, m.human)
   return `You ${o.goals[0]}, ${name} ${o.goals[1]}`
 }
