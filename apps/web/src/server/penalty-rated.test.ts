@@ -422,12 +422,29 @@ describe('the record must be the server\'s own turns, and the opponent must be t
   })
 
   test('a seat flip costs the loss: the player is held to the side the server gave', async () => {
-    const m = await begin(SEED, 1)
-    const out = await playOut(m, 1)
-    const r = await finish({ ...out.rec!, humanSeat: 0 })
-    expect(r.body).toMatchObject({ valid: false, result: null })
-    expect((r.body as { reason: string }).reason).toContain('seat does not match the side issued')
-    expect((await ratingOf())?.elo ?? 1000).toBeLessThan(1000)
+    // The server settles a refused upload by its own log: a flip is charged when the shootout was really lost, and costs nothing when the player really won it
+    // (the match's rolls and the opponent's picks come from fresh server words each run, so the played-out result differs run to run). Both sides of that rule are
+    // checked, and the lost case is searched for rather than hoped for, so the test no longer depends on how a run's words fell.
+    let charged = false
+    let freeWin = false
+    for (let k = 0; k < 40 && !(charged && freeWin); k++) {
+      await db.execute(sql`truncate table match, rating, profile, match_report, telemetry_event`)
+      const m = await begin(SEED + k, 1)
+      const out = await playOut(m, 1)
+      const humanWon = out.rec!.result.winner === 1
+      if (humanWon ? freeWin : charged) continue
+      const r = await finish({ ...out.rec!, humanSeat: 0 })
+      expect(r.body).toMatchObject({ valid: false, result: null })
+      expect((r.body as { reason: string }).reason).toContain('seat does not match the side issued')
+      if (humanWon) {
+        expect((await ratingOf())?.elo ?? 1000, 'a real win flipped is no gain and no charge').toBe(1000)
+        freeWin = true
+      } else {
+        expect((await ratingOf())?.elo ?? 1000, 'a real loss flipped is charged').toBeLessThan(1000)
+        charged = true
+      }
+    }
+    expect(charged, 'a lost shootout was reached and its flip charged').toBe(true)
   })
 
   test('a finished record uploaded for a match the server has not seen finish is refused and charged as giving up, with no result stored', async () => {
