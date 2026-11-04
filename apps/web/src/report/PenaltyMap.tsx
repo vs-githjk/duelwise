@@ -20,13 +20,17 @@ const OUTCOME_WORD: Record<PenaltyKickRow['outcome'], string> = { goal: 'goal', 
 const placeKey = (k: PenaltyKickRow): number => k.zone * 10 + (k.outcome === 'over' ? 1 : k.outcome === 'wide' ? 2 : 0)
 
 /** Marker radius: smaller when several kicks share a place, so they fit side by side. */
-const radiusFor = (sharing: number): number => (sharing > 1 ? 9 : 11)
+const radiusFor = (sharing: number): number => (sharing > 6 ? 8 : sharing > 1 ? 9 : 11)
+/** Kicks to one place beyond this overlap rather than spill out of the picture (a player takes at most seventeen kicks, so twelve to one spot is not a real shootout). */
+const MAX_SHARED = 12
 
 /**
  * The centre of a kick's marker. Kicks to one spot sit in a small grid inside it (three to a row, so five or six stay within the cell, never over a post); a
  * kick that missed the frame sits just outside it: above the bar for over, beside the post it went past for wide, in a row or column that stays in the picture.
  */
-export function place(k: PenaltyKickRow, nth: number, sharing: number): { x: number; y: number } {
+export function place(k: PenaltyKickRow, nth0: number, sharing0: number): { x: number; y: number } {
+  const sharing = Math.min(sharing0, MAX_SHARED)
+  const nth = Math.min(nth0, MAX_SHARED - 1)
   const col = k.zone % 3
   const row = Math.floor(k.zone / 3)
   const cx = GX + col * CW + CW / 2
@@ -40,12 +44,12 @@ export function place(k: PenaltyKickRow, nth: number, sharing: number): { x: num
     return { x: cx + (nth - (sharing - 1) / 2) * Math.min(step, (CW - 14) / Math.max(1, sharing - 1)), y: GY + GOAL_H + 14 }
   }
   if (sharing <= 1) return { x: cx, y: cy }
-  const perRow = Math.min(3, sharing)
+  const perRow = Math.min(sharing > 6 ? 4 : 3, sharing)
   const rows = Math.ceil(sharing / perRow)
   const r = Math.floor(nth / perRow)
   const c = nth % perRow
   const inRow = r === rows - 1 ? sharing - r * perRow : perRow
-  return { x: cx + (c - (inRow - 1) / 2) * step, y: cy + (r - (rows - 1) / 2) * 19 }
+  return { x: cx + (c - (inRow - 1) / 2) * (sharing > 6 ? 17 : step), y: cy + (r - (rows - 1) / 2) * (rows > 2 ? 15 : 19) }
 }
 
 function Marker({ k, x, y, r }: { k: PenaltyKickRow; x: number; y: number; r: number }) {

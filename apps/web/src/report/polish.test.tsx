@@ -236,15 +236,16 @@ describe('Twelve Yards kick map: repeated kicks', () => {
     for (const zone of [0, 2, 4, 8]) {
       const col = zone % 3
       const row = Math.floor(zone / 3)
-      for (const count of [2, 3, 4, 5, 6]) {
+      for (const count of [2, 3, 4, 5, 6, 7, 9, 12]) {
+        const r = count > 6 ? 8 : 9
         const pts = Array.from({ length: count }, (_, i) => place(kick(2 * i + 1, zone, 'goal'), i, count))
         for (const p of pts) {
-          expect(p.x - 9, `zone ${zone}, ${count} kicks: left edge`).toBeGreaterThanOrEqual(36 + col * 82.67)
-          expect(p.x + 9, `zone ${zone}, ${count} kicks: right edge`).toBeLessThanOrEqual(36 + (col + 1) * 82.67)
-          expect(p.y - 9).toBeGreaterThanOrEqual(30 + row * 46 - 1)
-          expect(p.y + 9).toBeLessThanOrEqual(30 + (row + 1) * 46 + 1)
+          expect(p.x - r, `zone ${zone}, ${count} kicks: left edge`).toBeGreaterThanOrEqual(36 + col * 82.67)
+          expect(p.x + r, `zone ${zone}, ${count} kicks: right edge`).toBeLessThanOrEqual(36 + (col + 1) * 82.67)
+          expect(p.y - r).toBeGreaterThanOrEqual(30 + row * 46 - 1)
+          expect(p.y + r).toBeLessThanOrEqual(30 + (row + 1) * 46 + 1)
         }
-        for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) expect(Math.hypot(pts[a]!.x - pts[b]!.x, pts[a]!.y - pts[b]!.y), `${count} kicks, ${a} and ${b}`).toBeGreaterThanOrEqual(18)
+        for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) expect(Math.hypot(pts[a]!.x - pts[b]!.x, pts[a]!.y - pts[b]!.y), `${count} kicks, ${a} and ${b}`).toBeGreaterThanOrEqual(count > 6 ? 15 : 18)
       }
     }
   })

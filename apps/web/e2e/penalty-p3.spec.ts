@@ -221,6 +221,49 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     await expect(bar).not.toHaveText('Not sent. Tap to resend')
   })
 
+  test('Play again pressed during the end hold still records the Rated match, shows its result, and the next match starts clean', async ({ page }) => {
+    test.setTimeout(180_000)
+    const finishes: string[] = []
+    page.on('request', (r) => {
+      const m = /\/_serverFn\/([^?]+)/.exec(r.url())
+      if (r.method() === 'POST' && m && Buffer.from(m[1]!, 'base64').toString().includes('finishMatch')) finishes.push(r.url())
+    })
+    await startRated(page)
+    // Tap until the verdict shows (the last reveal is on screen and the hold has begun), without waiting for the hold to end.
+    let k = 0
+    while (!(await page.getByTestId('penalty-result').isVisible()) && k < 40) {
+      if ((await scene(page).getAttribute('data-reveal')) !== null) {
+        await page.waitForTimeout(50)
+        continue
+      }
+      const z = page.getByTestId(`penalty-zone-${k % 5}`)
+      await z.click()
+      await z.click()
+      k++
+      for (let i = 0; i < 80; i++) {
+        if (await page.getByTestId('penalty-result').isVisible()) break
+        if ((await scene(page).getAttribute('data-reveal')) === null) break
+        await page.waitForTimeout(50)
+      }
+    }
+    await expect(page.getByTestId('penalty-result')).toBeVisible()
+    expect(await page.getByTestId('result-panel').count(), 'the panel is not up yet: this is the hold').toBe(0)
+    const action = page.getByTestId('penalty-action')
+    await expect(action).toHaveText('Play again')
+    await action.click()
+    // The press skips to the result: the match is concluded and sent, not thrown away.
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 8000 })
+    await expect.poll(() => finishes.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1)
+    await expect(page.getByTestId('result-upload').or(page.getByTestId('result-elo')).or(page.getByTestId('result-report-link'))).toBeVisible({ timeout: 30_000 })
+    // And the next match starts cleanly from there.
+    await page.getByTestId('rematch').click()
+    await expect(page.getByTestId('result-panel')).toHaveCount(0)
+    await expect(scene(page)).toBeVisible()
+    await expect(page.getByTestId('penalty-role')).toBeVisible()
+    await expect(page.getByTestId('penalty-action')).toHaveText(/Pick a (spot|dive)/)
+    expect(finishes.length, 'one record for the first match, none yet for the second').toBe(1)
+  })
+
   test('the match clock keeps its time at full time (it does not restart when the server reveals the seed)', async ({ page }) => {
     test.setTimeout(150_000)
     await startRated(page)

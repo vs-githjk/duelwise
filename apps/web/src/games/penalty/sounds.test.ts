@@ -3,7 +3,7 @@ import { penaltyCore, type Kick } from '@duelwise/core/src/games/penalty/core'
 import type { Result } from '@duelwise/core/src/types'
 import { resetAudioForTests, setMuted, setVolume } from '../../lib/audio'
 import { moodForGame, resetMusicForTests } from '../../lib/music'
-import { END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
+import { busActive, silenceAll, END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
 
 const g = globalThis as unknown as Record<string, unknown>
 const saved = { window: g.window, Audio: g.Audio, localStorage: g.localStorage }
@@ -12,12 +12,15 @@ const saved = { window: g.window, Audio: g.Audio, localStorage: g.localStorage }
 interface Src { kind: 'osc' | 'noise'; start: number; peak: number; ramps: number }
 let srcs: Src[] = []
 let gains: Array<{ peak: number; ramps: number }> = []
+let allParams: FakeParam[] = []
 class FakeParam {
   constructor(private rec: { peak: number; ramps: number } | null) {}
   value = 0
   setValueAtTime() {}
   linearRampToValueAtTime() {}
-  exponentialRampToValueAtTime(v: number) {
+  times: number[] = []
+  exponentialRampToValueAtTime(v: number, t?: number) {
+    if (t !== undefined) this.times.push(t)
     if (!this.rec) return
     this.rec.ramps++
     if (v > this.rec.peak) this.rec.peak = v
@@ -40,7 +43,9 @@ class FakeCtx {
   createGain() {
     const rec = { peak: 0, ramps: 0 }
     gains.push(rec)
-    return Object.assign(new FakeNode(), { gain: new FakeParam(rec) })
+    const gain = new FakeParam(rec)
+    allParams.push(gain)
+    return Object.assign(new FakeNode(), { gain })
   }
   createBiquadFilter() { return new FakeNode() }
   createOscillator() {
@@ -63,6 +68,7 @@ class FakeAudio {
 beforeEach(() => {
   srcs = []
   gains = []
+  allParams = []
   g.window = { AudioContext: FakeCtx }
   g.Audio = FakeAudio
   g.localStorage = { getItem: () => null, setItem: () => {} }
@@ -186,6 +192,27 @@ describe('playing', () => {
     playCue('net', 0, true)
     expect(Math.max(...gains.map((x) => x.ramps))).toBeLessThan(most)
   })
+  test('every ramp of the net rustle lands after the cue starts, whatever the context clock says (they used to omit the start time)', () => {
+    playCue('net')
+    const times = allParams.flatMap((p) => p.times)
+    expect(times.length).toBeGreaterThan(3)
+    for (const t of times) expect(t, 'a ramp scheduled before the cue began would be skipped once the clock has run').toBeGreaterThan(10)
+  })
+
+  test('a cue still ringing is cut when the sound goes off and when a new match or page asks for silence', () => {
+    playCue('cheerBig')
+    expect(busActive()).toBe(true)
+    setMuted(true)
+    expect(busActive(), 'muting cuts what is sounding').toBe(false)
+    setMuted(false)
+    playCue('cheer')
+    expect(busActive()).toBe(true)
+    silenceAll()
+    expect(busActive()).toBe(false)
+    playCue('glove')
+    expect(busActive(), 'the next cue builds a fresh bus').toBe(true)
+  })
+
   test('a burst never holds more than MAX_VOICES at once, and one whole full time fits', () => {
     for (let i = 0; i < 40; i++) playCue('whistleFull')
     expect(srcs.length).toBeLessThanOrEqual(MAX_VOICES)

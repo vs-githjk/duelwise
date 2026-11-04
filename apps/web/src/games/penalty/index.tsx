@@ -40,7 +40,7 @@ import {
   tapZone,
   type Role,
 } from './match'
-import { cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed } from './sounds'
+import { cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, silenceAll } from './sounds'
 import { usePenaltyMatch } from './usePenaltyMatch'
 import './penalty.css'
 
@@ -167,6 +167,7 @@ export default function PenaltyPage() {
     () => () => {
       run.current++
       clearTimers()
+      silenceAll()
     },
     [],
   )
@@ -244,6 +245,7 @@ export default function PenaltyPage() {
   const begin = async (level: Level) => {
     const s = fixedSeed
     setFixedSeed(undefined)
+    silenceAll()
     resetScene()
     setMatchNo((n) => n + 1)
     await live.start(level, s)
@@ -297,6 +299,8 @@ export default function PenaltyPage() {
     }
     const done = () => {
       clearTimers()
+      // A second call (a tap, or Play again, during the hold or while the record is made) must not conclude the match twice.
+      finish.current = () => {}
       heardEnd()
       setShown(count)
       setScored(count)
@@ -686,7 +690,8 @@ export default function PenaltyPage() {
             ) : null}
             <button
               type="button"
-              onClick={closing ? () => void begin(live.level) : onAction}
+              // Full time starts a hold before the result: until the match is over (recorded and sent) the button skips to the result, so a rated match is never dropped by starting the next one.
+              onClick={closing ? (live.phase === 'over' ? () => void begin(live.level) : () => finish.current()) : onAction}
               // aria-disabled, not disabled: a disabled button drops the keyboard focus, and it took 21 Tabs to get back to a spot after every kick.
               aria-disabled={closing ? undefined : (selected === null && live.unsent === null) || revealing ? true : undefined}
               data-testid="penalty-action"

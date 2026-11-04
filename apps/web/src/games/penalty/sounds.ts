@@ -1,6 +1,6 @@
 import type { Kick } from '@duelwise/core/src/games/penalty/core'
 import type { Result, Seat } from '@duelwise/core/src/types'
-import { getVolume, isMuted, resumeAudioContext, sharedAudioContext } from '../../lib/audio'
+import { getVolume, isMuted, resumeAudioContext, sharedAudioContext, subscribeAudio } from '../../lib/audio'
 import { playStinger } from '../../lib/music'
 
 // Twelve Yards sound. Every cue is synthesised on the page's shared AudioContext (filtered noise and a few tones, no files, so nothing to license), so the
@@ -75,6 +75,42 @@ let live: number[] = []
 
 export function resetVoicesForTests(): void {
   live = []
+  bus = null
+}
+
+// Every cue plays through one gain node of its own, so a sound that is still ringing can be cut: when the sound switch goes off, when a new match starts and when the page goes.
+let bus: { ctx: BaseAudioContext; node: GainNode } | null = null
+let watching = false
+
+function busFor(ctx: AudioContext): GainNode {
+  if (!bus || bus.ctx !== ctx) {
+    const node = ctx.createGain()
+    node.connect(ctx.destination)
+    bus = { ctx, node }
+  }
+  return bus.node
+}
+
+/** Whether anything is routed through the cue bus (a test hook). */
+export const busActive = (): boolean => bus !== null
+
+/** Cuts every cue that is sounding or scheduled: a cheer is not left ringing into the rematch, the next page or a muted page. */
+export function silenceAll(): void {
+  const b = bus
+  bus = null
+  live = []
+  if (!b) return
+  try {
+    b.node.gain.cancelScheduledValues(0)
+  } catch {
+    // no scheduler to cancel
+  }
+  try {
+    b.node.gain.value = 0
+    b.node.disconnect()
+  } catch {
+    // already gone
+  }
 }
 
 /** Reserves n sources for a cue of this length; false (nothing reserved) when that would pass MAX_VOICES. */
@@ -203,8 +239,8 @@ export function scheduleCue(ctx: BaseAudioContext, out: AudioNode, cue: PenaltyC
       a.gain.exponentialRampToValueAtTime(v(PEAK.net) * 0.45, t0 + 0.14)
       for (let i = 0; i < ticks - 1; i++) {
         const at = 0.14 + i * 0.1
-        a.gain.exponentialRampToValueAtTime(v(PEAK.net) * (0.45 - i * 0.12), at + 0.025)
-        a.gain.exponentialRampToValueAtTime(v(PEAK.net) * 0.1, at + 0.09)
+        a.gain.exponentialRampToValueAtTime(v(PEAK.net) * (0.45 - i * 0.12), t0 + at + 0.025)
+        a.gain.exponentialRampToValueAtTime(v(PEAK.net) * 0.1, t0 + at + 0.09)
       }
       a.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.5)
       s.connect(f)
@@ -309,8 +345,14 @@ export function playCue(cue: PenaltyCue, delayMs = 0, reducedMotion = false): vo
     if (!ctx) return
     if (!claim(SOURCES[cue], delayMs, LENGTH[cue])) return
     heard(cue)
+    if (!watching) {
+      watching = true
+      subscribeAudio(() => {
+        if (isMuted()) silenceAll()
+      })
+    }
     resumeAudioContext()
-    scheduleCue(ctx, ctx.destination, cue, ctx.currentTime + delayMs / 1000, getVolume(), reducedMotion)
+    scheduleCue(ctx, busFor(ctx), cue, ctx.currentTime + delayMs / 1000, getVolume(), reducedMotion)
   } catch {
     // never let a sound break a game
   }
