@@ -8,9 +8,9 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 test.use({ viewport: { width: 360, height: 780 }, hasTouch: true })
 
 // SEED_SUDDEN: with pick 0 on every kick against Pip this match is level after 10 kicks and ends in sudden death (12 kicks), found with
-// a bun script over seeds 1 to 60 on the core and the real easy agent (re-found when Pip's kicks were widened, Nov 3: seed 2 no longer reaches it); the page replays it
-// exactly because both use the same seed.
-const SEED_SUDDEN = 9
+// a bun script over seeds 1 to 60 on the core and the real easy agent (re-found when Pip's kicks were widened, Nov 3, and again when the agent's draw became
+// a function of the kick number for the server's hidden choice: seed 9 no longer reaches it); the page replays it exactly because both use the same seed.
+const SEED_SUDDEN = 21
 const MIN = 43.5 // 44 px with sub-pixel rounding
 
 // Copied from no-jump.spec.ts (that file is not edited): records the element's position on every frame, so a shift that undoes itself
