@@ -25,6 +25,14 @@ describe('Coldstore strength copy', () => {
     expect(line).toBe('Beats our test bots in at least 6 of 10 games, including ones that peek, strafe and hold an angle; not yet measured against people.')
     expect(line).not.toMatch(/elo/i)
   })
+  test('a level above Easy also says how it fares against the level below, so the bot scores cannot read Hard below Medium', () => {
+    const m = reg.measured.hard!
+    const r = { ...reg, levels: { easy: reg.levels.hard, medium: reg.levels.hard, hard: reg.levels.hard, champion: reg.levels.hard }, measured: { easy: m, medium: m, hard: m, champion: m }, versions: [{ gate: { ladder: { pairs: [{ lower: 'easy', upper: 'medium', lowerBound95: 0.62 }, { lower: 'medium', upper: 'hard', lowerBound95: 0.84 }, { lower: 'hard', upper: 'champion', lowerBound95: 0.98 }] } } }] } as unknown as Registry
+    expect(strengthLine(r, 'hard')).toMatch(/ It beats Marlow in at least 8 of 10 seat-swapped matches\.$/)
+    expect(strengthLine(r, 'medium')).toMatch(/ It beats Pip in at least 6 of 10 seat-swapped matches\.$/)
+    expect(strengthLine(r, 'champion')).toMatch(/ It beats Vesper in at least 9 of 10/)
+    expect(strengthLine(r, 'easy')).not.toMatch(/It beats/)
+  })
   test('a level that is not published is a Practice level, and a record carries the registry version or preview', () => {
     expect(strengthLine(reg, 'easy')).toBe('In training: not yet measured. Easy reacts slower.')
     expect(strengthLine(null, 'medium')).toContain('Plays stronger than Easy')

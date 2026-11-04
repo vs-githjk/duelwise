@@ -11,10 +11,13 @@ import { WEAPONS } from '@duelwise/core/src/games/arena/weapons'
 import { DelayedStates, HumanLimiter, LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
+import { ArenaEnv, OBS_FEATURES } from '@duelwise/core/src/games/arena/env'
+import { ACTION_DIMS, ARENA_BOT_SENTINEL_BASE } from '@duelwise/core/src/games/arena/actions'
+import { OrtSession } from '../runtime/ort-session'
 import { ARENA_BARS, playArenaPairPoints } from '../measure/arena'
 import { wilson } from '../measure/ladder'
 import { createGameAgent, PUBLISHED_V1, type ArenaReply } from './agent'
-import { seatView, viewDue, BUY_DECISIONS, FRAME_SKIP } from './view'
+import { seatView, viewDue, buyIdle, BUY_DECISIONS, FRAME_SKIP } from './view'
 
 // R30 (plan/judge/coldstore-r1.md): the first gate gave its bots a delayed view of their OWN position and crosshair, so
 // they could not aim and the agents "beat" them 400 to 0. The fixed gate (env.ts: live own state, only the opponent late)
@@ -36,8 +39,12 @@ const flagBits = (i: ArenaInput): number => i.walk + 2 * i.crouch + 4 * i.jump +
  * HumanLimiter and is held for the decision's four frames (a semi-automatic trigger only on the first).
  */
 async function playOne(level: Level, kind: BotKind, agentSeat: 0 | 1, seed: number, modelBytes?: Uint8Array): Promise<0 | 0.5 | 1> {
+  return (await playMatch(level, kind, agentSeat, seed, modelBytes)).score
+}
+
+async function playMatch(level: Level, kind: BotKind, agentSeat: 0 | 1, seed: number, modelBytes?: Uint8Array, greedy = false): Promise<{ score: 0 | 0.5 | 1; frames: number }> {
   const botSeat = (1 - agentSeat) as 0 | 1
-  const agent = await createGameAgent(level, { seat: agentSeat, modelBytes })
+  const agent = await createGameAgent(level, { seat: agentSeat, modelBytes, greedy })
   agent.reset(seed)
   const cfg = LEVEL_LIMITS.arena[level]
   const botCfg = kind === 'human-proxy' ? HUMAN_PROXY_LIMITS : cfg
@@ -89,8 +96,9 @@ async function playOne(level: Level, kind: BotKind, agentSeat: 0 | 1, seed: numb
         botRest = !buying && !release ? botFirst : packInput({ ...full, buy: 0, fire: release ? 0 : full.fire })
         botQueued = true
       }
-      const mine = s.phase === PHASE.ROUND_END ? 0 : (queue.shift() ?? rest)
-      const theirs = s.phase === PHASE.ROUND_END || !botQueued ? 0 : s.frame - anchor >= 0 && (s.frame - anchor) % FRAME_SKIP === 0 ? botFirst : botRest
+      const idle = buyIdle(s.frame, anchor, s.phase)
+      const mine = s.phase === PHASE.ROUND_END || idle ? 0 : (queue.shift() ?? rest)
+      const theirs = s.phase === PHASE.ROUND_END || idle || !botQueued ? 0 : s.frame - anchor >= 0 && (s.frame - anchor) % FRAME_SKIP === 0 ? botFirst : botRest
       if (s.phase !== PHASE.LIVE && s.phase !== PHASE.BUY) botQueued = false
       stepPacked(s, agentSeat === 0 ? mine : theirs, agentSeat === 0 ? theirs : mine)
       frames++
@@ -99,8 +107,32 @@ async function playOne(level: Level, kind: BotKind, agentSeat: 0 | 1, seed: numb
     agent.dispose()
   }
   const r = arenaCore.result(s)
-  if (!r || r.winner === null) return 0.5
-  return r.winner === agentSeat ? 1 : 0
+  if (!r || r.winner === null) return { score: 0.5, frames: s.frame }
+  return { score: r.winner === agentSeat ? 1 : 0, frames: s.frame }
+}
+
+/** The same match played by the training env (ArenaEnv: the scripted bot on the other seat) with the same network, always taking its likeliest action. */
+async function playInEnv(level: Level, kind: BotKind, agentSeat: 0 | 1, seed: number, bytes: Uint8Array): Promise<{ score: 0 | 0.5 | 1; frames: number }> {
+  const session = await OrtSession.create(bytes)
+  const input = session.inputNames[0]!
+  const env = new ArenaEnv(1, level, false)
+  try {
+    let obs = env.reset([seed])
+    const botHead = ARENA_BOT_SENTINEL_BASE - ARENA_BOT_KINDS.indexOf(kind)
+    for (let step = 0; step < 100_000; step++) {
+      const logits = Object.values(await session.run(input, obs.slice(agentSeat * OBS_FEATURES, (agentSeat + 1) * OBS_FEATURES), [1, OBS_FEATURES]))
+      const act = new Int32Array(2 * ACTION_DIMS)
+      act[(1 - agentSeat) * ACTION_DIMS] = botHead
+      for (let d = 0; d < ACTION_DIMS; d++) act[agentSeat * ACTION_DIMS + d] = logits[d]!.indexOf(Math.max(...logits[d]!))
+      const out = env.step(act)
+      obs = out.obs
+      const info = out.infos[0]
+      if (info) return { score: info.winner === null ? 0.5 : info.winner === agentSeat ? 1 : 0, frames: info.frames as number }
+    }
+    throw new Error('the env match did not finish')
+  } finally {
+    await session.dispose()
+  }
 }
 
 describe('the fixed gate bots are in the gate (R30)', () => {
@@ -122,6 +154,21 @@ describe('the fixed gate bots are in the gate (R30)', () => {
       else expect(registry.unpublished?.[level], `${level} is neither published nor explained`).toMatch(/^in training: /)
     }
   })
+})
+
+describe('the fairness harness plays the match the training env plays', () => {
+  // The Hard gate measured 78 and 73 of 100 in training and 63 and 62 here for the same network: this harness (and the page) held the agent's
+  // last buy-phase input, a turn and a walk, through the rest of the 10 second buy phase, so the round began with the agent facing away,
+  // where the env idles it. Same network, same seed, likeliest action each time: the two must play the same match to the frame.
+  const hard = join(import.meta.dir, '../../test-fixtures/arena-v2-hard-b2.onnx')
+  for (const [seed, seat, kind] of [[9000, 0, 'holder'], [9001, 1, 'holder'], [9002, 0, 'peeker'], [9003, 1, 'rusher'], [9004, 0, 'strafe'], [9005, 1, 'holdangle'], [9006, 0, 'holder'], [9007, 1, 'peeker']] as const) {
+    test(`hard, seat ${seat}, ${kind}, seed ${seed}: same winner and same length as the env`, async () => {
+      const bytes = new Uint8Array(await Bun.file(hard).arrayBuffer())
+      const here = await playMatch('hard', kind, seat, seed, bytes, true)
+      const env = await playInEnv('hard', kind, seat, seed, bytes)
+      expect(here).toEqual(env)
+    }, 120_000)
+  }
 })
 
 describe('the published levels against the fixed bots', () => {

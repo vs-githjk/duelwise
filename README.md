@@ -55,7 +55,7 @@ The four opponents are the same four characters in every game, one per level, ea
 | Heads-Up Hold'em | Strategy tables built by counterfactual regret self-play. Easy, Medium and Hard come from one 250,000 iteration run with different playing habits. Champion uses a finer table from 5 million iterations and beats Hard from both seats. | No |
 | Word Duel | Solvers, not learned models. Easy sometimes overlooks a clue, Medium favours common words, Hard picks the most informative guess and Champion looks two steps ahead. | No (nothing to train) |
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. Easy, Medium and Hard share one network under different limits, and Champion has its own. | No |
-| Coldstore | The same method as Tinderbox. | No |
+| Coldstore | A neural policy trained by reinforcement learning against scripted test bots and its own past versions. Easy and Medium share one network under different limits (no network trained for Medium beat Easy head to head), Hard and Champion each have their own. | No |
 | Stormglass | A scripted solver, not a learned model. Each level is a different algorithm. | No (nothing to train) |
 
 Making human matches train every learned agent is planned, under "What's coming next".
@@ -102,12 +102,12 @@ A strength number is a claim, so each one has to be earned.
 | Word Duel | Play all 1,975 answer words and average fewer guesses than the level below, with 95% intervals that do not overlap. |
 | Tinderbox, Coldstore | Clear a bar set for that level against every scripted bot, over 400 matches on each seat. Then beat the next published level below over 400 matches with the seats swapped. |
 
-In Chess, Four in a Row, Hold'em and Word Duel, every level under a level must pass too: if Hard cannot beat Medium, then Hard and Champion both wait. Coldstore compares against the next published level instead, which is why it can publish Champion above Easy with nothing between them.
+In Chess, Four in a Row, Hold'em and Word Duel, every level under a level must pass too: if Hard cannot beat Medium, then Hard and Champion both wait. Coldstore compares against the next published level below instead, so a level that fails the rule waits alone and the ones above it can still publish.
 
 - **Site Elo.** In Chess, Four in a Row, Hold'em and Word Duel a published level shows a number such as "site Elo 1000". Easy is fixed at 1000 and each higher level is the chained gap from its head-to-head score. It measures our levels against each other. It is not a chess rating and not comparable to any outside scale. Tinderbox and Coldstore say in plain words what was measured instead.
 - **In training levels.** A level that has not cleared its gate is still playable. It is marked **In training** and shows no strength number, a rating earned against it is marked provisional, and its leaderboard column shows a player count instead of ranks.
 - **Gates are checked twice.** The measurement writes the evidence into the registry, and the web app re-checks that evidence (`apps/web/src/lib/strength-gates.ts`) before it shows a number. That second check can only remove a level, never add one.
-- **Published today.** 22 of 24 levels: Chess, Four in a Row, Word Duel and Tinderbox at all four levels; Hold'em at all four levels; Coldstore at Easy and Champion. Coldstore Medium and Hard are In training.
+- **Published today.** 24 of 24 levels: every game at all four levels.
 - **Known limit.** Chess strength is on our own ladder only. It has not been anchored to an outside engine yet.
 - **Privacy.** Matches can train the agents on a legitimate-interest basis, with an opt-out: a notice before your first match and a switch that starts on. Turning it off also takes your earlier matches out of training exports. One config value (`trainingDataBasis` in `packages/core/src/product.ts`) makes it opt-in. The site stores no IP addresses and runs no third-party analytics. The full policy is at [duelwise.app/privacy](https://duelwise.app/privacy).
 

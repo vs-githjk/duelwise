@@ -1,6 +1,6 @@
 import { inputFromHeads, KEEP_MOVE } from '@duelwise/core/src/games/arena/actions'
 import { ARENA_FEATURES, encodeState } from '@duelwise/core/src/games/arena/encode'
-import { N_MOVES, PITCH_MAX_DELTA, YAW_MAX, packInput, type ArenaInput } from '@duelwise/core/src/games/arena/input'
+import { N_MOVES, PITCH_MAX_DELTA, YAW_MAX, packInput, unpackInput, type ArenaInput } from '@duelwise/core/src/games/arena/input'
 import { PHASE, type ArenaState } from '@duelwise/core/src/games/arena/state'
 import { WEAPONS } from '@duelwise/core/src/games/arena/weapons'
 import { HumanLimiter, type LimiterConfig } from '@duelwise/core/src/limiter'
@@ -45,6 +45,32 @@ export function viewDue(frame: number, anchor: number, delayFrames: number, phas
   const grid = since % FRAME_SKIP === 0
   const decide = grid && (phase === PHASE.LIVE || since / FRAME_SKIP < BUY_DECISIONS)
   return { capture: since === 0 || (since + delayFrames) % FRAME_SKIP === 0, decide }
+}
+
+/**
+ * True from the end of the last buy decision to the start of the live phase. The training env steps both seats neutral through the rest of the
+ * buy phase (env.ts fastForward), so a runtime that drives a seat from the agent's replies must do the same: holding the last buy decision's
+ * turn and walk through the buy phase's 10 seconds starts the round facing away from where the network was trained to start it
+ * (Hard measured 63 of 100 here against 78 in training for the same network, until this was found).
+ */
+export function buyIdle(frame: number, anchor: number, phase: number): boolean {
+  return phase === PHASE.BUY && frame - anchor >= BUY_DECISIONS * FRAME_SKIP
+}
+
+/**
+ * The page's input for the agent's seat on one frame. `held.first` is a decision's first-frame input not yet applied, `held.rest` the input held
+ * until the next decision. Round end: neutral. After the last buy decision (buyIdle) the seat stands still, but a reply that arrives late (the worker
+ * answers after the buy decisions' frames) still has its purchase applied once, with its buy bits only: yaw, pitch, move and buttons stay neutral.
+ */
+export function agentFrameInput(frame: number, anchor: number, phase: number, held: { first: number | null; rest: number }): number {
+  if (phase === PHASE.ROUND_END) return 0
+  const idle = buyIdle(frame, anchor, phase)
+  if (held.first !== null) {
+    const first = held.first
+    held.first = null
+    return idle ? packInput({ move: 0, walk: 0, crouch: 0, jump: 0, fire: 0, reload: 0, yaw: 0, pitch: 0, buy: unpackInput(first).buy }) : first
+  }
+  return idle ? 0 : held.rest
 }
 
 const flagBits = (i: ArenaInput): number => i.walk + 2 * i.crouch + 4 * i.jump + 8 * i.fire + 16 * i.reload

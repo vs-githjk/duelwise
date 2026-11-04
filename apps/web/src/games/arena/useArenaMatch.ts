@@ -6,7 +6,7 @@ import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import type { Level } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 import { createAgent, type RuntimeAgent } from '@duelwise/agents/src/runtime/agent'
-import { seatView, viewDue, FRAME_SKIP } from '@duelwise/agents/src/arena/view'
+import { agentFrameInput, seatView, viewDue, FRAME_SKIP } from '@duelwise/agents/src/arena/view'
 import type { ArenaReply } from '@duelwise/agents/src/arena/agent'
 import { play, registerSounds, getVolume, isMuted, subscribeAudio } from '../../lib/audio'
 import { playStinger } from '../../lib/music'
@@ -537,13 +537,9 @@ export function useArenaMatch(agentVersion: (level: Level) => string, learnsFrom
         const mine = sampler.current.sample()
         const roundEnd = s.phase === PHASE.ROUND_END
         const p0 = roundEnd ? 0 : packInput(s.phase === PHASE.BUY ? mine : mine)
-        let p1 = 0
-        if (!roundEnd) {
-          if (l.agentFirst !== null) {
-            p1 = l.agentFirst
-            l.agentFirst = null
-          } else p1 = l.agentRest
-        }
+        const held = { first: l.agentFirst, rest: l.agentRest }
+        const p1 = agentFrameInput(s.frame, l.anchor, s.phase, held)
+        l.agentFirst = held.first
         recRef.current.act(s.frame, HUMAN, p0)
         recRef.current.act(s.frame, AGENT, p1)
         copyState(l.prev, s)

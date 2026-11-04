@@ -11,7 +11,7 @@ import { nextSeed } from '@duelwise/core/src/bridge/env-host'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent, PRACTICE_MODELS, PUBLISHED_V1, type ArenaReply } from './agent'
-import { ArenaSeatInput, BUY_DECISIONS, FRAME_SKIP, OBS_FEATURES, seatView, V2_FEATURES, viewDue } from './view'
+import { ArenaSeatInput, BUY_DECISIONS, agentFrameInput, buyIdle, FRAME_SKIP, OBS_FEATURES, seatView, V2_FEATURES, viewDue } from './view'
 
 /** Exported from the b2 gated Hard snapshot (step 14,024,704) with training/trainer/ppo/export.py: 90 inputs, a move head of 10. */
 const V2_MODEL = join(import.meta.dir, '../../test-fixtures/arena-v2-hard-b2.onnx')
@@ -43,7 +43,7 @@ async function drive(level: Level, seed: number, frames: number, modelBytes?: Ui
       } else expect(r[0]).toBe(r[1])
     }
     const before = s.phase === PHASE.BUY ? -1 : s.players[1].money
-    stepPacked(s, 0, s.phase === PHASE.ROUND_END ? 0 : (queue.shift() ?? rest))
+    stepPacked(s, 0, s.phase === PHASE.ROUND_END || buyIdle(s.frame, anchor, s.phase) ? 0 : (queue.shift() ?? rest))
     if (before >= 0 && s.players[1].money < before) spentOutsideBuy = true
   }
   agent.dispose()
@@ -80,7 +80,7 @@ describe('arena view schedule', () => {
 })
 
 describe('arena agent', () => {
-  test('a level is a preview unless the registry publishes it (Easy now)', async () => {
+  test('a level is a preview unless the registry publishes it (all four are published)', async () => {
     const bytes = new Uint8Array(await Bun.file(V2_MODEL).arrayBuffer())
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const agent = await createGameAgent(level, { modelBytes: bytes })
@@ -89,19 +89,18 @@ describe('arena agent', () => {
     }
     expect(PUBLISHED_V1).toEqual((Object.keys(registry.levels) as Level[]))
     expect((await createGameAgent('easy', { modelBytes: bytes })).preview).toBe(!(Object.keys(registry.levels) as Level[]).includes('easy'))
-    expect((await createGameAgent('medium', { modelBytes: bytes })).preview).toBe(true)
-    expect((await createGameAgent('hard', { modelBytes: bytes })).preview).toBe(true)
-    expect((await createGameAgent('champion', { modelBytes: bytes })).preview).toBe(false)
+    for (const level of ['medium', 'hard', 'champion'] as const) expect((await createGameAgent(level, { modelBytes: bytes })).preview).toBe(!(Object.keys(registry.levels) as Level[]).includes(level))
+    expect(PUBLISHED_V1).toEqual(['easy', 'medium', 'hard', 'champion'])
   })
 
-  test('every level loads a b4 or b3 network: no level is served the old preview net, every file exists, and only the unpublished Medium and Hard are Practice', async () => {
+  test('every level loads a b4 or b3 network: no level is served the old preview net, every file exists, and a level is Practice only when the registry does not publish it', async () => {
     const root = join(import.meta.dir, '../../../../apps/web/public')
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const path = PRACTICE_MODELS[level]
       expect(path, level).not.toContain('preview')
       expect(await Bun.file(join(root, path)).exists(), path).toBe(true)
     }
-    // Published levels (KC3) load their own v1 file; Medium runs the Easy network under its own limits, Hard (held) the b3 checkpoint.
+    // Published levels load their own v1 file. These are the files a level falls back to while the registry does not publish it: Medium runs the Easy network under its own limits, Hard the b3 checkpoint.
     expect(PRACTICE_MODELS.easy).toBe('agents/arena/v1/easy.onnx')
     expect(PRACTICE_MODELS.medium).toBe('agents/arena/v1/easy.onnx')
     expect(PRACTICE_MODELS.hard).toBe('agents/arena/practice/hard-b3.onnx')
@@ -276,4 +275,63 @@ describe('arena observation v2 (T8c)', () => {
     const bad = new Uint8Array(await Bun.file(join(import.meta.dir, '../../test-fixtures/fighter-v2-hard-b2.onnx')).arrayBuffer())
     await expect(createGameAgent('hard', { seat: 1, modelBytes: bad })).rejects.toThrow(/features/)
   })
+})
+
+describe('the page loop with a slow worker (agentFrameInput)', () => {
+  // The worker's reply reaches the page `lag` frames after the decision. The page applies it once as the first-frame input, then holds `rest`.
+  async function buyPhases(lag: number, seed: number) {
+    const bytes = new Uint8Array(await Bun.file(V2_MODEL).arrayBuffer())
+    const agent = await createGameAgent('hard', { seat: 1, modelBytes: bytes })
+    agent.reset(seed)
+    const s = createState(seed)
+    const delay = LEVEL_LIMITS.arena.hard.delayFrames
+    let anchor = s.frame
+    let seen: number = s.phase
+    const held: { first: number | null; rest: number } = { first: null, rest: 0 }
+    const pending: Array<{ at: number; r: ArenaReply }> = []
+    let buys = 0
+    let phases = s.phase === PHASE.BUY ? 1 : 0
+    let movedWhileIdle = false
+    for (let frames = 0; s.matchOver === 0 && s.round <= 3 && frames < 20000; frames++) {
+      if (s.phase !== seen) {
+        seen = s.phase
+        anchor = s.frame
+        held.first = null
+        held.rest = 0
+        pending.length = 0
+        if (s.phase === PHASE.BUY) phases++
+      }
+      for (let i = pending.length - 1; i >= 0; i--) {
+        if (pending[i]!.at <= s.frame) {
+          const p = pending.splice(i, 1)[0]!
+          if (p.r[2] === 1) { held.first = p.r[0]; held.rest = p.r[1] }
+        }
+      }
+      if (s.phase !== PHASE.ROUND_END) {
+        const due = viewDue(s.frame, anchor, delay, s.phase)
+        if (due.capture || due.decide) pending.push({ at: s.frame + lag, r: (await agent.act(seatView(s, 1), { frame: s.frame, anchor, phase: s.phase, weapon: s.players[1].weapon })) as ArenaReply })
+      }
+      const p1 = agentFrameInput(s.frame, anchor, s.phase, held)
+      const money = s.players[1].money
+      const wasBuy = s.phase === PHASE.BUY
+      if (buyIdle(s.frame, anchor, s.phase)) {
+        const i = unpackInput(p1)
+        if (i.move !== 0 || i.yaw !== 0 || i.pitch !== 0 || i.walk + i.crouch + i.jump + i.fire + i.reload !== 0) movedWhileIdle = true
+      }
+      stepPacked(s, 0, p1)
+      if (wasBuy && s.players[1].money < money) buys++
+    }
+    agent.dispose()
+    return { buys, phases, movedWhileIdle }
+  }
+
+  for (const lag of [1, 5, 9]) {
+    test(`a reply ${lag} frames late still buys, and the seat stays neutral after its buy decisions`, async () => {
+      const slow = await buyPhases(lag, 11)
+      const quick = await buyPhases(0, 11)
+      expect(quick.buys).toBeGreaterThan(0)
+      expect(slow.buys).toBe(quick.buys)
+      expect(slow.movedWhileIdle).toBe(false)
+    })
+  }
 })

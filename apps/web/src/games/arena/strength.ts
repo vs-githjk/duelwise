@@ -9,6 +9,20 @@ import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fi
 
 export { PRACTICE_COPY, agentVersionFor, isPublished }
 
+const LEVEL_NAMES: Partial<Record<Level, string>> = { easy: 'Pip', medium: 'Marlow', hard: 'Vesper' }
+
+/**
+ * Each level's test bots play under that level's own limits, so the bot score alone can read a harder level below an easier one. The ladder pair
+ * says the true order: " It beats Marlow in at least 8 of 10 seat-swapped matches." (the lower end of the 95 percent interval, rounded down).
+ */
+function aboveLevelBelow(reg: Registry, level: Level): string {
+  const ladder = (reg.versions[0]?.gate as { ladder?: { pairs?: Array<{ lower: Level; upper: Level; lowerBound95?: number }> } } | undefined)?.ladder
+  const pair = ladder?.pairs?.find((p) => p.upper === level)
+  const name = pair ? LEVEL_NAMES[pair.lower] : undefined
+  if (!pair || !name || pair.lowerBound95 === undefined || pair.lowerBound95 <= 0.5) return ''
+  return ` It beats ${name} in at least ${Math.min(10, Math.floor(pair.lowerBound95 * 10 + 1e-9))} of 10 seat-swapped matches.`
+}
+
 /**
  * "Beats our test bots in at least 6 of 10 games, including ones that peek, strafe and hold an angle; not yet measured against people."
  * The 6 is the lower end of the 95 percent interval of the weakest gate bot, rounded down to a whole game of ten.
@@ -22,7 +36,7 @@ export function strengthLine(reg: Registry | null, level: Level): string {
     return PRACTICE_COPY
   }
   const atLeast = Math.max(0, Math.min(10, Math.floor(m.ci95[0] * 10 + 1e-9)))
-  return `Beats our test bots in at least ${atLeast} of 10 games, including ones that peek, strafe and hold an angle; not yet measured against people.`
+  return `Beats our test bots in at least ${atLeast} of 10 games, including ones that peek, strafe and hold an angle; not yet measured against people.${aboveLevelBelow(reg, level)}`
 }
 
 /** Shown under the level picker whenever a Practice level is listed: the ladder above Easy is not measured. */

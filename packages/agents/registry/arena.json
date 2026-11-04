@@ -5,18 +5,22 @@
     {
       "version": "v1",
       "parent": null,
-      "createdAt": "2026-10-29T08:39:28.755Z",
-      "promotedAt": "2026-10-29T08:39:28.755Z",
+      "createdAt": "2026-11-04T13:42:07.756Z",
+      "promotedAt": "2026-11-04T13:42:07.756Z",
       "status": "measured",
       "artifacts": {
         "easy.onnx": "apps/web/public/agents/arena/v1/easy.onnx",
+        "medium.onnx": "apps/web/public/agents/arena/v1/medium.onnx",
+        "hard.onnx": "apps/web/public/agents/arena/v1/hard.onnx",
         "champion.onnx": "apps/web/public/agents/arena/v1/champion.onnx"
       },
       "sha256": {
         "easy.onnx": "0b5df8517bfc71d823f3038631eabb765f465951c3f5f7f20d85a1a9e7773bf2",
+        "medium.onnx": "0b5df8517bfc71d823f3038631eabb765f465951c3f5f7f20d85a1a9e7773bf2",
+        "hard.onnx": "ddce0077b5bd2785edcc48aa43262acac607adce894634d053f8e17f45859624",
         "champion.onnx": "25149e758b86303acbd71b5e55d9096501b9807fd7071d99795166415a62f9b0"
       },
-      "trainedSteps": 20054016,
+      "trainedSteps": 56057856,
       "humanMatchesUsed": 0,
       "gate": {
         "rule": "R15: 400 matches per bot on each seat, bots under the same limits and delayed view; a level publishes when the Wilson 95% lower bound clears the bar against every bot on each seat by itself",
@@ -53,28 +57,28 @@
               },
               {
                 "bot": "rusher",
-                "wins": 762,
+                "wins": 758,
                 "draws": 1,
-                "losses": 37,
-                "score": 0.953125,
-                "lower": 0.936188,
+                "losses": 41,
+                "score": 0.948125,
+                "lower": 0.930503,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 381,
-                    "draws": 0,
-                    "losses": 19,
-                    "score": 0.9525,
-                    "lower": 0.927008
+                    "wins": 375,
+                    "draws": 1,
+                    "losses": 24,
+                    "score": 0.93875,
+                    "lower": 0.91082
                   },
                   "1": {
                     "games": 400,
-                    "wins": 381,
-                    "draws": 1,
-                    "losses": 18,
-                    "score": 0.95375,
-                    "lower": 0.9285
+                    "wins": 383,
+                    "draws": 0,
+                    "losses": 17,
+                    "score": 0.9575,
+                    "lower": 0.932998
                   }
                 }
               },
@@ -90,126 +94,126 @@
                   "0": {
                     "games": 400,
                     "wins": 370,
-                    "draws": 2,
-                    "losses": 28,
-                    "score": 0.9275,
-                    "lower": 0.897818
+                    "draws": 1,
+                    "losses": 29,
+                    "score": 0.92625,
+                    "lower": 0.896384
                   },
                   "1": {
                     "games": 400,
                     "wins": 377,
-                    "draws": 0,
-                    "losses": 23,
-                    "score": 0.9425,
-                    "lower": 0.915199
+                    "draws": 1,
+                    "losses": 22,
+                    "score": 0.94375,
+                    "lower": 0.916664
                   }
                 }
               },
               {
                 "bot": "peeker",
-                "wins": 576,
-                "draws": 2,
-                "losses": 222,
-                "score": 0.72125,
-                "lower": 0.689178,
+                "wins": 566,
+                "draws": 3,
+                "losses": 231,
+                "score": 0.709375,
+                "lower": 0.67697,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 295,
+                    "wins": 278,
                     "draws": 2,
-                    "losses": 103,
-                    "score": 0.74,
-                    "lower": 0.694876
+                    "losses": 120,
+                    "score": 0.6975,
+                    "lower": 0.650782
                   },
                   "1": {
                     "games": 400,
-                    "wins": 281,
-                    "draws": 0,
-                    "losses": 119,
-                    "score": 0.7025,
-                    "lower": 0.655945
+                    "wins": 288,
+                    "draws": 1,
+                    "losses": 111,
+                    "score": 0.72125,
+                    "lower": 0.675363
                   }
                 }
               },
               {
                 "bot": "strafe",
-                "wins": 781,
+                "wins": 778,
                 "draws": 0,
-                "losses": 19,
-                "score": 0.97625,
-                "lower": 0.963205,
+                "losses": 22,
+                "score": 0.9725,
+                "lower": 0.958714,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
+                    "games": 400,
+                    "wins": 387,
+                    "draws": 0,
+                    "losses": 13,
+                    "score": 0.9675,
+                    "lower": 0.945196
+                  },
+                  "1": {
                     "games": 400,
                     "wins": 391,
                     "draws": 0,
                     "losses": 9,
                     "score": 0.9775,
                     "lower": 0.957797
-                  },
-                  "1": {
-                    "games": 400,
-                    "wins": 390,
-                    "draws": 0,
-                    "losses": 10,
-                    "score": 0.975,
-                    "lower": 0.954598
                   }
                 }
               },
               {
                 "bot": "holdangle",
-                "wins": 765,
-                "draws": 1,
-                "losses": 34,
-                "score": 0.956875,
-                "lower": 0.94048,
+                "wins": 760,
+                "draws": 2,
+                "losses": 38,
+                "score": 0.95125,
+                "lower": 0.934051,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 383,
-                    "draws": 1,
-                    "losses": 16,
-                    "score": 0.95875,
-                    "lower": 0.934506
+                    "wins": 381,
+                    "draws": 0,
+                    "losses": 19,
+                    "score": 0.9525,
+                    "lower": 0.927008
                   },
                   "1": {
                     "games": 400,
-                    "wins": 382,
-                    "draws": 0,
-                    "losses": 18,
-                    "score": 0.955,
-                    "lower": 0.929995
+                    "wins": 379,
+                    "draws": 2,
+                    "losses": 19,
+                    "score": 0.95,
+                    "lower": 0.924036
                   }
                 }
               },
               {
                 "bot": "human-proxy",
-                "wins": 533,
-                "draws": 5,
-                "losses": 262,
-                "score": 0.669375,
-                "lower": 0.636034,
+                "wins": 539,
+                "draws": 6,
+                "losses": 255,
+                "score": 0.6775,
+                "lower": 0.644327,
                 "bar": null,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 263,
-                    "draws": 1,
-                    "losses": 136,
-                    "score": 0.65875,
-                    "lower": 0.610973
+                    "wins": 273,
+                    "draws": 3,
+                    "losses": 124,
+                    "score": 0.68625,
+                    "lower": 0.639188
                   },
                   "1": {
                     "games": 400,
-                    "wins": 270,
-                    "draws": 4,
-                    "losses": 126,
-                    "score": 0.68,
-                    "lower": 0.63276
+                    "wins": 266,
+                    "draws": 3,
+                    "losses": 131,
+                    "score": 0.66875,
+                    "lower": 0.621213
                   }
                 }
               }
@@ -218,9 +222,199 @@
             "step": 8028160
           },
           "medium": {
-            "bots": null,
-            "source": null,
-            "step": null
+            "bots": [
+              {
+                "bot": "random",
+                "wins": 800,
+                "draws": 0,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
+                "bar": 0.9,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  }
+                }
+              },
+              {
+                "bot": "rusher",
+                "wins": 795,
+                "draws": 0,
+                "losses": 5,
+                "score": 0.99375,
+                "lower": 0.985453,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 397,
+                    "draws": 0,
+                    "losses": 3,
+                    "score": 0.9925,
+                    "lower": 0.978184
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 398,
+                    "draws": 0,
+                    "losses": 2,
+                    "score": 0.995,
+                    "lower": 0.981955
+                  }
+                }
+              },
+              {
+                "bot": "holder",
+                "wins": 783,
+                "draws": 1,
+                "losses": 16,
+                "score": 0.979375,
+                "lower": 0.966996,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 389,
+                    "draws": 1,
+                    "losses": 10,
+                    "score": 0.97375,
+                    "lower": 0.953012
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 394,
+                    "draws": 0,
+                    "losses": 6,
+                    "score": 0.985,
+                    "lower": 0.967665
+                  }
+                }
+              },
+              {
+                "bot": "peeker",
+                "wins": 673,
+                "draws": 5,
+                "losses": 122,
+                "score": 0.844375,
+                "lower": 0.817616,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 343,
+                    "draws": 2,
+                    "losses": 55,
+                    "score": 0.86,
+                    "lower": 0.822561
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 330,
+                    "draws": 3,
+                    "losses": 67,
+                    "score": 0.82875,
+                    "lower": 0.788747
+                  }
+                }
+              },
+              {
+                "bot": "strafe",
+                "wins": 797,
+                "draws": 0,
+                "losses": 3,
+                "score": 0.99625,
+                "lower": 0.989033,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 400,
+                    "draws": 0,
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 397,
+                    "draws": 0,
+                    "losses": 3,
+                    "score": 0.9925,
+                    "lower": 0.978184
+                  }
+                }
+              },
+              {
+                "bot": "holdangle",
+                "wins": 790,
+                "draws": 0,
+                "losses": 10,
+                "score": 0.9875,
+                "lower": 0.977144,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 394,
+                    "draws": 0,
+                    "losses": 6,
+                    "score": 0.985,
+                    "lower": 0.967665
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 396,
+                    "draws": 0,
+                    "losses": 4,
+                    "score": 0.99,
+                    "lower": 0.974573
+                  }
+                }
+              },
+              {
+                "bot": "human-proxy",
+                "wins": 719,
+                "draws": 4,
+                "losses": 77,
+                "score": 0.90125,
+                "lower": 0.87862,
+                "bar": null,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 361,
+                    "draws": 1,
+                    "losses": 38,
+                    "score": 0.90375,
+                    "lower": 0.870889
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 358,
+                    "draws": 3,
+                    "losses": 39,
+                    "score": 0.89875,
+                    "lower": 0.865292
+                  }
+                }
+              }
+            ],
+            "source": "runs/arena-league-b4/gated/easy/snap-easy-0008028160.pt",
+            "step": 8028160
           },
           "hard": {
             "bots": [
@@ -253,169 +447,169 @@
               },
               {
                 "bot": "rusher",
-                "wins": 797,
-                "draws": 0,
-                "losses": 3,
-                "score": 0.99625,
-                "lower": 0.989033,
+                "wins": 763,
+                "draws": 4,
+                "losses": 33,
+                "score": 0.95625,
+                "lower": 0.939763,
                 "bar": 0.6,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 398,
-                    "draws": 0,
-                    "losses": 2,
-                    "score": 0.995,
-                    "lower": 0.981955
+                    "wins": 379,
+                    "draws": 3,
+                    "losses": 18,
+                    "score": 0.95125,
+                    "lower": 0.925521
                   },
                   "1": {
                     "games": 400,
-                    "wins": 399,
-                    "draws": 0,
-                    "losses": 1,
-                    "score": 0.9975,
-                    "lower": 0.985977
+                    "wins": 384,
+                    "draws": 1,
+                    "losses": 15,
+                    "score": 0.96125,
+                    "lower": 0.937535
                   }
                 }
               },
               {
                 "bot": "holder",
-                "wins": 620,
-                "draws": 2,
-                "losses": 178,
-                "score": 0.77625,
-                "lower": 0.746089,
+                "wins": 627,
+                "draws": 13,
+                "losses": 160,
+                "score": 0.791875,
+                "lower": 0.762381,
                 "bar": 0.6,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 318,
-                    "draws": 2,
-                    "losses": 80,
-                    "score": 0.7975,
-                    "lower": 0.755374
+                    "wins": 314,
+                    "draws": 8,
+                    "losses": 78,
+                    "score": 0.795,
+                    "lower": 0.752721
                   },
                   "1": {
                     "games": 400,
-                    "wins": 302,
-                    "draws": 0,
-                    "losses": 98,
-                    "score": 0.755,
-                    "lower": 0.710557
+                    "wins": 313,
+                    "draws": 5,
+                    "losses": 82,
+                    "score": 0.78875,
+                    "lower": 0.746097
                   }
                 }
               },
               {
                 "bot": "peeker",
-                "wins": 556,
-                "draws": 6,
-                "losses": 238,
-                "score": 0.69875,
-                "lower": 0.666069,
+                "wins": 633,
+                "draws": 5,
+                "losses": 162,
+                "score": 0.794375,
+                "lower": 0.764994,
                 "bar": 0.6,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 283,
-                    "draws": 2,
-                    "losses": 115,
-                    "score": 0.71,
-                    "lower": 0.663701
+                    "wins": 311,
+                    "draws": 3,
+                    "losses": 86,
+                    "score": 0.78125,
+                    "lower": 0.738167
                   },
                   "1": {
                     "games": 400,
-                    "wins": 273,
-                    "draws": 4,
-                    "losses": 123,
-                    "score": 0.6875,
-                    "lower": 0.640474
+                    "wins": 322,
+                    "draws": 2,
+                    "losses": 76,
+                    "score": 0.8075,
+                    "lower": 0.766011
                   }
                 }
               },
               {
                 "bot": "strafe",
-                "wins": 794,
-                "draws": 0,
-                "losses": 6,
-                "score": 0.9925,
-                "lower": 0.983735,
+                "wins": 653,
+                "draws": 3,
+                "losses": 144,
+                "score": 0.818125,
+                "lower": 0.789895,
                 "bar": 0.6,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 399,
+                    "wins": 329,
                     "draws": 0,
-                    "losses": 1,
-                    "score": 0.9975,
-                    "lower": 0.985977
+                    "losses": 71,
+                    "score": 0.8225,
+                    "lower": 0.78204
                   },
                   "1": {
                     "games": 400,
-                    "wins": 395,
-                    "draws": 0,
-                    "losses": 5,
-                    "score": 0.9875,
-                    "lower": 0.971076
+                    "wins": 324,
+                    "draws": 3,
+                    "losses": 73,
+                    "score": 0.81375,
+                    "lower": 0.772679
                   }
                 }
               },
               {
                 "bot": "holdangle",
-                "wins": 683,
-                "draws": 3,
-                "losses": 114,
-                "score": 0.855625,
-                "lower": 0.829569,
+                "wins": 654,
+                "draws": 5,
+                "losses": 141,
+                "score": 0.820625,
+                "lower": 0.792526,
                 "bar": 0.6,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 336,
-                    "draws": 2,
-                    "losses": 62,
-                    "score": 0.8425,
-                    "lower": 0.803565
+                    "wins": 330,
+                    "draws": 3,
+                    "losses": 67,
+                    "score": 0.82875,
+                    "lower": 0.788747
                   },
                   "1": {
                     "games": 400,
-                    "wins": 347,
-                    "draws": 1,
-                    "losses": 52,
-                    "score": 0.86875,
-                    "lower": 0.832122
+                    "wins": 324,
+                    "draws": 2,
+                    "losses": 74,
+                    "score": 0.8125,
+                    "lower": 0.771344
                   }
                 }
               },
               {
                 "bot": "human-proxy",
-                "wins": 685,
-                "draws": 2,
-                "losses": 113,
-                "score": 0.8575,
-                "lower": 0.831566,
+                "wins": 715,
+                "draws": 9,
+                "losses": 76,
+                "score": 0.899375,
+                "lower": 0.876583,
                 "bar": null,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 337,
-                    "draws": 1,
-                    "losses": 62,
-                    "score": 0.84375,
-                    "lower": 0.804917
+                    "wins": 354,
+                    "draws": 4,
+                    "losses": 42,
+                    "score": 0.89,
+                    "lower": 0.855549
                   },
                   "1": {
                     "games": 400,
-                    "wins": 348,
-                    "draws": 1,
-                    "losses": 51,
-                    "score": 0.87125,
-                    "lower": 0.834863
+                    "wins": 361,
+                    "draws": 5,
+                    "losses": 34,
+                    "score": 0.90875,
+                    "lower": 0.876509
                   }
                 }
               }
             ],
-            "source": "runs/arena-league-b4/gated/hard/snap-hard-0012025856.pt",
-            "step": 12025856
+            "source": "runs/arena-league-b5/gated/hard/snap-hard-0036003840.pt",
+            "step": 36003840
           },
           "champion": {
             "bots": [
@@ -475,55 +669,55 @@
               },
               {
                 "bot": "holder",
-                "wins": 716,
-                "draws": 12,
-                "losses": 72,
-                "score": 0.9025,
-                "lower": 0.87998,
+                "wins": 726,
+                "draws": 8,
+                "losses": 66,
+                "score": 0.9125,
+                "lower": 0.890896,
                 "bar": 0.75,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 355,
-                    "draws": 5,
-                    "losses": 40,
-                    "score": 0.89375,
-                    "lower": 0.859717
+                    "wins": 358,
+                    "draws": 4,
+                    "losses": 38,
+                    "score": 0.9,
+                    "lower": 0.866689
                   },
                   "1": {
                     "games": 400,
-                    "wins": 361,
-                    "draws": 7,
-                    "losses": 32,
-                    "score": 0.91125,
-                    "lower": 0.879327
+                    "wins": 368,
+                    "draws": 4,
+                    "losses": 28,
+                    "score": 0.925,
+                    "lower": 0.894952
                   }
                 }
               },
               {
                 "bot": "peeker",
-                "wins": 772,
-                "draws": 3,
-                "losses": 25,
-                "score": 0.966875,
-                "lower": 0.952073,
+                "wins": 783,
+                "draws": 1,
+                "losses": 16,
+                "score": 0.979375,
+                "lower": 0.966996,
                 "bar": 0.75,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 388,
+                    "wins": 391,
                     "draws": 1,
-                    "losses": 11,
-                    "score": 0.97125,
-                    "lower": 0.949864
+                    "losses": 8,
+                    "score": 0.97875,
+                    "lower": 0.959412
                   },
                   "1": {
                     "games": 400,
-                    "wins": 384,
-                    "draws": 2,
-                    "losses": 14,
-                    "score": 0.9625,
-                    "lower": 0.939056
+                    "wins": 392,
+                    "draws": 0,
+                    "losses": 8,
+                    "score": 0.98,
+                    "lower": 0.961037
                   }
                 }
               },
@@ -556,38 +750,38 @@
               },
               {
                 "bot": "holdangle",
-                "wins": 774,
+                "wins": 775,
                 "draws": 5,
-                "losses": 21,
-                "score": 0.970625,
-                "lower": 0.956488,
+                "losses": 20,
+                "score": 0.971875,
+                "lower": 0.95797,
                 "bar": 0.75,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 386,
-                    "draws": 3,
-                    "losses": 11,
-                    "score": 0.96875,
-                    "lower": 0.946745
+                    "wins": 387,
+                    "draws": 4,
+                    "losses": 9,
+                    "score": 0.9725,
+                    "lower": 0.951435
                   },
                   "1": {
                     "games": 400,
                     "wins": 388,
-                    "draws": 2,
-                    "losses": 10,
-                    "score": 0.9725,
-                    "lower": 0.951435
+                    "draws": 1,
+                    "losses": 11,
+                    "score": 0.97125,
+                    "lower": 0.949864
                   }
                 }
               },
               {
                 "bot": "human-proxy",
-                "wins": 799,
+                "wins": 800,
                 "draws": 0,
-                "losses": 1,
-                "score": 0.99875,
-                "lower": 0.992954,
+                "losses": 0,
+                "score": 1,
+                "lower": 0.995221,
                 "bar": null,
                 "bySeat": {
                   "0": {
@@ -600,11 +794,11 @@
                   },
                   "1": {
                     "games": 400,
-                    "wins": 399,
+                    "wins": 400,
                     "draws": 0,
-                    "losses": 1,
-                    "score": 0.9975,
-                    "lower": 0.985977
+                    "losses": 0,
+                    "score": 1,
+                    "lower": 0.990488
                   }
                 }
               }
@@ -617,10 +811,24 @@
           "pairs": [
             {
               "lower": "easy",
-              "upper": "champion",
-              "score": 1,
+              "upper": "medium",
+              "score": 0.6675,
               "n": 400,
-              "lowerBound95": 0.990488
+              "lowerBound95": 0.619931
+            },
+            {
+              "lower": "medium",
+              "upper": "hard",
+              "score": 0.875,
+              "n": 400,
+              "lowerBound95": 0.838981
+            },
+            {
+              "lower": "hard",
+              "upper": "champion",
+              "score": 0.9975,
+              "n": 400,
+              "lowerBound95": 0.985977
             }
           ],
           "note": "Seat 0 is strongly favoured in policy-versus-policy arena matches (hard vs hard: seat 0 won 64 of 64 in the training env and 20 of 20 in the harness; easy on seat 0 vs hard on seat 1 over seeds 2000 to 2005: seat 0 won 2, seat 1 won 4; hard on seat 0 won 6 of 6). The Levels rule (stronger level scores above 50% with a 95% Wilson lower bound, seats swapped each game) is therefore applied against the next published level below, and a level that does not clear it is not published."
@@ -633,6 +841,24 @@
       "version": "v1",
       "config": {
         "model": "easy.onnx",
+        "observation": "v2",
+        "obsFeatures": 90,
+        "sampling": "policy samples"
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "model": "medium.onnx",
+        "observation": "v2",
+        "obsFeatures": 90,
+        "sampling": "policy samples"
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "model": "hard.onnx",
         "observation": "v2",
         "obsFeatures": 90,
         "sampling": "policy samples"
@@ -651,36 +877,61 @@
   "measured": {
     "easy": {
       "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
-      "value": 0.7025,
+      "value": 0.6975,
       "ci95": [
-        0.655945,
-        0.745202
+        0.650782,
+        0.740461
       ],
       "n": 400,
       "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
       "siteElo": 1000,
-      "measuredAt": "2026-10-29T08:39:28.755Z",
+      "measuredAt": "2026-11-04T13:42:07.756Z",
       "harness": "bun",
-      "commit": "d2b212c"
+      "commit": "2527321"
+    },
+    "medium": {
+      "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
+      "value": 0.82875,
+      "ci95": [
+        0.788747,
+        0.862498
+      ],
+      "n": 400,
+      "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
+      "siteElo": 1121.063848,
+      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "harness": "bun",
+      "commit": "2527321"
+    },
+    "hard": {
+      "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
+      "value": 0.78125,
+      "ci95": [
+        0.738167,
+        0.818983
+      ],
+      "n": 400,
+      "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
+      "siteElo": 1459.103064,
+      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "harness": "bun",
+      "commit": "2527321"
     },
     "champion": {
       "metric": "score vs scripted holder bot (weakest seat of the weakest gate bot)",
-      "value": 0.89375,
+      "value": 0.9,
       "ci95": [
-        0.859717,
-        0.920292
+        0.866689,
+        0.925701
       ],
       "n": 400,
       "opponents": "scripted bots that see the live game",
-      "siteElo": 2199.826195,
-      "measuredAt": "2026-10-29T08:39:28.755Z",
+      "siteElo": 2499.492222,
+      "measuredAt": "2026-11-04T13:42:07.756Z",
       "harness": "bun",
-      "commit": "d2b212c"
+      "commit": "2527321"
     }
   },
-  "unpublished": {
-    "medium": "in training: no snapshot cleared the scripted-bot gate during training, so medium is not published.",
-    "hard": "in training: the shipped network won about 63 of 100 against the waiting test bot and 62 of 100 against the peeking one in the browser-side harness (arena-fairness.test.ts, 400 matches each), where the training gate measured 78 and 73 of 100; it stays Practice until the two agree"
-  },
+  "unpublished": {},
   "learnsFromHumans": false
 }

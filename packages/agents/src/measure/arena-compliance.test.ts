@@ -96,27 +96,26 @@ describe('arena limiter compliance over recorded games', () => {
     for (const level of LEVELS.filter((l) => !reg.levels[l])) expect(reg.unpublished?.[level]).toMatch(/^in training: /)
   })
 
-  test('historical Easy and Champion gate results are retained', async () => {
+  test('the published gate results are retained: four levels, the chain easy>medium>hard>champion, every bar cleared on each seat', async () => {
     const raw = (await Bun.file(join(import.meta.dir, '../../registry/arena.json')).json()) as { versions: Array<{ trainedSteps: number; gate: { ladder: { pairs: ArenaLadderPair[]; note: string }; levels: Record<string, { bots: Array<{ bot: string; bar: number | null; lower: number }> | null }> } }> }
     const reg = parseRegistry(raw)
-    expect(Object.keys(reg.levels)).toEqual(['easy', 'champion'])
-    expect(Object.keys(reg.measured)).toEqual(['easy', 'champion'])
-    expect(reg.measured.champion!.siteElo).toBeGreaterThan(1000)
+    expect(Object.keys(reg.levels)).toEqual(['easy', 'medium', 'hard', 'champion'])
+    expect(Object.keys(reg.measured)).toEqual(['easy', 'medium', 'hard', 'champion'])
+    expect(reg.measured.champion!.siteElo).toBeGreaterThan(reg.measured.hard!.siteElo!)
+    expect(reg.measured.hard!.siteElo).toBeGreaterThan(reg.measured.medium!.siteElo!)
+    expect(reg.measured.medium!.siteElo).toBeGreaterThan(reg.measured.easy!.siteElo!)
     // n is the games on the weakest seat: the gate plays GATE_MATCHES per seat per bot.
     expect(reg.measured.champion!.n).toBe(GATE_MATCHES)
-    expect(raw.versions[0]!.gate.ladder.pairs.map((p) => `${p.lower}>${p.upper}`)).toEqual(['easy>champion'])
-    expect(raw.versions[0]!.trainedSteps).toBe(8_028_160 + 12_025_856)
-    // The measured levels carry all six scripted bots plus the Easy human-proxy bot (R46) on every level. Easy, Hard and Champion clear every bar on each seat at the training gate; Hard is still held back
-    // because the shipped agent, played by the browser-side harness (arena-fairness.test.ts), won about 63 and 62 of 100 against two bots the gate gave it 78 and 73.
-    for (const level of ['easy', 'hard', 'champion'] as const) {
+    expect(raw.versions[0]!.gate.ladder.pairs.map((p) => `${p.lower}>${p.upper}`)).toEqual(['easy>medium', 'medium>hard', 'hard>champion'])
+    for (const p of raw.versions[0]!.gate.ladder.pairs) expect(pairLowerBound(p)).toBeGreaterThan(0.5)
+    expect(raw.versions[0]!.trainedSteps).toBe(8_028_160 + 36_003_840 + 12_025_856)
+    // Every level carries all six scripted bots plus the Easy human-proxy bot (R46), and clears every bar on each seat.
+    for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const bots = raw.versions[0]!.gate.levels[level]!.bots!
       expect(bots.map((b) => b.bot).sort()).toEqual(['holdangle', 'holder', 'human-proxy', 'peeker', 'random', 'rusher', 'strafe'])
       expect(bots.some((b) => b.bar !== null && b.lower < b.bar)).toBe(false)
     }
-    expect(reg.unpublished?.hard).toMatch(/^in training: the shipped network won about/)
-    expect(reg.unpublished?.easy).toBeUndefined()
-    expect(reg.unpublished?.champion).toBeUndefined()
-    expect(reg.unpublished?.medium).toMatch(/^in training: /)
+    expect(reg.unpublished ?? {}).toEqual({})
   })
 
   test('applyLevelsRule pairs a failing level out and re-pairs the next against the published level below', async () => {

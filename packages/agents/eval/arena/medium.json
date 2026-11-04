@@ -1,0 +1,205 @@
+[
+  {
+    "bot": "random",
+    "games": 800,
+    "wins": 800,
+    "draws": 0,
+    "losses": 0,
+    "winRate": 1.0,
+    "score": 1.0,
+    "ci95": [
+      0.9952,
+      1.0
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 400,
+        "draws": 0,
+        "losses": 0,
+        "score": 1.0
+      },
+      "1": {
+        "games": 400,
+        "wins": 400,
+        "draws": 0,
+        "losses": 0,
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "bot": "rusher",
+    "games": 800,
+    "wins": 795,
+    "draws": 0,
+    "losses": 5,
+    "winRate": 0.99375,
+    "score": 0.99375,
+    "ci95": [
+      0.9855,
+      0.9973
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 397,
+        "draws": 0,
+        "losses": 3,
+        "score": 0.9925
+      },
+      "1": {
+        "games": 400,
+        "wins": 398,
+        "draws": 0,
+        "losses": 2,
+        "score": 0.995
+      }
+    }
+  },
+  {
+    "bot": "holder",
+    "games": 800,
+    "wins": 783,
+    "draws": 1,
+    "losses": 16,
+    "winRate": 0.97875,
+    "score": 0.979375,
+    "ci95": [
+      0.967,
+      0.9872
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 389,
+        "draws": 1,
+        "losses": 10,
+        "score": 0.97375
+      },
+      "1": {
+        "games": 400,
+        "wins": 394,
+        "draws": 0,
+        "losses": 6,
+        "score": 0.985
+      }
+    }
+  },
+  {
+    "bot": "peeker",
+    "games": 800,
+    "wins": 673,
+    "draws": 5,
+    "losses": 122,
+    "winRate": 0.84125,
+    "score": 0.844375,
+    "ci95": [
+      0.8176,
+      0.8678
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 343,
+        "draws": 2,
+        "losses": 55,
+        "score": 0.86
+      },
+      "1": {
+        "games": 400,
+        "wins": 330,
+        "draws": 3,
+        "losses": 67,
+        "score": 0.82875
+      }
+    }
+  },
+  {
+    "bot": "strafe",
+    "games": 800,
+    "wins": 797,
+    "draws": 0,
+    "losses": 3,
+    "winRate": 0.99625,
+    "score": 0.99625,
+    "ci95": [
+      0.989,
+      0.9987
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 400,
+        "draws": 0,
+        "losses": 0,
+        "score": 1.0
+      },
+      "1": {
+        "games": 400,
+        "wins": 397,
+        "draws": 0,
+        "losses": 3,
+        "score": 0.9925
+      }
+    }
+  },
+  {
+    "bot": "holdangle",
+    "games": 800,
+    "wins": 790,
+    "draws": 0,
+    "losses": 10,
+    "winRate": 0.9875,
+    "score": 0.9875,
+    "ci95": [
+      0.9771,
+      0.9932
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 394,
+        "draws": 0,
+        "losses": 6,
+        "score": 0.985
+      },
+      "1": {
+        "games": 400,
+        "wins": 396,
+        "draws": 0,
+        "losses": 4,
+        "score": 0.99
+      }
+    }
+  },
+  {
+    "bot": "human-proxy",
+    "games": 800,
+    "wins": 719,
+    "draws": 4,
+    "losses": 77,
+    "winRate": 0.89875,
+    "score": 0.90125,
+    "ci95": [
+      0.8786,
+      0.92
+    ],
+    "bySeat": {
+      "0": {
+        "games": 400,
+        "wins": 361,
+        "draws": 1,
+        "losses": 38,
+        "score": 0.90375
+      },
+      "1": {
+        "games": 400,
+        "wins": 358,
+        "draws": 3,
+        "losses": 39,
+        "score": 0.89875
+      }
+    }
+  }
+]
