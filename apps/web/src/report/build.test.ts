@@ -492,6 +492,6 @@ describe('Twelve Yards report', () => {
   test('no em or en dash anywhere in the words the report writes', () => {
     const r = buildReportBody(rec)
     const all = [...r.moments.flatMap((m) => [m.label, m.tag, m.text, m.publicText ?? '']), r.note ?? '', r.reason]
-    for (const t of all) expect(t).not.toMatch(/[–—]/)
+    for (const t of all) expect(t).not.toMatch(/[\u2013\u2014]/)
   })
 })

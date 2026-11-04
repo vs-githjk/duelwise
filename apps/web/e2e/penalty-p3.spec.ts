@@ -190,7 +190,7 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     // The match's own sections (the sidebar cards are shared site copy).
     const owner = (await Promise.all(['report-title', 'report-meta', 'report-tiles', 'report-penalty', 'report-moments'].map((id) => page.getByTestId(id).innerText()))).join('\n')
     expect(owner).not.toMatch(/Hold.?em|chips|fold|Final discs|column|\bdrops?\b/i)
-    expect(owner).not.toMatch(/[–—]/)
+    expect(owner).not.toMatch(/[\u2013\u2014]/)
     const w = await page.evaluate(() => ({ s: document.documentElement.scrollWidth, c: document.documentElement.clientWidth }))
     expect(w.s).toBeLessThanOrEqual(w.c)
     // The map is inside the screen and as wide as the card allows.
