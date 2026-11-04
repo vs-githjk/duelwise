@@ -298,7 +298,7 @@ describe('the hidden choice: nothing about the opponent leaves the server before
     const m = await begin(SEED, 0)
     const out = await playOut(m, 0)
     const rec = out.rec!
-    const words = rec.options!.entropy
+    const words = rec.options!.entropy!
     const changed = [...words]
     changed[0] = changed[0]! ^ 1
     for (const options of [{ entropy: changed }, { entropy: words.slice(0, -1) }, undefined]) {
