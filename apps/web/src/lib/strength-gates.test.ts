@@ -360,7 +360,7 @@ describe('what the Twelve Yards measurement writes reaches the gate', () => {
   })
   test('the config the site plays is the one the code holds', () => {
     const reg = build(ladder())
-    expect(reg.levels.champion?.config).toMatchObject({ kind: 'sable', weight: 1.5 })
+    expect(reg.levels.champion?.config).toMatchObject({ kind: 'sable', weight: 1, cap: 0.8 })
     expect(reg.levels.easy?.config).toMatchObject({ kind: 'pip' })
   })
 })
