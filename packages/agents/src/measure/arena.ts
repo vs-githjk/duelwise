@@ -118,8 +118,9 @@ export async function recordArenaGame(a: ArenaSeatPlan, b: ArenaSeatPlan, seed: 
       }
       const idle = buyIdle(s.frame, anchor, s.phase)
       const inputs = [0, 1].map((seat) => (s.phase === PHASE.ROUND_END || idle ? 0 : (queue[seat]!.shift() ?? rest[seat]!)))
-      // The meter skips the frames the sim idles a seat (the round end and the rest of a buy phase): the limiter keeps the held input across them, as
-      // the env does, so pressing it again when the seat's turn comes back is not a new press by the agent.
+      // The meter skips the frames the sim idles a seat (the round end and the rest of a buy phase). The limiter keeps the held input across them, as
+      // the env does, so the runtime-forced re-press when the seat's turn comes back is not an agent choice (training does the same) and is excluded
+      // from the action cap, exactly as the round-end gap always was. Every press the agent decides is still counted.
       if (s.phase !== PHASE.ROUND_END && !idle) for (const seat of [0, 1]) if (meters[seat]!.feed(inputs[seat]!)) seats[seat]!.pressFrames.push(s.frame)
       stepPacked(s, inputs[0]!, inputs[1]!)
       frames++
@@ -348,7 +349,8 @@ async function publishMain(argv: string[]): Promise<void> {
     levelFailures: { ...ruled.failures, ...held },
     commit: execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(),
     now: new Date().toISOString(),
-    trainedSteps: ruled.published.reduce((n, l) => n + meta[l]!.step, 0),
+    // A network shared by two levels (Medium runs Easy's) is trained once: count each source snapshot once.
+    trainedSteps: [...new Map(ruled.published.map((l) => [meta[l]!.source, meta[l]!.step] as const)).values()].reduce((n, step) => n + step, 0),
     ladder: candidates.length ? { pairs, note: LADDER_NOTE } : { pairs: [], note: NO_LADDER_NOTE },
   })
   await writeRegistry(join(root, 'packages/agents/registry/arena.json'), reg)

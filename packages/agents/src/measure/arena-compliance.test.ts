@@ -108,7 +108,7 @@ describe('arena limiter compliance over recorded games', () => {
     expect(reg.measured.champion!.n).toBe(GATE_MATCHES)
     expect(raw.versions[0]!.gate.ladder.pairs.map((p) => `${p.lower}>${p.upper}`)).toEqual(['easy>medium', 'medium>hard', 'hard>champion'])
     for (const p of raw.versions[0]!.gate.ladder.pairs) expect(pairLowerBound(p)).toBeGreaterThan(0.5)
-    expect(raw.versions[0]!.trainedSteps).toBe(8_028_160 + 8_028_160 + 36_003_840 + 12_025_856)
+    expect(raw.versions[0]!.trainedSteps).toBe(8_028_160 + 36_003_840 + 12_025_856)
     // Every level carries all six scripted bots plus the Easy human-proxy bot (R46), and clears every bar on each seat.
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const bots = raw.versions[0]!.gate.levels[level]!.bots!
