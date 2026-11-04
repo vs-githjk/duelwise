@@ -2,6 +2,7 @@ import type { Kick } from '@duelwise/core/src/games/penalty/core'
 import type { Result, Seat } from '@duelwise/core/src/types'
 import { getVolume, isMuted, resumeAudioContext, sharedAudioContext, subscribeAudio } from '../../lib/audio'
 import { playStinger } from '../../lib/music'
+import { isOffline } from '../../lib/connection'
 
 // Twelve Yards sound. The ball cues (strike, net, glove, wide) are synthesised on the page's shared AudioContext. The crowd and the referee's whistle are
 // short CC0 recordings (public/assets/audio/opengameart/crowd, credited in its CREDITS.md), loaded lazily after the first tap and played through the same
@@ -88,7 +89,6 @@ export const FILE_GAIN: Record<string, number> = { whistleStart: 0.55, whistleFu
 
 /** Decoded recordings by cue, per context. 'failed' means the fetch or decode failed, so the synth plays that cue. */
 const decoded = new WeakMap<object, Map<PenaltyCue, AudioBuffer | 'failed'>>()
-const loading = new WeakSet<object>()
 
 /** The decoded recordings the context has so far (empty before the first preload). */
 function filesFor(ctx: BaseAudioContext): Map<PenaltyCue, AudioBuffer | 'failed'> {
@@ -100,18 +100,42 @@ function filesFor(ctx: BaseAudioContext): Map<PenaltyCue, AudioBuffer | 'failed'
   return m
 }
 
+/** Files being fetched right now, per context, so a second call never starts a second fetch of the same file. */
+const inflight = new WeakMap<object, Set<PenaltyCue>>()
+/** Failed attempts per file and context: when the last one ended and how many came while the browser believed it was online. */
+const failures = new WeakMap<object, Map<PenaltyCue, { at: number; tries: number }>>()
+/** How long a file that failed online waits before the next cue may try it again, by number of online failures so far. After the last wait the file is given up for this page. */
+export const RETRY_WAITS_MS: readonly number[] = [5_000, 20_000]
+
+/** True when this file should be fetched now: never fetched, or failed and due a retry (online, past its wait, not given up). */
+function dueForFetch(rec: AudioBuffer | 'failed' | undefined, fail: { at: number; tries: number } | undefined): boolean {
+  if (rec === undefined) return true
+  if (rec !== 'failed') return false
+  if (isOffline()) return false
+  const tries = fail?.tries ?? 0
+  if (tries > RETRY_WAITS_MS.length) return false
+  return tries === 0 || Date.now() - (fail?.at ?? 0) >= RETRY_WAITS_MS[tries - 1]!
+}
+
 /**
- * Fetches and decodes the recordings, once per context. Call it after the player's first tap; it never blocks and never throws: a file that does
- * not arrive is marked failed and that cue keeps its synthesised sound. Does nothing while sound is off.
+ * Fetches and decodes the recordings. Call it after the player's first tap and on every cue; it never blocks and never throws: a file that does
+ * not arrive is marked failed and that cue keeps its synthesised sound. A failed file is tried again by a later call once the browser is online
+ * (a first tap made offline, before the service worker had cached the files, no longer silences the recordings for the whole page), after a wait
+ * that grows, and given up after a few failures so a file that is really missing is not fetched on every cue. Does nothing while sound is off.
  */
 export function preloadCueFiles(): void {
   try {
     if (isMuted() || typeof fetch !== 'function') return
     const ctx = sharedAudioContext()
-    if (!ctx || typeof ctx.decodeAudioData !== 'function' || loading.has(ctx)) return
-    loading.add(ctx)
+    if (!ctx || typeof ctx.decodeAudioData !== 'function') return
     const have = filesFor(ctx)
+    let busy = inflight.get(ctx)
+    if (!busy) inflight.set(ctx, (busy = new Set()))
+    let failed = failures.get(ctx)
+    if (!failed) failures.set(ctx, (failed = new Map()))
     for (const [cue, url] of Object.entries(CUE_FILES) as Array<[PenaltyCue, string]>) {
+      if (busy.has(cue) || !dueForFetch(have.get(cue), failed.get(cue))) continue
+      busy.add(cue)
       void (async () => {
         try {
           const res = await fetch(url)
@@ -119,6 +143,10 @@ export function preloadCueFiles(): void {
           have.set(cue, await ctx.decodeAudioData(await res.arrayBuffer()))
         } catch {
           have.set(cue, 'failed')
+          const before = failed.get(cue)?.tries ?? 0
+          failed.set(cue, { at: Date.now(), tries: isOffline() ? before : before + 1 })
+        } finally {
+          busy.delete(cue)
         }
       })()
     }
@@ -131,9 +159,12 @@ export function preloadCueFiles(): void {
 
 /** Wall-clock end of every source started or scheduled and not yet finished. */
 let live: number[] = []
+/** The recordings that are sounding or scheduled, so silenceAll can stop them instead of leaving them to run out on a disconnected bus. */
+const playingFiles = new Set<AudioBufferSourceNode>()
 
 export function resetVoicesForTests(): void {
   live = []
+  playingFiles.clear()
   bus = null
 }
 
@@ -158,6 +189,14 @@ export function silenceAll(): void {
   const b = bus
   bus = null
   live = []
+  for (const src of playingFiles) {
+    try {
+      src.stop()
+    } catch {
+      // already ended
+    }
+  }
+  playingFiles.clear()
   if (!b) return
   try {
     b.node.gain.cancelScheduledValues(0)
@@ -278,6 +317,8 @@ function playFile(ctx: BaseAudioContext, out: AudioNode, cue: PenaltyCue, buf: A
   src.connect(g)
   g.connect(out)
   src.start(t0)
+  playingFiles.add(src)
+  src.onended = () => { playingFiles.delete(src) }
 }
 
 /**

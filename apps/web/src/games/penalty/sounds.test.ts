@@ -3,13 +3,15 @@ import { penaltyCore, type Kick } from '@duelwise/core/src/games/penalty/core'
 import type { Result } from '@duelwise/core/src/types'
 import { resetAudioForTests, setMuted, setVolume } from '../../lib/audio'
 import { moodForGame, resetMusicForTests } from '../../lib/music'
-import { busActive, silenceAll, CUE_FILES, FILE_GAIN, preloadCueFiles, END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
+import { setReachable } from '../../lib/connection'
+import { busActive, silenceAll, CUE_FILES, FILE_GAIN, RETRY_WAITS_MS, preloadCueFiles, END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
 
 const g = globalThis as unknown as Record<string, unknown>
 const saved = { window: g.window, Audio: g.Audio, localStorage: g.localStorage, fetch: g.fetch }
+const realNow = Date.now
 
 /** Every source the fake context starts, with the highest gain any envelope reached after it (the cue's peak before the master volume is applied by the page). */
-interface Src { kind: 'osc' | 'noise'; start: number; peak: number; ramps: number; buffer?: unknown }
+interface Src { kind: 'osc' | 'noise'; start: number; peak: number; ramps: number; buffer?: unknown; stopped?: boolean }
 let srcs: Src[] = []
 let failDecode = false
 let fetched: string[] = []
@@ -60,7 +62,7 @@ class FakeCtx {
   createBufferSource() {
     const s: Src = { kind: 'noise', start: -1, peak: 0, ramps: 0 }
     srcs.push(s)
-    const node = Object.assign(new FakeNode(), { start: (t: number) => { s.start = t }, stop() {} })
+    const node = Object.assign(new FakeNode(), { start: (t: number) => { s.start = t }, stop() { s.stopped = true } })
     Object.defineProperty(node, 'buffer', { get: () => s.buffer, set: (b) => { s.buffer = b } })
     return node
   }
@@ -87,6 +89,8 @@ beforeEach(() => {
   resetVoicesForTests()
 })
 afterEach(() => {
+  Date.now = realNow
+  setReachable(true)
   resetMusicForTests()
   resetAudioForTests()
   g.fetch = saved.fetch; g.window = saved.window; g.Audio = saved.Audio; g.localStorage = saved.localStorage
@@ -321,6 +325,75 @@ describe('recorded crowd and whistle', () => {
     await settle()
     playCue('whistleStart')
     expect(srcs.some((s) => s.kind === 'osc')).toBe(true)
+  })
+  test('a first tap made offline does not silence the recordings for good: a later cue, once online, fetches them again', async () => {
+    setReachable(false)
+    failFetch = true
+    preloadCueFiles()
+    await settle()
+    const first = fetched.length
+    expect(first).toBe(FILE_CUES.length)
+    playCue('cheer')
+    await settle()
+    expect(fetched.length, 'still offline: no refetch').toBe(first)
+    setReachable(true)
+    failFetch = false
+    playCue('cheer')
+    await settle()
+    expect(fetched.length, 'online again: every failed file is tried once more').toBe(first + FILE_CUES.length)
+    srcs = []
+    resetVoicesForTests()
+    playCue('cheer')
+    expect((srcs[0]!.buffer as { url?: string }).url).toBe(String(CUE_FILES.cheer))
+  })
+  test('a file that is really missing is retried after a growing wait and then given up, never on every cue', async () => {
+    let t = 1_000_000
+    Date.now = () => t
+    failFetch = true
+    preloadCueFiles()
+    await settle()
+    const n = FILE_CUES.length
+    expect(fetched).toHaveLength(n)
+    for (let i = 0; i < 5; i++) playCue('groan')
+    await settle()
+    expect(fetched, 'cues inside the wait do not refetch').toHaveLength(n)
+    t += RETRY_WAITS_MS[0]!
+    playCue('groan')
+    await settle()
+    expect(fetched).toHaveLength(2 * n)
+    t += RETRY_WAITS_MS[0]!
+    playCue('groan')
+    await settle()
+    expect(fetched, 'the second wait is longer').toHaveLength(2 * n)
+    t += RETRY_WAITS_MS[1]!
+    playCue('groan')
+    await settle()
+    expect(fetched).toHaveLength(3 * n)
+    t += 10 * RETRY_WAITS_MS[1]!
+    playCue('groan')
+    await settle()
+    expect(fetched, 'given up for this page').toHaveLength(3 * n)
+  })
+  test('a retry that is still in flight is not started twice', async () => {
+    failFetch = true
+    preloadCueFiles()
+    await settle()
+    failFetch = false
+    Date.now = () => realNow() + 10 * RETRY_WAITS_MS[1]!
+    preloadCueFiles()
+    preloadCueFiles()
+    await settle()
+    expect(fetched).toHaveLength(2 * FILE_CUES.length)
+  })
+  test('silencing stops a recording that is playing, not only its bus', async () => {
+    preloadCueFiles()
+    await settle()
+    playCue('cheerBig')
+    const rec = srcs.filter((x) => x.kind === 'noise' && (x.buffer as { url?: string }).url !== undefined)
+    expect(rec).toHaveLength(1)
+    expect(rec[0]!.stopped).toBeUndefined()
+    silenceAll()
+    expect(rec[0]!.stopped).toBe(true)
   })
   test('a context with no decoder or no fetch plays the synth and never throws', () => {
     g.fetch = undefined
