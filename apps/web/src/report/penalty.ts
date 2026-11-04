@@ -82,7 +82,7 @@ export function penaltyReport(rec: MatchRecordV1, sentence: string, opponent: st
   if (habit) {
     moments.push({
       kind: habit.repeated ? 'info' : 'best',
-      label: 'Your kicks',
+      label: 'Kick habit',
       tag: 'what a keeper could read',
       text: habit.text,
       publicText: habitSentence(mine.map((r) => r.zone), false)!.text,
@@ -110,7 +110,7 @@ export function penaltyReport(rec: MatchRecordV1, sentence: string, opponent: st
     const body = (you: string) => `${you} kept goal for ${plural(theirs.length, 'kick', 'kicks')}: ${stopped} saved, ${missed} missed by ${opponent}, ${goals[1]} scored.`
     moments.push({
       kind: stopped > 0 ? 'best' : 'info',
-      label: 'Your gloves',
+      label: 'Goalkeeping',
       tag: `${opponent}'s kicks`,
       text: body('You'),
       publicText: body('The player'),

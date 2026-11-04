@@ -440,7 +440,7 @@ describe('Twelve Yards report', () => {
     expect(habitSentence([6, 6, 6, 6, 6], false)!.text).toBe('The player went bottom left every time, 5 of 5.')
     // The report shows the same sentence for the kicks the record holds.
     const mine = kicksOf(rec).filter((k) => k.kicker === rec.humanSeat).map((k) => k.zone)
-    expect(buildReportBody(rec).moments.find((m) => m.label === 'Your kicks')!.text).toBe(habitSentence(mine)!.text)
+    expect(buildReportBody(rec).moments.find((m) => m.label === 'Kick habit')!.text).toBe(habitSentence(mine)!.text)
   })
 
   test('the keeper line counts the dives that went the player\'s way, from the record', () => {
