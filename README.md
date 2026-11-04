@@ -1,6 +1,6 @@
 # Duelwise
 
-[![Duelwise: Can you beat my agents? Eight games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
+[![Duelwise: Can you beat my agents? Nine games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
 
 **Can you beat my agents?**
 

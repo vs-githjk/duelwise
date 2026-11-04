@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { PRODUCT, gameCountWord } from './product'
 
 test('tagline is exact', () => {
-  expect(PRODUCT.tagline).toBe('Eight games. Learning from you, starting with Four in a Row. Beat them if you can.')
+  expect(PRODUCT.tagline).toBe('Nine games. Learning from you, starting with Four in a Row. Beat them if you can.')
 })
 
 test('tagline count word follows the game count', () => {
@@ -17,15 +17,16 @@ test('tagline count word follows the game count', () => {
   expect(() => gameCountWord(11)).toThrow()
 })
 
-test('eight games with display name and slug, no enabled flag', () => {
+test('nine games with display name and slug, no enabled flag', () => {
   const ids = Object.keys(PRODUCT.games).sort()
-  expect(ids).toEqual(['arena', 'chess', 'fighter', 'fleet', 'four', 'holdem', 'slack', 'word'])
+  expect(ids).toEqual(['arena', 'chess', 'fighter', 'fleet', 'four', 'holdem', 'penalty', 'slack', 'word'])
   for (const g of Object.values(PRODUCT.games)) {
     expect(g.displayName.length).toBeGreaterThan(0)
     expect(g.slug).toMatch(/^[a-z0-9-]+$/)
     expect('enabled' in g).toBe(false)
   }
   expect(PRODUCT.games.chess.displayName).toBe('Chess')
+  expect(PRODUCT.games.penalty).toMatchObject({ displayName: 'Twelve Yards', slug: 'twelve-yards', kind: 'turn', devices: 'all' })
   expect(PRODUCT.games.slack).toMatchObject({ displayName: 'Crosscurrent', slug: 'crosscurrent', kind: 'turn', devices: 'all' })
   expect(PRODUCT.games.four.displayName).toBe('Four in a Row')
   expect(PRODUCT.games.holdem.displayName).toBe("Heads-Up Hold'em")
