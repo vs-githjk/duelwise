@@ -41,9 +41,9 @@ export default function FourPage() {
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
   // A match opens at the top of the page, whatever the setup page was scrolled to (Start sits below the level cards), so the header and HUD do not start
-  // above the screen on a laptop. Instant, so nothing is seen to move; phones keep their own flow.
+  // above the screen on a laptop. Instant, so nothing is seen to move. A phone does the same: its Start button sits far down the setup page and the HUD and board would open above the screen.
   useLayoutEffect(() => {
-    if (match.phase === 'playing' && window.innerWidth >= 1024) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    if (match.phase === 'playing') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [match.seed, match.phase === 'playing'])
 
   const begin = (level: Level) => {

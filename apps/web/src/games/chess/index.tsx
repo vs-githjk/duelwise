@@ -86,9 +86,9 @@ export default function ChessPage() {
     if (match.phase !== 'playing') setConfirming(false)
   }, [match.phase])
   // A match opens at the top of the page. The setup page is long (Start sits below the level cards), and a player who scrolled down to it would otherwise land
-  // part-way down the laptop layout with the header and HUD above the screen. Instant, so nothing is seen to move; phones keep their own flow.
+  // part-way down the laptop layout with the header and HUD above the screen. Instant, so nothing is seen to move. A phone does the same: its Start button sits far down the setup page and the HUD and board would open above the screen.
   useLayoutEffect(() => {
-    if (match.phase === 'playing' && window.innerWidth >= 1024) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    if (match.phase === 'playing') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [match.seed, match.phase === 'playing'])
 
   const begin = (level: Level) => {

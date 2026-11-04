@@ -995,14 +995,14 @@ test.describe('Crosscurrent on a phone', () => {
     await expect(page.getByTestId('slack-live')).toContainText('Pip', { timeout: 20_000 })
   })
 
-  test('offline: every other page keeps the fixed chip and its old line', async ({ page, context }) => {
-    // Chess, Four and Hold'em (offline matches are unrated) say so; a page whose offline matches are queued still says they sync later. Both stay the fixed chip.
-    for (const [path, text] of [['/play/chess', 'Offline: matches are not counted'], ['/play/word-duel', 'Offline: matches will sync later']] as const) {
+  test('offline: every other page keeps the fixed chip and says new matches are not rated', async ({ page, context }) => {
+    // No match started offline is rated, in any game, so every page that draws the fixed chip says one true line (Stormglass and Crosscurrent draw their own pill).
+    for (const path of ['/play/chess', '/play/word-duel', '/']) {
       await context.setOffline(false)
       await page.goto(path)
       await page.waitForLoadState('networkidle')
       await context.setOffline(true)
-      await expect(page.getByTestId('offline-chip'), path).toHaveText(text)
+      await expect(page.getByTestId('offline-chip'), path).toHaveText('Offline: new matches are not rated')
       expect(await page.getByTestId('offline-chip').evaluate((el) => getComputedStyle(el).position), path).toBe('fixed')
     }
   })

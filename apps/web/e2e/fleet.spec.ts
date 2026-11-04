@@ -842,12 +842,12 @@ test.describe('fleet play details', () => {
 
   test('offline: every other page keeps the chip in its old bottom left corner', async ({ page, context }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    for (const [path, text] of [['/', 'Offline: matches will sync later'], ['/play/chess', 'Offline: matches are not counted']] as const) {
+    for (const path of ['/', '/play/chess']) {
       await context.setOffline(false)
       await page.goto(path)
       await page.waitForLoadState('networkidle')
       await context.setOffline(true)
-      await expect(page.getByTestId('offline-chip')).toHaveText(text)
+      await expect(page.getByTestId('offline-chip')).toHaveText('Offline: new matches are not rated')
       const chip = (await page.getByTestId('offline-chip').boundingBox())!
       expect(chip.x).toBeLessThan(20)
       expect(chip.y + chip.height).toBeGreaterThan(844 - 20)

@@ -9,7 +9,9 @@ const GAMES = [
 ] as const
 
 for (const g of GAMES) {
-  for (const [vw, vh, practice] of [[1280, 800, false], [1366, 657, true]] as const) {
+  for (const [vw, vh, practice] of [[1280, 800, false], [1366, 657, true], [390, 844, false]] as const) {
+    // Crosscurrent keeps its own phone path (it reveals the Place bar), so a phone is chess and Four only
+    if (vw < 1024 && g.name === 'crosscurrent') continue
     for (const reduce of [false, true]) {
       test(`${g.name} opens at the top after Start from the lowest level, ${vw} by ${vh}${practice ? ', Practice' : ''}${reduce ? ', reduced motion' : ''}`, async ({ page }) => {
         await page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })
@@ -21,7 +23,7 @@ for (const g of GAMES) {
         const start = page.getByRole('button', { name: /Start match/ })
         await start.scrollIntoViewIfNeeded()
         // where the setup page scrolls at all (it does not at 1280 by 800 for Four and Crosscurrent), it is scrolled down to Start first
-        if (g.name === 'chess') expect(await page.evaluate(() => window.scrollY), 'the setup page was scrolled down first').toBeGreaterThan(0)
+        if (g.name === 'chess' || vw < 1024) expect(await page.evaluate(() => window.scrollY), 'the setup page was scrolled down first').toBeGreaterThan(0)
         await start.click()
         await expect(page.getByTestId(g.board)).toBeVisible()
         await expect(page.getByTestId(g.hud)).toBeVisible()
@@ -31,6 +33,7 @@ for (const g of GAMES) {
         const top = (await page.getByTestId('game-shell').locator('header').boundingBox())!
         expect(top.y).toBeGreaterThanOrEqual(0)
         expect((await page.getByTestId(g.hud).boundingBox())!.y).toBeGreaterThanOrEqual(0)
+        expect((await page.getByTestId(g.board).boundingBox())!.y, 'the board starts on the screen').toBeGreaterThanOrEqual(0)
       })
     }
   }
