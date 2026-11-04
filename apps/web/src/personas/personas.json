@@ -19,7 +19,8 @@
         "fighter": "Short strings, blocks late, never punishes.",
         "arena": "Walks open lanes and aims after you do.",
         "fleet": "Fires at random and usually forgets to follow up a hit.",
-        "slack": "Grabs the most discs it can and loves a corner."
+        "slack": "Grabs the most discs it can and loves a corner.",
+        "penalty": "Has a favourite corner and sticks to it, mostly."
       }
     },
     "medium": {
@@ -35,7 +36,8 @@
         "fighter": "Anti-airs on reaction, drops long combos.",
         "arena": "Holds angles, trades evenly in open fights.",
         "fleet": "Hunts every other square, then works around a hit.",
-        "slack": "Knows which squares matter and looks at your reply."
+        "slack": "Knows which squares matter and looks at your reply.",
+        "penalty": "Dives where you last shot and shoots away from where you dive."
       }
     },
     "hard": {
@@ -51,7 +53,8 @@
         "fighter": "Whiff punishes and full combos on counter hit.",
         "arena": "Pre-aims common peeks and wins first contact.",
         "fleet": "Hunts where ships fit best, then works around a hit.",
-        "slack": "Looks a few moves ahead and limits your options."
+        "slack": "Looks a few moves ahead and limits your options.",
+        "penalty": "Reads your last few kicks, but swaps corners in a pattern of its own."
       }
     },
     "champion": {
@@ -67,7 +70,8 @@
         "fighter": "Reacts at the minimum delay; still blocks like a person.",
         "arena": "Quick counter-aim at any range.",
         "fleet": "Fires at the most likely square every time, hunting or finishing.",
-        "slack": "Looks furthest ahead and works out the endgame exactly when it can."
+        "slack": "Looks furthest ahead and works out the endgame exactly when it can.",
+        "penalty": "Watches for your habits during the match, and keeps its own kicks unpredictable."
       }
     }
   },

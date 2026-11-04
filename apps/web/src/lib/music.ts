@@ -25,7 +25,7 @@ const STINGER_URL: Record<StingerOutcome, string> = { win: `${ROOT}/stingers/win
 /** Length of each stinger file, so the music comes back when it ends. */
 const STINGER_MS: Record<StingerOutcome, number> = { win: 2300, loss: 3000 }
 
-const MOOD_BY_GAME: Record<string, Mood> = { chess: 'board', four: 'board', word: 'board', holdem: 'poker', fighter: 'action', arena: 'action', fleet: 'board', slack: 'board' }
+const MOOD_BY_GAME: Record<string, Mood> = { chess: 'board', four: 'board', word: 'board', holdem: 'poker', fighter: 'action', arena: 'action', fleet: 'board', slack: 'board', penalty: 'action' }
 
 /** Music level relative to the master volume. */
 export const MUSIC_LEVEL = 0.25

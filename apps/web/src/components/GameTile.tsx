@@ -349,7 +349,41 @@ function Slack(): ReactNode {
   )
 }
 
-const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet, slack: Slack }
+/** Twelve Yards: striped grass under a dark stand, a whole white goal with its net, the keeper in a full dive and the ball in the top corner, the spot below. Every shape sits whole inside the tile. */
+function Penalty(): ReactNode {
+  const netV = Array.from({ length: 13 }, (_, i) => 30 + i * 8.5)
+  const netH = Array.from({ length: 5 }, (_, i) => 18 + i * 8.5)
+  return (
+    <>
+      <rect width={W} height={H} fill="var(--pitch)" />
+      <g fill="var(--pitch-stripe)">{[0, 2, 4, 6].map((i) => <rect key={i} x={i * 20} y={0} width={20} height={H} />)}</g>
+      <rect width={W} height={34} fill="#1c4f31" />
+      <rect y={34} width={W} height={2} fill="#ffffff" opacity={0.85} />
+      <rect x={30} y={14} width={100} height={22} fill="#ffffff" opacity={0.14} />
+      <g stroke="#ffffff" strokeOpacity={0.35} strokeWidth={0.6}>
+        {netV.map((x) => <line key={x} x1={x} y1={14} x2={x} y2={36} />)}
+        {netH.slice(0, 3).map((y) => <line key={y} x1={30} y1={y} x2={130} y2={y} />)}
+      </g>
+      <path d="M30 36 V12 H130 V36" fill="none" stroke="var(--goal-post)" strokeWidth={3} strokeLinejoin="round" />
+      <path d="M52 62 H108 V72 H52z" fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.2} />
+      <circle cx={80} cy={80} r={1.8} fill="#ffffff" />
+      <g transform="translate(70 21) rotate(-62)">
+        <path d="M-4 5 L-8 12 M4 5 L8 12" stroke="#15181e" strokeWidth={4} strokeLinecap="round" />
+        <rect x={-6} y={-6} width={12} height={13} rx={3.5} fill="var(--keeper-them)" stroke="#15181e" strokeWidth={1} />
+        <path d="M-5 -4 L-9 -11 M5 -4 L9 -11" stroke="#15181e" strokeWidth={3.6} strokeLinecap="round" />
+        <circle cx={0} cy={-10} r={3.6} fill="#f3d3b4" stroke="#15181e" strokeWidth={1} />
+        <circle cx={-9.5} cy={-12.5} r={2.4} fill="#ffffff" stroke="#15181e" strokeWidth={1} />
+        <circle cx={9.5} cy={-12.5} r={2.4} fill="#ffffff" stroke="#15181e" strokeWidth={1} />
+      </g>
+      <g transform="translate(118 20)">
+        <circle r={5.2} fill="#ffffff" stroke="#15181e" strokeWidth={0.9} />
+        <path d="M0 -2.4 L2.4 -0.8 L1.5 2 L-1.5 2 L-2.4 -0.8z" fill="#15181e" />
+      </g>
+    </>
+  )
+}
+
+const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet, slack: Slack, penalty: Penalty }
 
 /** One game's miniature. Decorative: the card around it names the game. */
 export function GameTile({ game, className }: { game: GameId; className?: string }) {

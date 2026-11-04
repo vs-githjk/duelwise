@@ -74,6 +74,8 @@ export interface ResultPanelProps {
   shortBy?: number
   /** False for a game whose matches never reach a leaderboard (the real-time games): the panel then offers no leaderboard link. Default true. */
   leaderboard?: boolean
+  /** True for a game that keeps its live layout at full time (Twelve Yards): the panel still takes focus, but the page is not scrolled to it, so the scene does not move. */
+  keepPlace?: boolean
   /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
   leftAfter?: number | null
   /** Practice Hold'em: how many times the player bought back in; the chip lines then say they count every stack. */
@@ -85,7 +87,7 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, keepPlace = false, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
@@ -96,6 +98,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   // board) and sits beside the board on a wide screen, so both the scroll and the focus go to the same place.
   useEffect(() => {
     headline.current?.focus({ preventScroll: true })
+    if (keepPlace) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const block = window.innerWidth < 1024 ? 'start' : 'nearest'
     // The panel's arrival changes the page height above and below the board, and WebKit cancels a smooth scroll that starts in the same frame.

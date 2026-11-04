@@ -50,6 +50,12 @@ export const guides: Record<GameId, Guide> = {
     controls: [{ keys: 'Touch or mouse', action: 'tap a ringed cell to pick it, tap it again or press Place to play it' }, { keys: 'Arrow keys', action: 'move between cells' }, { keys: 'Home or End', action: 'jump to the first or last cell in a row' }, { keys: 'Enter or Space', action: 'pick the focused cell, then play it' }],
     win: 'When neither side can move, the side with more discs wins. Equal discs is a draw.', tip: 'Flipping the most discs is rarely the best move. Giving your opponent few cells to play often is.',
   },
+  penalty: {
+    goal: 'Score more penalties than your opponent in a shootout of five kicks each.',
+    steps: ['Each match gives you the first kick or the second kick at random. You and your opponent take turns: one kicks, the other keeps goal.', 'Kicking: drag from the ball to a spot in the goal and lift, or tap a spot and tap it again. Nine spots, so the middle is yours too.', 'In goal: pick one of five dives, left high, left low, stay, right high or right low. Both of you choose at the same moment, so nobody sees the other pick first.', 'A kick can be saved, or miss the frame. Top corners are hard to reach, down the middle only scores if the keeper dives. If it is level after five each, it goes to sudden death, one kick each, until someone is ahead (a draw after twelve extra rounds).'],
+    controls: [{ keys: 'Touch or mouse', action: 'drag from the ball to a spot and lift to shoot, or tap a spot and tap it again' }, { keys: 'Tab and Enter or Space', action: 'move between the spots and pick one, then press Shoot or Save' }, { keys: 'Tap during the replay', action: 'skip to the next kick' }],
+    win: 'The side with more goals wins. Stopping early is allowed once a side cannot be caught.', tip: 'A side that always picks the same corner gets read. Mix it up, and watch what your opponent keeps doing.',
+  },
 }
 
 const seen = new Set<GameId>()

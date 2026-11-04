@@ -25,6 +25,7 @@ export function personaFor(level: Level): Persona {
 const GAME_BIOS: Partial<Record<GameId, Partial<Record<Level, string>>>> = {
   fleet: { champion: 'The house champion. A scripted solver, not a learned player.' },
   slack: { champion: 'The house champion. A search program, not a learned player.' },
+  penalty: { champion: 'The house champion. A habit reader, not a learned player.' },
 }
 
 /** The persona's one-line bio in this game: its own line where a game has one, else the shared bio. */

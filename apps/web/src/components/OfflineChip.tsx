@@ -25,7 +25,7 @@ export function OfflinePill({ text }: { text: string }) {
 }
 
 /** Games that cannot start a rated match offline and draw their own pill inside the page. Every other game keeps the fixed chip. */
-const OWN_PILL_PATHS = [`/play/${PRODUCT.games.fleet.slug}`, `/play/${PRODUCT.games.slack.slug}`]
+const OWN_PILL_PATHS = [`/play/${PRODUCT.games.fleet.slug}`, `/play/${PRODUCT.games.slack.slug}`, `/play/${PRODUCT.games.penalty.slug}`]
 export const drawsOwnOfflinePill = (pathname: string): boolean => OWN_PILL_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 const CHIP_CORNER = 'bottom-3 left-3'
 

@@ -46,7 +46,8 @@
       "game-fighter": "#e8500e",
       "game-arena": "#0a95b8",
       "game-fleet": "#1b4d7a",
-      "game-slack": "#2f7f78"
+      "game-slack": "#2f7f78",
+      "game-penalty": "#3f7d2b"
     },
     "crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board": {
       "slack-water": "#4f8580",
@@ -54,6 +55,13 @@
       "slack-line": "#3a6763",
       "slack-dark": "#1f2a30",
       "slack-pale": "#f6efe3"
+    },
+    "twelve yards surfaces: object colours, the same in every theme, since their contrast is against the grass": {
+      "pitch": "#2f7d46",
+      "pitch-stripe": "#38904f",
+      "goal-post": "#ffffff",
+      "keeper-you": "#2166f0",
+      "keeper-them": "#f2a11f"
     },
     "stormglass surfaces": {
       "sea": "#dcecf6",
@@ -125,6 +133,7 @@
     "game-arena": "#4fd0ee",
     "game-fleet": "#6fa8dc",
     "game-slack": "#5fc3b8",
+    "game-penalty": "#8fcf5f",
     "sea": "#1d3446",
     "sea-line": "#3f6482",
     "sea-deep": "#264359",

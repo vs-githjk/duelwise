@@ -31,9 +31,10 @@ export function pretrainingSentence(reg: Registry | null): string | null {
   return `${who} learned from Lichess human games (${band}).`
 }
 
-/** Stormglass and Crosscurrent have no model at all: their levels are hand-written algorithms (a flip counter and three searches), so "yet" would promise training that can never happen. */
-const isScripted = (game: GameId): boolean => game === 'fleet' || game === 'slack'
-const NOTHING_TO_TRAIN = 'is a scripted solver and does not learn from matches'
+/** Stormglass, Crosscurrent and Twelve Yards have no model at all: their levels are hand-written algorithms (a flip counter, three searches, four habit readers), so "yet" would promise training that can never happen. */
+const isScripted = (game: GameId): boolean => game === 'fleet' || game === 'slack' || game === 'penalty'
+/** Twelve Yards is not a solver: its levels are small hand-written readers of the kicks and dives so far. */
+const nothingToTrain = (game: GameId): string => (game === 'penalty' ? 'is a hand-written habit reader and does not learn from matches' : 'is a scripted solver and does not learn from matches')
 
 export interface TrainingNoticeCopy {
   /** False when the agent does not learn from human matches yet, so the match record must not be marked trainable. */
@@ -51,7 +52,7 @@ export function trainingNoticeText(game: GameId, learnsFromHumans: boolean, basi
     const agent = PRODUCT.games[game].displayName.replace(/^Heads-Up /, '')
     return {
       trainable: false,
-      text: `The ${agent} agent ${isScripted(game) ? NOTHING_TO_TRAIN : 'does not learn from human matches yet'}. A replayable record of each match (the moves, the result and your input timing, never your name or email) is kept for your match report and is not used to train the agent.`,
+      text: `The ${agent} agent ${isScripted(game) ? nothingToTrain(game) : 'does not learn from human matches yet'}. A replayable record of each match (the moves, the result and your input timing, never your name or email) is kept for your match report and is not used to train the agent.`,
     }
   }
   return {
@@ -164,7 +165,7 @@ export function playTrainingBullet(game: GameId, registry: LearnsReg): string {
 
 /** The note under a finished match. `allowed` is the player's own setting, which can only turn training off. */
 export function resultTrainingNote(game: GameId, registry: LearnsReg, allowed: boolean): string {
-  if (!matchesTrainAgent(game, ANY_LEVEL, registry)) return `This match is stored as ${RECORD} for your report. ${isScripted(game) ? `This agent ${NOTHING_TO_TRAIN}` : 'This agent does not learn from human matches yet, so it is not used to train'}.`
+  if (!matchesTrainAgent(game, ANY_LEVEL, registry)) return `This match is stored as ${RECORD} for your report. ${isScripted(game) ? `This agent ${nothingToTrain(game)}` : 'This agent does not learn from human matches yet, so it is not used to train'}.`
   if (!allowed) return `This match is stored as ${RECORD}. Training is off for you, so it is not used to train the agent.`
   return `This match is stored as ${RECORD}. It may be used to train the next version of the agent.`
 }
@@ -174,7 +175,7 @@ export function reportLearnsCard(game: GameId, registry: LearnsReg): { title: st
   if (!matchesTrainAgent(game, ANY_LEVEL, registry)) {
     return {
       title: 'How the AI improves',
-      text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. ${isScripted(game) ? `This game's agent ${NOTHING_TO_TRAIN}, so matches like this one train nothing` : "This game's agent does not learn from human matches yet, so matches like this one are not used to train it"}. A new version is published only if it beats the champion.`,
+      text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. ${isScripted(game) ? `This game's agent ${nothingToTrain(game)}, so matches like this one train nothing` : "This game's agent does not learn from human matches yet, so matches like this one are not used to train it"}. A new version is published only if it beats the champion.`,
     }
   }
   return {

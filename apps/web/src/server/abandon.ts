@@ -22,6 +22,7 @@ export const MAX_MATCH_MS: Record<GameId, number> = {
   arena: 30 * MIN,
   fleet: 30 * MIN,
   slack: 30 * MIN,
+  penalty: 30 * MIN,
 }
 
 /** Extra time after the maximum before a silent match counts as abandoned (slow connections, a paused tab). */

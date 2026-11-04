@@ -50,6 +50,7 @@
   --game-arena: #0a95b8;
   --game-fleet: #1b4d7a;
   --game-slack: #2f7f78;
+  --game-penalty: #3f7d2b;
 
   /* crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board */
   --slack-water: #4f8580;
@@ -57,6 +58,13 @@
   --slack-line: #3a6763;
   --slack-dark: #1f2a30;
   --slack-pale: #f6efe3;
+
+  /* twelve yards surfaces: object colours, the same in every theme, since their contrast is against the grass */
+  --pitch: #2f7d46;
+  --pitch-stripe: #38904f;
+  --goal-post: #ffffff;
+  --keeper-you: #2166f0;
+  --keeper-them: #f2a11f;
 
   /* stormglass surfaces */
   --sea: #dcecf6;
@@ -197,11 +205,17 @@
   --color-game-arena: var(--game-arena);
   --color-game-fleet: var(--game-fleet);
   --color-game-slack: var(--game-slack);
+  --color-game-penalty: var(--game-penalty);
   --color-slack-water: var(--slack-water);
   --color-slack-water-deep: var(--slack-water-deep);
   --color-slack-line: var(--slack-line);
   --color-slack-dark: var(--slack-dark);
   --color-slack-pale: var(--slack-pale);
+  --color-pitch: var(--pitch);
+  --color-pitch-stripe: var(--pitch-stripe);
+  --color-goal-post: var(--goal-post);
+  --color-keeper-you: var(--keeper-you);
+  --color-keeper-them: var(--keeper-them);
   --color-sea: var(--sea);
   --color-sea-line: var(--sea-line);
   --color-sea-deep: var(--sea-deep);

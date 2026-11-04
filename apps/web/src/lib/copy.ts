@@ -77,6 +77,13 @@ export function resultSentence(result: Result, humanSeat: Seat, opponent: string
       return humanWon ? `${You} finished with more discs than ${opponent}.` : `${opponent} finished with more discs than ${you}.`
     case 'level on discs':
       return 'Both sides finished with the same number of discs, so the game is a draw.'
+    case 'more goals': {
+      const hi = Math.max(result.score[0], result.score[1])
+      const lo = Math.min(result.score[0], result.score[1])
+      return `${who} won the shootout ${hi} to ${lo}.`
+    }
+    case 'level after sudden death':
+      return 'The shootout was still level after sudden death, so it is a draw.'
     case 'four in a row':
       return `${who} connected four in a row.`
     case 'board full':

@@ -105,6 +105,8 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     const r = slackReport(rec, sentence, opponent)
     return { ...base, moments: r.moments, series: r.series, slackView: r.view, note: r.note }
   }
+  // Twelve Yards: result only until its own report lands (promotion part 3), and never the Hold'em path below.
+  if (rec.game === 'penalty') return { ...base, moves: humanActionCount(rec), moments: [end] }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
     const coaching = realtimeCoaching(rec, facts, opponent)

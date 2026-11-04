@@ -32,6 +32,11 @@ export function marginOf(f: Pick<ShareFacts, 'game' | 'result' | 'humanSeat' | '
       return f.humanMoves > 0 ? plural(f.humanMoves, 'move') : null
     case 'fleet':
       return f.humanMoves > 0 ? plural(f.humanMoves, 'shot') : null
+    case 'penalty': {
+      const mine = result.score?.[humanSeat]
+      const theirs = result.score?.[(1 - humanSeat) as Seat]
+      return typeof mine === 'number' && typeof theirs === 'number' ? `${Math.max(mine, theirs)} goals to ${Math.min(mine, theirs)}` : null
+    }
     case 'fighter':
     case 'arena': {
       const mine = result.score?.[humanSeat]
