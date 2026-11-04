@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
-import { PRACTICE_COPY, PRACTICE_PICKER_NOTE, agentVersionFor, count, limitsSentence, strengthLine } from './strength'
+import { PRACTICE_COPY, PRACTICE_PICKER_NOTE, agentVersionFor, count, limitsSentence, limitsText, strengthLine } from './strength'
 import { buildCast } from '../../personas/cast'
 
 const reg = {
@@ -50,6 +50,14 @@ describe('Coldstore strength copy', () => {
       const c = LEVEL_LIMITS.arena[l]
       expect(/cannot press/.test(limitsSentence(l))).toBe(c.apmCap !== null)
       expect(/cannot turn/.test(limitsSentence(l))).toBe(c.aimRateDegPerSec !== null)
+    }
+  })
+  test('every action cap line says held buttons across a round restart are not counted, so the measured rate may read slightly above it', () => {
+    for (const l of ['medium', 'hard'] as const) {
+      const c = LEVEL_LIMITS.arena[l]
+      if (c.apmCap === null || c.apmCap === undefined) continue
+      expect(limitsSentence(l)).toContain(`${c.apmCap} actions a minute (not counting buttons it keeps held across a round restart)`)
+      expect(limitsText(l)).toContain(`${c.apmCap} actions a minute (not counting buttons it keeps held across a round restart)`)
     }
   })
   test('counts are pluralised and the picker says levels in training have not passed the strength test', () => {

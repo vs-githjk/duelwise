@@ -45,12 +45,15 @@ export const PRACTICE_PICKER_NOTE = 'Levels in training have not passed our stre
 /** "1 headshot", "0 headshots". */
 export const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`
 
+/** The runtime force-re-presses a held button when the buy phase ends, and the action cap does not count that re-press, so the measured rate can read a little above the cap. */
+const HELD_NOTE = '(not counting buttons it keeps held across a round restart)'
+
 /** What an agent cannot do at a level, built from the same limiter config the agent and the trainer use, so Champion is never called capped. */
 export function limitsSentence(level: Level): string {
   const c = LEVEL_LIMITS.arena[level]
   if (level === 'easy') return 'Easy reacts slower and has limited aim and actions. It sees only what its line of sight allows.'
   const ms = Math.round((c.delayFrames * 1000) / 60)
-  const cap = c.apmCap === null || c.apmCap === undefined ? null : `cannot press more than ${c.apmCap} actions a minute`
+  const cap = c.apmCap === null || c.apmCap === undefined ? null : `cannot press more than ${c.apmCap} actions a minute ${HELD_NOTE}`
   const aim = c.aimRateDegPerSec === null || c.aimRateDegPerSec === undefined ? null : `cannot turn faster than ${c.aimRateDegPerSec} degrees a second`
   const has = [cap, aim].filter((x): x is string => x !== null)
   const tail = has.length === 2 ? `, ${has[0]} and ${has[1]}` : has.length === 1 ? ` and ${has[0]}` : ''
@@ -63,5 +66,5 @@ export function limitsText(level: Level): string {
   const c = LEVEL_LIMITS.arena[level]
   const ms = Math.round((c.delayFrames * 1000) / 60)
   const aim = c.aimRateDegPerSec === null || c.aimRateDegPerSec === undefined ? 'no aim limit' : `turns at most ${c.aimRateDegPerSec} degrees a second`
-  return `${reactionText(ms)}, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute`}, ${aim}`
+  return `${reactionText(ms)}, ${c.apmCap === null ? 'no action cap' : `at most ${c.apmCap} actions a minute ${HELD_NOTE}`}, ${aim}`
 }
