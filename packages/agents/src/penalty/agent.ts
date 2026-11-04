@@ -113,10 +113,10 @@ export function levelDist(level: Level, obs: PenaltyObs, salt: number): Dist {
       const common = cnt.indexOf(Math.max(...cnt))
       const n = s.oppKicks.length
       const pred = n >= 2 && s.oppKicks[n - 1] !== s.oppKicks[n - 2] ? s.oppKicks[n - 2]! : common
-      // Mostly the rule above, with a share of a small pattern reader (repeat, alternate, three back, four back) so that a loop of corners does not beat the rule every time.
-      const { out, eqP } = predict(VESPER_SHAPES, s.oppKicks, s.myDives)
+      // The rule above, plus a small pattern reader (repeat, alternate, and the same as 3 to 6 back). The reader's share is at least `reader` and grows with the evidence of a pattern, so a loop that repeats gets read.
+      const { out, eqP } = predict(VESPER_SHAPES, s.oppKicks, s.myDives, cfg.prior)
       const reader = mix(bestKeeper(out, fav.side), eq, Math.min(cfg.read, 1 - eqP))
-      return mix(reader, mix(dive(COVER[pred]!), eq, cfg.read), cfg.reader)
+      return mix(reader, mix(dive(COVER[pred]!), eq, cfg.read), Math.max(cfg.reader, cfg.readerGrowth * (1 - eqP)))
     }
     case 'sable': {
       const stream = shooter ? s.oppDives : s.oppKicks

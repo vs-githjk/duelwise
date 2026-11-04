@@ -339,6 +339,17 @@ describe('Vesper', () => {
     expect(c[LH]! / 8000).toBeLessThan(0.2)
   })
 
+  test('as keeper reads a cycle of three: after a kick repeats three back, the cover of the next kick of the cycle gets a clear share', () => {
+    // BL, TM, BR, BL, TM: the rule alone covers the kick two back (BL); the pattern reader sees the 3-cycle, whose next kick is BR.
+    const hist = [BL, TM, BR, BL, TM].map((z) => view(false, z, STAY))
+    const c = draws('hard', obs('keeper', hist), 6000)
+    const next = COVER[BR]!
+    const ruleOnly = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[next]!
+    // The cycle says BR comes next; with the reader's share the cover of BR gets clearly more than the equilibrium share.
+    expect(c[next]! / 6000).toBeGreaterThan(EQ_KEEPER[next]! + 0.15)
+    expect(ruleOnly).toBeGreaterThan(0)
+  })
+
   test('as keeper takes the most common of the last three when the last two kicks match', () => {
     // BR, BR, BR, C, TL, TL: the last three are C, TL, TL, so TL; all six would say BR.
     const hist = [BR, BR, BR, C, TL, TL].map((z) => view(false, z, STAY))
