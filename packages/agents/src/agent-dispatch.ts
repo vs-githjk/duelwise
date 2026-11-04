@@ -13,6 +13,7 @@ const FACTORIES: Record<GameId, () => Promise<{ createGameAgent: Factory }>> = {
   arena: () => import('./arena/agent'),
   fleet: () => import('./fleet/agent'),
   slack: () => import('./slack/agent'),
+  penalty: () => import('./penalty/agent'),
 }
 
 export async function createGameAgent(game: GameId, level: Level, opts?: AgentOpts): Promise<PreviewAgent> {

@@ -81,7 +81,7 @@ export interface PenaltyObs {
   over: boolean
 }
 
-const ID = 'penalty' as GameId
+const ID: GameId = 'penalty'
 const MAX_KICKS = 2 * (KICKS + EXTRA_ROUNDS)
 
 function isZone(n: unknown): n is Zone {

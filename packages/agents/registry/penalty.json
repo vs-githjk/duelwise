@@ -1,0 +1,58 @@
+{
+  "game": "penalty",
+  "champion": "v1",
+  "versions": [
+    {
+      "version": "v1",
+      "parent": null,
+      "createdAt": "2026-11-03T21:00:00.000Z",
+      "promotedAt": null,
+      "status": "preview",
+      "artifacts": {},
+      "sha256": {},
+      "trainedSteps": 0,
+      "humanMatchesUsed": 0,
+      "gate": null
+    }
+  ],
+  "levels": {
+    "easy": {
+      "version": "v1",
+      "config": {
+        "algorithm": "favourite-corner-blend",
+        "kind": "pip",
+        "habitShare": 0.5
+      }
+    },
+    "medium": {
+      "version": "v1",
+      "config": {
+        "algorithm": "echo-last-kick",
+        "kind": "marlow",
+        "read": 0.75,
+        "kickRead": 0.45
+      }
+    },
+    "hard": {
+      "version": "v1",
+      "config": {
+        "algorithm": "pattern-reader",
+        "kind": "vesper",
+        "read": 0.75,
+        "kickRead": 0.75
+      }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "algorithm": "habit-reader-bayes",
+        "kind": "sable",
+        "weight": 1.5
+      }
+    }
+  },
+  "measured": {},
+  "unpublished": {},
+  "unpublishedConfig": {},
+  "learnsFromHumans": false
+}

@@ -128,9 +128,10 @@ export async function createGameAgent(level: Level, opts: AgentOpts = {}): Promi
   return {
     // false: this agent is final, not a stand-in for one that is still being trained.
     preview: false,
-    reset(seed) {
-      // Mixing in the seat keeps two agents of the same level from drawing the same numbers or picking the same favourites.
-      const mixed = (seed ^ Math.imul(seat + 1, 0x9e3779b1)) | 0
+    reset(seed, forSeat) {
+      // Mixing in the seat keeps two agents of the same level from drawing the same numbers or picking the same favourites. A page learns the
+      // player's side only after the server row exists, which is after the opponent is built, so it passes the seat here.
+      const mixed = (seed ^ Math.imul((forSeat ?? seat) + 1, 0x9e3779b1)) | 0
       rng = makeRng(mixed)
       salt = Math.imul(mixed ^ 0x5bd1e995, 0x85ebca6b) | 0
     },

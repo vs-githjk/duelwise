@@ -3,9 +3,9 @@ import type { Seat } from './types'
 
 /**
  * Games where each match gives the player a random side: chess colour (seat 0 is White), and who moves first in Four in a Row and Crosscurrent
- * (seat 0 moves first). Stormglass, Hold'em, Word Duel and the real-time games keep the player in seat 0.
+ * (seat 0 moves first), and who kicks first in Twelve Yards (seat 0 kicks first). Stormglass, Hold'em, Word Duel and the real-time games keep the player in seat 0.
  */
-export const RANDOM_SIDE_GAMES: readonly GameId[] = ['chess', 'four', 'slack']
+export const RANDOM_SIDE_GAMES: readonly GameId[] = ['chess', 'four', 'slack', 'penalty']
 
 export function hasRandomSide(game: GameId): boolean {
   return RANDOM_SIDE_GAMES.includes(game)

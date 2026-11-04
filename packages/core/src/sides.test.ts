@@ -3,7 +3,7 @@ import { RANDOM_SIDE_GAMES, assignedSeat, hasRandomSide, sideForSeed, HUMAN_SEAT
 
 describe('random sides', () => {
   test('the four named games assign sides and the rest do not', () => {
-    expect([...RANDOM_SIDE_GAMES].sort()).toEqual(['chess', 'four', 'slack'])
+    expect([...RANDOM_SIDE_GAMES].sort()).toEqual(['chess', 'four', 'penalty', 'slack'])
     expect(hasRandomSide('chess')).toBe(true)
     expect(hasRandomSide('fleet')).toBe(false)
     expect(hasRandomSide('holdem')).toBe(false)
