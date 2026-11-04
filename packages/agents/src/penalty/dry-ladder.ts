@@ -11,8 +11,8 @@ type PairBudget = Parameters<typeof evaluatePair>[1]
  * and writes the numbers to the absolute path given as `out` (the CLI takes it as argv[2]). `game: 'four'` is only a label; the module-path core wins.
  * Run: nice -n 10 heavy-lock.sh bun packages/agents/src/penalty/dry-ladder.ts <abs path to plan/bench/penalty-dry-ladder.json>
  */
-const BUDGET: PairBudget = { maxGames: 800, looks: [] }
-const SEAT_GAMES = 400
+const BUDGET: PairBudget = { maxGames: 2000, looks: [] }
+const SEAT_GAMES = 1000
 const CORE = { module: '@duelwise/core/src/games/penalty', export: 'createPenaltyCore' }
 const AGENT = import.meta.dir + '/agent.ts'
 const RANDOM = import.meta.dir + '/../measure/four-random.ts'
