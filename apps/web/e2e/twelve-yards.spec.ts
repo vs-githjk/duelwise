@@ -201,10 +201,18 @@ test.describe('Twelve Yards fits on one screen', () => {
         }
         await expect(page.getByTestId('penalty-result')).toBeVisible()
         await expect(page.getByRole('button', { name: /^Rematch/ })).toBeVisible()
-        for (const id of ['play-hud', 'penalty-score', 'penalty-scene', 'penalty-action']) await expectOnScreen(page.getByTestId(id), `full time ${id}`)
-        await expect(action(page)).toHaveText('Play again')
-        expect(await scene(page).evaluate((el) => el.getBoundingClientRect().top), 'the scene did not move at full time').toBeCloseTo(top, 0)
-        if (size.width >= 1024) await expectOnScreen(page.getByRole('button', { name: /^Rematch/ }), 'full time Rematch')
+        if (size.width >= 1024) {
+          // Beside the scene: nothing moves at full time.
+          for (const id of ['play-hud', 'penalty-score', 'penalty-scene', 'penalty-action']) await expectOnScreen(page.getByTestId(id), `full time ${id}`)
+          await expect(action(page)).toHaveText('Play again')
+          expect(await scene(page).evaluate((el) => el.getBoundingClientRect().top), 'the scene did not move at full time').toBeCloseTo(top, 0)
+          await expectOnScreen(page.getByRole('button', { name: /^Rematch/ }), 'full time Rematch')
+        } else {
+          // Ruling Nov 4 01:40: the no-move rule is about play. On a phone the result panel is brought into view at full time like every other game's, so its verdict and Rematch are on screen once it settles.
+          await expect
+            .poll(async () => page.getByTestId('rematch').evaluate((el) => { const b = el.getBoundingClientRect(); return b.top >= 0 && b.bottom <= window.innerHeight }), { timeout: 6000 })
+            .toBe(true)
+        }
         expect((await scrolled(page)).x, 'no sideways scroll').toBe(0)
       })
     }

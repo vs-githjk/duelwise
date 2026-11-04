@@ -20,6 +20,9 @@ async function watchFrames(locator: Locator) {
     const w = window as unknown as { __tops: number[] }
     w.__tops = []
     const tick = () => {
+      // Conductor ruling Nov 4 01:40: "the scene never moves" is about play (aiming, kicking, diving). Once the result panel is up on a phone the page brings it into view
+      // like every other game (result-layout.spec checks that half), so recording stops when the panel mounts.
+      if (document.querySelector('[data-testid="result-panel"]')) return
       w.__tops.push(el.getBoundingClientRect().top + window.scrollY)
       requestAnimationFrame(tick)
     }
@@ -49,6 +52,7 @@ async function watchScreen(locator: Locator) {
     const w = window as unknown as { __screen: number[] }
     w.__screen = []
     const tick = () => {
+      if (document.querySelector('[data-testid="result-panel"]')) return // see watchFrames: the in-play half of the no-move rule
       w.__screen.push(el.getBoundingClientRect().top)
       requestAnimationFrame(tick)
     }
@@ -178,7 +182,10 @@ test.describe('Twelve Yards at 360 wide', () => {
     await expect(page.getByTestId('penalty-result')).toContainText(/You win\.|wins\.|A draw\./)
     await expectNoFrameShift(page, 'penalty whole match, role change, sudden death and result')
     await expectNoScreenShift(page, 'penalty whole match, role change, sudden death and result')
-    await expectStill(scene, first, 'penalty result')
+    // Ruling Nov 4 01:40: the no-move rule is about play (checked above, on every frame up to the panel). At full time the phone brings the result panel into view, so its Rematch is on screen.
+    await expect
+      .poll(async () => page.getByTestId('rematch').evaluate((el) => { const b = el.getBoundingClientRect(); return b.top >= 0 && b.bottom <= window.innerHeight }), { timeout: 6000 })
+      .toBe(true)
     await expectNoOverflow(page, 'result')
     await expectTargets(page, 'result')
   })
@@ -636,9 +643,14 @@ for (const height of [659, 852]) {
         kicks++
       }
       await expect(action).toHaveText('Play again')
-      await expectOnScreen(action, 'Play again')
+      // The bar belongs to play; once the panel has been brought into view (ruling Nov 4 01:40) the panel's Rematch is the way on, checked below.
       await expect(page.getByRole('button', { name: /^Rematch/ })).toBeVisible()
-      await expectStill(scene, first, 'full time')
+      // In play the scene never moved (above). At full time on a phone the result panel is brought into view (ruling Nov 4 01:40; ResultPanel does it for every game), so the
+      // verdict and Rematch must be on screen once it has settled.
+      await expect
+        .poll(async () => page.getByTestId('rematch').evaluate((el) => { const b = el.getBoundingClientRect(); return b.top >= 0 && b.bottom <= window.innerHeight }), { timeout: 6000 })
+        .toBe(true)
+      if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/fulltime-393x${height}.png` })
       await expectNoFrameShift(page, `whole match at 393x${height}`)
       await expectNoScreenShift(page, `whole match at 393x${height}`)
       await expectNoOverflow(page, 'full time')

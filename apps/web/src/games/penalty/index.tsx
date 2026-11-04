@@ -413,7 +413,8 @@ export default function PenaltyPage() {
             onRematch={() => void begin(live.level)}
             onPlayLevel={(l) => void begin(l)}
             levels={levelInfo}
-            keepPlace
+            // Beside the scene on a wide screen the panel needs no scroll and the scene must not move; on a phone it is brought into view like every other game's (ruling Nov 4 01:40).
+            keepPlace={window.innerWidth >= 1024}
             moves={match ? match.log.length : 0}
             onChangeLevel={() => {
               resetScene()
