@@ -54,7 +54,7 @@
         "arena": "Pre-aims common peeks and wins first contact.",
         "fleet": "Hunts where ships fit best, then works around a hit.",
         "slack": "Looks a few moves ahead and limits your options.",
-        "penalty": "Reads your last few kicks, but swaps corners in a pattern of its own."
+        "penalty": "Reads your last few kicks, and leans towards swapping corners, loosely enough that you cannot name the next kick."
       }
     },
     "champion": {
@@ -71,7 +71,7 @@
         "arena": "Quick counter-aim at any range.",
         "fleet": "Fires at the most likely square every time, hunting or finishing.",
         "slack": "Looks furthest ahead and works out the endgame exactly when it can.",
-        "penalty": "Watches for your habits during the match, and keeps its own kicks unpredictable."
+        "penalty": "Watches for your habits during the match, and keeps its own kicks unpredictable. It wins by catching habits: a player who truly mixes can hold it to about even."
       }
     }
   },
