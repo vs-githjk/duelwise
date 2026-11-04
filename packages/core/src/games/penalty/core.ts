@@ -56,6 +56,12 @@ export interface Kick {
 export interface PenaltyState {
   seed: number
   kicks: Kick[]
+  /**
+   * A counted match the server holds: one fresh random word per kick, drawn by the server from the system CSPRNG as the kick is played and kept in its log. When
+   * present, the kick's roll comes from its word and not from the seed, so the seed (32 bits, and recoverable by anyone who has seen a few kicks) decides nothing
+   * that is hidden. Absent for a match on this page's own core (a fixed seed, no connection), which rolls from the seed as before.
+   */
+  entropy?: number[]
 }
 
 export interface KickView {
@@ -119,15 +125,34 @@ function kickerOf(index: number): Seat {
   return (index % 2) as Seat
 }
 
-function roll(seed: number, index: number): number {
-  return makeRng((seed ^ Math.imul(index + 1, 0x85ebca6b)) | 0).int(1000)
+/** Integer hash so a kick's word is not the low bits of its stream. */
+function mix32(n: number): number {
+  let x = n | 0
+  x = Math.imul(x ^ (x >>> 16), 0x7feb352d)
+  x = Math.imul(x ^ (x >>> 15), 0x846ca68b)
+  return (x ^ (x >>> 16)) | 0
+}
+
+function roll(s: PenaltyState, index: number): number {
+  if (s.entropy === undefined) return makeRng((s.seed ^ Math.imul(index + 1, 0x85ebca6b)) | 0).int(1000)
+  const word = s.entropy[index]
+  if (word === undefined) throw new Error('penalty: no entropy for kick ' + index)
+  return makeRng(mix32(word ^ 0x2545f491)).int(1000)
+}
+
+/** The entropy a record carries in its options: a list of whole numbers, one per kick at most. Anything else is no entropy. */
+export function entropyOf(opts: Record<string, unknown> | undefined): number[] | undefined {
+  const e = opts?.entropy
+  if (!Array.isArray(e) || e.length > MAX_KICKS || !e.every((n) => Number.isInteger(n))) return undefined
+  return e as number[]
 }
 
 export const penaltyCore: GameCore<PenaltyState, Zone, PenaltyObs> = {
   id: ID,
   version: 'penalty-2',
-  init(seed) {
-    return { seed: seed | 0, kicks: [] }
+  init(seed, opts) {
+    const entropy = entropyOf(opts)
+    return entropy ? { seed: seed | 0, kicks: [], entropy: [...entropy] } : { seed: seed | 0, kicks: [] }
   },
   toAct: (s) => (isOver(s.kicks) ? [] : [0, 1]),
   legal: (s, seat) => {
@@ -145,9 +170,9 @@ export const penaltyCore: GameCore<PenaltyState, Zone, PenaltyObs> = {
     }
     const zone = actions[kicker] as Zone
     const dive = actions[(1 - kicker) as Seat] as Dive
-    const r = roll(s.seed, index)
+    const r = roll(s, index)
     const kick: Kick = { kicker, zone, dive, goal: r < GOAL_PER_MILLE[zone]![dive]!, onTarget: r < ON_TARGET_PER_MILLE[zone]! }
-    return { seed: s.seed, kicks: [...s.kicks, kick] }
+    return s.entropy ? { seed: s.seed, kicks: [...s.kicks, kick], entropy: s.entropy } : { seed: s.seed, kicks: [...s.kicks, kick] }
   },
   terminal: (s) => isOver(s.kicks),
   result(s): Result | null {

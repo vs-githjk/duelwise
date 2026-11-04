@@ -8,6 +8,8 @@ import type { GameCore, Result, Seat } from './types'
 export interface SealedLog {
   human: number[]
   agent: number[]
+  /** A game whose rolls and opponent draws come from fresh server randomness (Twelve Yards): one word per step of the player, drawn as that step is played. */
+  entropy?: number[]
 }
 
 export interface LogRun<S> {
@@ -23,9 +25,9 @@ export interface LogRun<S> {
  * seat is to act, `agentMove(state, index)`. It stops where the game wants a human action that is not there yet, before the agent is asked for anything.
  * Throws on an illegal action, on human actions left over after the game ended, or when `agentMove` has no move.
  */
-export function runLog<S>(core: GameCore<S, any, any>, seed: number, human: number[], agentMove: (s: S, index: number) => number | undefined, humanSeat: Seat = 0): LogRun<S> {
+export function runLog<S>(core: GameCore<S, any, any>, seed: number, human: number[], agentMove: (s: S, index: number) => number | undefined, humanSeat: Seat = 0, initOptions?: Record<string, unknown>): LogRun<S> {
   const agentSeat = (1 - humanSeat) as Seat
-  let s = core.init(seed)
+  let s = core.init(seed, initOptions)
   const agent: number[] = []
   let hi = 0
   while (!core.terminal(s)) {
@@ -57,9 +59,10 @@ const isIntList = (v: unknown): v is number[] => Array.isArray(v) && v.every((n)
 
 /** The sealed log kept on a match row, or null when there is none or it is not well formed. */
 export function sealedLogOf(flags: Record<string, unknown> | null): SealedLog | null {
-  const g = (flags as { sealedLog?: { human?: unknown; agent?: unknown } } | null)?.sealedLog
+  const g = (flags as { sealedLog?: { human?: unknown; agent?: unknown; entropy?: unknown } } | null)?.sealedLog
   if (!g || !isIntList(g.human) || !isIntList(g.agent)) return null
-  return { human: g.human, agent: g.agent }
+  if (g.entropy !== undefined && !isIntList(g.entropy)) return null
+  return { human: g.human, agent: g.agent, ...(g.entropy !== undefined ? { entropy: g.entropy } : {}) }
 }
 
 /**
@@ -71,7 +74,7 @@ export function loggedOutcome(game: GameId, seed: number, flags: Record<string, 
   if (!log) return null
   try {
     const core = getCore(game)
-    const run = runLog(core, seed, log.human, (_s, i) => log.agent[i], assignedSeat(flags))
+    const run = runLog(core, seed, log.human, (_s, i) => log.agent[i], assignedSeat(flags), log.entropy ? { entropy: log.entropy } : undefined)
     return { result: core.terminal(run.state) ? core.result(run.state) : null }
   } catch {
     return null
@@ -88,7 +91,9 @@ export function recordMatchesLog(rec: MatchRecordV1, flags: Record<string, unkno
   try {
     const core = getCore(rec.game)
     const humanSeat = assignedSeat(flags)
-    const run = runLog(core, rec.seed, log.human, (_s, i) => log.agent[i], humanSeat)
+    // The record must carry exactly the words the server drew (or none, for a game with none): the rolls come from them.
+    if (JSON.stringify(rec.options?.entropy ?? null) !== JSON.stringify(log.entropy ?? null)) return false
+    const run = runLog(core, rec.seed, log.human, (_s, i) => log.agent[i], humanSeat, log.entropy ? { entropy: log.entropy } : undefined)
     if (!core.terminal(run.state) || run.humanUsed !== log.human.length || run.agent.length !== log.agent.length) return false
     const played: [number[], number[]] = [[], []]
     for (const [, seat, a] of [...rec.actions].sort((x, y) => x[0] - y[0])) played[seat].push(a)

@@ -14,5 +14,5 @@ export const penaltyTurn = createServerFn({ method: 'POST' })
     const r = await sealedTurnHandler(db, data, who, PENALTY_SPEC)
     setResponseStatus(r.status)
     // The page reads the view as a PenaltyObs; the shared body type keeps it `unknown` so one handler serves every sealed game.
-    return r.body as { error: string } | { view: PenaltyObs; over: boolean; reveal?: { seed: number; agentActions: number[] } }
+    return r.body as { error: string } | { view: PenaltyObs; over: boolean; reveal?: { seed: number; agentActions: number[]; entropy?: number[] } }
   })

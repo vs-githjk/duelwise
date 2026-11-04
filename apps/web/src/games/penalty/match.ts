@@ -69,12 +69,12 @@ export function sameKick(a: Kick, b: Kick): boolean {
 
 /**
  * The record of a counted match that has just ended, from the player's picks, the opponent's picks the server revealed and the seed it revealed: both lists
- * are played through the real core. Throws when they do not make exactly one finished shootout. The state it returns holds the real seed.
+ * are played through the real core (with the kicks' random words when the server drew them). Throws when they do not make exactly one finished shootout. The state it returns holds the real seed.
  */
-export function recordFromPicks(seed: number, human: Seat, mine: number[], theirs: number[]): { actions: Array<[number, Seat, number]>; state: PenaltyState } {
+export function recordFromPicks(seed: number, human: Seat, mine: number[], theirs: number[], entropy?: number[]): { actions: Array<[number, Seat, number]>; state: PenaltyState } {
   const bad = 'The server sent a match that does not add up.'
   const agent = (1 - human) as Seat
-  let s = penaltyCore.init(seed)
+  let s = penaltyCore.init(seed, entropy ? { entropy } : undefined)
   const actions: Array<[number, Seat, number]> = []
   let tick = 0
   while (!penaltyCore.terminal(s)) {

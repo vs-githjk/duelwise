@@ -254,10 +254,11 @@ export function usePenaltyMatch(agentVersion: (level: Level) => string, learnsFr
     try {
       const reveal = held.reveal
       if (!reveal) throw new Error(RECORD_FAILED)
-      const built = recordFromPicks(reveal.seed, cur.human, held.picks, reveal.agentActions)
+      const built = recordFromPicks(reveal.seed, cur.human, held.picks, reveal.agentActions, reveal.entropy)
       const shown = cur.state.kicks
       if (built.state.kicks.length !== shown.length || built.state.kicks.some((k, i) => !sameKick(k, shown[i]!))) throw new Error(NOT_ADD_UP)
       recorder.setSeed(reveal.seed)
+      if (reveal.entropy) recorder.setOptions({ entropy: reveal.entropy })
       for (const [tick, seat, code] of built.actions) recorder.act(tick, seat, code, seat === cur.human ? held.ms[tick] : undefined)
       await recorder.finish(penaltyCore, built.state)
       if (mine !== epoch.current) return

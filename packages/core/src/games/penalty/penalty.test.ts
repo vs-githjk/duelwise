@@ -526,3 +526,43 @@ describe('penalty core: real replay() through the borrowed id', () => {
     expect(out2.error).toMatch(/illegal action 5/)
   })
 })
+
+describe('entropy: a match the server holds rolls from its own words, not from the seed', () => {
+  const play = (s0: ReturnType<typeof penaltyCore.init>, n: number) => {
+    let s = s0
+    for (let i = 0; i < n && !penaltyCore.terminal(s); i++) s = penaltyCore.step(s, (i % 2 === 0 ? [i % 9, 0] : [0, i % 5]) as never)
+    return s
+  }
+  const words = Array.from({ length: 34 }, (_, i) => (i * 2654435761) | 0)
+
+  test('without words nothing changes: the state has no entropy key and the roll is the seed\'s', () => {
+    const a = penaltyCore.init(77)
+    expect('entropy' in a).toBe(false)
+    expect(penaltyCore.init(77, {})).toEqual(a)
+    expect(play(a, 6)).toEqual(play(penaltyCore.init(77, { hands: 3 } as never), 6))
+  })
+
+  test('with words the seed no longer decides a roll: other seeds, same words, same shootout; other words, other shootout', () => {
+    const hash = (seed: number, w: number[]) => penaltyCore.hash(play(penaltyCore.init(seed, { entropy: w }), 10)).slice(0, 8)
+    const rolls = (seed: number, w: number[]) => play(penaltyCore.init(seed, { entropy: w }), 10).kicks.map((k) => `${k.goal}${k.onTarget}`).join()
+    expect(rolls(1, words)).toBe(rolls(999, words))
+    const seen = new Set<string>()
+    for (let i = 0; i < 20; i++) seen.add(rolls(1, words.map((x) => x ^ (i * 40503))))
+    expect(seen.size).toBeGreaterThan(5)
+    expect(hash(1, words)).not.toBe(penaltyCore.hash(play(penaltyCore.init(1), 10)).slice(0, 8))
+  })
+
+  test('a kick with no word is refused, never rolled from the seed, and words are copied so a caller cannot change them later', () => {
+    const s = penaltyCore.init(5, { entropy: [1, 2] })
+    const two = play(s, 2)
+    expect(() => penaltyCore.step(two, [0, 0] as never)).toThrow('no entropy for kick 2')
+    const w = [3, 4, 5]
+    const t = penaltyCore.init(5, { entropy: w })
+    w[0] = 99
+    expect(t.entropy).toEqual([3, 4, 5])
+  })
+
+  test('words that are not whole numbers, or too many, are ignored', () => {
+    for (const bad of [[1.5], ['a'], Array.from({ length: 35 }, () => 1), 'x', null]) expect('entropy' in penaltyCore.init(5, { entropy: bad } as never)).toBe(false)
+  })
+})

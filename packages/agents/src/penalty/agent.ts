@@ -130,7 +130,17 @@ function mixedSeed(seed: number, seat: Seat): number {
  * (the number of kicks already taken), so nothing is carried between calls and the same inputs give the same pick wherever they are asked: on the page
  * (unrated play), on the server when it plays the opponent of a counted match (server/sealed-duel.ts), and in the server's re-check of a record.
  */
-export function penaltyAgentAction(level: Level, seed: number, seat: Seat, obs: PenaltyObs): number {
+export function penaltyAgentAction(level: Level, seed: number, seat: Seat, obs: PenaltyObs, entropy?: readonly number[]): number {
+  if (entropy !== undefined) {
+    // A match the server holds: the draw and the favourites come from the kicks' random words, never from the seed. The first word fixes the favourites for the
+    // whole match, and each kick's own word is its draw, so a word the player has seen says nothing about the next one.
+    const first = entropy[0]
+    const word = entropy[obs.kicks.length]
+    if (first === undefined || word === undefined) throw new Error('penalty: no entropy for this kick')
+    const base = hashSalt(first ^ Math.imul(seat + 1, 0x9e3779b1))
+    const salt = Math.imul(base ^ 0x5bd1e995, 0x85ebca6b) | 0
+    return choosePenaltyAction(level, obs, makeRng(hashSalt(word ^ Math.imul(seat + 1, 0x9e3779b1) ^ 0x7f4a7c15) | 0), salt)
+  }
   const mixed = mixedSeed(seed, seat)
   const salt = Math.imul(mixed ^ 0x5bd1e995, 0x85ebca6b) | 0
   const rng = makeRng(hashSalt(mixed ^ Math.imul(obs.kicks.length + 1, 0x85ebca6b)) | 0)
@@ -150,8 +160,9 @@ export async function createGameAgent(level: Level, opts: AgentOpts = {}): Promi
       seed = next
       forSeat = nextSeat ?? seat
     },
-    async act(obs) {
-      return [penaltyAgentAction(level, seed, forSeat, obs as PenaltyObs)]
+    async act(obs, state) {
+      // The server's check passes the state, which carries the match's entropy words when the match was held by the server.
+      return [penaltyAgentAction(level, seed, forSeat, obs as PenaltyObs, (state as { entropy?: number[] } | undefined)?.entropy)]
     },
     dispose() {},
   }

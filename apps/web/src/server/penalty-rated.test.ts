@@ -58,7 +58,7 @@ const rowOf = async (id: string) => (await db.select().from(schema.match).where(
 const finish = (rec: MatchRecordV1, who = USER) => finishMatchHandler(db, encodeRecord(rec), who, REAL)
 const ask = (matchId: string, actions: number[], who = USER) => sealedTurnHandler(db, { matchId, actions }, who, PENALTY_SPEC)
 const bodyOf = (r: { body: unknown }) => r.body as SealedTurnBody
-const storedLog = async (id: string) => (await rowOf(id)).filterFlags as { humanSeat?: number; loggedWin?: boolean; sealedLog?: { human: number[]; agent: number[] } } | null
+const storedLog = async (id: string) => (await rowOf(id)).filterFlags as { humanSeat?: number; loggedWin?: boolean; sealedLog?: { human: number[]; agent: number[]; entropy?: number[] } } | null
 
 async function begin(seed = SEED, side: Seat = 0, who = USER, lvl: Level = level) {
   const r = await startMatchHandler(db, { sides: 1, game: 'penalty', level: lvl }, who, { seed: () => seed, agentVersion: () => 'v1', side: () => side })
@@ -90,11 +90,12 @@ async function playOut(m: { matchId: string }, side: Seat, who = USER, lvl: Leve
   }
   const reveal = last?.reveal
   if (!last?.over || !reveal) return { picks, views, last, rec: null as MatchRecordV1 | null }
-  const built = recordFromPicks(reveal.seed, side, picks, reveal.agentActions)
+  const built = recordFromPicks(reveal.seed, side, picks, reveal.agentActions, reveal.entropy)
   const rec: MatchRecordV1 = {
     schema: 1, matchId: m.matchId, game: 'penalty', coreVersion: penaltyCore.version, agent: { version: 'v1', level: lvl }, seed: reveal.seed, humanSeat: side, actions: built.actions,
     result: penaltyCore.result(built.state)!, finalHash: penaltyCore.hash(built.state),
     startedAt: '2026-11-03T10:00:00.000Z', endedAt: '2026-11-03T10:01:00.000Z', device: 'desktop', input: 'mouse', trainingAllowed: true,
+    options: { entropy: reveal.entropy! },
   }
   expect(replay(rec).ok).toBe(true)
   return { picks, views, last, rec }
@@ -143,10 +144,10 @@ describe('a rated match through the hidden choice, from either side', () => {
       for (const [i, r] of out.views.entries()) if (i < out.views.length - 1) expect(r.over).toBe(false)
       // The server's pick for each kick is the one the agent package makes (so the server's re-check will reproduce it).
       const log = (await storedLog(m.matchId))!.sealedLog!
-      let s = penaltyCore.init(SEED)
+      let s = penaltyCore.init(SEED, { entropy: log.entropy! })
       log.agent.forEach((code, i) => {
         const agentSeat = (1 - side) as Seat
-        expect(code).toBe(penaltyAgentAction(level, SEED, agentSeat, penaltyCore.observe(s, agentSeat)))
+        expect(code).toBe(penaltyAgentAction(level, SEED, agentSeat, penaltyCore.observe(s, agentSeat), log.entropy))
         const pair: [number, number] = [0, 0]
         pair[side] = log.human[i]!
         pair[agentSeat] = code
@@ -219,16 +220,97 @@ describe('the hidden choice: nothing about the opponent leaves the server before
     }
   })
 
-  test('the server\'s pick for a kick does not depend on the player\'s pick for that kick, and a kick is answered only with the pick that was sent', async () => {
-    // Same seed, same earlier picks, a different pick on the newest kick: the opponent's pick is the same (it is made from the kicks before it), so the
-    // pick cannot be learned by trying one and seeing how the opponent answers; the choice is final once sent (next test).
-    const a = await begin(SEED, 0, { userId: 'u-1' })
-    const b = await begin(SEED, 0, { userId: 'u-2' })
-    const ra = (bodyOf(await ask(a.matchId, [0], { userId: 'u-1' })).view as PenaltyObs).kicks[0]!
-    const rb = (bodyOf(await ask(b.matchId, [8], { userId: 'u-2' })).view as PenaltyObs).kicks[0]!
-    expect(ra.dive).toBe(rb.dive)
-    expect(ra.zone).toBe(0)
-    expect(rb.zone).toBe(8)
+  test('two matches with the same seed and the same picks do not share the opponent\'s later picks or the rolls beyond chance: the seed decides nothing hidden', async () => {
+    // Fixed picks, many rows on one seed. If the seed decided the opponent or the rolls, every row would play the same shootout.
+    const runs: Array<{ dives: number[]; goals: boolean[] }> = []
+    for (let n = 0; n < 40; n++) {
+      await db.execute(sql`truncate table match`)
+      const m = await begin(SEED, 0, USER, 'easy')
+      const picks: number[] = []
+      let view = penaltyCore.observe(penaltyCore.init(0), 0)
+      for (let k = 0; k < 6; k++) {
+        picks.push(view.role === 'shooter' ? (k * 4) % 9 : k % 5)
+        const body = bodyOf(await ask(m.matchId, picks))
+        view = body.view as PenaltyObs
+        if (body.over) break
+      }
+      runs.push({ dives: view.kicks.map((k) => (k.byMe ? k.dive : k.zone)), goals: view.kicks.map((k) => k.outcome === 'goal') })
+    }
+    const key = (r: { dives: number[]; goals: boolean[] }) => JSON.stringify([r.dives, r.goals])
+    expect(new Set(runs.map(key)).size).toBeGreaterThan(30)
+    // The later kicks (3 on) agree between two rows about as often as chance says, never always.
+    for (let k = 2; k < 5; k++) {
+      let same = 0
+      let pairs = 0
+      for (let i = 0; i < runs.length; i++) for (let j = i + 1; j < runs.length; j++) {
+        if (runs[i]!.dives[k] === undefined || runs[j]!.dives[k] === undefined) continue
+        pairs++
+        if (runs[i]!.dives[k] === runs[j]!.dives[k]) same++
+      }
+      expect(same / pairs).toBeLessThan(0.5)
+    }
+  })
+
+  test('the seed finds nothing: rebuilding the opponent and the rolls from the stored seed does not reproduce what the match showed', async () => {
+    let fits = 0
+    for (let n = 0; n < 8; n++) {
+      await db.execute(sql`truncate table match`)
+      const m = await begin(SEED + n, 0, USER, 'easy')
+      const out = await playOut(m, 0, USER, 'easy', 7)
+      const shown = out.views[out.views.length - 1]!.kicks
+      // The old way: every pick and roll a function of the 32-bit seed, which is what a script that filters seeds would assume.
+      let s = penaltyCore.init(SEED + n)
+      let ok = true
+      for (let k = 0; k < shown.length && ok; k++) {
+        const dive = penaltyAgentAction('easy', SEED + n, 1, penaltyCore.observe(s, 1))
+        const pair: [number, number] = [out.picks[k]!, dive]
+        s = penaltyCore.step(s, pair as never)
+        const kick = s.kicks[k]!
+        ok = kick.dive === shown[k]!.dive && kick.goal === (shown[k]!.outcome === 'goal') && kick.onTarget === (shown[k]!.outcome !== 'wide')
+      }
+      if (ok && shown.length >= 5) fits++
+    }
+    expect(fits).toBe(0)
+  })
+
+  test('a mid-match reply, an error and the start reply hold neither the seed nor any random word; the log keeps them server side', async () => {
+    const m = await begin(SEED + 99, 0)
+    const seen: string[] = [JSON.stringify(m)]
+    const picks: number[] = []
+    let view = penaltyCore.observe(penaltyCore.init(0), 0)
+    for (let k = 0; k < 3; k++) {
+      picks.push(pickFor(view, makeRng(k + 1)))
+      const r = await ask(m.matchId, picks)
+      seen.push(JSON.stringify(r.body))
+      view = bodyOf(r).view as PenaltyObs
+    }
+    seen.push(JSON.stringify((await ask(m.matchId, [9, 9, 9])).body), JSON.stringify((await ask(m.matchId, [1])).body))
+    const words = (await storedLog(m.matchId))!.sealedLog!.entropy!
+    expect(words).toHaveLength(3)
+    for (const text of seen) {
+      expect(text).not.toContain('entropy')
+      expect(text).not.toContain(String(SEED + 99))
+      for (const w of words) expect(text).not.toContain(String(w))
+    }
+  })
+
+  test('the rolls and the opponent replay from the revealed words: a record with other words, none, or an altered word is refused', async () => {
+    const m = await begin(SEED, 0)
+    const out = await playOut(m, 0)
+    const rec = out.rec!
+    const words = rec.options!.entropy
+    const changed = [...words]
+    changed[0] = changed[0]! ^ 1
+    for (const options of [{ entropy: changed }, { entropy: words.slice(0, -1) }, undefined]) {
+      const bad = { ...rec, options } as MatchRecordV1
+      delete (bad as { options?: unknown }).options
+      if (options) bad.options = options
+      const r = await finish(bad)
+      expect(r.body).toMatchObject({ valid: false })
+      await db.update(schema.match).set({ status: 'started', result: null, record: null, recordValid: null, invalidReason: null }).where(eq(schema.match.id, m.matchId))
+      await db.execute(sql`truncate table rating`)
+    }
+    expect((await finish(rec)).body).toMatchObject({ valid: true })
   })
 
   test('a pick cannot be changed after the opponent\'s answer: a different pick for a stored kick is refused and the stored kick stays', async () => {
@@ -277,16 +359,19 @@ describe('the hidden choice: nothing about the opponent leaves the server before
 })
 
 /** Plays a shootout through the real core with the player's picks from `picks` (first legal pick once they run out or one is not legal) and the opponent's from `agent(state, tick)`; returns both lists and a record of it. */
-function forge(base: MatchRecordV1, side: Seat, picks: number[], agent: (s: ReturnType<typeof penaltyCore.init>, tick: number) => number) {
+function forge(base: MatchRecordV1, side: Seat, picks: number[], agent: (s: ReturnType<typeof penaltyCore.init>, tick: number, entropy: number[]) => number) {
   const agentSeat = (1 - side) as Seat
-  let s = penaltyCore.init(base.seed)
+  // A forged game can run longer than the real one, so the words are padded (the forger's best case: every kick has one).
+  const words = [...(base.options?.entropy ?? [])]
+  while (words.length < 34) words.push(words.length * 7919 + 1)
+  let s = penaltyCore.init(base.seed, { entropy: words })
   const mine: number[] = []
   const theirs: number[] = []
   const actions: MatchRecordV1['actions'] = []
   for (let tick = 0; !penaltyCore.terminal(s); tick++) {
     const legal = penaltyCore.legal(s, side) as number[]
     const a = picks[tick] !== undefined && legal.includes(picks[tick]!) ? picks[tick]! : legal[0]!
-    const b = agent(s, tick)
+    const b = agent(s, tick, words)
     const pair: [number, number] = [0, 0]
     pair[side] = a
     pair[agentSeat] = b
@@ -295,9 +380,9 @@ function forge(base: MatchRecordV1, side: Seat, picks: number[], agent: (s: Retu
     actions.push([tick, 0, pair[0]], [tick, 1, pair[1]])
     s = penaltyCore.step(s, pair as never)
   }
-  const rec: MatchRecordV1 = { ...base, actions, result: penaltyCore.result(s)!, finalHash: penaltyCore.hash(s) }
+  const rec: MatchRecordV1 = { ...base, actions, result: penaltyCore.result(s)!, finalHash: penaltyCore.hash(s), options: { entropy: words } }
   expect(replay(rec).ok).toBe(true)
-  return { rec, mine, theirs }
+  return { rec, mine, theirs, words }
 }
 
 describe('the record must be the server\'s own turns, and the opponent must be the opponent', () => {
@@ -324,11 +409,11 @@ describe('the record must be the server\'s own turns, and the opponent must be t
       const out = await playOut(m, side)
       const agentSeat = (1 - side) as Seat
       // Every opponent pick replaced by the first legal pick that differs from the real one, so the log and the record agree but the opponent never played them.
-      const forged = forge(out.rec!, side, out.picks, (s) => {
-        const real = penaltyAgentAction(level, SEED + 5, agentSeat, penaltyCore.observe(s, agentSeat))
+      const forged = forge(out.rec!, side, out.picks, (s, _t, words) => {
+        const real = penaltyAgentAction(level, SEED + 5, agentSeat, penaltyCore.observe(s, agentSeat), words)
         return (penaltyCore.legal(s, agentSeat) as number[]).find((c) => c !== real)!
       })
-      await db.update(schema.match).set({ filterFlags: { humanSeat: side, sealedLog: { human: forged.mine, agent: forged.theirs } } }).where(eq(schema.match.id, m.matchId))
+      await db.update(schema.match).set({ filterFlags: { humanSeat: side, sealedLog: { human: forged.mine, agent: forged.theirs, entropy: forged.words } } }).where(eq(schema.match.id, m.matchId))
       const r = await finish(forged.rec)
       expect(r.body).toMatchObject({ valid: false, result: null })
       expect((r.body as { reason: string }).reason).toContain('not the ones the opponent plays')
