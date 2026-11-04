@@ -18,8 +18,8 @@ export type PenaltyLevelConfig =
 export const PENALTY_LEVELS: Record<Level, PenaltyLevelConfig> = {
   easy: { kind: 'pip' },
   medium: { kind: 'marlow', read: 0.5, kickRead: 0.38 },
-  hard: { kind: 'vesper', read: 1, kickRead: 0.52, reader: 0.2, readerGrowth: 0.3, prior: 0.4 },
-  champion: { kind: 'sable', weight: 1.5, cap: 0.8 },
+  hard: { kind: 'vesper', read: 1, kickRead: 0.52, reader: 0.2, readerGrowth: 0.7, prior: 0.4 },
+  champion: { kind: 'sable', weight: 1.1, cap: 0.8 },
 }
 
 /**
