@@ -280,7 +280,7 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     const notice = page.getByTestId('training-notice')
     await expect(notice).toContainText('recorded for your report')
     await context.setOffline(true)
-    await expect(page.getByTestId('offline-chip').or(page.getByTestId('penalty-offline-slot'))).toBeVisible()
+    await expect(page.getByTestId('offline-chip').or(page.getByTestId('penalty-offline-slot')).first()).toBeVisible()
     await expect(notice).toContainText('recorded for your report')
     await expect(notice).not.toContainText('not saved')
     await context.setOffline(false)
