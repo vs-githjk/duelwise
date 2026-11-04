@@ -9,7 +9,7 @@ import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, VES
 
 /** The dials the tests below read their exact numbers from, so a retune moves the formulas and not just the constants. */
 const MARLOW = PENALTY_LEVELS.medium as { kind: 'marlow'; read: number; kickRead: number }
-const VESPER = PENALTY_LEVELS.hard as { kind: 'vesper'; read: number; kickRead: number }
+const VESPER = PENALTY_LEVELS.hard as { kind: 'vesper'; read: number; kickRead: number; reader: number }
 
 const zoneAt = (z: number) => one(z, 9)
 const diveAt = (d: number) => one(d, 5)
@@ -334,7 +334,8 @@ describe('Vesper', () => {
     // Zones BR then TL: the swap predicts BR, the most common of the two would say TL or BR's cover by count.
     const c = draws('hard', obs('keeper', [view(false, BR, STAY), view(true, C, STAY), view(false, TL, STAY)]), 8000)
     const want = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[RL]!
-    expect(Math.abs(c[RL]! / 8000 - want)).toBeLessThan(0.02)
+    // The rule carries (1 - reader) of the dive; the small pattern reader may add to it or take a little away.
+    expect(c[RL]! / 8000).toBeGreaterThan((1 - VESPER.reader) * want - 0.02)
     expect(c[LH]! / 8000).toBeLessThan(0.2)
   })
 
@@ -343,7 +344,7 @@ describe('Vesper', () => {
     const hist = [BR, BR, BR, C, TL, TL].map((z) => view(false, z, STAY))
     const c = draws('hard', obs('keeper', hist), 8000)
     const want = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[LH]!
-    expect(Math.abs(c[LH]! / 8000 - want)).toBeLessThan(0.02)
+    expect(c[LH]! / 8000).toBeGreaterThan((1 - VESPER.reader) * want - 0.02)
     expect(c[RL]! / 8000).toBeLessThan(0.2)
   })
 })

@@ -3,7 +3,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng, Seat } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
-import { bestKeeper, bestShooter, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
+import { bestKeeper, bestShooter, VESPER_SHAPES, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, PIP_SHOOTER, VESPER_SWAP } from './levels'
 
 /**
@@ -113,7 +113,10 @@ export function levelDist(level: Level, obs: PenaltyObs, salt: number): Dist {
       const common = cnt.indexOf(Math.max(...cnt))
       const n = s.oppKicks.length
       const pred = n >= 2 && s.oppKicks[n - 1] !== s.oppKicks[n - 2] ? s.oppKicks[n - 2]! : common
-      return mix(dive(COVER[pred]!), eq, cfg.read)
+      // Mostly the rule above, with a share of a small pattern reader (repeat, alternate, three back, four back) so that a loop of corners does not beat the rule every time.
+      const { out, eqP } = predict(VESPER_SHAPES, s.oppKicks, s.myDives)
+      const reader = mix(bestKeeper(out, fav.side), eq, Math.min(cfg.read, 1 - eqP))
+      return mix(reader, mix(dive(COVER[pred]!), eq, cfg.read), cfg.reader)
     }
     case 'sable': {
       const stream = shooter ? s.oppDives : s.oppKicks
