@@ -183,19 +183,32 @@ describe('every level', () => {
 })
 
 describe('Pip', () => {
-  test('only uses a favourite and its mirror, about 75% on the favourite, never the middle, in both roles', () => {
+  test('a favourite and its mirror lead, and every zone and dive still gets a share, in both roles', () => {
     for (const role of ['shooter', 'keeper'] as const) {
       for (const salt of [1, 2, 3, 4, 5, 6]) {
-        const c = draws('easy', obs(role), 2000, salt)
-        const f = c.indexOf(Math.max(...c))
-        const m = role === 'shooter' ? mirrorZone(f) : mirrorDive(f)
-        expect(f).not.toBe(role === 'shooter' ? C : STAY)
-        expect(c[f]! + c[m]!).toBe(2000)
-        expect(c[f]! / 2000).toBeGreaterThan(0.72)
-        expect(c[f]! / 2000).toBeLessThan(0.78)
-        if (role === 'shooter') expect([TL, TR, BL, BR]).toContain(f)
+        const m = exactMix('easy', obs(role), salt)
+        // The keeper's biggest share is the stay; its favourite is the biggest side dive.
+        const f = m.indexOf(Math.max(...m.map((x, i) => (role === 'keeper' && i === STAY ? 0 : x))))
+        const mir = role === 'shooter' ? mirrorZone(f) : mirrorDive(f)
+        expect(m.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9)
+        expect(m[f]!).toBeGreaterThan(m[mir]!)
+        expect(m.every((x, i) => i === f || i === mir || (role === 'keeper' && i === STAY) || x < m[mir]!)).toBe(true)
+        expect(Math.min(...m)).toBeGreaterThanOrEqual(0.007)
+        if (role === 'shooter') {
+          expect([TL, TR, BL, BR]).toContain(f)
+          expect(m[C]!).toBeGreaterThanOrEqual(0.05)
+          for (const z of [TL, TR, BL, BR]) expect(m[z]!).toBeGreaterThanOrEqual(0.03)
+        } else {
+          expect(m[STAY]!).toBeCloseTo(0.4, 6)
+          for (const d of [LH, LL, RH, RL]) expect(m[d]!).toBeGreaterThanOrEqual(0.05)
+        }
       }
     }
+  })
+
+  test('over 1000 kicks one match shows at least seven different zones and all five dives', () => {
+    expect(draws('easy', obs('shooter'), 1000, 7).filter((x) => x > 0).length).toBeGreaterThanOrEqual(7)
+    expect(draws('easy', obs('keeper'), 1000, 7).filter((x) => x > 0).length).toBe(5)
   })
 
   test('is not moved by what happened', () => {
@@ -240,9 +253,9 @@ describe('Marlow', () => {
   test('as shooter goes away from the side the keeper dived to most', () => {
     const hist = [view(true, C, LH), view(false, TL, LL), view(true, C, LL)]
     const c = draws('medium', obs('shooter', hist), 3000)
-    expect((c[TR]! + c[BR]!) / 3000).toBeGreaterThan(0.74)
+    expect((c[TR]! + c[BR]!) / 3000).toBeGreaterThan(0.64)
     const d = draws('medium', obs('shooter', [view(true, C, RH), view(true, C, RL)]), 3000)
-    expect((d[TL]! + d[BL]!) / 3000).toBeGreaterThan(0.74)
+    expect((d[TL]! + d[BL]!) / 3000).toBeGreaterThan(0.64)
   })
 
   test('as shooter keeps the height of its favourite corner when it goes away, in both rows', () => {
@@ -262,13 +275,13 @@ describe('Marlow', () => {
     expect(openerSides('medium')).toEqual(new Set([0, 2]))
     const tied = [view(true, C, LH), view(true, C, RL)]
     expect(openerSides('medium', tied)).toEqual(new Set([0, 2]))
-    // 0.75 on the salt corner plus that corner's own share of the equilibrium 0.25, for each of the four corners.
+    // 0.45 on the salt corner plus that corner's own share of the equilibrium 0.55, for each of the four corners.
     const corners = new Set<number>()
     for (let salt = 0; salt < 40; salt++) {
       const m = exactMix('medium', obs('shooter', tied), salt)
       const corner = m.indexOf(Math.max(...m))
       corners.add(corner)
-      expect(m[corner]!).toBeCloseTo(0.75 + 0.25 * EQ_SHOOTER[corner]!, 6)
+      expect(m[corner]!).toBeCloseTo(0.45 + 0.55 * EQ_SHOOTER[corner]!, 6)
     }
     expect(corners).toEqual(new Set([TL, TR, BL, BR]))
   })
@@ -421,7 +434,7 @@ describe('Sable', () => {
 
   test('the shoot and dive favourites are independent: all sixteen pairs turn up across salts', () => {
     const major = (role: 'shooter' | 'keeper', salt: number) => {
-      const c = draws('easy', obs(role), 60, salt)
+      const c = exactMix('easy', obs(role), salt).map((x, i) => (role === 'keeper' && i === STAY ? 0 : x))
       return c.indexOf(Math.max(...c))
     }
     const pairs = new Set<string>()

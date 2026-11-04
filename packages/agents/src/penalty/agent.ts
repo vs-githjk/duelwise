@@ -4,7 +4,7 @@ import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
 import { bestKeeper, bestShooter, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
-import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS } from './levels'
+import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, PIP_SHOOTER } from './levels'
 
 /**
  * Twelve Yards agent: four habit levels, each a small scripted reader of the opponent's last kicks. Pip has one favourite corner
@@ -41,6 +41,26 @@ function favourites(salt: number): { shoot: number; dive: number; side: 0 | 2 } 
   return { shoot: CORNERS[h & 3]!, dive: SIDE_DIVES[(h >>> 2) & 3]!, side: (h >>> 4) & 1 ? 2 : 0 }
 }
 
+/** Pip's kicks: a favourite corner, its mirror, a little on the other corners, the centre and the edge zones. Stateless, so nothing it saw changes it. */
+function pipShooter(fav: number): Dist {
+  const d = new Array<number>(ZONE_COUNT).fill(PIP_SHOOTER.edge)
+  for (const c of CORNERS) d[c] = c < 3 ? PIP_SHOOTER.topCorner : PIP_SHOOTER.bottomCorner
+  d[4] = PIP_SHOOTER.centre
+  d[fav] = PIP_SHOOTER.favourite
+  d[mirrorZone(fav)] = PIP_SHOOTER.mirror
+  const sum = d.reduce((x, y) => x + y, 0)
+  return d.map((x) => x / sum)
+}
+
+/** Pip's dives: a favourite side dive, its mirror, a little on the other two side dives, and the stay. */
+function pipKeeper(fav: number): Dist {
+  const d = new Array<number>(DIVE_COUNT).fill(PIP_KEEPER.stay)
+  for (const c of SIDE_DIVES) d[c] = PIP_KEEPER.otherSide
+  d[fav] = PIP_KEEPER.favourite
+  d[mirrorDive(fav)] = PIP_KEEPER.mirror
+  return d
+}
+
 function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
   const cfg = PENALTY_LEVELS[level]
   const shooter = obs.role === 'shooter'
@@ -51,7 +71,7 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
   const dive = (d: number) => one(d, DIVE_COUNT)
   switch (cfg.kind) {
     case 'pip':
-      return shooter ? mix(zone(fav.shoot), zone(mirrorZone(fav.shoot)), cfg.favourite) : mix(dive(fav.dive), dive(mirrorDive(fav.dive)), cfg.favourite)
+      return shooter ? mix(mix(zone(fav.shoot), zone(mirrorZone(fav.shoot)), 0.75), pipShooter(fav.shoot), PIP_HABIT_SHARE) : mix(mix(dive(fav.dive), dive(mirrorDive(fav.dive)), 0.75), pipKeeper(fav.dive), PIP_HABIT_SHARE)
     case 'marlow': {
       if (shooter) {
         // Goes away from the side the keeper dived to most, at the favourite corner's height; the first kick is the favourite.
@@ -64,7 +84,7 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
         }
         const row = fav.shoot >= 6 ? 6 : 0
         const away = left > right ? row + 2 : right > left ? row : fav.shoot
-        return mix(zone(away), eq, cfg.read)
+        return mix(zone(away), eq, cfg.kickRead)
       }
       if (!s.oppKicks.length) return [...EQ_KEEPER]
       return mix(dive(COVER[s.oppKicks[s.oppKicks.length - 1]!]!), eq, cfg.read)
@@ -74,7 +94,7 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
         // Swaps corners every kick: strong, and predictable on purpose.
         if (!s.myKicks.length) return zone(fav.shoot)
         const last = s.myKicks[s.myKicks.length - 1]!
-        return mix(zone(last % 3 === 1 ? fav.shoot : mirrorZone(last)), eq, cfg.read)
+        return mix(zone(last % 3 === 1 ? fav.shoot : mirrorZone(last)), eq, cfg.kickRead)
       }
       if (!s.oppKicks.length) return [...EQ_KEEPER]
       const cnt = new Array<number>(ZONE_COUNT).fill(0)
