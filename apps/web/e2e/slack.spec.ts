@@ -996,11 +996,15 @@ test.describe('Crosscurrent on a phone', () => {
   })
 
   test('offline: every other page keeps the fixed chip and its old line', async ({ page, context }) => {
-    await page.goto('/play/chess')
-    await page.waitForLoadState('networkidle')
-    await context.setOffline(true)
-    await expect(page.getByTestId('offline-chip')).toHaveText('Offline: matches will sync later')
-    expect(await page.getByTestId('offline-chip').evaluate((el) => getComputedStyle(el).position)).toBe('fixed')
+    // Chess, Four and Hold'em (offline matches are unrated) say so; a page whose offline matches are queued still says they sync later. Both stay the fixed chip.
+    for (const [path, text] of [['/play/chess', 'Offline: matches are not counted'], ['/play/word-duel', 'Offline: matches will sync later']] as const) {
+      await context.setOffline(false)
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+      await context.setOffline(true)
+      await expect(page.getByTestId('offline-chip'), path).toHaveText(text)
+      expect(await page.getByTestId('offline-chip').evaluate((el) => getComputedStyle(el).position), path).toBe('fixed')
+    }
   })
 
   test('a reload in the middle of a Rated match gives the match up once and setup says so', async ({ page }) => {
