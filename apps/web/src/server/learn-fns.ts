@@ -3,7 +3,7 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { getServerDb } from './server-db'
 import { gameRecordsTrainable, registryFor } from './stats-fns'
 import { getGameStats, sinceChampion, withRegistryRuns } from './stats'
-import type { ChampionFacts } from '../lib/learn-copy'
+import { gateLine, type ChampionFacts } from '../lib/learn-copy'
 
 export interface LearnVersion {
   version: string
@@ -36,11 +36,6 @@ function gateFacts(gate: unknown): ChampionFacts['gate'] {
   return typeof a === 'number' && typeof b === 'number' ? { score: gate.score, n: gate.n, ci95: [a, b] } : null
 }
 
-const oneLine = (rule: string): string => {
-  const first = rule.replace(/^R\d+:\s*/, '').split(/[;:]/)[0]!.trim()
-  return first.length > 110 ? `${first.slice(0, 107)}...` : first
-}
-
 /** Everything the "watch the AI learn" graph and its words need for one game, from the match store and the registry. Nothing is invented. */
 export const getLearnView = createServerFn({ method: 'GET' })
   .validator((d: unknown) => {
@@ -62,7 +57,7 @@ export const getLearnView = createServerFn({ method: 'GET' })
         promotedAt: v.promotedAt ?? null,
         humanMatchesUsed: v.humanMatchesUsed,
         isChampion: v.version === reg?.champion,
-        rule: isObj(v.gate) && typeof v.gate.rule === 'string' ? oneLine(v.gate.rule) : null,
+        rule: gateLine(v.gate),
       }))
     let sinceCount = 0
     let sinceEligible = 0

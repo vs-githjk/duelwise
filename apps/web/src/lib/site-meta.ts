@@ -1,10 +1,10 @@
-import { PRODUCT } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord } from '@duelwise/core/src/product'
 
 /** The public origin. Link previews need an absolute image address, and crawlers only ever read the live site, so this is a constant, not the request host. */
 export const SITE_ORIGIN = 'https://duelwise.app'
 export const SHARE_TITLE = `${PRODUCT.name}: Can you beat my agents?`
-export const SHARE_DESCRIPTION = 'Six games against four AI opponents, from easy Pip to champion Sable. No account needed.'
-const SHARE_IMAGE = `${SITE_ORIGIN}/og/duelwise-og.png?v=2`
+export const SHARE_DESCRIPTION = `${gameCountWord()} games against four AI opponents, from easy Pip to champion Sable. No account needed.`
+const SHARE_IMAGE = `${SITE_ORIGIN}/og/duelwise-og.png?v=3`
 const SHARE_ALT = 'Duelwise: Can you beat my agents? The Duelwise mark beside the four AI opponents, Pip, Marlow, Vesper and Sable.'
 
 /** The home page's address; other routes leave og:url unset rather than point at the wrong page. */

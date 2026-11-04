@@ -25,7 +25,7 @@ const STINGER_URL: Record<StingerOutcome, string> = { win: `${ROOT}/stingers/win
 /** Length of each stinger file, so the music comes back when it ends. */
 const STINGER_MS: Record<StingerOutcome, number> = { win: 2300, loss: 3000 }
 
-const MOOD_BY_GAME: Record<string, Mood> = { chess: 'board', four: 'board', word: 'board', holdem: 'poker', fighter: 'action', arena: 'action' }
+const MOOD_BY_GAME: Record<string, Mood> = { chess: 'board', four: 'board', word: 'board', holdem: 'poker', fighter: 'action', arena: 'action', fleet: 'board', slack: 'board' }
 
 /** Music level relative to the master volume. */
 export const MUSIC_LEVEL = 0.25
@@ -342,7 +342,7 @@ export function duckMusic(ms = MAX_HOLD_MS): () => void {
 }
 
 /**
- * The result sound of a match, for all six games: plays the win or loss stinger (when sound effects are on) and ducks the music under it.
+ * The result sound of a match, for every game: plays the win or loss stinger (when sound effects are on) and ducks the music under it.
  * `delayMs` lets a game put it after its own last animation.
  */
 export function playStinger(outcome: StingerOutcome, delayMs = 0): void {

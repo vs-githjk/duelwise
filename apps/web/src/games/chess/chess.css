@@ -1,0 +1,63 @@
+/*
+ * Chess on a laptop. A phone and a tablet keep the shell's own layout (the column is one board wide, the stage and frame as before). From 1024 up,
+ * while a match is on, the board is as large as the height allows, so the HUD and status, the whole labelled board and the move list are on screen with no scroll.
+ * --ch-chrome is everything on the page that is not the stage (the lit surface and wooden frame round the board): the nav (65), the shell padding (4 + 4),
+ * the header (44), the gap under it (8), the HUD and status row (36), the gaps round the stage (8 + 8) and the notice line under it (20), 197 in all (200 keeps 3px spare).
+ * Under 800px of height the status takes its own 36px row (and an 8px gap) under the HUD so it never clips: 220 (the row and its gap measure 25 more than the single row: 28 with 3 spare). The stage is square, so its width is the height left.
+ * The page is as wide as the two columns need (the shell's 1100 cap would hold the board to 668 on a tall screen), so the header lines up with the board block.
+ * The board column and a 400 column (agent card and moves, or the result panel) sit side by side, 32 apart, centred as one block; both keep their width from
+ * the first move to the result panel, so nothing moves when the result arrives. All of this applies only while a match is on (the content has an aside);
+ * the setup screen and the starting phase keep the shell's layout, with the notice in flow above the page.
+ */
+.ch-top { display: contents; }
+@media (min-width: 1024px) {
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) {
+    --ch-chrome: 200px;
+    --ch-w: min(900px, calc(100vw - 496px), max(320px, calc(100dvh - var(--ch-chrome))));
+    grid-template-columns: var(--ch-w) 400px;
+    max-width: calc(var(--ch-w) + 432px);
+    justify-content: center;
+    column-gap: 32px;
+    padding-block: 4px;
+    row-gap: 8px;
+  }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > header { grid-column: 1 / -1; grid-row: 1; }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > .game-shell-content { grid-column: 1 / -1; grid-row: 2; }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'] { grid-column: 1 / -1; grid-row: 2; }
+  /* the full notice (after Details) keeps its own row above the content; the compact one sits over the aside's reserved top */
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice']:not([data-compact])) > .game-shell-content { grid-row: 3; }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) > [data-testid='training-notice'][data-compact] {
+    grid-column: 2;
+    align-self: start;
+    z-index: 1;
+    height: 48px;
+    overflow: hidden;
+  }
+  [data-game='chess'] .game-shell-content-with-aside { grid-template-columns: var(--ch-w) 400px; justify-content: center; column-gap: 32px; row-gap: 8px; }
+  [data-game='chess'] .game-shell-content[data-has-result] { grid-template-columns: var(--ch-w) 400px; row-gap: 8px; }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-aside { padding-top: 56px; }
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside):has(> [data-testid='training-notice'][data-compact]) .game-shell-result { margin-top: 56px; }
+
+  [data-game='chess'] .ch-play { width: var(--ch-w); gap: 8px; }
+  .ch-top { display: flex; align-items: center; gap: 12px; height: 36px; }
+  .ch-top .play-hud { flex: none; flex-wrap: nowrap; }
+  .ch-top .ch-status { flex: 1; min-width: 0; text-align: right; line-height: 1.25; }
+  /* the stage is exactly one column wide and square: a slim lit margin, the frame, then the board */
+  [data-game='chess'] .ch-play .stage { padding: 6px; }
+  [data-game='chess'] .ch-play .stage .board-frame { max-width: none; padding: 8px; }
+  /* the result panel is tighter beside the board, so it fits on a laptop screen without the page scrolling to it (a scroll would move the board) */
+  [data-game='chess'] .game-shell-result .result-panel { gap: 6px; padding: 10px 16px; }
+  /* a taller panel (a rated result adds the rating lines) scrolls inside its own column, so the page never scrolls to it and the board stays put */
+  [data-game='chess'] .game-shell-result { max-height: calc(100dvh - 181px); overflow-y: auto; overscroll-behavior: contain; }
+  [data-game='chess'] .game-shell-result .result-main { gap: 6px; }
+  [data-game='chess'] .game-shell-result .result-verdict { gap: 4px; }
+  [data-game='chess'] .game-shell-result [data-testid='share-block'] { padding: 8px 10px; gap: 6px; }
+  [data-game='chess'] .ch-play [data-testid='chess-notice'] { min-height: 20px; line-height: 20px; }
+}
+@media (min-width: 1024px) and (max-height: 799px) {
+  [data-game='chess'][data-testid='game-shell']:has(> .game-shell-content-with-aside) { --ch-chrome: 220px; }
+  .ch-top { flex-wrap: wrap; height: auto; row-gap: 8px; }
+  .ch-top .ch-status { flex: 1 1 100%; text-align: left; }
+  /* the move list gives way so the aside never outgrows the board column */
+  [data-game='chess'] [data-testid='move-list'] { max-height: 5.5rem; }
+}

@@ -10,6 +10,8 @@ describe('per-game core stubs', () => {
     word: /Lane B/,
     fighter: /Lane C/,
     arena: /Lane C/,
+    fleet: /Fleet lane/,
+    slack: /Crosscurrent lane/,
   }
   for (const id of Object.keys(owners) as GameId[]) {
     test(`getCore(${id}) is either built or throws NotBuiltError naming the owning lane`, () => {

@@ -4,7 +4,7 @@ import type { GameId } from '@duelwise/core/src/product'
 
 describe('how to play', () => {
   test('each game has instructions and controls', () => {
-    for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena'] as GameId[]) {
+    for (const game of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack'] as GameId[]) {
       const guide = guides[game]
       expect(guide.goal).toBeTruthy()
       expect(guide.steps.length).toBeGreaterThanOrEqual(3)

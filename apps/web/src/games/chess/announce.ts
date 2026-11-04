@@ -33,11 +33,16 @@ export function boardSummary(fen: string): string {
   return `White: ${list(white)}. Black: ${list(black)}.`
 }
 
-/** The sentence announced after the opponent moves, or the opening prompt before any move. */
-export function moveAnnouncement(o: { opponent: string; plies: number; lastSan: string | undefined; inCheck: boolean; over: boolean }): string {
-  if (o.over) return o.lastSan?.endsWith('#') ? `${o.plies % 2 === 0 ? o.opponent : 'You'} played ${o.lastSan}. Checkmate.` : 'Match over.'
-  if (o.plies === 0) return 'Your move.'
-  // The human is White, so an even ply count means the opponent just moved.
-  if (o.plies % 2 !== 0 || !o.lastSan) return ''
+/**
+ * The sentence announced after the opponent moves, or the opening prompt before any move. `humanSeat` is the player's side
+ * (0 White, 1 Black, default 0): White moves on even ply counts, so the opponent has just moved when the ply count is odd for a player who is Black.
+ */
+export function moveAnnouncement(o: { opponent: string; plies: number; lastSan: string | undefined; inCheck: boolean; over: boolean; humanSeat?: 0 | 1 }): string {
+  const human = o.humanSeat ?? 0
+  // Ply n (1 based) is played by seat (n - 1) % 2.
+  const lastMoverIsYou = (o.plies - 1) % 2 === human
+  if (o.over) return o.lastSan?.endsWith('#') ? `${lastMoverIsYou ? 'You' : o.opponent} played ${o.lastSan}. Checkmate.` : 'Match over.'
+  if (o.plies === 0) return human === 0 ? 'Your move.' : `You are Black. ${o.opponent} moves first.`
+  if (lastMoverIsYou || !o.lastSan) return ''
   return `${o.opponent} played ${o.lastSan}. Your move${o.inCheck ? ', you are in check' : ''}.`
 }

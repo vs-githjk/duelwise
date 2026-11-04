@@ -168,8 +168,8 @@ describe('identity and the call', () => {
   })
   test('start stores a valid call and ignores anything else', async () => {
     const g = (await resolveGuest(db, null)).id
-    const ok = await startMatchHandler(db, { game: 'word', level: 'easy', call: 'hard' }, { guestId: g })
-    const junk = await startMatchHandler(db, { game: 'word', level: 'easy', call: 'ultra' }, { guestId: g })
+    const ok = await startMatchHandler(db, { sides: 1, game: 'word', level: 'easy', call: 'hard' }, { guestId: g })
+    const junk = await startMatchHandler(db, { sides: 1, game: 'word', level: 'easy', call: 'ultra' }, { guestId: g })
     const rows = await db.select({ id: schema.match.id, call: schema.match.call }).from(schema.match)
     const byId = new Map(rows.map((r) => [r.id, r.call]))
     expect(byId.get((ok.body as { matchId: string }).matchId)).toBe('hard')

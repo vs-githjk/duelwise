@@ -82,11 +82,11 @@ function playFour(matchId: string, seed: number): MatchRecordV1 {
   }
 }
 
-const startOpts = { agentVersion: () => 'v1' }
+const startOpts = { agentVersion: () => 'v1', side: () => 0 as const }
 const startHoldem = (who: { userId?: string; guestId?: string }, extra: Record<string, unknown>) =>
-  startMatchHandler(db, { game: 'holdem', level: 'easy', ...extra }, who, startOpts)
+  startMatchHandler(db, { sides: 1, game: 'holdem', level: 'easy', ...extra }, who, startOpts)
 const startFour = (who: { userId?: string; guestId?: string }, extra: Record<string, unknown> = {}) =>
-  startMatchHandler(db, { game: 'four', level: 'easy', ...extra }, who, startOpts)
+  startMatchHandler(db, { sides: 1, game: 'four', level: 'easy', ...extra }, who, startOpts)
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
 /** Makes a finished match's stored result a human win, so only the practice marker can keep it off a competitive read. */
 const makeWin = (id: string) => db.update(schema.match).set({ result: { winner: 0, score: [1, 0], reason: 'ahead' } }).where(eq(schema.match.id, id))
@@ -104,7 +104,7 @@ describe('the server decides that a match is practice, at the start', () => {
     const row = await rowOf((r.body as { matchId: string }).matchId)
     expect(row.filterFlags).toEqual({ holdemOptions: { hands: 5, untilBust: true } })
     const f = await startFour(USER)
-    expect((await rowOf((f.body as { matchId: string }).matchId)).filterFlags).toBeNull()
+    expect((await rowOf((f.body as { matchId: string }).matchId)).filterFlags).toEqual({ humanSeat: 0 })
   })
 
   test('practice must be a real boolean', async () => {

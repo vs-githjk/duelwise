@@ -104,7 +104,7 @@ export interface OpponentRecord {
   losses: number
 }
 
-/** The fight card's records: each persona's wins and losses against people over the window, across all six games. Draws are not counted. */
+/** The fight card's records: each persona's wins and losses against people over the window, across every game. Draws are not counted. */
 export async function getOpponentRecords(db: Db, now: Date = new Date(), results?: FinishedResult[]): Promise<OpponentRecord[]> {
   const rows = results ?? (await finishedResults(db, { since: new Date(now.getTime() - WINDOW_DAYS * DAY_MS) }))
   return LEVELS.map((level) => {

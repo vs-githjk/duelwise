@@ -1,6 +1,10 @@
 import { and, count, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { isSealed } from '@duelwise/core/src/sealed'
+import { hasRandomSide } from '@duelwise/core/src/sides'
+import type { Seat } from '@duelwise/core/src/types'
 import * as schema from '../db/schema'
 import { adoptTicket, issueMatchRow, mayUseTicket, trainingFor, type Caller, type HandlerResponse, type StartOptions } from './match-handlers'
 import { ABANDONED_ROW, settleAbandoned, type AbandonOptions } from './abandon'
@@ -30,6 +34,8 @@ export interface Ticket {
   level: Level
   seed: number
   agentVersion: string
+  /** The side the server gave this match (games with random sides). Absent on a ticket issued before sides existed, which is seat 0. */
+  humanSeat?: Seat
   /** Epoch milliseconds. */
   expiresAt: number
 }
@@ -40,7 +46,11 @@ export interface TicketsBody {
   viewer: TicketOwner
 }
 
-export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'recordsTrainable'> & { now?: () => Date }
+export type TicketOptions = Pick<StartOptions, 'agentVersion' | 'seed' | 'side' | 'recordsTrainable'> & {
+  now?: () => Date
+  /** Games that get no tickets; tests inject a shorter list to exercise the ticket mechanics on a game that has none now. Default: NO_OFFLINE_TICKETS. */
+  noTickets?: readonly GameId[]
+}
 
 const err = (status: number, message: string): HandlerResponse<{ error: string }> => ({ status, body: { error: message } })
 
@@ -91,11 +101,16 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
   const { game, level, count: wanted } = input as { game?: unknown; level?: unknown; count?: unknown }
   if (typeof game !== 'string' || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) return err(400, 'unknown game')
   if (typeof level !== 'string' || !LEVELS.includes(level)) return err(400, 'unknown level')
-  if (game === 'word') return err(400, 'Word Duel has no offline tickets')
   if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 0) return err(400, 'count must be a whole number, 0 or more')
   if (!who.userId && !who.guestId) return err(401, 'no player')
   const viewer = viewerOf(who)
+  // Who-am-I probe (count 0) is answered for every game, including one that has no tickets now: the page's refill uses it to learn the player and report unfinished tickets.
   if (wanted === 0) return { status: 200, body: { tickets: [], viewer } }
+  if (RATED_NOT_OPEN.includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no rated matches yet, so no offline tickets`)
+  if ((opts.noTickets ?? NO_OFFLINE_TICKETS).includes(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets: Rated needs a connection`)
+  if (isSealed(game as GameId)) return err(400, `${PRODUCT.games[game as GameId].displayName} has no offline tickets`)
+  // Same rule as a start (match-handlers.ts): a page from before sides existed would play a ticket's side 1 as seat 0 and could not use it.
+  if (hasRandomSide(game as GameId) && (input as { sides?: unknown }).sides !== 1) return err(409, 'This page is from an older version of Duelwise, which cannot play this game now. Reload the page to play.')
 
   return exclusive(ownerKey(who), async () => {
     const now = (opts.now ?? (() => new Date()))()
@@ -120,7 +135,7 @@ export async function issueTicketsHandler(db: Db, input: unknown, who: Caller, o
     for (let i = 0; i < room; i++) {
       const flags: TicketFlags = { ticketIssuedAt: now.getTime(), ticketExpiresAt: now.getTime() + TICKET_TTL_MS, ticketPlayerAllowed: playerAllowed }
       const row = await issueMatchRow(db, who, game as GameId, level as Level, trainingAllowed, opts, { status: 'ticket', filterFlags: flags as unknown as Record<string, unknown> })
-      tickets.push({ matchId: row.matchId, owner, game: game as GameId, level: level as Level, seed: row.seed, agentVersion: row.agentVersion, expiresAt: flags.ticketExpiresAt })
+      tickets.push({ matchId: row.matchId, owner, game: game as GameId, level: level as Level, seed: row.seed, agentVersion: row.agentVersion, ...(row.humanSeat === undefined ? {} : { humanSeat: row.humanSeat }), expiresAt: flags.ticketExpiresAt })
     }
     // Read the counts again: rows another process committed meanwhile show up now, and this request gives back what no longer fits.
     const after = await usage(db, who, game, level, now)

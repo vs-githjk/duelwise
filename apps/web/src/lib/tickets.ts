@@ -1,5 +1,7 @@
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { PRODUCT } from '@duelwise/core/src/product'
+import { NO_OFFLINE_TICKETS, RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { isSealed } from '@duelwise/core/src/sealed'
 import type { Ticket, TicketOwner } from '../server/ticket-issue'
 import { CONSUMED, TICKETS, transact } from './offline-db'
 import { bundleAgentVersion } from './bundle-version'
@@ -61,8 +63,9 @@ export const LEDGER_KEEP_MS = 16 * 24 * 60 * 60 * 1000
 export const PLAYED_POOL = 5
 export const OTHER_POOL = 2
 
-/** Games that can have offline tickets: Word Duel keeps its seed on the server, so it plays unranked offline. */
-export const TICKET_GAMES: readonly GameId[] = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => g !== 'word')
+/** Games that can have offline tickets: Word Duel keeps its seed on the server, so it plays unranked offline, and a game with no rated path has nothing to count. */
+export const ticketGamesFor = (notOpen: readonly GameId[]): GameId[] => (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !isSealed(g) && !notOpen.includes(g) && !NO_OFFLINE_TICKETS.includes(g))
+export const TICKET_GAMES: readonly GameId[] = ticketGamesFor(RATED_NOT_OPEN)
 
 const PLAYED_KEY = 'duelwise.played-levels'
 type Played = Partial<Record<GameId, Level[]>>
@@ -120,7 +123,7 @@ export async function forgetTickets(store: { clear(): Promise<void> } = { clear:
 }
 
 export interface TicketApi {
-  issue(input: { game: GameId; level: Level; count: number }): Promise<Ticket[]>
+  issue(input: { game: GameId; level: Level; count: number; sides?: 1 }): Promise<Ticket[]>
   /** Who the server sees this browser as. Absent in a test double that does not care about owners. */
   viewer?(): Promise<TicketOwner>
   /** Reports ticket matches that were started and never finished; answers the ids the server has settled. */
@@ -153,7 +156,7 @@ let refilling: Promise<unknown> = Promise.resolve()
  * Tops up the pools for one game (or every ticket game) while online. Drops expired tickets and ones for an agent version this
  * build does not play, then asks the server only for what is missing. Never throws: tickets are a convenience.
  */
-export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: TicketApi = serverTicketApi, store: TicketStore = ticketStore, now = Date.now(), ledger: ConsumedStore = consumedStore): Promise<number> {
+export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: TicketApi = serverTicketApi, store: TicketStore = ticketStore, now = Date.now(), ledger: ConsumedStore = consumedStore, ticketGames: readonly GameId[] = TICKET_GAMES): Promise<number> {
   // One refill at a time (two pages opening together must not both top up the same pool); later calls wait their turn.
   const run = refilling.then(async () => {
     let added = 0
@@ -165,16 +168,18 @@ export function refillTickets(games: readonly GameId[] = TICKET_GAMES, api: Tick
         await reportUnfinished(api, ledger, viewer, now).catch(() => 0)
       }
       const have = await store.list()
-      for (const t of have) if (!usable(t, now) || (viewer && !ownsTicket(t.owner, viewer))) await store.remove(t.matchId)
-      const live = have.filter((t) => usable(t, now) && (!viewer || ownsTicket(t.owner, viewer)))
+      // Tickets saved for a game that no longer has offline tickets are dropped unused: the server expires them at no cost to anyone.
+      const keep = (t: Ticket) => ticketGames.includes(t.game) && usable(t, now) && (!viewer || ownsTicket(t.owner, viewer))
+      for (const t of have) if (!keep(t)) await store.remove(t.matchId)
+      const live = have.filter(keep)
       for (const game of games) {
-        if (!TICKET_GAMES.includes(game)) continue
+        if (!ticketGames.includes(game)) continue
         const played = new Set(playedLevels(game))
         for (const level of LEVELS) {
           const target = played.has(level) ? PLAYED_POOL : OTHER_POOL
           const need = target - live.filter((t) => t.game === game && t.level === level).length
           if (need <= 0) continue
-          for (const t of await api.issue({ game, level, count: need })) {
+          for (const t of await api.issue({ game, level, count: need, sides: 1 })) {
             await store.put(t)
             added++
           }

@@ -6,6 +6,8 @@ import { emptyReviewText, reportTiles } from './copy'
 import { playRandom, playScript } from './testing'
 import { WordGrid } from './WordGrid'
 import { FourBoard } from './FourBoard'
+import { SlackBoard } from './SlackBoard'
+import { EvalChart } from './EvalChart'
 import { feedLine, matchesWindow } from '../lib/copy'
 import type { FourView, ReportBody } from './types'
 
@@ -114,5 +116,70 @@ describe('KB2 small copy', () => {
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'human' })).toBe('A player beat Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'draw' })).toBe('A player drew Vesper (Hard) at Chess')
     expect(feedLine({ game: 'chess', level: 'hard', outcome: 'ai' })).toBe('Vesper beat a player at Chess')
+  })
+})
+
+describe('Crosscurrent chart axis and learning line', () => {
+  test('the axis counts placements, one per point, and other games keep "move n" halved', () => {
+    const body = buildReportBody(playRandom('slack', 3, 0))
+    const n = body.series!.points.length
+    const html = renderToStaticMarkup(<EvalChart series={body.series!} />)
+    expect(html).toContain('placement 1')
+    expect(html).toContain(`placement ${n}`)
+    expect(html).not.toMatch(/move \d/)
+    const chess = buildReportBody(playScript('chess', 1, ['f2f3', 'e7e5', 'g2g4', 'd8h4'], 1))
+    const chessHtml = renderToStaticMarkup(<EvalChart series={chess.series!} />)
+    expect(chessHtml).toContain('move 1')
+    expect(chessHtml).toContain('move 2')
+    expect(chessHtml).not.toContain('placement')
+  })
+})
+
+describe('Crosscurrent final board', () => {
+  test('names the persona, counts match the cells and corners are marked', () => {
+    const body = buildReportBody(playRandom('slack', 3, 0))
+    const html = renderToStaticMarkup(<SlackBoard view={body.slackView!} opponent="Marlow" />)
+    expect(html.match(/<span title=/g)).toHaveLength(64)
+    expect(html).toContain(`You ${body.slackView!.discs[0]} discs`)
+    expect(html).toContain(`Marlow ${body.slackView!.discs[1]} discs`)
+    expect(html.match(/data-corner=/g)).toHaveLength(4)
+    expect(html).not.toMatch(/the AI/)
+    expect(renderToStaticMarkup(<SlackBoard view={body.slackView!} viewer="public" opponent="Marlow" />)).not.toMatch(/\bYou\b/)
+  })
+})
+
+describe('reports for a player who had the second move (seat 1): chess, Four in a Row and Crosscurrent', () => {
+  test.each(['chess', 'four', 'slack'] as const)('%s: the outcome, the moves and the final board are read from the player\'s seat', (game) => {
+    for (const seed of [3, 4, 5]) {
+      const rec = playRandom(game, seed, 1)
+      const body = buildReportBody(rec)
+      const won = rec.result.winner === 1
+      expect(body.outcome).toBe(rec.result.winner === null ? 'draw' : won ? 'win' : 'loss')
+      expect(body.moves).toBe(rec.actions.filter((a) => a[1] === 1 && !(game === 'slack' && a[2] === 64)).length)
+    }
+  })
+
+  test('Crosscurrent: a pale player gets pale discs, counted from seat 1, with the dark ring on them and the words to match', () => {
+    const rec = playRandom('slack', 3, 1)
+    const body = buildReportBody(rec)
+    expect(body.slackView!.youColor).toBe('pale')
+    const last = body.slackView!
+    expect(rec.humanSeat).toBe(1)
+    const html = renderToStaticMarkup(<SlackBoard view={last} opponent="Marlow" />)
+    expect(html).toContain(`You ${last.discs[0]} discs, pale with a dark ring`)
+    expect(html).toContain(`Marlow ${last.discs[1]} discs, dark with a pale ring`)
+    expect(html).toContain('You: pale discs with a dark ring')
+    // The player's discs (cell value 1) are painted pale.
+    expect(html).toContain('background:var(--slack-pale)')
+    // A dark player (seat 0) keeps the old words.
+    const dark = buildReportBody(playRandom('slack', 3, 0)).slackView!
+    expect(dark.youColor).toBe('dark')
+    expect(renderToStaticMarkup(<SlackBoard view={dark} opponent="Marlow" />)).toContain('You: dark discs with a pale ring')
+  })
+
+  test('an older stored view with no colour reads as dark', () => {
+    const view = { ...buildReportBody(playRandom('slack', 3, 0)).slackView! }
+    delete view.youColor
+    expect(renderToStaticMarkup(<SlackBoard view={view} opponent="Marlow" />)).toContain('You: dark discs')
   })
 })

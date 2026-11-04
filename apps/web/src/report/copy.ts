@@ -13,6 +13,11 @@ export function headline(view: Pick<ReportView, 'mode' | 'playerName'> & { level
   return outcome === 'win' ? `${start} beat ${opp}.` : outcome === 'loss' ? `${opp} beat ${mid}.` : `${start} drew with ${opp}.`
 }
 
+/** The "wins, losses, draws" figure of the record card. Stormglass cannot end level (the first fleet to go down loses), so it shows no draws; every other game keeps all three. */
+export function recordLine(game: GameId, rec: { wins: number; losses: number; draws: number }): { line: string; label: string } {
+  return game === 'fleet' ? { line: `${rec.wins}-${rec.losses}`, label: 'wins, losses' } : { line: `${rec.wins}-${rec.losses}-${rec.draws}`, label: 'wins, losses, draws' }
+}
+
 export function duration(ms: number): string {
   if (ms <= 0) return 'not recorded'
   const s = Math.round(ms / 1000)
@@ -20,7 +25,7 @@ export function duration(ms: number): string {
 }
 
 /** Plain words for what became of the match with respect to training. Never says more than the row proves. */
-export function learningCopy(l: Learning, persona: string): { title: string; text: string; tone: 'good' | 'neutral' | 'warn' } {
+export function learningCopy(l: Learning, persona: string, game?: GameId): { title: string; text: string; tone: 'good' | 'neutral' | 'warn' } {
   if (l.state === 'stored') {
     return {
       title: 'Stored for training',
@@ -34,6 +39,8 @@ export function learningCopy(l: Learning, persona: string): { title: string; tex
   if (l.state === 'stats_only') {
     return { title: 'Stats only', text: 'You turned training off, so this match is kept for your report and rating and never used to train. Change this in Settings.', tone: 'neutral' }
   }
+  // Stormglass and Crosscurrent are scripted solvers: it can never train, so "yet" would promise something that cannot happen.
+  if (l.reason === 'not_learning' && (game === 'fleet' || game === 'slack')) return { title: 'Not used for training', text: `${persona} is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'not_learning') return { title: 'Not used for training', text: `${persona} does not learn from human matches yet, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'resigned') return { title: 'Not used for training', text: 'Resigned matches are never used for training.', tone: 'warn' }
   if (l.reason === 'abandoned') return { title: 'Not used for training', text: 'Matches that were left unfinished are never used for training.', tone: 'warn' }
@@ -58,9 +65,9 @@ export function hasKeyMoments(body: ReportBody): boolean {
   return body.moments.some((m) => m.kind !== 'end')
 }
 
-/** Whether the page draws something under "How the game went", "Guess by guess" or "Final board and drops". */
+/** Whether the page draws something under "How the game went", "Guess by guess", "Final board and drops" or "Final board". */
 export function hasGameView(body: ReportBody): boolean {
-  return body.series !== null || body.wordRows !== null || (body.fourView ?? null) !== null
+  return body.series !== null || body.wordRows !== null || (body.fourView ?? null) !== null || (body.slackView ?? null) !== null
 }
 
 /**
@@ -93,8 +100,13 @@ export function reportTiles(view: { game: GameId; mode: 'owner' | 'public'; stat
       out.push({ value: `${view.mode === 'owner' ? 'You' : 'Player'} ${body.rounds.you}, ${(view.level ? personaFor(view.level).name : 'Opponent')} ${body.rounds.ai}`, label: 'Rounds won' })
       out.push({ value: String(body.moves), label: 'Recorded inputs' })
     }
-    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
+    else out.push({ value: String(body.moves), label: view.game === 'word' ? 'Rounds' : view.game === 'fleet' ? (view.mode === 'owner' ? 'Your shots' : 'Shots fired') : view.mode === 'owner' ? 'Your moves' : 'Moves played' })
     if (body.blunders !== null) out.push({ value: String(body.blunders), label: 'Costly moves', sub: body.evaluator === 'value-net' ? "by the AI's own position score" : 'by material count' })
+    if (body.slackView) {
+      const [you, them] = body.slackView.discs
+      const opp = view.level ? personaFor(view.level).name : 'Opponent'
+      out.push({ value: `${you} to ${them}`, label: 'Final discs', sub: `${view.mode === 'owner' ? 'You' : 'Player'} ${you}, ${opp} ${them}` })
+    }
     if (hasKeyMoments(body)) out.push({ value: String(body.moments.filter((m) => m.kind !== 'end').length), label: 'Named moments' })
   }
   if (counted || body.durationMs > 0) out.push({ value: duration(body.durationMs), label: 'Duration' })

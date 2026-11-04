@@ -295,7 +295,61 @@ function Arena(): ReactNode {
   )
 }
 
-const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena }
+/** Stormglass: pale water, a 7 by 5 chart grid, grey misses, two flames, one sunk three-long hull, a fleet tally and a crosshair on open water. */
+function Fleet(): ReactNode {
+  const X0 = 24
+  const Y0 = 12
+  const C = 16
+  const cx = (c: number) => X0 + c * C + C / 2
+  const cy = (r: number) => Y0 + r * C + C / 2
+  return (
+    <>
+      <rect width={W} height={H} fill="#dcecf6" />
+      <g stroke="#9fbfd6" strokeWidth={1}>
+        {Array.from({ length: 8 }, (_, i) => <line key={`v${i}`} x1={X0 + i * C} y1={Y0} x2={X0 + i * C} y2={Y0 + 5 * C} />)}
+        {Array.from({ length: 6 }, (_, i) => <line key={`h${i}`} x1={X0} y1={Y0 + i * C} x2={X0 + 7 * C} y2={Y0 + i * C} />)}
+      </g>
+      <g fill="#64748b">{[[1, 0], [5, 1], [0, 3]].map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c!)} cy={cy(r!)} r={1.5} />)}</g>
+      <rect x={X0 + 3 * C + 2} y={Y0 + 2 * C + 3} width={3 * C - 4} height={C - 6} rx={5} fill="#8f1f1b" />
+      <g fill="#e8500e">{[3, 4, 5].map((c) => <circle key={c} cx={cx(c)} cy={cy(2)} r={3} />)}</g>
+      <g fill="#e8500e"><circle cx={cx(2)} cy={cy(4)} r={3} /><circle cx={cx(2) + 7} cy={cy(4)} r={3} /></g>
+      <g transform="translate(100 3)">
+        {[5, 4, 3, 3, 2].map((n, i) => <rect key={i} x={i * 9} y={0} width={7} height={4} rx={1.5} fill={i === 2 ? '#8f1f1b' : '#4a5568'} />)}
+        <line x1={18} y1={-1} x2={25} y2={5} stroke="#8f1f1b" strokeWidth={1} />
+      </g>
+      <g fill="none" stroke="var(--action)" strokeWidth={1.5}><circle cx={cx(0)} cy={cy(4)} r={5} /><line x1={cx(0) - 8} y1={cy(4)} x2={cx(0) + 8} y2={cy(4)} /><line x1={cx(0)} y1={cy(4) - 8} x2={cx(0)} y2={cy(4) + 8} /></g>
+    </>
+  )
+}
+
+/** Crosscurrent: a calm crop of the sea-glass board that fills the whole tile (no pale band), whole pale and slate discs and the ringed cells where the next disc may go. No disc is drawn mid-flip. */
+function Slack(): ReactNode {
+  // The grid starts above the tile and runs past its bottom edge, so the water meets every side and a slim row shows at the top and the bottom.
+  const OY = -15
+  const ROWS = 6
+  const cx = (c: number) => c * CELL + CELL / 2
+  const cy = (r: number) => OY + r * CELL + CELL / 2
+  const dark: Array<[number, number]> = [[1, 2], [2, 2], [3, 3], [4, 3], [5, 2], [2, 4]]
+  const pale: Array<[number, number]> = [[3, 2], [4, 2], [2, 3], [5, 3], [6, 3], [3, 4]]
+  const rings: Array<[number, number]> = [[0, 2], [1, 3], [6, 2], [7, 3], [4, 4]]
+  const cells: Array<[number, number]> = []
+  for (let row = 0; row < ROWS; row++) for (let col = 0; col < 8; col++) if ((row + col) % 2 === 1) cells.push([col, row])
+  return (
+    <>
+      <rect width={W} height={H} fill="var(--slack-water)" />
+      <g fill="var(--slack-water-deep)">{cells.map(([c, r]) => <rect key={`${c}-${r}`} x={c * CELL} y={OY + r * CELL} width={CELL} height={CELL} />)}</g>
+      <g stroke="var(--slack-line)" strokeWidth={0.6}>
+        {Array.from({ length: 9 }, (_, i) => <line key={`v${i}`} x1={i * CELL} y1={OY} x2={i * CELL} y2={OY + ROWS * CELL} />)}
+        {Array.from({ length: ROWS + 1 }, (_, i) => <line key={`h${i}`} x1={0} y1={OY + i * CELL} x2={W} y2={OY + i * CELL} />)}
+      </g>
+      <g fill="none" stroke="var(--slack-pale)" strokeWidth={1.6}>{rings.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={3.2} />)}</g>
+      <g fill="var(--slack-pale)" data-disc="pale">{pale.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
+      <g fill="var(--slack-dark)" data-disc="dark">{dark.map(([c, r]) => <circle key={`${c}${r}`} cx={cx(c)} cy={cy(r)} r={7.6} />)}</g>
+    </>
+  )
+}
+
+const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet, slack: Slack }
 
 /** One game's miniature. Decorative: the card around it names the game. */
 export function GameTile({ game, className }: { game: GameId; className?: string }) {

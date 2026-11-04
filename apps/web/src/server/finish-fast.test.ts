@@ -29,7 +29,7 @@ const GUEST = { guestId: 'g-1' }
 const USER = { userId: 'u-1' }
 
 async function begin(game: GameId, who: { userId?: string; guestId?: string }, seed = 21) {
-  const r = await startMatchHandler(db, { game, level: 'hard' }, who, { seed: () => seed })
+  const r = await startMatchHandler(db, { sides: 1, game, level: 'hard' }, who, { seed: () => seed, side: () => 0 as const })
   return r.body as { matchId: string; seed: number }
 }
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
@@ -49,7 +49,7 @@ function gatedCheck(outcome: AgentCheck | Error) {
   return { verifyAgent, deferCheck: (p: Promise<unknown>) => void pending.push(p), open, calls, settled: () => Promise.all(pending) }
 }
 
-for (const game of ['chess', 'four', 'holdem'] as const) {
+for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
   describe(`${game}: a guest's finish answers before the agent check`, () => {
     test('the response comes back while the check is still running, the report is ready, nothing is trainable yet', async () => {
       const m = await begin(game, GUEST)

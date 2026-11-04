@@ -75,7 +75,9 @@ test.describe("Hold'em practice", () => {
    */
   async function playOut(page: Page, opts: { stopAtOffer?: boolean } = {}): Promise<number> {
     let buys = 0
-    for (let guard = 0; guard < 900; guard++) {
+    // A wall-clock budget, not a poll count: ten staged hands take longer than 900 polls of 40 ms.
+    const deadline = Date.now() + 150_000
+    while (Date.now() < deadline) {
       if (await page.getByTestId('buyback').isVisible()) {
         if (opts.stopAtOffer) return buys
         await page.getByTestId('buy-back').click()
@@ -282,5 +284,55 @@ test.describe('a fresh player (path locked)', () => {
     await page.locator('[data-mode-option="rated"]').click()
     await expect(page.locator('[data-persona="easy"] input')).toBeChecked()
     await expect(page.locator('[data-persona="champion"] input')).toBeDisabled()
+  })
+})
+
+test.describe('stormglass practice', () => {
+  // A real Practice match: the same counted server flow as Rated (sealed, the server keeps the hidden fleet), flagged practice, so it moves no rating.
+  test('a Practice match is unrated: a badge while playing, no rating line, and no leaderboard row for the player', async ({ page }) => {
+    test.setTimeout(150_000)
+    await devSignIn(page, 'prac-fleet')
+    await page.goto('/play/stormglass?hold=0')
+    await expect(page.getByTestId('setup-picker')).toBeVisible()
+    await page.locator('[data-mode-option="practice"]').click()
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-counted', 'true')
+    await expect(page.getByTestId('practice-badge')).toHaveText('Practice, unrated')
+    // One real shot, so the match was played, then resign: nothing moves.
+    await expect(root).toHaveAttribute('data-turn', 'you', { timeout: 30_000 })
+    const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+    const id = (await cell.getAttribute('data-testid'))!
+    await cell.click()
+    await cell.click()
+    await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    await expect(root).toHaveAttribute('data-turn', /you|over/, { timeout: 30_000 })
+    expect(await overflow(page)).toBeLessThanOrEqual(0)
+    await page.getByRole('button', { name: 'Resign' }).click()
+    await page.getByRole('button', { name: 'Yes, resign' }).click()
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-practice')).toHaveText('Practice, not rated')
+    await expect(page.getByTestId('result-elo')).toHaveCount(0)
+    await expect(page.getByTestId('result-leaderboard-link')).toHaveCount(0)
+    await page.goto('/leaderboard/stormglass')
+    await expect(page.getByTestId('leaderboard-me')).toHaveCount(0)
+  })
+
+  test.describe('a fresh player (path locked)', () => {
+    const origin = `http://localhost:${webPort()}`
+    test.use({ storageState: { cookies: [], origins: [{ origin, localStorage: [{ name: 'duelwise.how-to-play.fleet', value: 'seen' }, { name: 'duelwise.welcomed', value: '1' }] }] } })
+
+    test('Rated keeps the path lock, Practice opens every opponent', async ({ page }) => {
+      await page.goto('/play/stormglass')
+      const hard = page.locator('[data-persona="hard"] input')
+      await expect(page.getByTestId('path-locked-hard')).toBeVisible()
+      await expect(hard).toBeDisabled()
+      await page.locator('[data-mode-option="practice"]').click()
+      await expect(page.getByTestId('path-locked-hard')).toHaveCount(0)
+      await expect(hard).toBeEnabled()
+      await page.locator('[data-mode-option="rated"]').click()
+      await expect(page.locator('[data-persona="easy"] input')).toBeChecked()
+      await expect(hard).toBeDisabled()
+    })
   })
 })

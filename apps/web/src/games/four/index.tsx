@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -13,7 +13,7 @@ import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { boardSummary, dropAnnouncement } from './announce'
 import { Board } from './Board'
-import { HUMAN, showPracticeBadge, useFourMatch } from './useFourMatch'
+import { showPracticeBadge, useFourMatch } from './useFourMatch'
 
 export const meta = { title: 'Four in a Row' }
 
@@ -40,6 +40,11 @@ export default function FourPage() {
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
+  // A match opens at the top of the page, whatever the setup page was scrolled to (Start sits below the level cards), so the header and HUD do not start
+  // above the screen on a laptop. Instant, so nothing is seen to move. A phone does the same: its Start button sits far down the setup page and the HUD and board would open above the screen.
+  useLayoutEffect(() => {
+    if (match.phase === 'playing') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [match.seed, match.phase === 'playing'])
 
   const begin = (level: Level) => {
     const s = fixedSeed
@@ -52,6 +57,8 @@ export default function FourPage() {
   const over = match.phase === 'over'
   const state = match.state
   const turn = over ? 'over' : match.thinking ? 'ai' : 'you'
+  // Each match gives the player the first or the second drop at random.
+  const youOrder = match.humanSeat === 0 ? 'move first' : 'move second'
   const status = over ? 'Match over' : match.failure ? 'Stopped' : match.thinking ? `${personaFor(match.level).name} is thinking` : 'Your move'
 
   return (
@@ -65,7 +72,7 @@ export default function FourPage() {
             <>
               <ResultPanel
                 result={match.result}
-                humanSeat={HUMAN}
+                humanSeat={match.humanSeat}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
                 unratedReason={match.unratedReason}
@@ -91,10 +98,10 @@ export default function FourPage() {
             <StrengthLine siteElo={measured?.siteElo} />
             <p className="mt-2 flex items-center gap-4 text-sm">
               <span className="inline-flex items-center gap-1.5">
-                <i data-swatch="you" className="inline-block size-4 rounded-full border-2 border-muted bg-four-you" aria-hidden="true" /> You
+                <i data-swatch="you" className="inline-block size-4 rounded-full border-2 border-muted bg-four-you" aria-hidden="true" /> You, {youOrder}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <i data-swatch="ai" className="inline-block size-4 rounded-full border-2 border-muted bg-four-ai" aria-hidden="true" /> {personaFor(match.level).name}
+                <i data-swatch="ai" className="inline-block size-4 rounded-full border-2 border-muted bg-four-ai" aria-hidden="true" /> {personaFor(match.level).name}, {match.humanSeat === 0 ? 'moves second' : 'moves first'}
               </span>
             </p>
           </section>
@@ -127,7 +134,7 @@ export default function FourPage() {
     >
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="four-setup">
-          <p className="text-muted">Drop stones into the columns. The first to line up four, across, down or diagonally, wins. You move first.</p>
+          <p className="text-muted">Drop stones into the columns. The first to line up four, across, down or diagonally, wins. Each match decides at random who drops first.</p>
           <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.four.slug} disabled={match.phase === 'starting'}
             action={
@@ -151,18 +158,18 @@ export default function FourPage() {
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-          <PlayHud turn={turn} swatch="bg-four-you" matchKey={match.seed} />
+          <PlayHud turn={turn} youLabel={`You, ${youOrder}`} swatch="bg-four-you" matchKey={match.seed} />
           <p className="text-center text-sm font-semibold text-muted" data-testid="four-status">
             {status}
           </p>
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="four-announce">
-            {dropAnnouncement({ opponent: personaFor(match.level).name, lastCol: match.lastMove?.col ?? null, lastSeat: match.lastMove?.seat ?? null, moves: state.n, over })}
+            {dropAnnouncement({ opponent: personaFor(match.level).name, lastCol: match.lastMove?.col ?? null, lastSeat: match.lastMove?.seat ?? null, moves: state.n, over, humanSeat: match.humanSeat })}
           </p>
           <p className="sr-only" data-testid="four-board-summary">
-            {boardSummary(state, personaFor(match.level).name)}
+            {boardSummary(state, personaFor(match.level).name, match.humanSeat)}
           </p>
           <div className="stage">
-            <Board opponent={personaFor(match.level).name} state={state} lastMove={match.lastMove} winCells={match.winCells} winLines={match.winLines} canMove={match.canMove} turn={turn} onDrop={(c) => void match.play(c)} />
+            <Board opponent={personaFor(match.level).name} humanSeat={match.humanSeat} state={state} lastMove={match.lastMove} winCells={match.winCells} winLines={match.winLines} canMove={match.canMove} turn={turn} onDrop={(c) => void match.play(c)} />
           </div>
           {match.failure ? (
             <div className="grid justify-items-center gap-2">

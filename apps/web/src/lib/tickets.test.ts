@@ -29,12 +29,22 @@ describe('takeLocalTicket', () => {
 })
 
 describe('refillTickets', () => {
+  test('a ticket saved for any game before offline tickets ended is dropped unused, and the server is never asked for one', async () => {
+    const store = memory([ticket('old-four', { game: 'four' }), ticket('old-chess', { game: 'chess' }), ticket('old-holdem', { game: 'holdem' }), ticket('old-fighter', { game: 'fighter' }), ticket('old-arena', { game: 'arena' })])
+    const asked: string[] = []
+    const api: TicketApi = { async issue(input) { asked.push(input.game); return [] } }
+    await refillTickets(['chess', 'four', 'holdem', 'fighter', 'arena'], api, store, NOW)
+    expect(asked).toEqual([])
+    expect(store.all()).toEqual([])
+  })
+
   test('asks the server only for what each pool is missing and stores the answer', async () => {
+    // No game has offline tickets now (rated-path.ts NO_OFFLINE_TICKETS), so the pool mechanics run with Four listed as a ticket game.
     const store = memory([ticket('have-1', { agentVersion: 'v1' })])
     const asked: Array<{ game: string; level: string; count: number }> = []
     let n = 0
     const api: TicketApi = { async issue(input) { asked.push(input); return Array.from({ length: input.count }, () => ticket(`new-${n++}`, { game: input.game, level: input.level })) } }
-    const added = await refillTickets(['four'], api, store, NOW)
+    const added = await refillTickets(['four'], api, store, NOW, undefined, ['four'])
     // Under Bun every version is 'v1', so the stored easy ticket counts and easy needs one fewer.
     expect(asked.every((a) => a.game === 'four' && a.count <= PLAYED_POOL)).toBe(true)
     expect(asked.map((a) => a.count)).toEqual([OTHER_POOL - 1, OTHER_POOL, OTHER_POOL, OTHER_POOL])
@@ -93,9 +103,25 @@ describe('ticket owners', () => {
       async viewer() { return USER_U1 },
       async issue(input) { asked.push(input.count); return Array.from({ length: input.count }, (_, i) => ticket(`n-${input.level}-${i}`, { game: input.game, level: input.level, owner: { userId: 'u-1', guestId: null } })) },
     }
-    await refillTickets(['four'], api, store, NOW, ledger())
+    await refillTickets(['four'], api, store, NOW, ledger(), ['four'])
     expect(store.all().some((t) => t.matchId === 'theirs' || t.matchId === 'legacy')).toBe(false)
     expect(asked).toEqual([OTHER_POOL, OTHER_POOL, OTHER_POOL, OTHER_POOL])
+  })
+})
+
+describe('the refill with no ticket games (every game, since offline matches are unrated)', () => {
+  test('still learns the viewer, reports a ticket taken before the change and left unfinished, and drops saved tickets, without asking for any', async () => {
+    const store = memory([ticket('old-four', { game: 'four', owner: USER_U1 }), ticket('old-fighter', { game: 'fighter', owner: USER_U1 })])
+    const book = ledger([{ matchId: 'taken-unfinished', game: 'four', owner: USER_U1, takenAt: NOW - REPORT_AFTER_MS - 1 }])
+    const asked: string[] = []
+    const sent: string[][] = []
+    // A real-shaped api: the viewer probe answers (the server answers count 0 for every game) and abandon reports.
+    const api: TicketApi = { async viewer() { return USER_U1 }, async issue(i) { asked.push(i.game); return [] }, async abandon(ids) { sent.push(ids); return ids } }
+    await refillTickets(undefined, api, store, NOW, book)
+    expect(asked).toEqual([])
+    expect(sent).toEqual([['taken-unfinished']])
+    expect(book.all()).toEqual([])
+    expect(store.all()).toEqual([])
   })
 })
 

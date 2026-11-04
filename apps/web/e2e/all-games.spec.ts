@@ -8,7 +8,7 @@ import { PRODUCT, type GameId } from '@duelwise/core/src/product.ts'
 // Path of the paid clip file (apps/web/src/games/arena/render/opponent.ts PAID_CLIPS_PATH); keyed on the path so any VITE_PAID_ASSETS_URL base works.
 const PAID_CLIPS_PATH = 'arena/quaternius/universal-animation-library/ual1-shooter.glb'
 
-// T41: the six-game smoke. Every game whose page module exists is loaded, played at its lowest published level
+// T41: the all-games smoke (one driver per game). Every game whose page module exists is loaded, played at its lowest published level
 // (Easy where it exists) through a short scripted interaction to a finished match, its record checked, and its
 // stats page opened. During play nothing may call an inference endpoint (the agent runs in the browser, claim C3),
 // and no game with published levels may still serve its preview stub. Games with no page module are listed with
@@ -106,11 +106,11 @@ const slug = (game: GameId) => PRODUCT.games[game].slug
 
 test.describe.configure({ mode: 'serial' })
 
-test.describe('six games, end to end', () => {
+test.describe(`${GAMES.length} games, end to end`, () => {
   test('lists the games without a page module with the registry reason', async () => {
     const lines = MISSING.map((g) => `${g}: ${missingReason(g)}`)
     test.info().annotations.push({ type: 'not-playable', description: lines.length ? lines.join(' | ') : 'none' })
-    // All six pages are expected to exist at the end of the build; a missing one is reported, not silently skipped.
+    // Every game's page is expected to exist at the end of the build; a missing one is reported, not silently skipped.
     expect(lines).toEqual([])
     expect(PLAYABLE.sort()).toEqual([...GAMES].sort())
   })
@@ -221,6 +221,64 @@ test.describe('six games, end to end', () => {
     expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
     expect(errors).toEqual([])
     await expectStatsPage(page, 'word')
+  })
+
+  test('fleet: a full counted match is played shot by shot to a sealed, saved result, then its stats page renders', async ({ page, baseURL }) => {
+    test.setTimeout(180_000)
+    test.skip(!PLAYABLE.includes('fleet'), `fleet has no page: ${missingReason('fleet')}`)
+    const seen = watchRequests(page)
+    const errors = watchConsole(page)
+    await page.goto(`/play/${slug('fleet')}?hold=0`)
+    await page.getByTestId('fleet-ready').click()
+    const root = page.getByTestId('fleet-page')
+    await expect(root).toHaveAttribute('data-phase', 'play')
+    await expect(root).toHaveAttribute('data-counted', 'true')
+    for (let i = 0; i < 100; i++) {
+      await expect(root).toHaveAttribute('data-turn', /you|over/)
+      if ((await root.getAttribute('data-turn')) === 'over') break
+      const cell = page.locator('[data-testid^="fleet-cell-"][data-state="open"]').first()
+      const id = (await cell.getAttribute('data-testid'))!
+      await cell.click()
+      await cell.click()
+      await expect(page.getByTestId(id)).not.toHaveAttribute('data-state', 'open')
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible()
+    await expect(page.getByTestId('result-upload')).toContainText('Saved')
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('fleet').includes('easy') ? 0 : 1)
+    expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
+    expect(errors).toEqual([])
+    await expectStatsPage(page, 'fleet')
+  })
+
+  test('slack: a full match is played to the end on the real page, its record is valid and saved, then its stats page renders', async ({ page, baseURL }) => {
+    test.setTimeout(240_000)
+    test.skip(!PLAYABLE.includes('slack'), `slack has no page: ${missingReason('slack')}`)
+    const seen = watchRequests(page)
+    const errors = watchConsole(page)
+    // No ?seed: a fixed test seed is never counted.
+    await page.goto(`/play/${slug('slack')}`)
+    await chooseLevel(page, 'Easy')
+    await page.getByRole('button', { name: 'Start match' }).click()
+    const hud = page.getByTestId('play-hud')
+    await expect(page.getByTestId('slack-board')).toBeVisible()
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('slack').includes('easy') ? 0 : 1)
+    for (let i = 0; i < 200; i++) {
+      if (await page.getByTestId('result-panel').isVisible()) break
+      const turn = await hud.getAttribute('data-turn')
+      const cell = page.locator('[data-testid^="slack-cell-"][data-legal]').first()
+      if (turn === 'you' && (await cell.count()) > 0) {
+        await cell.click()
+        await cell.click()
+      }
+      await page.waitForTimeout(120)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('slack-record')).toHaveAttribute('data-record-ok', 'true')
+    // A Rated match is checked by the server: once counted the panel shows the rating line (a signed-in or guest rating) or the saved line.
+    await expect(page.getByTestId('result-elo').or(page.getByTestId('result-upload').filter({ hasText: 'Saved' }))).toBeVisible({ timeout: 30_000 })
+    expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
+    expect(errors).toEqual([])
+    await expectStatsPage(page, 'slack')
   })
 
   test('fighter: a fast-forwarded match at the lowest published level finishes with a valid record, then its stats page renders', async ({ page, baseURL }) => {

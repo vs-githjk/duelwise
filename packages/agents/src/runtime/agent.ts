@@ -60,8 +60,8 @@ export async function createAgent(game: GameId, level: Level, opts: CreateAgentO
   return {
     preview: init.preview,
     act: (obs, state) => call<number[]>({ type: 'act', obs, state }),
-    reset(seed) {
-      void call({ type: 'reset', seed }).catch(() => {})
+    reset(seed, seat) {
+      void call({ type: 'reset', seed, ...(seat === undefined ? {} : { seat }) }).catch(() => {})
     },
     dispose() {
       if (closed) return

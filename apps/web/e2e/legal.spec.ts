@@ -2,6 +2,17 @@ import { expect, test } from '@playwright/test'
 
 const BANNED = /Beat Me|Street Fighter|Counter-Strike|Wordle|Connect Four|\u2014|\u2013/
 
+test('the terms and the landing page name every game the server holds, and say when Stormglass practice runs in the browser', async ({ page }) => {
+  await page.goto('/terms')
+  const hidden = page.getByTestId('terms-hidden-info')
+  await expect(hidden).toContainText('in a counted Word Duel match the server keeps')
+  await expect(hidden).toContainText('in a counted Stormglass match the server keeps the enemy fleet until the end')
+  await expect(hidden).toContainText('A connected Stormglass practice match is held on the server too')
+  await expect(hidden).toContainText('runs in your browser only when you are offline')
+  await page.goto('/')
+  await expect(page.getByText('in a counted Stormglass match it keeps the enemy fleet')).toBeVisible()
+})
+
 test.describe('privacy notice matches the legitimate-interest basis', () => {
   test('says what is stored and not, why, how to opt out, how to delete, and the hold\'em caveats', async ({ page }) => {
     await page.goto('/privacy')
@@ -14,7 +25,8 @@ test.describe('privacy notice matches the legitimate-interest basis', () => {
     await expect(page.getByTestId('privacy-why')).toContainText(/not on a consent tick box/)
     await expect(page.getByTestId('privacy-why')).toContainText(/switch starts on/)
     await expect(page.getByTestId('privacy-optout')).toContainText(/Turn off training use/)
-    await expect(page.getByTestId('privacy-why')).toContainText(/Chess, Heads-Up Hold'em, Word Duel, Tinderbox and Coldstore matches are not used for training/)
+    await expect(page.getByTestId('privacy-why')).toContainText(/Chess, Heads-Up Hold'em, Word Duel, Tinderbox and Coldstore matches are not used for training at present/)
+    await expect(page.getByTestId('privacy-why')).toContainText(/Stormglass and Crosscurrent are scripted solvers with nothing to train/)
     await expect(page.getByTestId('privacy-why')).not.toContainText(/Four in a Row matches are not/)
     await expect(page.getByTestId('privacy-deletion')).toContainText(/delete their account in settings/)
     await expect(p).toContainText(/play chips only/)

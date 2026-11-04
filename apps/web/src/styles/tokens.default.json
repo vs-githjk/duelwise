@@ -44,7 +44,26 @@
       "game-holdem": "#0a9a6c",
       "game-word": "#8a3ff5",
       "game-fighter": "#e8500e",
-      "game-arena": "#0a95b8"
+      "game-arena": "#0a95b8",
+      "game-fleet": "#1b4d7a",
+      "game-slack": "#2f7f78"
+    },
+    "crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board": {
+      "slack-water": "#4f8580",
+      "slack-water-deep": "#477a75",
+      "slack-line": "#3a6763",
+      "slack-dark": "#1f2a30",
+      "slack-pale": "#f6efe3"
+    },
+    "stormglass surfaces": {
+      "sea": "#dcecf6",
+      "sea-line": "#9fbfd6",
+      "sea-deep": "#b7d3e6",
+      "hull": "#4a5568",
+      "hull-edge": "#2d3748",
+      "hit": "#e8500e",
+      "miss": "#64748b",
+      "sunk": "#8f1f1b"
     },
     "game surfaces": {
       "board-light": "#ece3d0",
@@ -104,6 +123,16 @@
     "game-word": "#b58cff",
     "game-fighter": "#ff7a60",
     "game-arena": "#4fd0ee",
+    "game-fleet": "#6fa8dc",
+    "game-slack": "#5fc3b8",
+    "sea": "#1d3446",
+    "sea-line": "#3f6482",
+    "sea-deep": "#264359",
+    "hull": "#8d9bb0",
+    "hull-edge": "#cdd6e2",
+    "hit": "#ff7a60",
+    "miss": "#a4b0c0",
+    "sunk": "#f28472",
     "board-light": "#cdbf9f",
     "board-dark": "#4f6a55",
     "coord-on-light": "#2f4535",

@@ -15,7 +15,7 @@ const PHONES = [
 
 const SLUG = PRODUCT.games
 const REAL_TIME = [['fighter', SLUG.fighter.slug], ['arena', SLUG.arena.slug]] as const
-const PORTRAIT_GAMES = [['chess', SLUG.chess.slug], ['four', SLUG.four.slug], ['holdem', SLUG.holdem.slug], ['word', SLUG.word.slug]] as const
+const PORTRAIT_GAMES = [['chess', SLUG.chess.slug], ['four', SLUG.four.slug], ['holdem', SLUG.holdem.slug], ['word', SLUG.word.slug], ['fleet', SLUG.fleet.slug], ['slack', SLUG.slack.slug]] as const
 
 const tag = (s: string) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
 async function shot(page: Page, name: string) {
@@ -140,7 +140,7 @@ for (const p of PHONES) {
         await page.goto(`/play/${slug}`)
         await expect(page.getByTestId('game-shell')).toBeVisible()
         await shot(page, `${game}-${p.name}-portrait-setup`)
-        const start = page.getByRole('button', { name: /Start (match|game)|Play/ }).first()
+        const start = game === 'fleet' ? page.getByTestId('fleet-ready') : page.getByRole('button', { name: /Start (match|game)|Play/ }).first()
         if (await start.isVisible().catch(() => false)) await start.click()
         await page.waitForLoadState('networkidle')
         await page.waitForTimeout(800)
@@ -150,7 +150,7 @@ for (const p of PHONES) {
           for (const e of document.querySelectorAll('main button, main a[href], main [role="button"], main input, main select')) {
             const r = e.getBoundingClientRect(); const cs = getComputedStyle(e)
             if (r.width < 4 || r.height < 4 || cs.visibility === 'hidden' || e.closest('footer')) continue // visually hidden helpers and the site footer links are not game controls
-            if (r.width < 44 - 0.5 || r.height < 44 - 0.5) { if (!/^[a-h][1-8],/.test(e.getAttribute('aria-label') ?? '')) /* chess squares: eight columns in a 375 px screen are 43 px */ out.push(`${(e.getAttribute('aria-label') ?? e.textContent ?? e.tagName).trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`) }
+            if (r.width < 44 - 0.5 || r.height < 44 - 0.5) { if (!/^([a-h][1-8]|[A-J], \d+),/.test(e.getAttribute('aria-label') ?? '')) /* chess squares: eight columns in a 375 px screen are 43 px; Stormglass has ten, about 35 px, and a tap only aims (a second tap or Fire shoots) */ out.push(`${(e.getAttribute('aria-label') ?? e.textContent ?? e.tagName).trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`) }
             if (r.right > innerWidth + 1 || r.left < -1) out.push(`off-screen ${(e.getAttribute('aria-label') ?? e.textContent ?? '').slice(0, 20)} ${Math.round(r.left)}..${Math.round(r.right)}`)
           }
           return { overflowX: document.documentElement.scrollWidth - innerWidth, small: out }

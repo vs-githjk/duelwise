@@ -84,7 +84,7 @@ test.describe('agent stats', () => {
       } else if (!champion) {
         await expect(page.getByTestId('tile-champion')).toContainText('In training')
       }
-      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : 'Does not learn from site matches yet')
+      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : game === 'fleet' || game === 'slack' ? 'Scripted solver: does not learn from site matches' : 'Does not learn from site matches yet')
       if (game === 'word') await expect(page.getByTestId('learns-note')).not.toContainText(/self-play/i)
     }
   })
@@ -109,16 +109,16 @@ test.describe('agent stats', () => {
     await expect(page.getByTestId('level-row-easy')).toContainText(`${reg.measured.easy.n} words`)
   })
 
-  test('the six-agent strip matches the registries and adapters file', async ({ page }) => {
+  test('the agent strip has one entry per game and matches the registries and adapters file', async ({ page }) => {
     await page.goto('/agents/word-duel')
-    await expect(page.getByTestId('agent-strip').locator('li[data-testid^="strip-"]')).toHaveCount(6)
+    await expect(page.getByTestId('agent-strip').locator('li[data-testid^="strip-"]')).toHaveCount(GAMES.length)
     for (const game of GAMES) {
       const reg = registryOf(game)
       await expect(page.getByTestId(`strip-version-${game}`)).toContainText(reg?.champion ?? 'none')
       const published = LEVELS.filter((l) => reg?.levels?.[l] && reg?.measured?.[l]).length
       const text = await page.getByTestId(`strip-levels-${game}`).innerText()
       expect(text).toContain(published === 4 ? 'all four' : published === 0 ? 'In training' : `${published} of 4`)
-      await expect(page.getByTestId(`strip-learns-${game}`)).toHaveText(learnsOf(game) ? 'Trains on site matches' : 'Not yet')
+      await expect(page.getByTestId(`strip-learns-${game}`)).toHaveText(learnsOf(game) ? 'Trains on site matches' : game === 'fleet' || game === 'slack' ? 'Scripted' : 'Not yet')
     }
   })
 

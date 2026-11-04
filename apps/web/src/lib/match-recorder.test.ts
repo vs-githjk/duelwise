@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { decodeRecord, encodeRecord } from '@duelwise/core/src/match-record'
 import { replay } from '@duelwise/core/src/replay'
 import { createCounterGame, createDriftGame } from '@duelwise/core/src/testing/counter-game'
 import { openMatch } from './open-match'
 import { listPending, retryPending, savePending, type KeyValueStore } from './integrity'
-import { beginSession, createMatchRecorder, offlineReason, uploadMatch, type MatchApi, type RecorderInit } from './match-recorder'
+import { sideForSeed } from '@duelwise/core/src/sides'
+import { beginSession, createMatchRecorder, offlineReason, uploadMatch, useMatchRecorder, type MatchApi, type RecorderInit } from './match-recorder'
 
 const clock = () => {
   let t = Date.UTC(2026, 9, 21, 12, 0, 0)
@@ -114,9 +118,9 @@ describe('createMatchRecorder', () => {
   })
 })
 
-function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean }> } {
+function fakeApi(over: Partial<MatchApi> = {}): MatchApi & { sent: Uint8Array[]; started: Array<{ game: string; level: string; practice?: boolean; sides?: number }> } {
   const sent: Uint8Array[] = []
-  const started: Array<{ game: string; level: string; practice?: boolean }> = []
+  const started: Array<{ game: string; level: string; practice?: boolean; sides?: number }> = []
   return {
     sent,
     started,
@@ -137,7 +141,7 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     test(`${game}: the seed comes from startMatch and the replay-checked record is uploaded`, async () => {
       const api = fakeApi()
       const s = await beginSession(api, game, 'medium')
-      expect(api.started).toEqual([{ game, level: 'medium' }])
+      expect(api.started).toEqual([{ game, level: 'medium', sides: 1 }])
       expect(s).toMatchObject({ seed: 7, matchId: 'srv-1', rated: true })
       const rec = createMatchRecorder(init({ game, matchId: s.matchId!, seed: s.seed }))
       const { core, s: end } = playCounter(rec, game)
@@ -152,7 +156,7 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
   test('a practice start tells the server, and the session is marked practice', async () => {
     const api = fakeApi()
     const s = await beginSession(api, 'chess', 'hard', undefined, undefined, undefined, undefined, true)
-    expect(api.started).toEqual([{ game: 'chess', level: 'hard', practice: true }])
+    expect(api.started).toEqual([{ game: 'chess', level: 'hard', sides: 1, practice: true }])
     expect(s).toMatchObject({ matchId: 'srv-1', rated: true, practice: true })
     const rated = await beginSession(fakeApi(), 'chess', 'hard')
     expect(rated.practice).toBeUndefined()
@@ -177,11 +181,26 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     expect(api.started).toEqual([])
   })
 
-  test('an unreachable server uses a saved offline ticket: the match stays counted, with the ticket id, seed and version', async () => {
+  test('the ticket path, when a game is allowed tickets (none is now; the list is injected): the match stays counted, with the ticket id, seed and version', async () => {
     const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
     const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-1', game: 'four' as const, level: 'easy' as const, seed: 99, agentVersion: 'v7', expiresAt: Date.now() + 1000 }
-    const s = await beginSession(down, 'four', 'easy', undefined, async () => ticket)
+    const s = await beginSession(down, 'four', 'easy', undefined, async () => ticket, undefined, undefined, false, [])
     expect(s).toMatchObject({ seed: 99, matchId: 'tk-1', agentVersion: 'v7', rated: true, offline: true })
+  })
+
+  test('offline, no game takes a ticket, even one saved before the rule: a local match that counts nowhere, with a side from its own seed', async () => {
+    const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
+    for (const game of ['chess', 'four', 'holdem', 'slack', 'fighter', 'arena'] as const) {
+      let asked = false
+      const ticket = { owner: { userId: null, guestId: 'g-1' }, matchId: 'tk-old', game, level: 'easy' as const, seed: 99, agentVersion: 'v7', humanSeat: 1 as const, expiresAt: Date.now() + 1000 }
+      const s = await beginSession(down, game, 'easy', undefined, async () => { asked = true; return ticket })
+      expect(asked, game).toBe(false)
+      expect(s, game).toMatchObject({ rated: false })
+      expect(s.matchId).toBeUndefined()
+      expect(s.offline).toBeUndefined()
+      expect(s.unratedReason).toMatch(/not counted/)
+      expect(s.humanSeat).toBe(sideForSeed(game, s.seed))
+    }
   })
 
   test('an unreachable server with no ticket left plays unrated and says why', async () => {
@@ -191,14 +210,50 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     expect(s.matchId).toBeUndefined()
   })
 
+  describe('the side a match gives the player', () => {
+    const reply = (humanSeat?: 0 | 1) => fakeApi({ start: async () => ({ matchId: 'srv-1', seed: 7, agentVersion: 'v9', ...(humanSeat === undefined ? {} : { humanSeat }) }) })
+
+    test('a counted match takes the server side; a reply with no side (an older server, or a game with none) is seat 0', async () => {
+      expect((await beginSession(reply(1), 'chess', 'hard')).humanSeat).toBe(1)
+      expect((await beginSession(reply(0), 'four', 'hard')).humanSeat).toBe(0)
+      expect((await beginSession(reply(), 'slack', 'hard')).humanSeat).toBe(0)
+    })
+
+    test('a game with no random side stays in seat 0 whatever the reply says', async () => {
+      expect((await beginSession(reply(1), 'holdem', 'hard')).humanSeat).toBe(0)
+      expect((await beginSession(reply(1), 'fleet', 'hard')).humanSeat).toBe(0)
+    })
+
+    test('a fixed test seed gives the side the seed gives, so a test can force either one', async () => {
+      const seeds = { 0: [] as number[], 1: [] as number[] }
+      for (let seed = 1; seeds[0].length < 3 || seeds[1].length < 3; seed++) seeds[sideForSeed('chess', seed)].push(seed)
+      for (const side of [0, 1] as const) for (const seed of seeds[side].slice(0, 3)) expect((await beginSession(fakeApi(), 'chess', 'easy', seed)).humanSeat).toBe(side)
+      expect((await beginSession(fakeApi(), 'word', 'easy', 123)).humanSeat).toBe(0)
+    })
+
+    test('a match with no server at all gets a side from its local seed, and both sides come up', async () => {
+      const down = fakeApi({ start: async () => Promise.reject(new Error('offline')) })
+      const seen = new Set<number>()
+      for (let i = 0; i < 40; i++) {
+        const s = await beginSession(down, 'chess', 'easy', undefined, async () => null, undefined, undefined, i % 2 === 0)
+        expect(s.humanSeat).toBe(sideForSeed('chess', s.seed))
+        seen.add(s.humanSeat)
+      }
+      expect([...seen].sort()).toEqual([0, 1])
+    })
+  })
+
   test('offline Word Duel plays unranked on this device; other games say how to get saved match slots', () => {
     const real = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true })
     try {
+      expect(offlineReason('word')).toBe('You are offline, so this Word Duel is unranked. It counts on your record on this device only.')
       expect(offlineReason('word')).toMatch(/unranked/)
       expect(offlineReason('word')).toMatch(/this device only/)
-      expect(offlineReason('four')).toMatch(/offline/)
-      expect(offlineReason('four')).toMatch(/while online/)
+      expect(offlineReason('fleet')).toBe('You are offline, so this Stormglass match is unranked. It counts on your record on this device only.')
+      expect(offlineReason('fleet')).not.toMatch(/slots|while online/)
+      // Every game with a rated path is rated only with a connection: offline is a local match that counts nowhere.
+      for (const g of ['chess', 'four', 'holdem', 'slack', 'fighter', 'arena'] as const) expect(offlineReason(g)).toMatch(/offline, so this .* match is not counted: Rated needs a connection, and Practice works offline/)
     } finally {
       if (real) Object.defineProperty(globalThis, 'navigator', real)
     }
@@ -231,6 +286,8 @@ describe('beginSession and uploadMatch (every game goes through the same path)',
     const bytes = new Uint8Array(20)
     const f = { record: {} as never, bytes, ok: true }
     expect(await uploadMatch(fakeApi({ finish: async () => ({ valid: false, reason: 'seed', result: null }) }), f)).toEqual({ status: 'rejected', reason: 'seed' })
+    const charged = await uploadMatch(fakeApi({ finish: async () => ({ valid: false, reason: 'seed', result: null, elo: { before: 1000, after: 980 }, provisional: true }) }), f)
+    expect(charged).toEqual({ status: 'rejected', reason: 'seed', elo: { before: 1000, after: 980 }, provisional: true })
     let calls = 0
     const flaky = fakeApi({ finish: async () => { calls++; throw new Error('net') } })
     expect(await uploadMatch(flaky, f)).toEqual({ status: 'failed', message: 'net' })
@@ -248,6 +305,97 @@ function fakeStore(): KeyValueStore {
     removeItem: (k) => void m.delete(k),
   }
 }
+
+describe('a stale begin never pairs one match with another', () => {
+  /** The hook's own callbacks, taken from one server render: refs work and a state update after the render is a no-op, so no DOM is needed. */
+  function hook(api: MatchApi) {
+    let got!: ReturnType<typeof useMatchRecorder>
+    const Probe = () => {
+      got = useMatchRecorder('four', api)
+      return null
+    }
+    renderToStaticMarkup(createElement(Probe))
+    return got
+  }
+  const twoStarts = () => {
+    const issued = [{ matchId: 'srv-a', seed: 5, agentVersion: 'v0' }, { matchId: 'srv-b', seed: 9, agentVersion: 'v0' }]
+    return fakeApi({ start: async () => issued.shift()! })
+  }
+  /** A later begin answered first, so the hook's current session is B while the page starts A. Returns the record the page would upload. */
+  async function recordOfA(matchId: string) {
+    const r = hook(twoStarts())
+    const a = await r.begin('easy', undefined, undefined, false)
+    await r.begin('easy', undefined, undefined, false)
+    r.start({ seed: a.seed, humanSeat: 0, agent: { version: 'v0', level: 'easy' }, trainingAllowed: true, device: 'desktop', matchId })
+    const core = createCounterGame('four')
+    let s = core.init(a.seed)
+    for (let tick = 0; !core.terminal(s); tick++) {
+      const seat = core.toAct(s)[0]!
+      const action = seat === 0 ? 3 : 1
+      r.act(tick, seat, action)
+      s = core.step(s, seat === 0 ? [action, null] : [null, action])
+    }
+    return (await r.finish(core, s)).record
+  }
+
+  test('the id the page passes wins over the session a later begin left behind, so the id and seed stay one match', async () => {
+    expect(await recordOfA('srv-a')).toMatchObject({ matchId: 'srv-a', seed: 5 })
+  })
+
+  for (const file of ['chess/useChessMatch.ts', 'four/useFourMatch.ts', 'holdem/useHoldemMatch.ts', 'word/useWordMatch.ts']) {
+    test(`${file} hands the recorder the id of the session it opened`, () => {
+      const source = readFileSync(new URL(`../games/${file}`, import.meta.url), 'utf8')
+      const call = source.slice(source.indexOf('recorder.start({'))
+      expect(call.slice(0, call.indexOf('})'))).toContain('matchId: opened.session.matchId,')
+    })
+  }
+})
+
+describe('a finish that cannot encode leaves the match live, so Resign and the leave path still reach the server', () => {
+  function hook(api: MatchApi) {
+    let got!: ReturnType<typeof useMatchRecorder>
+    const Probe = () => {
+      got = useMatchRecorder('four', api)
+      return null
+    }
+    renderToStaticMarkup(createElement(Probe))
+    return got
+  }
+  async function playedOut(api: MatchApi) {
+    const r = hook(api)
+    const a = await r.begin('easy', undefined, undefined, false)
+    r.start({ seed: a.seed, humanSeat: 0, agent: { version: 'v0', level: 'easy' }, trainingAllowed: true, device: 'desktop', matchId: 'srv-x' })
+    const core = createCounterGame('four')
+    let s = core.init(a.seed)
+    for (let tick = 0; !core.terminal(s); tick++) {
+      const seat = core.toAct(s)[0]!
+      const action = seat === 0 ? 3 : 1
+      r.act(tick, seat, action)
+      s = core.step(s, seat === 0 ? [action, null] : [null, action])
+    }
+    return { r, core, s }
+  }
+
+  test('finish throws: Resign sends exactly one request for the match', async () => {
+    const resigns: string[] = []
+    const api = fakeApi({ start: async () => ({ matchId: 'srv-x', seed: 5, agentVersion: 'v0' }), resign: async (id) => { resigns.push(id); return { resigned: true } } })
+    const { r, core, s } = await playedOut(api)
+    const broken = { ...core, hash: () => { throw new Error('encode failed') } }
+    await expect(r.finish(broken as never, s)).rejects.toThrow('encode failed')
+    await r.resign(9)
+    await r.resign(9)
+    expect(resigns).toEqual(['srv-x'])
+  })
+
+  test('finish succeeds: unchanged, the match is settled by its upload and a later Resign sends nothing', async () => {
+    const resigns: string[] = []
+    const api = fakeApi({ start: async () => ({ matchId: 'srv-x', seed: 5, agentVersion: 'v0' }), resign: async (id) => { resigns.push(id); return { resigned: true } } })
+    const { r, core, s } = await playedOut(api)
+    await r.finish(core, s)
+    await r.resign(9)
+    expect(resigns).toEqual([])
+  })
+})
 
 describe('a finished match is never left started', () => {
   test('a record whose upload failed is kept, and the next load delivers it and drops it', async () => {

@@ -30,3 +30,14 @@ test('the opponent drop is announced, the human drop is not', () => {
   expect(dropAnnouncement({ opponent: 'Pip', lastCol: 2, lastSeat: 0, moves: 1, over: false })).toBe('')
   expect(dropAnnouncement({ opponent: 'Pip', lastCol: null, lastSeat: null, moves: 0, over: false })).toBe('Your move.')
 })
+
+test('for a player who drops second, the ownership words and the prompts follow the seat', () => {
+  // Seat 1 is the player: the first stone is the opponent's.
+  const s = play('33')
+  expect(columnLabel(s, 3, 'Pip', 1)).toBe("Column 4, 2 stones, top one is yours")
+  expect(columnLabel(play('3'), 3, 'Pip', 1)).toBe("Column 4, 1 stone, top one is Pip's")
+  expect(boardSummary(s, 'Pip', 1)).toContain('Column 4, bottom to top: Pip, you.')
+  expect(dropAnnouncement({ opponent: 'Pip', lastCol: null, lastSeat: null, moves: 0, over: false, humanSeat: 1 })).toBe('You drop second. Pip opens.')
+  expect(dropAnnouncement({ opponent: 'Pip', lastCol: 2, lastSeat: 0, moves: 1, over: false, humanSeat: 1 })).toBe('Pip dropped a stone in column 3. Your move.')
+  expect(dropAnnouncement({ opponent: 'Pip', lastCol: 2, lastSeat: 1, moves: 2, over: false, humanSeat: 1 })).toBe('')
+})

@@ -32,7 +32,8 @@ beforeEach(async () => {
 
 const G1 = { guestId: 'g-1' }
 const G2 = { guestId: 'g-2' }
-const OPTS = { agentVersion: () => 'v1' }
+// Chess, Four and Hold'em no longer get tickets (rated-path.ts NO_OFFLINE_TICKETS); the ticket mechanics below are still exercised, on Four, as a ticket saved before that rule.
+const OPTS = { agentVersion: () => 'v1', side: () => 0 as const, noTickets: [] as never[] }
 
 function playFour(t: Ticket, version = 'v1'): MatchRecordV1 {
   const rng = makeRng(t.seed ^ 0x9e37)
@@ -55,7 +56,7 @@ function playFour(t: Ticket, version = 'v1'): MatchRecordV1 {
 }
 
 async function issue(count = 1, who = G1, game = 'four', level = 'easy', opts: Parameters<typeof issueTicketsHandler>[3] = OPTS) {
-  const r = await issueTicketsHandler(db, { game, level, count }, who, opts)
+  const r = await issueTicketsHandler(db, { sides: 1, game, level, count }, who, opts)
   return r
 }
 const rowOf = async (id: string) => (await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!
@@ -106,8 +107,8 @@ describe('ticket issue', () => {
   })
 
   test('tickets for a replaced agent version stop counting against the pool', async () => {
-    await issue(5, G1, 'four', 'easy', { agentVersion: () => 'v1' })
-    const r = (await issue(5, G1, 'four', 'easy', { agentVersion: () => 'v2' })).body as { tickets: Ticket[] }
+    await issue(5, G1, 'four', 'easy', { ...OPTS, agentVersion: () => 'v1' })
+    const r = (await issue(5, G1, 'four', 'easy', { ...OPTS, agentVersion: () => 'v2' })).body as { tickets: Ticket[] }
     expect(r.tickets).toHaveLength(5)
     expect(r.tickets.every((t) => t.agentVersion === 'v2')).toBe(true)
     expect(await db.select().from(schema.match).where(eq(schema.match.status, 'expired'))).toHaveLength(5)
@@ -129,7 +130,7 @@ describe('tickets are not matches until used', () => {
 
   test('tickets do not count against the open match cap', async () => {
     const tickets = ((await issue(5)).body as { tickets: Ticket[] }).tickets
-    for (let i = 0; i < MAX_OPEN_MATCHES + 2; i++) await startMatchHandler(db, { game: 'four', level: 'easy' }, G1, OPTS)
+    for (let i = 0; i < MAX_OPEN_MATCHES + 2; i++) await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, G1, OPTS)
     for (const t of tickets) expect((await rowOf(t.matchId)).status).toBe('ticket')
   })
 })
@@ -263,7 +264,7 @@ describe('owners, adoption and caps (review F1, F3)', () => {
         })
       },
     }) as Db
-    const r = await issueTicketsHandler(racing, { game: 'four', level: 'easy', count: 3 }, G1, OPTS)
+    const r = await issueTicketsHandler(racing, { sides: 1, game: 'four', level: 'easy', count: 3 }, G1, OPTS)
     // 3 issued plus 4 from the other process is 7; the pool holds 5, so this request keeps 1 and gives 2 back.
     const open = await db.select().from(schema.match).where(eq(schema.match.status, 'ticket'))
     expect(open).toHaveLength(MAX_OPEN_TICKETS_PER_LEVEL)

@@ -72,11 +72,12 @@ export async function createPolicyAgent(
   opts: { seat?: 0 | 1; ort?: OrtSessionOpts; value?: ValueNet } = {},
 ): Promise<Agent> {
   const session = await OrtSession.create(modelBytes, opts.ort)
-  const seat = opts.seat ?? 1
+  let seat = opts.seat ?? 1
   let rng = makeRng(0)
   const planes = new Float32Array(PLANES * 64)
   return {
-    reset(seed) {
+    reset(seed, forSeat) {
+      if (forSeat !== undefined) seat = forSeat
       // Mixing in the seat keeps two agents of one level from drawing the same random numbers.
       rng = makeRng((seed ^ Math.imul(seat + 1, 0x9e3779b1)) | 0)
     },

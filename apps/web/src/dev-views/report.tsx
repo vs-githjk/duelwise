@@ -7,11 +7,11 @@ import type { ReportView } from '../server/report'
 
 /**
  * Dev-only: the report page on fixture matches played on the real cores, for design checks.
- * /dev/report?scenario=chess|four|word and &mode=public|owner.
+ * /dev/report?scenario=chess|four|word|slack and &mode=public|owner.
  */
 export default function ReportDevView() {
   const q = new URLSearchParams(typeof location === 'undefined' ? '' : location.search)
-  const scenario = (q.get('scenario') ?? 'chess') as 'chess' | 'four' | 'word'
+  const scenario = (q.get('scenario') ?? 'chess') as 'chess' | 'four' | 'word' | 'slack'
   const mode = q.get('mode') === 'public' ? 'public' : 'owner'
   const view = useMemo<ReportView>(() => {
     const rec = playRandom(scenario, scenario === 'chess' ? 12 : 4, 0, 'medium')

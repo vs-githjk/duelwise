@@ -12,11 +12,16 @@
     "CoD",
     "Connect Four",
     "Connect 4",
+    "Othello",
     "NYT",
     "Drive Gauge",
     "Drive Rush",
     "Drive Parry",
-    "Drive Impact"
+    "Drive Impact",
+    "Battleship",
+    "Battleships",
+    "8 Ball Pool",
+    "Miniclip"
   ],
   "caseSensitive": ["CoD"],
   "rejectedNames": ["Beat Me"]

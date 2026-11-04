@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { PieceArt, PIECE_NAME, type PieceType } from './Pieces'
+import { PieceArt, PIECE_NAME, type PieceColor, type PieceType } from './Pieces'
 
 const CHOICES: PieceType[] = ['q', 'r', 'b', 'n']
 const label = (t: PieceType) => PIECE_NAME[t][0]!.toUpperCase() + PIECE_NAME[t].slice(1)
@@ -8,10 +8,12 @@ export interface PromotionProps {
   /** Called with the chosen piece letter (q r b n). */
   onPick: (piece: PieceType) => void
   onCancel: () => void
+  /** The colour of the player's pieces, shown on the choices. */
+  color?: PieceColor
 }
 
 /** Four real buttons over the board. The first takes focus; Escape cancels and the move is not played. */
-export function Promotion({ onPick, onCancel }: PromotionProps) {
+export function Promotion({ onPick, onCancel, color = 'w' }: PromotionProps) {
   const first = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     first.current?.focus()
@@ -42,7 +44,7 @@ export function Promotion({ onPick, onCancel }: PromotionProps) {
             onClick={() => onPick(t)}
             className="grid aspect-square w-[min(18vw,72px)] place-items-center rounded-control bg-surface-2 outline-none hover:bg-action-soft focus-visible:ring-4 focus-visible:ring-action"
           >
-            <PieceArt type={t} color="w" className="size-4/5" />
+            <PieceArt type={t} color={color} className="size-4/5" />
           </button>
         ))}
       </div>

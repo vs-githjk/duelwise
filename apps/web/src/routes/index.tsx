@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { gameCountWord } from '@duelwise/core/src/product'
 import { GameInfoCard } from '../components/GameInfoCard'
 import { Hero } from '../components/Hero'
 import { LEVELS } from '../lib/level-info'
@@ -30,14 +31,14 @@ function Landing() {
       <Hero records={data.records} />
       <section className="grid gap-4" aria-labelledby="six-games-h" data-testid="landing-games">
         <h2 id="six-games-h" className="font-display text-display-md">
-          Six games waiting
+          {gameCountWord()} games waiting
         </h2>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.cards.map((c) => (
             <GameInfoCard key={c.game} card={c} />
           ))}
         </ul>
-        <p className="text-sm text-muted">Press Step in above to choose one. Unrated matches run in your browser; in a counted Word Duel match the server picks the opponent's words so nobody can see them early. A level shows Practice until it passes our strength test.</p>
+        <p className="text-sm text-muted">Press Step in above to choose one. Unrated matches run in your browser; in a counted Word Duel match the server picks the opponent's words and in a counted Stormglass match it keeps the enemy fleet, so nobody can see them early. A level shows Practice until it passes our strength test.</p>
       </section>
       <section className="grid gap-4" aria-labelledby="path-h" data-testid="landing-path">
         <h2 id="path-h" className="font-display text-display-md">

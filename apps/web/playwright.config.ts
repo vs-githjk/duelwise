@@ -9,7 +9,7 @@ const guidesSeen = {
   origins: [{
     origin: `http://localhost:${port}`,
     localStorage: [
-      ...['chess', 'four', 'holdem', 'word', 'fighter', 'arena'].map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })),
+      ...['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack'].map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })),
       // Every stop of the adventure path is open (the owner escape hatch, same as ?any=1), so a spec can pick any level.
       // e2e/path.spec.ts clears it to test the locks.
       { name: 'duelwise.any', value: '1' },
@@ -36,7 +36,7 @@ export default defineConfig({
     cwd: import.meta.dirname,
     url: `http://localhost:${port}`,
     // DUELWISE_DB=memory: the e2e server never opens <common root>/.data/pglite (Vidyut's dev database).
-    env: { PORT: String(port), DUELWISE_DB: 'memory', DEV_LOGIN: '1', OWNER_EMAILS: 'eowner@dev.invalid', DUELWISE_AGENT_CHECK: 'off' },
+    env: { PORT: String(port), DUELWISE_DB: 'memory', DEV_LOGIN: '1', OWNER_EMAILS: 'eowner@dev.invalid', DUELWISE_AGENT_CHECK: 'off', DUELWISE_SIDE: process.env.DUELWISE_SIDE ?? '0', VITE_DUELWISE_SIDE: process.env.DUELWISE_SIDE ?? '0' },
     reuseExistingServer: false,
     timeout: 120_000,
   },

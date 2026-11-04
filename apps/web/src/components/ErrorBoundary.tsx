@@ -15,7 +15,7 @@ export function OfflineState({ reset }: { reset?: () => void }) {
   return (
     <section role="status" className="grid max-w-md gap-3 py-10" data-testid="offline-state">
       <h1 className="font-display text-display-md">You are offline</h1>
-      <p className="text-muted">This page needs a connection. Your finished matches are saved on this device and will be sent when you are back online, and games you have opened still work.</p>
+      <p className="text-muted">This page needs a connection. Rated matches you started online are sent when you are back online, and games you have opened still work.</p>
       <div className="flex flex-wrap gap-3">
         <a href="/play" className="inline-flex min-h-11 items-center rounded-control bg-action px-4 font-semibold text-action-ink">
           Back to games

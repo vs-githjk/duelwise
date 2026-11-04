@@ -51,6 +51,9 @@ test('result reasons are full sentences with a subject', () => {
   expect(resultSentence(r(1, 'resigned'), 0, 'Duelwise')).toBe('You resigned.')
   expect(resultSentence(r(0, 'four in a row'), 0, 'Duelwise')).toBe('You connected four in a row.')
   expect(resultSentence(r(1, 'four in a row'), 0, 'Duelwise')).toBe('Duelwise connected four in a row.')
+  expect(resultSentence(r(0, 'fleet sunk'), 0, 'Pip')).toBe("You sank all five of Pip's ships.")
+  expect(resultSentence(r(1, 'fleet sunk'), 0, 'Pip')).toBe('Pip sank your whole fleet.')
+  expect(resultSentence(r(1, 'fleet sunk'), 0, 'Pip', true)).toBe("Pip sank the player's whole fleet.")
   expect(resultSentence(r(null, 'board full'), 0, 'Duelwise')).toBe('The board filled up with no winner.')
   expect(resultSentence(r(null, 'threefold repetition'), 0, 'Duelwise')).toBe('The position repeated three times, so the game is a draw.')
   expect(resultSentence(r(null, 'stalemate'), 0, 'Duelwise')).toBe('Stalemate: the player to move had no legal move, so the game is a draw.')
@@ -113,4 +116,11 @@ test('a practice match with buy-backs says its chips count every stack', () => {
   expect(resultSentence(r(0, 'ahead by 4 chips after 10 hands'), 0, 'Pip', false, 1)).toBe('You finished 4 chips ahead after 10 hands, counting all 2 stacks.')
   expect(resultSentence(r(null, 'chips level after 10 hands'), 0, 'Pip', false, 2)).toBe('Chips were level after 10 hands, counting all 3 stacks.')
   expect(resultSentence(r(1, 'ahead by 300 chips after 10 hands'), 0, 'Pip')).toBe('Pip finished 300 chips ahead after 10 hands.')
+})
+
+test('Crosscurrent results name the disc rule, never the raw reason', () => {
+  const win: Result = { winner: 0, score: [1, 0], reason: 'most discs' }
+  expect(resultSentence(win, 0, 'Pip')).toBe('You finished with more discs than Pip.')
+  expect(resultSentence({ winner: 1, score: [0, 1], reason: 'most discs' }, 0, 'Pip')).toBe('Pip finished with more discs than you.')
+  expect(resultSentence({ winner: null, score: [0.5, 0.5], reason: 'level on discs' } as Result, 0, 'Pip')).toMatch(/same number of discs.*draw/)
 })

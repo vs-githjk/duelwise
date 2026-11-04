@@ -11,6 +11,7 @@ import { finishMatchFromUpload, startMatchHandler, sweepDeferredChecks } from '.
 import { callerFromRequest } from './caller'
 import { ratedSiteElo } from './ratings'
 import { gameRecordsTrainable } from './stats-fns'
+import { testSide } from './side-switch'
 
 // Registry JSON files ship inside the bundle, so the server can name the agent version without
 // reading the disk. A game without a registry yet serves its preview stub, "v1".
@@ -50,7 +51,7 @@ export const startMatch = createServerFn({ method: 'POST' })
     const { db } = await getServerDb()
     const who = await callerFromRequest()
     await sweepAbandoned(db)
-    const r = await startMatchHandler(db, data, who, { agentVersion: agentVersionFor, recordsTrainable: gameRecordsTrainable, siteElo: siteEloFor, userAgent: getRequestHeader('user-agent') })
+    const r = await startMatchHandler(db, data, who, { agentVersion: agentVersionFor, recordsTrainable: gameRecordsTrainable, siteElo: siteEloFor, userAgent: getRequestHeader('user-agent'), side: testSide() })
     setResponseStatus(r.status)
     return r.body
   })
@@ -74,7 +75,7 @@ export const issueTickets = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const { db } = await getServerDb()
     const who = await callerFromRequest()
-    const r = await issueTicketsHandler(db, data, who, { agentVersion: agentVersionFor, recordsTrainable: gameRecordsTrainable })
+    const r = await issueTicketsHandler(db, data, who, { agentVersion: agentVersionFor, recordsTrainable: gameRecordsTrainable, side: testSide() })
     setResponseStatus(r.status)
     return r.body
   })

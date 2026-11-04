@@ -51,6 +51,8 @@ export interface ChessBoardProps {
   checkSquare: string | null
   turn: 'you' | 'ai' | 'over'
   plies: number
+  /** Whose pieces sit at the bottom: the player's colour. White (the default) has rank 1 at the bottom and file a at the left; Black has rank 8 and file h. */
+  orientation?: PieceColor
   /** Called with a legal move. */
   onMove: (uci: string) => void
   /** Shown in the live notice under the board. */
@@ -59,13 +61,15 @@ export interface ChessBoardProps {
 
 /**
  * The board. Every square is a real button, so mouse, touch, keyboard and screen readers all work: tap
- * a piece and then a highlighted square, or drag a piece onto its square. White is always at the bottom
- * because the human always plays White. Arrow keys move between squares (roving tab stop).
+ * a piece and then a highlighted square, or drag a piece onto its square. The player's pieces are always at the bottom
+ * (White's by default, Black's when the match gave the player Black). Arrow keys move between squares as they look on the
+ * screen (roving tab stop).
  */
-export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onMove, onNotice }: ChessBoardProps) {
+export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, orientation = 'w', onMove, onNotice }: ChessBoardProps) {
+  const flipped = orientation === 'b'
   const pieces = useMemo(() => piecesFromFen(fen), [fen])
   const [selected, setSelected] = useState<string | null>(null)
-  const [cursor, setCursor] = useState('e2')
+  const [cursor, setCursor] = useState(flipped ? 'e7' : 'e2')
   const [promo, setPromo] = useState<{ from: string; to: string } | null>(null)
   const [drag, setDrag] = useState<{ from: string; x: number; y: number; moved: boolean; wasSelected: boolean } | null>(null)
   const dragRef = useRef(drag)
@@ -80,13 +84,18 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
   const pressed = useRef<{ sq: string; at: number } | null>(null)
 
   const canMove = turn === 'you'
-  const mine = (sq: string) => pieces.get(sq)?.color === 'w'
+  const mine = (sq: string) => pieces.get(sq)?.color === orientation
   const targets = useMemo(() => {
     const t = new Map<string, boolean>() // target square -> is a capture
     if (!selected) return t
     for (const m of legal) if (m.startsWith(selected)) t.set(m.slice(2, 4), pieces.has(m.slice(2, 4)) || (pieces.get(selected)?.type === 'p' && selected[0] !== m[2]))
     return t
   }, [selected, legal, pieces])
+
+  // The first square the keyboard lands on is in front of the player's own king side pawn, whichever side they have.
+  useEffect(() => {
+    setCursor(flipped ? 'e7' : 'e2')
+  }, [flipped])
 
   // A new position clears any selection and a stale promotion picker.
   useEffect(() => {
@@ -99,8 +108,9 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
     if (!lastMove || reducedMotion()) return
     const el = root.current?.querySelector<HTMLElement>(`[data-testid="piece"][data-square="${lastMove.to}"]`)
     if (!el) return
-    const dx = fileOf(lastMove.from) - fileOf(lastMove.to)
-    const dy = rankOf(lastMove.to) - rankOf(lastMove.from)
+    // On a flipped board the squares run the other way on the screen.
+    const dx = (fileOf(lastMove.from) - fileOf(lastMove.to)) * (flipped ? -1 : 1)
+    const dy = (rankOf(lastMove.to) - rankOf(lastMove.from)) * (flipped ? -1 : 1)
     el.style.zIndex = '20'
     const c = animate(el, { x: [`${dx * 100}%`, '0%'], y: [`${dy * 100}%`, '0%'] }, { duration: 0.22, ease: 'easeOut' }) // guard-allow: css transform
     void c.then(
@@ -191,10 +201,14 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
     const f = fileOf(sq)
     const r = rankOf(sq)
     let next: string | null = null
-    if (e.key === 'ArrowLeft') next = f > 0 ? squareAt(f - 1, r) : sq
-    else if (e.key === 'ArrowRight') next = f < 7 ? squareAt(f + 1, r) : sq
-    else if (e.key === 'ArrowUp') next = r < 8 ? squareAt(f, r + 1) : sq
-    else if (e.key === 'ArrowDown') next = r > 1 ? squareAt(f, r - 1) : sq
+    // Arrows follow the screen: on a flipped board "left" is toward file h and "up" is toward rank 1.
+    const s = flipped ? -1 : 1
+    const toFile = (d: number) => (f + d >= 0 && f + d <= 7 ? squareAt(f + d, r) : sq)
+    const toRank = (d: number) => (r + d >= 1 && r + d <= 8 ? squareAt(f, r + d) : sq)
+    if (e.key === 'ArrowLeft') next = toFile(-s)
+    else if (e.key === 'ArrowRight') next = toFile(s)
+    else if (e.key === 'ArrowUp') next = toRank(s)
+    else if (e.key === 'ArrowDown') next = toRank(-s)
     else if (e.key === 'Escape') {
       setSelected(null)
       return
@@ -209,8 +223,11 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
   const rootRect = drag?.moved ? root.current?.getBoundingClientRect() : undefined
 
   const squares = []
-  for (let rank = 8; rank >= 1; rank--) {
-    for (let file = 0; file < 8; file++) {
+  // Row and column are as they look on the screen; the board is turned for Black.
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const rank = flipped ? row + 1 : 8 - row
+      const file = flipped ? 7 - col : col
       const sq = squareAt(file, rank)
       const piece = pieces.get(sq)
       const dark = (file + rank) % 2 === 0
@@ -246,8 +263,8 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
           {checkSquare === sq ? (
             <span className="pointer-events-none absolute inset-0" style={{ background: CHECK_GLOW }} />
           ) : null}
-          {file === 0 ? <span data-coord className={cn('pointer-events-none absolute left-[3%] top-[2%] text-[clamp(8px,2.4vw,12px)] font-semibold leading-none', dark ? 'text-coord-on-dark' : 'text-coord-on-light')}>{rank}</span> : null}
-          {rank === 1 ? <span data-coord className={cn('pointer-events-none absolute bottom-[2%] right-[4%] text-[clamp(8px,2.4vw,12px)] font-semibold leading-none', dark ? 'text-coord-on-dark' : 'text-coord-on-light')}>{FILES[file]}</span> : null}
+          {col === 0 ? <span data-coord className={cn('pointer-events-none absolute left-[3%] top-[2%] text-[clamp(8px,2.4vw,12px)] font-semibold leading-none', dark ? 'text-coord-on-dark' : 'text-coord-on-light')}>{rank}</span> : null}
+          {row === 7 ? <span data-coord className={cn('pointer-events-none absolute bottom-[2%] right-[4%] text-[clamp(8px,2.4vw,12px)] font-semibold leading-none', dark ? 'text-coord-on-dark' : 'text-coord-on-light')}>{FILES[file]}</span> : null}
           {piece ? (
             <span
               data-testid="piece"
@@ -280,7 +297,8 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
       data-turn={turn}
       data-plies={plies}
       role="group"
-      aria-label="Chess board, White at the bottom"
+      aria-label={`Chess board, ${flipped ? 'Black' : 'White'} at the bottom`}
+      data-orientation={orientation}
       // The click after a pointer press can land on the board itself (the board holds the pointer); it still ends the press.
       onClick={() => {
         pressed.current = null
@@ -305,6 +323,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, onM
       ) : null}
       {promo ? (
         <Promotion
+          color={orientation}
           onPick={(t) => {
             const { from, to } = promo
             setPromo(null)

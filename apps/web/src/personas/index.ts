@@ -2,7 +2,7 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import data from './personas.json'
 
 /**
- * The cast: four characters shared by all six games (design v3). This module holds names, bios and
+ * The cast: four characters shared by every game (design v3). This module holds names, bios and
  * per-game style lines only. Ratings and reaction limits are never stored here; they come from the
  * registries and PRODUCT (see cast.ts).
  */
@@ -19,6 +19,17 @@ export const RESULT_TEMPLATES = data.result_reaction_templates as Record<string,
 
 export function personaFor(level: Level): Persona {
   return PERSONAS[level]
+}
+
+/** Stormglass's opponents are hand-written solvers, so its Sable cannot carry the shared "human-like play with a reaction limit" line. Every other game and persona keeps the shared bio. */
+const GAME_BIOS: Partial<Record<GameId, Partial<Record<Level, string>>>> = {
+  fleet: { champion: 'The house champion. A scripted solver, not a learned player.' },
+  slack: { champion: 'The house champion. A search program, not a learned player.' },
+}
+
+/** The persona's one-line bio in this game: its own line where a game has one, else the shared bio. */
+export function bioFor(level: Level, game?: GameId): string {
+  return (game && GAME_BIOS[game]?.[level]) ?? PERSONAS[level].bio
 }
 
 export function styleLine(level: Level, game: GameId): string {

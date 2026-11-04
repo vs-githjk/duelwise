@@ -109,10 +109,10 @@ function playFour(matchId: string, seed: number, level: MatchRecordV1['agent']['
   }
 }
 
-const opts = { agentVersion: () => 'v1', siteElo: () => null as number | null }
+const opts = { agentVersion: () => 'v1', side: () => 0 as const, siteElo: () => null as number | null }
 
 async function playOne(who: { userId?: string; guestId?: string }, tamper?: (r: MatchRecordV1) => void) {
-  const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, opts)
+  const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, who, opts)
   const { matchId, seed } = s.body as { matchId: string; seed: number }
   const rec = playFour(matchId, seed)
   tamper?.(rec)
@@ -149,7 +149,7 @@ describe('finishing a match rates it', () => {
   })
 
   test('an abandoned match is scored once as a loss and cannot be finished later', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, opts)
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, opts)
     const { matchId, seed } = s.body as { matchId: string; seed: number }
     await db.update(schema.match).set({ startedAt: new Date(Date.now() - 3 * 3600 * 1000) }).where(eq(schema.match.id, matchId))
     expect(await abandonStale(db)).toBe(1)
@@ -162,7 +162,7 @@ describe('finishing a match rates it', () => {
   })
 
   test('a measured level uses its registry Elo and is not provisional', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, opts)
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, opts)
     const { matchId, seed } = s.body as { matchId: string; seed: number }
     const r = await finishMatchHandler(db, encodeRecord(playFour(matchId, seed)), USER, { ...opts, siteElo: () => 1100 })
     expect((r.body as { provisional?: boolean }).provisional).toBe(false)

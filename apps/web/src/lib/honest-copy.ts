@@ -1,4 +1,4 @@
-import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
+import { PRODUCT, gameCountWord, type GameId, type Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { personaFor } from '../personas'
 import { LEVEL_LABEL, type LevelInfo } from './level-info'
@@ -31,6 +31,10 @@ export function pretrainingSentence(reg: Registry | null): string | null {
   return `${who} learned from Lichess human games (${band}).`
 }
 
+/** Stormglass and Crosscurrent have no model at all: their levels are hand-written algorithms (a flip counter and three searches), so "yet" would promise training that can never happen. */
+const isScripted = (game: GameId): boolean => game === 'fleet' || game === 'slack'
+const NOTHING_TO_TRAIN = 'is a scripted solver and does not learn from matches'
+
 export interface TrainingNoticeCopy {
   /** False when the agent does not learn from human matches yet, so the match record must not be marked trainable. */
   trainable: boolean
@@ -47,7 +51,7 @@ export function trainingNoticeText(game: GameId, learnsFromHumans: boolean, basi
     const agent = PRODUCT.games[game].displayName.replace(/^Heads-Up /, '')
     return {
       trainable: false,
-      text: `The ${agent} agent does not learn from human matches yet. A replayable record of each match (the moves, the result and your input timing, never your name or email) is kept for your match report and is not used to train the agent.`,
+      text: `The ${agent} agent ${isScripted(game) ? NOTHING_TO_TRAIN : 'does not learn from human matches yet'}. A replayable record of each match (the moves, the result and your input timing, never your name or email) is kept for your match report and is not used to train the agent.`,
     }
   }
   return {
@@ -106,8 +110,16 @@ export function showsPreviewBadge(info: Pick<LevelInfo, 'preview' | 'inTraining'
 }
 
 /** The strip label on the agents overview: whether site matches are used for training (the registry rule), not whether a version has learned yet. */
-export function trainingStripLabel(usesMatches: boolean): string {
-  return usesMatches ? 'Trains on site matches' : 'Not yet'
+export function trainingStripLabel(usesMatches: boolean, game?: GameId): string {
+  if (usesMatches) return 'Trains on site matches'
+  return game && isScripted(game) ? 'Scripted' : 'Not yet'
+}
+
+/** The two sentences under the human-matches funnel on the agents page. */
+export function funnelNotes(game: GameId): { nothingUsed: string; notLearning: string } {
+  return isScripted(game)
+    ? { nothingUsed: 'Nothing is used for training.', notLearning: 'not used: this agent is scripted and has nothing to train.' }
+    : { nothingUsed: 'Nothing is used for training yet.', notLearning: 'not used: this agent does not learn from people yet.' }
 }
 
 /**
@@ -117,6 +129,7 @@ export function trainingStripLabel(usesMatches: boolean): string {
  */
 export function learnsNote(f: { learns: boolean; hasLearned: boolean; pretraining: string | null; selfPlay: boolean; game: GameId }): string {
   if (f.learns) return `Filtered human matches may be used to train this agent. ${f.hasLearned ? 'A promoted version has learned from them.' : 'No promoted version has learned from them yet.'}`
+  if (isScripted(f.game)) return 'Scripted solver: does not learn from site matches, because there is nothing to train.'
   const parts = ['Does not learn from site matches yet.']
   if (f.game === 'holdem') parts.push('Matches here are recorded for the player and are not used for training.')
   if (f.pretraining) parts.push(f.pretraining)
@@ -126,10 +139,17 @@ export function learnsNote(f: { learns: boolean; hasLearned: boolean; pretrainin
 
 /** The privacy page sentence naming every game whose matches are not used for training, built from the registries. */
 export function notTrainedSentence(registries: Partial<Record<GameId, Pick<Registry, 'learnsFromHumans'> | null>>): string {
-  const names = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !recordsTrainable(g, registries[g] ?? null)).map((g) => PRODUCT.games[g].displayName)
-  if (names.length === 0) return 'Every game\'s agent learns from filtered human matches.'
-  const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-  return `${list} matches are not used for training at present: ${names.length === 1 ? 'that agent does' : 'those agents do'} not learn from human matches yet.`
+  const off = (Object.keys(PRODUCT.games) as GameId[]).filter((g) => !recordsTrainable(g, registries[g] ?? null))
+  if (off.length === 0) return 'Every game\'s agent learns from filtered human matches.'
+  const nameOf = (g: GameId) => PRODUCT.games[g].displayName
+  const join = (names: string[]) => (names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
+  // A scripted solver can never train, so it is not promised ("yet") like an agent that may learn later.
+  const later = off.filter((g) => !isScripted(g)).map(nameOf)
+  const solvers = off.filter(isScripted).map(nameOf)
+  const solver = solvers.length === 0 ? '' : `${join(solvers)} ${solvers.length === 1 ? 'is a scripted solver' : 'are scripted solvers'} with nothing to train.`
+  if (later.length === 0) return `${join(solvers)} matches are not used for training at present: ${solver}`
+  const head = `${join(later)} matches are not used for training at present: ${later.length === 1 ? 'that agent does' : 'those agents do'} not learn from human matches yet.`
+  return solver ? `${head} ${solver}` : head
 }
 
 const RECORD = 'a replayable record (the inputs and the result, never your name or email)'
@@ -144,7 +164,7 @@ export function playTrainingBullet(game: GameId, registry: LearnsReg): string {
 
 /** The note under a finished match. `allowed` is the player's own setting, which can only turn training off. */
 export function resultTrainingNote(game: GameId, registry: LearnsReg, allowed: boolean): string {
-  if (!matchesTrainAgent(game, ANY_LEVEL, registry)) return `This match is stored as ${RECORD} for your report. This agent does not learn from human matches yet, so it is not used to train.`
+  if (!matchesTrainAgent(game, ANY_LEVEL, registry)) return `This match is stored as ${RECORD} for your report. ${isScripted(game) ? `This agent ${NOTHING_TO_TRAIN}` : 'This agent does not learn from human matches yet, so it is not used to train'}.`
   if (!allowed) return `This match is stored as ${RECORD}. Training is off for you, so it is not used to train the agent.`
   return `This match is stored as ${RECORD}. It may be used to train the next version of the agent.`
 }
@@ -154,12 +174,12 @@ export function reportLearnsCard(game: GameId, registry: LearnsReg): { title: st
   if (!matchesTrainAgent(game, ANY_LEVEL, registry)) {
     return {
       title: 'How the AI improves',
-      text: `${PRODUCT.name} has six games and four levels. This game's agent does not learn from human matches yet, so matches like this one are not used to train it. A new version is published only if it beats the champion.`,
+      text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. ${isScripted(game) ? `This game's agent ${NOTHING_TO_TRAIN}, so matches like this one train nothing` : "This game's agent does not learn from human matches yet, so matches like this one are not used to train it"}. A new version is published only if it beats the champion.`,
     }
   }
   return {
     title: 'One AI that learns from the matches people play',
-    text: `${PRODUCT.name} has six games and four levels. Matches like this one can feed the next challenger, which is published only if it beats the champion.`,
+    text: `${PRODUCT.name} has ${gameCountWord().toLowerCase()} games and four levels. Matches like this one can feed the next challenger, which is published only if it beats the champion.`,
   }
 }
 

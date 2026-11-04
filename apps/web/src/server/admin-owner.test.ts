@@ -3,13 +3,14 @@ import { PGlite } from '@electric-sql/pglite'
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { eq, sql } from 'drizzle-orm'
 import { encodeRecord } from '@duelwise/core/src/match-record'
-import type { GameId, Level } from '@duelwise/core/src/product'
+import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
 import { adminActiveHandler, adminOverviewHandler, adminPeopleHandler, adminPlayerHandler, parsePeopleParams, type PlayerDetail } from './admin-owner'
 import { playerRef } from './telemetry'
 import { claimGuestForOwner } from './guest'
 import { revealEmailsHandler } from './telemetry-owner'
+import { zoneFor } from './traffic-sql'
 
 let client: PGlite
 let db: PgliteDatabase<typeof schema>
@@ -218,7 +219,7 @@ describe('player drill-down', () => {
     // The arena win on a Practice level clears the stop on the path; the invalid word win does not.
     expect(d.path.find((p) => p.game === 'arena')!.cleared).toEqual({ easy: false, medium: false, hard: false, champion: true })
     expect(d.path.find((p) => p.game === 'word')!.cleared).toEqual({ easy: false, medium: false, hard: false, champion: false })
-    expect(d.path).toHaveLength(6)
+    expect(d.path).toHaveLength(Object.keys(PRODUCT.games).length)
     expect(JSON.stringify(d)).not.toContain('@')
   })
 
@@ -267,8 +268,9 @@ describe('privacy', () => {
 })
 
 
-const OV = async (): Promise<import('./admin-owner').AdminOverview> => (await adminOverviewHandler(db, OWNER, ENV, NOW)).body as import('./admin-owner').AdminOverview
-const AC = async (): Promise<import('./admin-owner').ActiveUsers> => (await adminActiveHandler(db, OWNER, ENV, NOW)).body as import('./admin-owner').ActiveUsers
+// The zone is explicit in every call: 'UTC' keeps the original UTC-day expectations meaningful.
+const OV = async (zone: unknown = 'UTC', now: Date = NOW): Promise<import('./admin-owner').AdminOverview> => (await adminOverviewHandler(db, OWNER, ENV, now, zone)).body as import('./admin-owner').AdminOverview
+const AC = async (zone: unknown = 'UTC', now: Date = NOW): Promise<import('./admin-owner').ActiveUsers> => (await adminActiveHandler(db, OWNER, ENV, now, zone)).body as import('./admin-owner').ActiveUsers
 const PG = async (q: Record<string, unknown> = {}): Promise<import('./admin-owner').PeoplePage> => (await adminPeopleHandler(db, OWNER, ENV, q)).body as import('./admin-owner').PeoplePage
 const parts = (s: import('./admin-owner').Split) => s.human + s.owner + s.test
 const addsUp = (s: import('./admin-owner').Split) => expect(parts(s)).toBe(s.total)
@@ -287,7 +289,7 @@ async function legacyHeadless(kind: 'user' | 'guest', id: string) {
 }
 
 describe('active players', () => {
-  test('DAU, WAU, MAU and returning count distinct players across guests and accounts, by UTC day', async () => {
+  test('DAU, WAU, MAU and returning count distinct players across guests and accounts, by day in the asked zone (UTC here)', async () => {
     // Seed: Wren played on days 3,2,1 and resigned one today; guest 0042 one today; Ada arena today and word 4 days ago. All human.
     const a = await AC()
     expect([a.dau.human, a.wau.human, a.mau.human, a.returning7.human, a.returning30.human]).toEqual([3, 3, 3, 2, 2])
@@ -297,7 +299,7 @@ describe('active players', () => {
     expect(a.perDay.reduce((s, d) => s + d.total, 0)).toBe(7)
   })
 
-  test('the windows are UTC days: 8 days ago is in MAU only, 00:00 today is in DAU', async () => {
+  test('in zone UTC the windows are UTC days: 8 days ago is in MAU only, 00:00 today is in DAU', async () => {
     await put({ guestId: G3, win: true, when: days(8) })
     await put({ guestId: G3, win: true, when: new Date('2026-10-30T00:00:00.000Z') })
     await put({ guestId: G3, win: true, when: new Date('2026-10-29T23:59:59.000Z') })
@@ -495,7 +497,7 @@ describe('review round 1', () => {
     expect(await claimGuestForOwner(db, 'eeeeeeee-1111-2222-3333-eeeeeeeeeeee')).toBe(false)
   })
 
-  test('active windows are explicit UTC whatever the session time zone, and rows dated after now are not counted', async () => {
+  test('active windows follow the asked zone (UTC here) whatever the session time zone, and rows dated after now are not counted', async () => {
     await put({ guestId: G3, win: true, when: new Date('2026-10-30T02:00:00.000Z') }) // UTC day 30, but day 29 in Los Angeles
     await put({ guestId: G3, win: true, when: new Date(NOW.getTime() + 3_600_000) }) // dated in the future
     const utc = await AC()
@@ -588,5 +590,147 @@ describe('owner view counts played matches only', () => {
     expect(after.devices).toEqual(before.devices)
     expect(after.whoPlayed).toEqual(before.whoPlayed)
     expect(before.kpis.matches.value).toBe(1)
+  })
+})
+
+// 2026-11-01 is the US fall-back day: 01:00 to 02:00 happens twice, so the local day is 25 hours long (04:00Z to 05:00Z next day in New York).
+describe('owner time zone', () => {
+  const FALLBACK_NOW = new Date('2026-11-02T04:30:00.000Z') // 23:30 Nov 1 in New York, 20:30 Nov 1 in Los Angeles, already Nov 2 in UTC
+  const at = (iso: string) => new Date(iso)
+  let g = 0
+  /** One match by a brand new guest, so every match is its own player. */
+  async function oneOff(when: Date) {
+    const id = `dddddddd-0000-0000-0000-${String(++g).padStart(12, '0')}`
+    await db.insert(schema.guest).values({ id, createdAt: days(40) })
+    await put({ guestId: id, win: true, when })
+  }
+  async function seedFallBack() {
+    await db.execute(sql`truncate table match, guest cascade`)
+    g = 0
+    for (const iso of [
+      '2026-10-03T03:59:00.000Z', // Oct 2 23:59 in New York: one minute before the 30 day window opens
+      '2026-10-03T04:00:00.000Z', // Oct 3 00:00 in New York: the first minute of the window
+      '2026-11-01T03:00:00.000Z', // Oct 31 23:00 EDT
+      '2026-11-01T04:30:00.000Z', // Nov 1 00:30 EDT
+      '2026-11-01T05:30:00.000Z', // Nov 1 01:30 EDT (first)
+      '2026-11-01T06:30:00.000Z', // Nov 1 01:30 EST (second)
+      '2026-11-01T07:00:00.000Z', // Nov 1 00:00 PDT in Los Angeles
+      '2026-11-02T03:00:00.000Z', // Nov 1 22:00 EST, but Nov 2 in UTC
+      '2026-11-02T04:59:00.000Z', // after now: never counted
+      '2026-11-02T05:00:00.000Z', // after now: Nov 2 00:00 EST
+    ]) await oneOff(at(iso))
+  }
+
+  test('New York on the 25 hour fall-back day: today is Nov 1 although UTC is already Nov 2', async () => {
+    await seedFallBack()
+    const ny = await AC('America/New_York', FALLBACK_NOW)
+    expect(ny.zone).toBe('America/New_York')
+    expect(ny.zoneFallback).toBe(false)
+    expect(ny.perDay).toHaveLength(30)
+    expect(ny.perDay.at(-1)).toMatchObject({ day: '2026-11-01', human: 5, total: 5 }) // 00:30 EDT, both 01:30s, 02:00 EST and 22:00 EST
+    expect(ny.perDay.at(-2)).toMatchObject({ day: '2026-10-31', total: 1 })
+    expect(ny.perDay[0]!.day).toBe('2026-10-03')
+    expect(new Set(ny.perDay.map((d) => d.day)).size).toBe(30) // the 25 hour day neither repeats nor skips a day
+    expect(ny.perDay[0]!.total).toBe(1) // 04:00Z is inside, 03:59Z is not
+    expect(ny.dau.human).toBe(5)
+    expect(ny.wau.human).toBe(6)
+    expect(ny.mau.human).toBe(7) // everything except the minute before the window and the two after now
+    addsUp(ny.dau)
+    addsUp(ny.mau)
+    const utc = await AC('UTC', FALLBACK_NOW)
+    expect(utc.perDay.at(-1)).toMatchObject({ day: '2026-11-02', total: 1 }) // only the 03:00Z match; 04:59Z is after now
+    expect(utc.dau.human).toBe(1)
+  })
+
+  test('Los Angeles has its own day edges on the same instants', async () => {
+    await seedFallBack()
+    const la = await AC('America/Los_Angeles', FALLBACK_NOW)
+    expect(la.zone).toBe('America/Los_Angeles')
+    expect(la.perDay.at(-1)).toMatchObject({ day: '2026-11-01', human: 2, total: 2 }) // 00:00 PDT and 20:00 PST; 06:30Z is 23:30 PDT on Oct 31
+    expect(la.perDay.at(-2)).toMatchObject({ day: '2026-10-31', total: 4 })
+    expect(la.dau.human).toBe(2)
+    expect(la.perDay[0]!.day).toBe('2026-10-03')
+    expect(la.perDay[0]!.total).toBe(0) // 03:59Z and 04:00Z are Oct 2 evening in Los Angeles, before its window opens at 07:00Z
+    expect(la.mau.human).toBe(6)
+  })
+
+  test('the session time zone changes nothing for a named zone, and nothing after now is counted', async () => {
+    await seedFallBack()
+    const want = { ny: await AC('America/New_York', FALLBACK_NOW), la: await AC('America/Los_Angeles', FALLBACK_NOW), ov: await OV('America/New_York', FALLBACK_NOW) }
+    try {
+      for (const tz of ['America/Los_Angeles', 'Pacific/Kiritimati', 'Asia/Kolkata']) {
+        await client.exec(`set time zone '${tz}'`)
+        expect(await AC('America/New_York', FALLBACK_NOW)).toEqual(want.ny)
+        expect(await AC('America/Los_Angeles', FALLBACK_NOW)).toEqual(want.la)
+        expect(await OV('America/New_York', FALLBACK_NOW)).toEqual(want.ov)
+      }
+    } finally {
+      await client.exec("set time zone 'UTC'")
+    }
+    expect(want.ny.mau.human).toBe(7) // the two matches after now are not counted
+  })
+
+  test('the overview buckets matches and joins by the asked zone, and the parts still add up', async () => {
+    await seedFallBack()
+    const ny = await OV('America/New_York', FALLBACK_NOW)
+    expect(ny.zone).toBe('America/New_York')
+    expect(ny.matchesPerDay).toHaveLength(14)
+    expect(ny.matchesPerDay.at(-1)).toMatchObject({ day: '2026-11-01' })
+    expect(ny.matchesPerDay.at(-1)!.total).toBe(5) // the 04:59Z match is after now and not counted
+    expect(ny.matchesPerDay.at(-2)!.total).toBe(1)
+    for (const d of [...ny.matchesPerDay, ...ny.newPerDay]) addsUp(d)
+    expect(new Set(ny.matchesPerDay.map((d) => d.day)).size).toBe(14)
+    const utc = await OV('UTC', FALLBACK_NOW)
+    expect(utc.matchesPerDay.at(-1)!.day).toBe('2026-11-02')
+  })
+
+  test('a bad, missing or hostile zone falls back to UTC, says so, and never reaches the SQL text', async () => {
+    await seedFallBack()
+    const utc = await AC('UTC', FALLBACK_NOW)
+    expect(utc.zoneFallback).toBe(false)
+    for (const bad of [undefined, null, '', 'Not/AZone', 42, { toString: () => 'UTC' }, 'UTC\'; drop table match; --', "x' || (select 1) || '", 'A'.repeat(500)]) {
+      const a = (await adminActiveHandler(db, OWNER, ENV, FALLBACK_NOW, bad)).body as import('./admin-owner').ActiveUsers
+      expect(a.zone).toBe('UTC')
+      expect(a.zoneFallback).toBe(true)
+      expect({ ...a, zoneFallback: false }).toEqual(utc)
+      expect(((await adminOverviewHandler(db, OWNER, ENV, FALLBACK_NOW, bad)).body as import('./admin-owner').AdminOverview).zoneFallback).toBe(true)
+    }
+    expect((await client.query('select count(*)::int as n from match')).rows[0]).toEqual({ n: 10 })
+  })
+
+  test('a repeated local midnight keeps its first occurrence: Havana, 2025-11-02 00:00 happens twice', async () => {
+    await db.execute(sql`truncate table match, guest cascade`)
+    g = 0
+    await oneOff(at('2025-11-02T04:30:00.000Z')) // 00:30 CDT, the first midnight hour of Nov 2
+    await oneOff(at('2025-11-02T05:30:00.000Z')) // 00:30 CST, the second
+    await oneOff(at('2025-11-02T03:59:00.000Z')) // 23:59 CDT Nov 1: before the window
+    const now = new Date('2025-12-01T12:00:00.000Z') // today Dec 1, so the 30 day window opens on Nov 2
+    const a = await AC('America/Havana', now)
+    expect(a.perDay[0]).toMatchObject({ day: '2025-11-02', total: 2 })
+    expect(a.mau.total).toBe(2)
+    const o = await OV('America/Havana', new Date('2025-11-10T12:00:00.000Z')) // 14 days: opens Oct 28
+    expect(o.matchesPerDay.find((d) => d.day === '2025-11-02')!.total).toBe(2)
+    const o2 = await OV('America/Havana', new Date('2025-11-15T12:00:00.000Z')) // opens Nov 2
+    expect(o2.matchesPerDay[0]).toMatchObject({ day: '2025-11-02', total: 2 })
+  })
+
+  test('only an unrecognised zone falls back to UTC; any other database failure is not hidden', async () => {
+    const down = { execute: async () => { throw new Error('connection terminated unexpectedly') } }
+    await expect(zoneFor(down, 'Africa/Nairobi')).rejects.toThrow('connection terminated')
+    const wrapped = { execute: async () => { throw Object.assign(new Error('Failed query: select ...'), { cause: new Error('time zone "Africa/Lagos" not recognized') }) } }
+    expect(await zoneFor(wrapped, 'Africa/Lagos')).toEqual({ zone: 'UTC', zoneFallback: true })
+    // a good zone is remembered, so the probe is not repeated
+    let probes = 0
+    const counting = { execute: async () => { probes++ } }
+    await zoneFor(counting, 'Asia/Tokyo')
+    await zoneFor(counting, 'Asia/Tokyo')
+    expect(probes).toBe(1)
+  })
+
+  test('404 for anyone but the owner is unchanged whatever zone they ask for', async () => {
+    for (const who of [GUEST_VIEWER, OTHER]) {
+      expect((await adminActiveHandler(db, who, ENV, NOW, 'America/New_York')).status).toBe(404)
+      expect((await adminOverviewHandler(db, who, ENV, NOW, 'America/New_York')).status).toBe(404)
+    }
   })
 })

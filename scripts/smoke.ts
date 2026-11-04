@@ -116,18 +116,19 @@ export async function runUrlSmoke(baseUrl: string, opts: UrlSmokeOptions): Promi
   return checks
 }
 
-/** Plays a whole Four in a Row game on the real core. The human moves randomly and seat 1 is the server's actual Easy agent. */
-async function playFour(matchId: string, seed: number): Promise<MatchRecordV1> {
+/** Plays a whole Four in a Row game on the real core. The human moves randomly in the seat the server issued (a random side) and the other seat is the server's actual Easy agent. */
+async function playFour(matchId: string, seed: number, humanSeat: 0 | 1): Promise<MatchRecordV1> {
   const rng = makeRng(seed ^ 0x9e37)
-  const agent = await makeServerAgent('four', 'easy', 1, null)
-  agent.reset(seed)
+  const agentSeat = (1 - humanSeat) as 0 | 1
+  const agent = await makeServerAgent('four', 'easy', agentSeat, null)
+  agent.reset(seed, agentSeat)
   let s = fourCore.init(seed)
   const actions: MatchRecordV1['actions'] = []
   let tick = 0
   try {
     while (!fourCore.terminal(s)) {
       const seat = fourCore.toAct(s)[0]!
-      const action = seat === 0
+      const action = seat === humanSeat
         ? fourCore.legal(s, seat)[rng.int(fourCore.legal(s, seat).length)]!
         : (await agent.act(fourCore.observe(s, seat), s))[0]
       if (action === undefined) throw new Error('the Four agent returned no action')
@@ -141,7 +142,7 @@ async function playFour(matchId: string, seed: number): Promise<MatchRecordV1> {
   const now = new Date().toISOString()
   return {
     schema: 1, matchId, game: 'four', coreVersion: fourCore.version,
-    agent: { version: 'v1', level: 'easy' }, seed, humanSeat: 0, actions,
+    agent: { version: 'v1', level: 'easy' }, seed, humanSeat, actions,
     result: fourCore.result(s)!, finalHash: fourCore.hash(s),
     startedAt: now, endedAt: now, device: 'desktop', input: 'mouse', trainingAllowed: true,
   }
@@ -165,13 +166,13 @@ export async function runHandlerSmoke(): Promise<Check[]> {
     const guestId = crypto.randomUUID()
     await db.insert(schema.guest).values({ id: guestId })
     const who = { guestId }
-    const started = await startMatchHandler(db, { game: 'four', level: 'easy' }, who)
-    const sb = started.body as { matchId?: string; seed?: number }
+    const started = await startMatchHandler(db, { game: 'four', level: 'easy', sides: 1 }, who)
+    const sb = started.body as { matchId?: string; seed?: number; humanSeat?: 0 | 1 }
     const startedOk = started.status === 200 && typeof sb.matchId === 'string' && typeof sb.seed === 'number'
     checks.push({ name: 'start a four match', ok: startedOk, detail: startedOk ? `match ${sb.matchId}` : `status ${started.status}` })
     if (!startedOk) return checks
 
-    const rec = await playFour(sb.matchId!, sb.seed!)
+    const rec = await playFour(sb.matchId!, sb.seed!, sb.humanSeat ?? 0)
     const finished = await finishMatchHandler(db, encodeRecord(rec), who, { verifyAgent: serverVerifyAgent({ NODE_ENV: 'production' }) })
     const fb = finished.body as { valid?: boolean; reason?: string }
     const finishedOk = finished.status === 200 && fb.valid === true

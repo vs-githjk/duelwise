@@ -10,11 +10,12 @@ import type { AgentOpts, PreviewAgent } from './agent-types'
  * returns the neutral action [0].
  */
 export function createStubAgent(game: GameId, _level: Level, opts: AgentOpts = {}): PreviewAgent {
-  const seat = opts.seat ?? 1
+  let seat = opts.seat ?? 1
   let rng: Rng = makeRng(0)
   return {
     preview: true,
-    reset(seed) {
+    reset(seed, forSeat) {
+      if (forSeat !== undefined) seat = forSeat
       rng = makeRng(seed)
     },
     async act(_obs, state) {

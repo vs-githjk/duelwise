@@ -55,7 +55,7 @@ function play(matchId: string, seed: number, options: MatchOptions | undefined):
 }
 
 async function begin(who: { guestId?: string; userId?: string }, options?: unknown) {
-  return startMatchHandler(db, { game: 'holdem', level: 'easy', ...(options !== undefined ? { options } : {}) }, who, { agentVersion: () => 'v1' })
+  return startMatchHandler(db, { sides: 1, game: 'holdem', level: 'easy', ...(options !== undefined ? { options } : {}) }, who, { agentVersion: () => 'v1' })
 }
 
 describe("Hold'em match length on the server", () => {
@@ -109,7 +109,7 @@ describe("Hold'em match length on the server", () => {
     expect((await begin(GUEST, { hands: 7 })).status).toBe(400)
     expect((await begin(GUEST, { untilBust: 'yes' })).status).toBe(400)
     expect((await begin(GUEST, { hands: 10, leftAfter: 3 })).status).toBe(400)
-    expect((await startMatchHandler(db, { game: 'chess', level: 'easy', options: { hands: 5 } }, GUEST, {})).status).toBe(400)
+    expect((await startMatchHandler(db, { sides: 1, game: 'chess', level: 'easy', options: { hands: 5 } }, GUEST, {})).status).toBe(400)
   })
 
   test('leaving early is valid and trainable but moves no rating', async () => {

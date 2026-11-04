@@ -4,13 +4,13 @@ type Guide = { goal: string; steps: string[]; controls: { keys: string; action: 
 export const guides: Record<GameId, Guide> = {
   chess: {
     goal: 'Put the opposing king in checkmate.',
-    steps: ['You play White and move first.', 'Select a piece, then select a legal destination.', 'Protect your king from check and capture opposing pieces.', 'Choose a piece when your pawn reaches the far side.'],
+    steps: ['Each match gives you White or Black at random. White moves first, so when you are Black your opponent plays the first move.', 'Select a piece, then select a legal destination.', 'Protect your king from check and capture opposing pieces.', 'Choose a piece when your pawn reaches the far side.'],
     controls: [{ keys: 'Mouse or touch', action: 'select or drag a piece' }, { keys: 'Arrow keys', action: 'move between squares' }, { keys: 'Enter or Space', action: 'select a square' }, { keys: 'Escape', action: 'clear selection' }],
     win: 'Win by checkmate. Some positions end in a draw.', tip: 'Look for threats to your king before each move.',
   },
   four: {
     goal: 'Line up four of your discs in a row.',
-    steps: ['Take turns choosing a column.', 'Your disc falls to the lowest open space.', 'Make a line across, up and down, or diagonally.'],
+    steps: ['Each match decides at random whether you drop first or second. Take turns choosing a column.', 'Your disc falls to the lowest open space.', 'Make a line across, up and down, or diagonally.'],
     controls: [{ keys: 'Mouse or touch', action: 'choose a column' }, { keys: 'Left or Right', action: 'move between columns' }, { keys: 'Enter or Space', action: 'drop a disc' }, { keys: 'Home or End', action: 'go to an edge' }],
     win: 'The first player to line up four wins. A full board without four is a draw.', tip: 'Watch for a line your opponent can complete next turn.',
   },
@@ -37,6 +37,18 @@ export const guides: Record<GameId, Guide> = {
     steps: ['Buy equipment at the start of each round.', 'Move around the map and aim with your mouse or trackpad.', 'Fire at your opponent and use cover to stay alive.', 'A round ends when a player is eliminated or time runs out.'],
     controls: [{ keys: 'Touch', action: 'left stick moves; drag the right side to aim; hold Fire to shoot; tap buttons to jump, crouch, reload, view scores or pause' }, { keys: 'W A S D or arrows', action: 'move' }, { keys: 'Mouse or trackpad', action: 'aim' }, { keys: 'Left click or F', action: 'fire (hold to keep firing)' }, { keys: 'Space', action: 'jump' }, { keys: 'C or Ctrl', action: 'crouch' }, { keys: 'Shift', action: 'walk' }, { keys: 'R', action: 'reload' }, { keys: 'Tab', action: 'scores' }, { keys: 'Escape', action: 'pause and release the mouse' }],
     win: 'The match ends at seven round wins or after 13 rounds. More round wins takes the match; equal wins are a draw. At time out, more health wins the round.', tip: 'Use cover while you reload.',
+  },
+  fleet: {
+    goal: 'Sink all five of the other fleet before yours goes down.',
+    steps: ['Place five ships on your grid: lengths 5, 4, 3, 3 and 2. Tap a ship, then tap where its front goes. Rotate switches across and down. Shuffle fleet does it in one tap.', 'Take turns firing at the other grid. Tap a square to aim, then tap it again or press Fire.', 'A flame means a hit, a grey dot means a miss. When every square of a ship is hit, it is sunk and shown in full.', 'The fleet tally shows which of their ships are still afloat.'],
+    controls: [{ keys: 'Touch or mouse', action: 'tap a square to aim, tap again or press Fire to shoot' }, { keys: 'Enter or Space', action: 'aim, then fire' }, { keys: 'Arrow keys', action: 'move between squares on a grid' }, { keys: 'R', action: 'rotate the ship you are placing' }],
+    win: 'Sink all five ships first. The first fleet to go down loses, so there are no draws.', tip: 'Their smallest ship is 2 long: when only it is left, it hides in the gaps you have not checked.',
+  },
+  slack: {
+    goal: 'Finish with more discs than your opponent when neither side can move.',
+    steps: ['Each match gives you the dark discs (you move first) or the pale discs (your opponent moves first) at random. Place a disc on an empty cell so that a straight line of your opponent’s discs, across, down or diagonally, ends in another of your discs. Every disc in that line flips to your colour.', 'A ring marks each cell where you may place. Tap a ring to pick it: small dots show the discs that would flip. Tap it again, or press Place, to play it.', 'If you have no legal cell, you pass and your opponent plays again. The game ends when neither side can move, usually when the board is full.', 'Corners can never be flipped. Edges are hard to flip.'],
+    controls: [{ keys: 'Touch or mouse', action: 'tap a ringed cell to pick it, tap it again or press Place to play it' }, { keys: 'Arrow keys', action: 'move between cells' }, { keys: 'Home or End', action: 'jump to the first or last cell in a row' }, { keys: 'Enter or Space', action: 'pick the focused cell, then play it' }],
+    win: 'When neither side can move, the side with more discs wins. Equal discs is a draw.', tip: 'Flipping the most discs is rarely the best move. Giving your opponent few cells to play often is.',
   },
 }
 

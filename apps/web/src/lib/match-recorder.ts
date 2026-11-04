@@ -4,9 +4,13 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { encodeRecordAsync } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { replay } from '@duelwise/core/src/replay'
+import { hasRandomSide, sideForSeed } from '@duelwise/core/src/sides'
+import { isSealed } from '@duelwise/core/src/sealed'
+import { NO_OFFLINE_TICKETS } from '@duelwise/core/src/rated-path'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
 import { enqueueUpload, drainUploads, uploadStore, QUEUE_EVENT, type UploadOutcome } from './upload-queue'
 import { notePlayed, refillTickets, settleConsumed, takeLocalTicket, type Ticket, type TicketOwner } from './tickets'
+import { devSide } from './dev-side'
 import { recordOffline, tallyLine } from './offline-record'
 import { requestWakeDrain } from './pwa'
 import { takeCall } from './progress'
@@ -133,7 +137,7 @@ export function createMatchRecorder(init: RecorderInit): MatchRecorder {
 
 /** The two server calls a counted match makes. Injected so tests and other callers need no network. */
 export interface MatchApi {
-  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options']; practice?: boolean }): Promise<StartBody>
+  start(input: { game: GameId; level: Level; call?: Level; options?: MatchRecordV1['options']; practice?: boolean; sides?: 1 }): Promise<StartBody>
   finish(bytes: Uint8Array): Promise<FinishBody>
   /** Gives up a counted match; the server scores it as a loss. */
   resign?(matchId: string, tick: number): Promise<ResignReply>
@@ -144,8 +148,9 @@ export type Upload =
   | { status: 'none' }
   | { status: 'uploading'; matchId?: string }
   /** `matchId` is the counted match, which is also the id of its report page. */
-  | { status: 'counted'; matchId?: string; elo?: { before: number; after: number }; provisional?: boolean }
-  | { status: 'rejected'; reason: string }
+  | { status: 'counted'; matchId?: string; elo?: { before: number; after: number }; provisional?: boolean; unplayed?: boolean; loggedWin?: boolean }
+  /** `elo` is set when the server charged the refused record as a loss. */
+  | { status: 'rejected'; reason: string; elo?: { before: number; after: number }; provisional?: boolean }
   /** `kind: 'resign'` marks a failed give-up call; otherwise the finished record could not be uploaded. */
   | { status: 'failed'; message: string; kind?: 'resign' }
   /** An offline match saved on this device; it is uploaded and checked when the connection is back. */
@@ -157,6 +162,8 @@ export type Upload =
 
 export interface Session {
   seed: number
+  /** The side this match gives the player: 0 moves first (White in chess), 1 moves second. The server's choice for a counted match, the seed's for an unrated one; always 0 in a game with no random side. */
+  humanSeat: Seat
   /** Set only for a counted match: the server issued this seed and will check the record against it. */
   matchId?: string
   agentVersion?: string
@@ -175,6 +182,12 @@ export interface Session {
 
 const randomLocalSeed = (): number => crypto.getRandomValues(new Uint32Array(1))[0]!
 
+/** A seed made on this device and the side it gives: for a match no server knows about. */
+function localSession(game: GameId): { seed: number; humanSeat: Seat } {
+  const seed = randomLocalSeed()
+  return { seed, humanSeat: sideForSeed(game, seed) }
+}
+
 /**
  * The seed for a new match, on every page. A counted match takes its seed from the server (startMatch),
  * so a player cannot choose the position. `devSeed` (the ?seed query) makes an unrated match for tests
@@ -189,20 +202,23 @@ export async function beginSession(
   call?: Level,
   options?: MatchRecordV1['options'],
   practice = false,
+  noTickets: readonly GameId[] = NO_OFFLINE_TICKETS,
 ): Promise<Session> {
-  if (devSeed !== undefined) return { seed: devSeed, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
+  if (devSeed !== undefined) return { seed: devSeed, humanSeat: hasRandomSide(game) ? (devSide() ?? sideForSeed(game, devSeed)) : 0, rated: false, ...(practice ? { practice: true } : {}), unratedReason: 'This match used a fixed test seed, so it is not counted.' }
   try {
-    const s = await api.start({ game, level, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
+    // `sides: 1` tells the server this page plays whatever side it is given; a page without it is refused a random-side game (match-handlers.ts).
+    const s = await api.start({ game, level, sides: 1, ...(call ? { call } : {}), ...(options ? { options } : {}), ...(practice ? { practice: true } : {}) })
     if (typeof s.matchId !== 'string' || typeof s.seed !== 'number') throw new Error('bad reply')
-    return { seed: s.seed, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
+    return { seed: s.seed, humanSeat: hasRandomSide(game) ? (s.humanSeat === 1 ? 1 : 0) : 0, matchId: s.matchId, agentVersion: s.agentVersion, rated: true, ...(practice ? { practice: true } : {}), ...(s.sealed === true ? { sealed: true } : {}) }
   } catch {
     // No server: a ticket issued earlier (while online) keeps the match counted, once its record uploads.
     // A ticket was issued for a default match; a match of another length cannot use one, so it is played unrated.
     // A ticket is issued as a rated match, so a practice match never takes one: it is played here and not sent anywhere.
-    const ticket = options || practice ? null : await takeTicket(game, level).catch(() => null)
-    if (ticket) return { seed: ticket.seed, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
-    if (practice) return { seed: randomLocalSeed(), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
-    return { seed: randomLocalSeed(), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
+    // A game in NO_OFFLINE_TICKETS never takes one, even a ticket saved before that rule: offline there is a local match that counts nowhere.
+    const ticket = options || practice || noTickets.includes(game) ? null : await takeTicket(game, level).catch(() => null)
+    if (ticket) return { seed: ticket.seed, humanSeat: hasRandomSide(game) && ticket.humanSeat === 1 ? 1 : 0, matchId: ticket.matchId, agentVersion: ticket.agentVersion, rated: true, offline: true, owner: ticket.owner }
+    if (practice) return { ...localSession(game), rated: false, practice: true, unratedReason: 'Practice, not rated. The server could not be reached, so this match is not saved.' }
+    return { ...localSession(game), rated: false, unratedReason: options ? 'The server could not be reached, so a match of this length is not counted.' : offlineReason(game) }
   }
 }
 
@@ -210,8 +226,12 @@ const offlineNow = isOffline
 
 /** The calm line that says why an unrated match is unrated when the server was not reached. */
 export function offlineReason(game: GameId): string {
+  // A sealed game never has a ticket (the server keeps the hidden setup), so "saved match slots" would be false for it.
   if (game === 'word') return offlineNow() ? 'You are offline, so this Word Duel is unranked. It counts on your record on this device only.' : 'The server could not be reached, so this match is not counted.'
-  return offlineNow() ? 'You are offline and have no saved match slots left, so this match is not counted. Open the game once while online to get more.' : 'The server could not be reached, so this match is not counted.'
+  if (NO_OFFLINE_TICKETS.includes(game)) return offlineNow() ? `You are offline, so this ${PRODUCT.games[game].displayName} match is not counted: Rated needs a connection, and Practice works offline.` : 'The server could not be reached, so this match is not counted. Rated needs a connection; Practice works offline.'
+  if (isSealed(game)) return offlineNow() ? `You are offline, so this ${PRODUCT.games[game].displayName} match is unranked. It counts on your record on this device only.` : 'The server could not be reached, so this match is not counted.'
+  // No game has offline tickets now, so there are no saved match slots to point at.
+  return offlineNow() ? 'You are offline, so this match is not counted.' : 'The server could not be reached, so this match is not counted.'
 }
 
 /**
@@ -224,7 +244,7 @@ export async function uploadMatch(api: MatchApi, finished: FinishedMatch): Promi
     try {
       const r = await api.finish(finished.bytes)
       if (r.valid) return { status: 'counted', matchId: finished.record.matchId, elo: r.elo, provisional: r.provisional }
-      return { status: 'rejected', reason: r.reason ?? finished.error ?? 'The server could not verify this match.' }
+      return { status: 'rejected', reason: r.reason ?? finished.error ?? 'The server could not verify this match.', ...(r.elo ? { elo: r.elo, provisional: r.provisional } : {}) }
     } catch (e) {
       if (attempt >= 1) return { status: 'failed', message: e instanceof Error ? e.message : 'Upload failed.' }
     }
@@ -387,9 +407,19 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
 
   const finish = useCallback(async (core: GameCore<any, any, any>, finalState: unknown) => {
     if (!recorder.current) throw new Error('useMatchRecorder: start() was not called')
+    const was = live.current
     live.current = null
     setCounted(false)
-    const out = await recorder.current.finish(core, finalState)
+    let out: FinishedMatch
+    try {
+      out = await recorder.current.finish(core, finalState)
+    } catch (e) {
+      // The record could not be made (encoding failed). The match is still open on the server, so it stays live: Resign and the leave beacon must reach it,
+      // or a win would wait for the abandon sweep to charge it as a loss. Nothing was uploaded, so nothing can be sent twice.
+      live.current = was
+      setCounted(was !== null)
+      throw e
+    }
     recorder.current = null
     setFinished(out)
     setMatchActive(false)
@@ -444,11 +474,21 @@ export function useMatchRecorder(game: GameId, api: MatchApi = serverApi) {
     setUpload({ status: 'uploading' })
     try {
       const r = await (api.resign ?? postResign)(m.matchId, tick ?? m.tick)
-      setUpload({ status: 'counted', matchId: m.matchId, elo: r.elo, provisional: r.provisional })
+      setUpload({ status: 'counted', matchId: m.matchId, elo: r.elo, provisional: r.provisional, unplayed: r.unplayed, loggedWin: r.loggedWin })
     } catch (e) {
       setUpload({ status: 'failed', message: e instanceof Error ? e.message : 'Resign failed.', kind: 'resign' })
     }
   }, [api])
 
-  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign, mark, truncate, setOptions }
+  /** Forgets a counted match that never began (a sealed game whose setup request failed): no loss is charged and no call is made; the server settles the unplayed row itself. */
+  const discard = useCallback(() => {
+    live.current = null
+    setCounted(false)
+    recorder.current = null
+    session.current = null
+    setMatchActive(false)
+    setStatus('idle')
+  }, [])
+
+  return { status, finished, upload, unratedReason, counted, begin, start, act, reach, setSeed, finish, resign, discard, mark, truncate, setOptions }
 }

@@ -1,10 +1,10 @@
 import { PRODUCT } from '@duelwise/core/src/product'
 import type { OwnerView, PlayerRow, RecentRow } from '../../server/telemetry-stats'
 import { Avatar } from '../../personas/Avatar'
-import { shortDate } from '../charts/format'
 import { cn } from '../../lib/cn'
 import { Card } from './Card'
-import { DEVICE_NAME, ago, clock, providerName, utcTime } from './format'
+import { DEVICE_NAME, ago, clock, providerName } from './format'
+import { useWhen } from './zone'
 
 const RESULT_TONE: Record<RecentRow['result'], string> = {
   Human: 'bg-good-soft text-good-ink',
@@ -40,6 +40,7 @@ export function RecentPanel({
   onCsv: () => void
 }) {
   const { recent } = v
+  const when = useWhen()
   const from = recent.page * recent.pageSize
   return (
     <Card title="Recent matches" note={`newest first, ${recent.total} in this period`} testId="owner-recent">
@@ -56,7 +57,7 @@ export function RecentPanel({
             {recent.rows.map((r) => (
               <tr key={r.matchId} className="border-t border-line" data-testid="recent-row" data-result={r.result}>
                 <td className="px-2 py-2 tabular">
-                  {utcTime(r.at)}
+                  {when.time(r.at)}
                   {/* The report link sits in the first column so it is on screen on a phone without scrolling the table sideways. */}
                   <a className="mt-0.5 block min-h-6 text-action underline" href={r.report}>Report</a>
                 </td>
@@ -103,11 +104,12 @@ export function RecentPanel({
 }
 
 function PlayerRowView({ p, emails, now }: { p: PlayerRow; emails: Record<string, string> | null; now: string }) {
+  const when = useWhen()
   return (
     <tr className="border-t border-line" data-testid="player-row">
       <td className="px-2 py-2"><PlayerCell player={p.player} kind={p.playerKind} emails={emails} /></td>
       <td className="px-2 py-2">{providerName(p.provider)}</td>
-      <td className="px-2 py-2">{shortDate(p.firstSeen)}</td>
+      <td className="px-2 py-2">{when.date(p.firstSeen)}</td>
       <td className="px-2 py-2">{ago(p.lastSeen, now)}</td>
       <td className="px-2 py-2 text-right tabular">{p.matches}</td>
       <td className="px-2 py-2">{p.games.map((g) => PRODUCT.games[g].displayName).join(', ')}</td>

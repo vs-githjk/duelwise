@@ -17,9 +17,14 @@ import { isMuted } from '../lib/audio'
 import { PRACTICE_RESULT } from '../lib/practice'
 
 /** Games whose opponent moves the server re-runs before a rated match counts (server/agent-check.ts SERVER_CHECKED); a guest's check finishes after the answer. */
-const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem']
+const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem', 'slack']
 
 export type Outcome = 'win' | 'loss' | 'draw'
+
+/** Whether the server's answer to this match counts toward progress: counted or synced, and not a win its own log had decided before the player gave up. */
+export function progressCounts(upload: Upload | undefined): boolean {
+  return (upload?.status === 'counted' && upload.loggedWin !== true) || upload?.status === 'synced'
+}
 
 /** Whether a result may clear a stop on the path: a played-out, rated win, and only after the server has accepted it (counted, or a queued match now synced). */
 export function mayClear(i: { left: boolean; practice: boolean; outcome: Outcome; status: string | undefined }): boolean {
@@ -65,6 +70,8 @@ export interface ResultPanelProps {
   levels?: Partial<Record<Level, LevelInfo>>
   /** The human's own moves in the record (guesses, moves), for the margin and the close-loss line. */
   moves?: number
+  /** Stormglass: hits the player still needed when the match ended, for the close-loss line. */
+  shortBy?: number
   /** False for a game whose matches never reach a leaderboard (the real-time games): the panel then offers no leaderboard link. Default true. */
   leaderboard?: boolean
   /** Hands played when the player left the table early. The match is unrated and clears nothing, so the panel leads with that instead of a verdict. */
@@ -78,7 +85,7 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
@@ -110,14 +117,16 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   const called = game && !left ? calledFor(game) : null
   const pathState = usePath(game)
   // Whether this stop was already cleared before this match, read once, so "unlocked" is only said for a new clear.
-  const [firstClear] = useState(() => !left && !practice && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
+  // A win the server never counted (its log had it won before the player gave up) claims no progress at all: no clear, no next level, no rank, no share.
+  const notCounted = upload?.status === 'counted' && upload.loggedWin === true
+  const [firstClear] = useState(() => !left && !practice && !notCounted && outcome === 'win' && game !== undefined && level !== undefined && !readPath(game)[level])
   // A clear is recorded, and announced, only once the server has accepted the result: not for a practice win, a left match, a fixed-seed or
   // otherwise unrated win, nor one the server rejects. A queued offline win waits here and settles when its final status arrives.
-  const clearable = !left && !practice && outcome === 'win' && game !== undefined && level !== undefined
-  const accepted = upload?.status === 'counted' || upload?.status === 'synced'
+  const clearable = !left && !practice && !notCounted && outcome === 'win' && game !== undefined && level !== undefined
+  const accepted = progressCounts(upload)
   const checking = clearable && (upload?.status === 'uploading' || upload?.status === 'queued')
   useEffect(() => {
-    if (mayClear({ left, practice, outcome, status: upload?.status }) && game && level) noteCleared(game, level)
+    if (mayClear({ left, practice, outcome, status: accepted ? upload?.status : undefined }) && game && level) noteCleared(game, level)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearable, accepted])
   // Only the Champion's loss line quotes its record against people, so only that loss asks the server for it. 'wait' lasts until the answer or a short timeout, so the spoken line and the written one match.
@@ -141,7 +150,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       clearTimeout(timer)
     }
   }, [wantsRecord, level])
-  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, oppRecord, practice, accepted])
+  const says = useMemo(() => (game && level && !left ? sayLine({ game, level, result, humanSeat, call: called, humanMoves: moves, ...(shortBy === undefined ? {} : { shortBy }), record: oppRecord, progress: practice ? 'practice' : accepted ? 'counted' : 'plain' }) : null), [game, level, left, result, humanSeat, called, moves, shortBy, oppRecord, practice, accepted])
   const spoke = useRef(false)
   // A rated win is spoken once the server has answered, so the voice never says the plain line and then the promising one.
   const settling = clearable && upload?.status === 'uploading'
@@ -170,7 +179,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }
   // The player's place at this level, once the server has counted the win. Practice levels are never ranked.
   const [rank, setRank] = useState<{ place: number; of: number } | null>(null)
-  const counted = upload?.status === 'counted' || upload?.status === 'synced'
+  const counted = progressCounts(upload)
   useEffect(() => {
     if (practice || !counted || outcome !== 'win' || !game || !level) return
     let alive = true
@@ -187,10 +196,10 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   }, [counted, outcome, game, level])
   const facts: ShareFacts | null = game && level && !left ? { game, level, call: called, result, humanSeat, humanMoves: moves, rank } : null
   const margin = facts ? marginOf(facts) : null
-  const next = !left && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
+  const next = !left && !notCounted && outcome === 'win' && level ? LEVELS[LEVELS.indexOf(level) + 1] : undefined
   const nextPlayable = !practice && (!firstClear || accepted) && next !== undefined && !(levels?.[next]?.inTraining && !levels?.[next]?.practice) && onPlayLevel !== undefined
-  const elo = eloProp ?? (upload?.status === 'counted' ? upload.elo : undefined)
-  const provisional = provProp ?? (upload?.status === 'counted' ? upload.provisional : undefined)
+  const elo = eloProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.elo : undefined)
+  const provisional = provProp ?? (upload?.status === 'counted' || upload?.status === 'rejected' ? upload.provisional : undefined)
   const delta = elo ? elo.after - elo.before : null
   const [animatedDelta, setAnimatedDelta] = useState<number | null>(delta)
   useEffect(() => {
@@ -224,13 +233,15 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
   )
   const warn = 'rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink'
   const uploadLine =
-    practice && (upload?.status === 'uploading' || upload?.status === 'counted' || upload?.status === 'synced' || upload?.status === 'queued') ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{upload.status === 'uploading' ? 'Saving this practice match' : 'Saved to your history. It changes no rating, path or leaderboard.'}</p>
+    upload?.status === 'counted' && upload.loggedWin ? <p className="text-xs text-muted" data-testid="result-upload">Your last shot had already sunk their fleet, so nothing was counted.</p>
+    : upload?.status === 'counted' && upload.unplayed ? <p className="text-xs text-muted" data-testid="result-upload">No shot was fired, so this match does not count.</p>
+    : practice && (upload?.status === 'uploading' || upload?.status === 'counted' || upload?.status === 'synced' || upload?.status === 'queued') ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{upload.status === 'uploading' ? 'Saving this practice match' : 'Saved to your history. It changes no rating, path or leaderboard.'}</p>
     : upload?.status === 'uploading' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">{game && SERVER_CHECKED_GAMES.includes(game) ? 'Saving and checking this match. Rating pending for signed-in players.' : 'Saving this match'}</p>
     : upload?.status === 'counted' && !elo ? <p className="text-xs text-muted" data-testid="result-upload">{game && PRODUCT.games[game].kind === 'realtime' ? 'Saved for your report. Real-time matches do not change a rating or appear on a leaderboard yet.' : 'Saved. Sign in to get a rating.'}</p>
     : upload?.status === 'queued' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Saved on this device. It will be sent and counted when you are back online.</p>
     : upload?.status === 'synced' ? <p className="text-xs text-muted" role="status" data-testid="result-upload">Sent. This match now counts.</p>
     : upload?.status === 'not-counted' ? <p className={warn} role="status" data-testid="result-upload">This offline match could not be counted: {upload.reason}.</p>
-    : upload?.status === 'rejected' ? <p className={warn} data-testid="result-upload">This match could not be verified, so it was not counted.</p>
+    : upload?.status === 'rejected' ? <p className={warn} data-testid="result-upload">{upload.elo ? 'This match could not be verified, so it was charged as a loss.' : 'This match could not be verified, so it was not counted.'}</p>
     : upload?.status === 'failed' ? <p className={warn} data-testid="result-upload">{upload.kind === 'resign' ? 'We could not tell the server you resigned. The match will still be scored as a loss.' : 'This match could not be saved yet. It will be sent the next time you open a game. If it never arrives, it counts as a loss once the game time limit has passed.'}</p>
     : null
   const primary = 'inline-flex min-h-12 items-center justify-center rounded-full bg-action px-6 font-semibold text-action-ink'
@@ -298,7 +309,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
             {hasReport ? <a href={`/report/${upload!.matchId}`} className={textLink} data-testid="result-report-link">View match report</a> : null}
           </div>
         ) : null}
-        {facts && game && !practice ? <ShareBlock facts={facts} game={game} /> : null}
+        {facts && game && !practice && !notCounted ? <ShareBlock facts={facts} game={game} /> : null}
         <div className="grid gap-1.5">
           {uploadLine}
           {unratedReason ? <p className="text-xs text-muted" data-testid="result-unrated">{unratedReason}</p> : null}

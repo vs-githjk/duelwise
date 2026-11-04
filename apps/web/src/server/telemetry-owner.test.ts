@@ -41,6 +41,30 @@ beforeEach(async () => {
   ])
 })
 
+describe('owner view time zone', () => {
+  const get = async (q: Record<string, unknown>) => (await ownerViewHandler(db, OWNER, ENV, q, () => null, NOW)).body as import('./telemetry-stats').OwnerViewBody
+  test('the asked zone is validated, echoed and used; a missing or hostile one falls back to UTC and says so', async () => {
+    expect(await get({ tz: 'America/New_York' })).toMatchObject({ zone: 'America/New_York', zoneFallback: false, zoneAsked: true })
+    expect(await get({})).toMatchObject({ zone: 'UTC', zoneFallback: true, zoneAsked: false })
+    expect(await get({ tz: "UTC'; drop table telemetry_event; --" })).toMatchObject({ zone: 'UTC', zoneFallback: true, zoneAsked: true })
+    expect(await get({ tz: 7 })).toMatchObject({ zone: 'UTC', zoneFallback: true })
+    expect((await get({ tz: 'UTC' })).zoneFallback).toBe(false)
+    expect((await client.query('select count(*)::int as n from telemetry_event')).rows[0]).toEqual({ n: 2 })
+  })
+})
+
+describe('owner view previous period reaches back far enough', () => {
+  test('an event in the first half hour of the previous 7 days after a 25 hour day is fetched and counted', async () => {
+    const now = new Date('2026-11-02T04:30:00.000Z') // 23:30 EST Nov 1; the previous period opens Oct 19 00:00 EDT = 04:00Z
+    await db.insert(schema.telemetryEvent).values(['match_started', 'match_finished'].map((kind) => ({
+      id: crypto.randomUUID(), at: new Date('2026-10-19T04:10:00.000Z'), kind: kind as schema.TelemetryKind, matchId: 'gap', game: 'chess', level: 'easy', persona: 'Pip',
+      device: 'phone', trainingBasis: 'legitimate-interest', playerRef: 'pl_gap', playerKind: 'user', ...(kind === 'match_finished' ? { outcome: 'human', durationMs: 1000 } : {}),
+    })))
+    const body = (await ownerViewHandler(db, OWNER, ENV, { range: '7d', tz: 'America/New_York', who: 'all' }, () => null, now)).body as import('./telemetry-stats').OwnerViewBody
+    expect(body.kpis.matches.previous).toBe(2) // the match seeded on Oct 22 plus the one in the gap
+  })
+})
+
 describe('owner view access', () => {
   test('a non-owner, a signed-out visitor and a missing allowlist all get 404 and no data', async () => {
     // The allowlisted email with the address not verified by the provider is not the owner either (M4).

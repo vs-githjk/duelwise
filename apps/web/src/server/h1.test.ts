@@ -31,13 +31,13 @@ const USER = { userId: 'u-1' }
 const CHECKED: FinishOptions = { verifyAgent: (rec) => checkAgentMoves(rec, { makeAgent: async (g) => fakeAgent(g) }) }
 
 async function begin(game: GameId, who: { userId?: string; guestId?: string } = USER, seed = 21) {
-  const r = await startMatchHandler(db, { game, level: 'hard' }, who, { seed: () => seed })
+  const r = await startMatchHandler(db, { sides: 1, game, level: 'hard' }, who, { seed: () => seed, side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number }
 }
 const ratingOf = async (game: GameId) => (await db.select().from(schema.rating).where(and(eq(schema.rating.userId, 'u-1'), eq(schema.rating.game, game))))[0]
 
-for (const game of ['chess', 'four', 'holdem'] as const) {
+for (const game of ['chess', 'four', 'holdem', 'slack'] as const) {
   describe(`${game}: finishing a counted match (H1)`, () => {
     test('an honest record is valid, rates the player, stays trainable and is stored', async () => {
       const m = await begin(game)

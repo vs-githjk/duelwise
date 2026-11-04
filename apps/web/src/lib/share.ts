@@ -28,7 +28,10 @@ export function marginOf(f: Pick<ShareFacts, 'game' | 'result' | 'humanSeat' | '
       return f.humanMoves > 0 ? plural(f.humanMoves, 'guess') : null
     case 'chess':
     case 'four':
+    case 'slack':
       return f.humanMoves > 0 ? plural(f.humanMoves, 'move') : null
+    case 'fleet':
+      return f.humanMoves > 0 ? plural(f.humanMoves, 'shot') : null
     case 'fighter':
     case 'arena': {
       const mine = result.score?.[humanSeat]

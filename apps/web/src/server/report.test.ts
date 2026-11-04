@@ -41,7 +41,7 @@ const STRANGER = { guestId: 'g-2' }
 
 /** Starts a Four in a Row match for `who` and finishes it with a replayable random game; returns the match id. */
 async function play(who: { userId?: string; guestId?: string }, game: 'four' | 'word' | 'chess' | 'holdem' | 'fighter' | 'arena' = 'four'): Promise<string> {
-  const s = await startMatchHandler(db, { game, level: 'medium' }, who, { agentVersion: () => 'v1' })
+  const s = await startMatchHandler(db, { sides: 1, game, level: 'medium' }, who, { agentVersion: () => 'v1', side: () => 0 as const })
   const { matchId, seed: issued, sealed } = s.body as { matchId: string; seed: number; sealed?: boolean }
   // A sealed match (Word Duel) withholds its seed from the browser; the test reads the server's row instead.
   const seed = sealed ? (await db.select().from(schema.match).where(eq(schema.match.id, matchId)))[0]!.seed : issued
@@ -156,7 +156,7 @@ describe('states', () => {
   })
 
   test('a flag-off record in a game that stores records untrainable by design is not_learning, whatever the switch says', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'medium' }, GUEST, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'medium' }, GUEST, { agentVersion: () => 'v1', side: () => 0 as const })
     const { matchId, seed } = s.body as { matchId: string; seed: number }
     const rec: MatchRecordV1 = { ...playRandom('four', seed, 0), matchId, trainingAllowed: false }
     expect((await finishMatchHandler(db, encodeRecord(rec), GUEST, { siteElo: () => 1000 })).status).toBe(200)
@@ -189,14 +189,14 @@ describe('states', () => {
   })
 
   test('writing: a match that has not finished has no report yet', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     const v = (await getReport(db, (s.body as { matchId: string }).matchId, USER))!
     expect(v.status).toBe('writing')
     expect(v.body).toBeNull()
   })
 
   test('resigned: the result and rating change, never used for training', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     const id = (s.body as { matchId: string }).matchId
     await resignMatchHandler(db, { matchId: id, tick: 3 }, USER, { siteElo: () => 1000 })
     const v = (await getReport(db, id, USER))!
@@ -208,7 +208,7 @@ describe('states', () => {
   })
 
   test('abandoned: marked abandoned with the loss it cost', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     const id = (s.body as { matchId: string }).matchId
     await abandonStale(db, new Date(Date.now() + 3 * 3600 * 1000), { siteElo: () => 1000 })
     const v = (await getReport(db, id, USER))!
@@ -219,7 +219,7 @@ describe('states', () => {
   })
 
   test('resigned: keeps the measured duration', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     const id = (s.body as { matchId: string }).matchId
     await resignMatchHandler(db, { matchId: id, tick: 3 }, USER, { siteElo: () => 1000 })
     await db.update(schema.match).set({ finishedAt: new Date(Date.now() + 90_000) }).where(eq(schema.match.id, id))
@@ -309,7 +309,7 @@ describe('the public view speaks about the player, never to them', () => {
   }, 60_000)
 
   test('a resigned match says the player resigned', async () => {
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     const id = (s.body as { matchId: string }).matchId
     await resignMatchHandler(db, { matchId: id, tick: 3 }, USER, { siteElo: () => 1000 })
     expect((await getReport(db, id, USER))!.body!.reason).toBe('You resigned.')
@@ -324,11 +324,11 @@ describe('record against this persona', () => {
     const a = await play(USER)
     await play(USER)
     // A different level and a different game are not counted.
-    const other = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const other = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     await resignMatchHandler(db, { matchId: (other.body as { matchId: string }).matchId, tick: 3 }, USER, { siteElo: () => 1000 })
     await play(USER, 'word')
     // A resignation at this level counts as a loss.
-    const res = await startMatchHandler(db, { game: 'four', level: 'medium' }, USER, { agentVersion: () => 'v1' })
+    const res = await startMatchHandler(db, { sides: 1, game: 'four', level: 'medium' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     await resignMatchHandler(db, { matchId: (res.body as { matchId: string }).matchId, tick: 3 }, USER, { siteElo: () => 1000 })
     const v = (await getReport(db, a, USER))!
     const r = v.owner!.record
@@ -373,7 +373,7 @@ describe('share card facts', () => {
     await setReportSettings(db, id, USER, { linkPublic: false })
     expect(await getCardFacts(db, id)).toBeNull()
     expect(await getCardFacts(db, 'nope')).toBeNull()
-    const s = await startMatchHandler(db, { game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1' })
+    const s = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, USER, { agentVersion: () => 'v1', side: () => 0 as const })
     expect(await getCardFacts(db, (s.body as { matchId: string }).matchId)).toBeNull()
   })
 })

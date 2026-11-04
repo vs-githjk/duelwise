@@ -21,6 +21,8 @@ export interface Series {
   /** The label worded about "the player", for the public view. */
   publicLabel: string
   unit: string
+  /** What one point is: a half-move (the default, labelled "move n" at the end by halves) or one placement (Crosscurrent), labelled "placement n". */
+  axis?: 'placement'
   /** Value after each half-move, index 0 is after move 1. */
   points: number[]
   /** Indexes into `points` that carry a marker, with their labels. */
@@ -40,6 +42,18 @@ export interface FourView {
   cells: Array<Array<0 | 1 | 2>>
   /** Every drop in order, with the column (1 to 7) it went in. */
   drops: Array<{ by: 'player' | 'ai'; column: number }>
+}
+
+/** Crosscurrent: the final board from the player's side and the disc counts. Absent on reports built before it existed. */
+export interface SlackView {
+  /** Final board, 64 cells row by row from the top left (A1): 0 empty, 1 the player's disc, 2 the AI's. */
+  cells: Array<0 | 1 | 2>
+  /** Final discs: the player's, then the AI's. */
+  discs: [number, number]
+  /** The corner cells (0, 7, 56, 63) in that order and who placed each, or null where nobody did. */
+  corners: Array<'player' | 'ai' | null>
+  /** The player's disc colour: dark when they moved first, pale when they moved second. Absent (an older body) means dark. */
+  youColor?: 'dark' | 'pale'
 }
 
 /** What the report says about the match itself: derived from the record alone (no account, no rating). */
@@ -65,6 +79,8 @@ export interface ReportBody {
   wordRows: WordRow[] | null
   /** Four in a Row: the final board and the drop order. */
   fourView?: FourView | null
+  /** Crosscurrent: the final board and disc counts. */
+  slackView?: SlackView | null
   /** A persona line built from the moments, or null when the match gave it nothing true to say. */
   reaction: string | null
   /** Honest caveat shown under the moments (for example "from the first stone the solver checks"). */

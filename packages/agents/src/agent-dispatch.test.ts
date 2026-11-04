@@ -6,7 +6,7 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 
 // Dispatch is tested only for shape, so lanes can replace a game's stub without editing this file (R9).
 // Stub behaviour is tested on createStubAgent directly.
-const GAMES: GameId[] = ['chess', 'four', 'holdem', 'word', 'fighter', 'arena']
+const GAMES: GameId[] = ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack']
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
 
 describe('agent dispatch', () => {

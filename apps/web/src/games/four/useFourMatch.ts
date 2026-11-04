@@ -12,8 +12,8 @@ import { playCue } from './sounds'
 
 export type Phase = 'setup' | 'starting' | 'playing' | 'over'
 
-export const HUMAN: Seat = 0
-export const AGENT: Seat = 1
+/** Seat 0 drops first. Each match gives the player the first or the second drop at random (lib/match-recorder.ts, core/sides.ts). */
+export const FIRST: Seat = 0
 
 export interface LastMove {
   col: number
@@ -25,6 +25,8 @@ export interface FourMatch {
   phase: Phase
   level: Level
   seed: number | null
+  /** The side this match gave the player: 0 drops first, 1 drops second (the opponent opens). */
+  humanSeat: Seat
   state: FourState | null
   lastMove: LastMove | null
   /** Cells of the winning line as "col,row" keys, empty unless someone won. */
@@ -57,7 +59,10 @@ function reducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 }
 
-const RESIGNED: Result = { winner: AGENT, score: [0, 1], reason: 'resigned' }
+/** A resignation is a win for the opponent's seat. */
+function resignedResult(agentSeat: Seat): Result {
+  return { winner: agentSeat, score: agentSeat === 0 ? [1, 0] : [0, 1], reason: 'resigned' }
+}
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -124,15 +129,17 @@ export function showPracticeBadge(phase: Phase, agentPreview: boolean, levelUnpu
 }
 
 /**
- * Owns one Four in a Row match: the core state, the agent in its worker and the match recorder. The
- * human is seat 0 and moves first. The agent's move is held back a beat so the human's stone lands
- * first and the reply does not feel instant; the hold-back never changes what is recorded.
+ * Owns one Four in a Row match: the core state, the agent in its worker and the match recorder. The match gives the
+ * human the first or the second drop at random; when the human is second the agent opens, right after Start. The agent's
+ * move is held back a beat so the human's stone lands first and the reply does not feel instant; the hold-back never
+ * changes what is recorded.
  */
 export function useFourMatch(agentVersion: (level: Level) => string, learnsFromHumans = false): FourMatch {
   const recorder = useMatchRecorder('four')
   const [phase, setPhase] = useState<Phase>('setup')
   const [level, setLevel] = useState<Level>('easy')
   const [seed, setSeed] = useState<number | null>(null)
+  const [humanSeat, setHumanSeat] = useState<Seat>(0)
   const [state, setState] = useState<FourState | null>(null)
   const [lastMove, setLastMove] = useState<LastMove | null>(null)
   const [preview, setPreview] = useState(true)
@@ -141,6 +148,8 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
   const [resigned, setResigned] = useState(false)
   const agent = useRef<RuntimeAgent | null>(null)
   const live = useRef<FourState | null>(null)
+  /** The seats of the live match; the agent is built before the server says which side the player has. */
+  const seats = useRef<{ human: Seat; agent: Seat }>({ human: 0, agent: 1 })
   const busy = useRef(false)
   const moveStart = useRef(0)
   /** Bumped by start, resign and backToSetup so an agent reply that arrives late is dropped. */
@@ -153,6 +162,44 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       agent.current = null
     },
     [],
+  )
+
+  const conclude = useCallback(
+    async (next: FourState) => {
+      const out = await recorder.finish(fourCore, next)
+      setPhase('over')
+      const r = out.record.result
+      playCue(r.winner === null ? 'draw' : r.winner === seats.current.human ? 'win' : 'lose', reducedMotion() ? 0 : 550)
+    },
+    [recorder],
+  )
+
+  /**
+   * The opponent's drop from `from`: thinks, waits out the hold-back, records and plays it. The opening drop (the player is second) is held back a
+   * shorter beat than a reply, so the match does not open on a dead wait. The caller owns `busy`, `thinking` and the failure line.
+   */
+  const agentReply = useCallback(
+    async (from: FourState, mine: number, opening: boolean): Promise<void> => {
+      const ag = agent.current
+      if (!ag) return
+      const aiSeat = seats.current.agent
+      setThinking(true)
+      const t0 = performance.now()
+      const [code] = await ag.act(fourCore.observe(from, aiSeat), from)
+      if (mine !== epoch.current) return
+      const reply = fourCore.decodeAction(code!)
+      const hold = (reducedMotion() ? (opening ? 60 : 150) : opening ? 250 : 650) - (performance.now() - t0)
+      if (hold > 0) await sleep(hold)
+      if (mine !== epoch.current) return
+      recorder.act(from.n, aiSeat, code!)
+      const after = fourCore.step(from, aiSeat === 0 ? [reply, null] : [null, reply])
+      live.current = after
+      setState(after)
+      setLastMove({ col: reply, row: from.h[reply]!, seat: aiSeat })
+      moveStart.current = performance.now()
+      if (fourCore.terminal(after)) await conclude(after)
+    },
+    [recorder, conclude],
   )
 
   const start = useCallback(
@@ -168,7 +215,7 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       // The agent is created before the server row exists, so an opponent that fails to start never leaves a
       // 'started' match behind that would later be abandoned as a loss.
       const opened = await openMatch({
-        create: () => (randomOpponent() ? Promise.resolve(createStubAgent('four', lvl, { seat: AGENT })) : createAgent('four', lvl, { seat: AGENT })),
+        create: () => (randomOpponent() ? Promise.resolve(createStubAgent('four', lvl, { seat: 1 })) : createAgent('four', lvl, { seat: 1 })),
         begin: () => recorder.begin(lvl, forcedSeed),
         isCurrent: () => mine === epoch.current,
       })
@@ -180,8 +227,10 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       }
       const made = opened.agent
       const s = opened.session.seed
+      const mineSeat = opened.session.humanSeat
+      const aiSeat: Seat = mineSeat === 0 ? 1 : 0
       try {
-        made.reset(s)
+        made.reset(s, aiSeat)
         agent.current = made
         setPreview(made.preview)
       } catch (e) {
@@ -192,33 +241,43 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       }
       const init = fourCore.init(s)
       live.current = init
+      seats.current = { human: mineSeat, agent: aiSeat }
       busy.current = false
       setSeed(s)
+      setHumanSeat(mineSeat)
       setState(init)
       setLastMove(null)
       recorder.start({
+        matchId: opened.session.matchId,
         seed: s,
-        humanSeat: HUMAN,
+        humanSeat: mineSeat,
         agent: { version: agentVersion(lvl), level: lvl },
         trainingAllowed: recordTrainingAllowed('four', { learnsFromHumans }),
         input: detectDevice() === 'desktop' ? 'mouse' : 'touch',
       })
       moveStart.current = performance.now()
+      // The first drop is seat 0's, so a player who is second waits for the opponent's opening stone. It starts at once (the turn strip shows the opponent's turn from the first frame).
+      if (aiSeat === 0) {
+        busy.current = true
+        setThinking(true)
+      }
       setPhase('playing')
+      if (aiSeat === 0) {
+        try {
+          await agentReply(init, mine, true)
+        } catch (e) {
+          if (mine === epoch.current) setFailure(e instanceof Error ? e.message : 'Something went wrong.')
+        } finally {
+          if (mine === epoch.current) {
+            busy.current = false
+            setThinking(false)
+          }
+        }
+      }
     },
     // recorder.start is stable (useCallback over a ref); agentVersion is read at call time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [recorder.start, recorder.begin],
-  )
-
-  const conclude = useCallback(
-    async (next: FourState) => {
-      const out = await recorder.finish(fourCore, next)
-      setPhase('over')
-      const r = out.record.result
-      playCue(r.winner === null ? 'draw' : r.winner === HUMAN ? 'win' : 'lose', reducedMotion() ? 0 : 550)
-    },
-    [recorder],
+    [recorder.start, recorder.begin, agentReply],
   )
 
   const play = useCallback(
@@ -227,37 +286,24 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
       const cur = live.current
       const ag = agent.current
       if (!cur || !ag || busy.current || fourCore.terminal(cur)) return
-      if (!fourCore.legal(cur, HUMAN).includes(col)) {
+      const { human } = seats.current
+      if (!fourCore.legal(cur, human).includes(col)) {
         playCue('reject')
         return
       }
       busy.current = true
       try {
         const humanMs = performance.now() - moveStart.current
-        recorder.act(cur.n, HUMAN, fourCore.encodeAction(col), humanMs)
-        const afterHuman = fourCore.step(cur, [col, null])
+        recorder.act(cur.n, human, fourCore.encodeAction(col), humanMs)
+        const afterHuman = fourCore.step(cur, human === 0 ? [col, null] : [null, col])
         live.current = afterHuman
         setState(afterHuman)
-        setLastMove({ col, row: cur.h[col]!, seat: HUMAN })
+        setLastMove({ col, row: cur.h[col]!, seat: human })
         if (fourCore.terminal(afterHuman)) {
           await conclude(afterHuman)
           return
         }
-        setThinking(true)
-        const t0 = performance.now()
-        const [code] = await ag.act(fourCore.observe(afterHuman, AGENT), afterHuman)
-        if (mine !== epoch.current) return
-        const reply = fourCore.decodeAction(code!)
-        const hold = (reducedMotion() ? 150 : 650) - (performance.now() - t0)
-        if (hold > 0) await sleep(hold)
-        if (mine !== epoch.current) return
-        recorder.act(afterHuman.n, AGENT, code!)
-        const afterAgent = fourCore.step(afterHuman, [null, reply])
-        live.current = afterAgent
-        setState(afterAgent)
-        setLastMove({ col: reply, row: afterHuman.h[reply]!, seat: AGENT })
-        moveStart.current = performance.now()
-        if (fourCore.terminal(afterAgent)) await conclude(afterAgent)
+        await agentReply(afterHuman, mine, false)
       } catch (e) {
         if (mine === epoch.current) setFailure(e instanceof Error ? e.message : 'Something went wrong.')
       } finally {
@@ -267,7 +313,7 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
         }
       }
     },
-    [recorder, conclude],
+    [recorder, conclude, agentReply],
   )
 
   const resign = useCallback(() => {
@@ -302,9 +348,9 @@ export function useFourMatch(agentVersion: (level: Level) => string, learnsFromH
   const winLines = state && phase === 'over' ? winningLines(state) : NO_LINES
   const canMove = phase === 'playing' && !thinking && !failure && state !== null && !fourCore.terminal(state)
 
-  const result = resigned ? RESIGNED : (recorder.finished?.record.result ?? null)
+  const result = resigned ? resignedResult((1 - humanSeat) as Seat) : (recorder.finished?.record.result ?? null)
 
-  return { phase, level, seed, state, lastMove, winCells, winLines, preview, thinking, canMove, finished: resigned ? null : recorder.finished, result, upload: recorder.upload, unratedReason: recorder.unratedReason, counted: recorder.counted, failure, start, play, resign, backToSetup }
+  return { phase, level, seed, humanSeat, state, lastMove, winCells, winLines, preview, thinking, canMove, finished: resigned ? null : recorder.finished, result, upload: recorder.upload, unratedReason: recorder.unratedReason, counted: recorder.counted, failure, start, play, resign, backToSetup }
 }
 
 const EMPTY: ReadonlySet<string> = new Set()

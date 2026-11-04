@@ -61,7 +61,7 @@ function playFour(matchId: string, seed: number, level: MatchRecordV1['agent']['
 async function start(who = GUEST) {
   await db.insert(schema.guest).values({ id: 'g-1' }).onConflictDoNothing()
   await db.insert(schema.guest).values({ id: 'g-2' }).onConflictDoNothing()
-  const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1' })
+  const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, who, { agentVersion: () => 'v1', side: () => 0 as const })
   expect(r.status).toBe(200)
   return r.body as { matchId: string; seed: number; agentVersion: string }
 }
@@ -106,14 +106,14 @@ describe('startMatch', () => {
   })
 
   test('rejects an unknown game or level with 400', async () => {
-    const r = await startMatchHandler(db, { game: 'checkers', level: 'easy' }, GUEST)
+    const r = await startMatchHandler(db, { sides: 1, game: 'checkers', level: 'easy' }, GUEST)
     expect(r.status).toBe(400)
-    const r2 = await startMatchHandler(db, { game: 'four', level: 'godlike' }, GUEST)
+    const r2 = await startMatchHandler(db, { sides: 1, game: 'four', level: 'godlike' }, GUEST)
     expect(r2.status).toBe(400)
   })
 
   test('needs a player (user or guest)', async () => {
-    const r = await startMatchHandler(db, { game: 'four', level: 'easy' }, {})
+    const r = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, {})
     expect(r.status).toBe(401)
   })
 })
@@ -277,10 +277,10 @@ describe('finishMatch', () => {
     const reg = (g: string) => JSON.parse(readFileSync(join(import.meta.dir, `../../../../packages/agents/registry/${g}.json`), 'utf8'))
     const gameRecordsTrainable = (g: GameId) => recordsTrainable(g, reg(g))
     await db.insert(schema.guest).values({ id: 'g-1', trainingAllowed: true })
-    const r = await startMatchHandler(db, { game: 'chess', level: 'easy' }, GUEST, { recordsTrainable: gameRecordsTrainable })
+    const r = await startMatchHandler(db, { sides: 1, game: 'chess', level: 'easy' }, GUEST, { recordsTrainable: gameRecordsTrainable })
     const id = (r.body as { matchId: string }).matchId
     expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.trainingAllowed).toBe(false)
-    const four = await startMatchHandler(db, { game: 'four', level: 'easy' }, GUEST, { recordsTrainable: gameRecordsTrainable })
+    const four = await startMatchHandler(db, { sides: 1, game: 'four', level: 'easy' }, GUEST, { recordsTrainable: gameRecordsTrainable })
     expect((await db.select().from(schema.match).where(eq(schema.match.id, (four.body as { matchId: string }).matchId)))[0]!.trainingAllowed).toBe(true)
     expect(gameRecordsTrainable('chess')).toBe(false)
     expect(gameRecordsTrainable('four')).toBe(true)
@@ -289,7 +289,7 @@ describe('finishMatch', () => {
   test('production rule: opted-in guest on chess keeps the match untrainable but telemetry records no opt-out', async () => {
     const reg = (g: string) => JSON.parse(readFileSync(join(import.meta.dir, `../../../../packages/agents/registry/${g}.json`), 'utf8'))
     await db.insert(schema.guest).values({ id: 'g-1', trainingAllowed: true })
-    const r = await startMatchHandler(db, { game: 'chess', level: 'easy' }, GUEST, { recordsTrainable: (g: GameId) => recordsTrainable(g, reg(g)) })
+    const r = await startMatchHandler(db, { sides: 1, game: 'chess', level: 'easy' }, GUEST, { recordsTrainable: (g: GameId) => recordsTrainable(g, reg(g)) })
     const id = (r.body as { matchId: string }).matchId
     expect((await db.select().from(schema.match).where(eq(schema.match.id, id)))[0]!.trainingAllowed).toBe(false)
     const ev = (await db.select().from(schema.telemetryEvent)).filter((e) => e.matchId === id && e.kind === 'match_started')

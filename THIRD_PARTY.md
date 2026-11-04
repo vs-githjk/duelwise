@@ -108,7 +108,8 @@ Lining numerals are set once on `body` (`font-variant-numeric: lining-nums`), an
 - Source: https://opengameart.org (one page per track, listed in `apps/web/public/assets/audio/opengameart/cc0-music/CREDITS.md`), downloaded 2026-10-30.
 - Licence: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. No attribution is required; we credit anyway. The licence text is saved as `LICENSE.txt` next to the files.
 - Tracks (title, author): relax_background1 (joaquinton), jazz improvisation looped (Pro Sensory), Determined Pursuit (Emma_MA), Win Jingle (Fupi), Game over short jingle (Kosmo The Cat). Re-encoded to MP3 and trimmed; total about 4.4 MB.
-- Used by: `apps/web/src/lib/music.ts` (three match loops and the win and loss stingers).
+- Used by: `apps/web/src/lib/music.ts` (three match loops and the win and loss stingers). The board loop plays on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; the stingers play on the result of all eight games.
+- Crosscurrent's other cues (your disc, the opponent's disc, the flip ripple, a corner, a pass, a draw) are synthesised in the browser with the Web Audio API in `apps/web/src/games/slack/sounds.ts`, so no sound file is shipped for them.
 
 ## Quaternius paid animation clips (P2, Oct 23)
 
@@ -409,7 +410,7 @@ and Australian word list.  It is under the following copyright:
 - Files kept (only the ones the product plays), under `apps/web/public/assets/ui/kenney/`:
   - `impact-sounds/`: `impactPlate_medium_000.ogg` (your stone lands), `impactPlate_light_000.ogg` (the opponent's stone lands).
   - `interface-sounds/`: `confirmation_002.ogg` (win), `error_004.ogg` (loss), `toggle_002.ogg` (draw), `tick_002.ogg` (refused move).
-- Used by: Four in a Row (`apps/web/src/games/four/sounds.ts`).
+- Used by: Four in a Row (`apps/web/src/games/four/sounds.ts`) and Stormglass (`apps/web/src/games/fleet/sounds.ts`: `impactPlate_light_000`, `impactPlate_medium_000`, `confirmation_002`, `tick_002`).
 
 ## Word Duel: third-party data
 

@@ -6,8 +6,9 @@ import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
 import { isPractice } from './competitive'
 import type { HandlerResponse } from './match-handlers'
+import { addDays, dayKeyIn, type ZoneInfo } from './owner-zone'
 import { isOwner, playerRef } from './telemetry'
-import { addTo, classCte, emptySplit, MATCH_CLS, MATCH_PID, type Split } from './traffic-sql'
+import { addTo, classCte, emptySplit, MATCH_CLS, MATCH_PID, onOrAfterDay, type Split, zoneFor } from './traffic-sql'
 import type { Traffic } from './traffic'
 
 /**
@@ -31,7 +32,6 @@ export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard', 'champion']
 const GAMES = Object.keys(PRODUCT.games) as GameId[]
 const isGame = (g: string): g is GameId => Object.prototype.hasOwnProperty.call(PRODUCT.games, g)
 const isLevel = (l: string): l is Level => (LEVELS as readonly string[]).includes(l)
-const DAY_MS = 86_400_000
 /** A match counts as played when it finished, was resigned or was abandoned. Offline tickets (issued in advance), expired tickets and matches still waiting are never counted as played. */
 export const PLAYED = ['finished', 'resigned', 'abandoned'] as const
 const PLAYED_SQL = sql.raw(`('finished', 'resigned', 'abandoned')`)
@@ -48,12 +48,12 @@ export interface DayCount {
   day: string
   count: number
 }
-/** One UTC day, broken down by traffic class; human + owner + test = total. */
+/** One day in the asked zone (YYYY-MM-DD), broken down by traffic class; human + owner + test = total. */
 export interface DaySplit extends Split {
   day: string
 }
 export type { Split } from './traffic-sql'
-export interface AdminOverview {
+export interface AdminOverview extends ZoneInfo {
   generatedAt: string
   players: { all: Split; guests: Split; accounts: Split }
   newPerDay: DaySplit[]
@@ -151,16 +151,17 @@ export function viewOf(result: { winner: 0 | 1 | null } | null, record: Uint8Arr
   }
 }
 
-const dayKey = (d: Date) => d.toISOString().slice(0, 10)
-/** One entry per UTC day for the last `days` days, oldest first, with zeros for quiet days. */
-function fillSplits(rows: Array<{ day: string; cls: string; count: number }>, now: Date, days: number): DaySplit[] {
+/** One entry per calendar day in the zone for the last `days` days (today included), oldest first, with zeros for quiet days. Days are stepped as dates, so a 23 or 25 hour day neither repeats nor skips. */
+function fillSplits(rows: Array<{ day: string; cls: string; count: number }>, now: Date, days: number, zone: string): DaySplit[] {
   const by = new Map<string, Split>()
   for (const r of rows) addTo(by.get(r.day) ?? by.set(r.day, emptySplit()).get(r.day)!, r.cls, Number(r.count))
+  const today = dayKeyIn(now, zone)
   return Array.from({ length: days }, (_, i) => {
-    const day = dayKey(new Date(now.getTime() - (days - 1 - i) * DAY_MS))
+    const day = addDays(today, -(days - 1 - i))
     return { day, ...(by.get(day) ?? emptySplit()) }
   })
 }
+
 
 /** Names and board visibility for a set of account and guest ids: two statements for any number of players. */
 async function labelsFor(db: Db, userIds: string[], guestIds: string[]): Promise<Map<string, { name: string; hidden: boolean }>> {
@@ -189,23 +190,24 @@ export async function adminOverviewHandler(
   user: SessionUser,
   env: Env,
   now: Date = new Date(),
+  rawZone?: unknown,
 ): Promise<HandlerResponse<AdminOverview | { error: string }>> {
   if (!isOwner(user, env)) return NOT_FOUND
-  const from = new Date(now.getTime() - (TREND_DAYS - 1) * DAY_MS)
-  from.setUTCHours(0, 0, 0, 0)
-  const fromIso = from.toISOString()
+  const { zone, zoneFallback } = await zoneFor(db, rawZone)
+  const firstDay = addDays(dayKeyIn(now, zone), -(TREND_DAYS - 1))
+  const endIso = now.toISOString()
   const cte = classCte(env)
   const [playerRows, newRows, dayRows, gameRows, feedRows] = await Promise.all([
     db.execute(sql`with ${cte} select left(pid, 1) as k, cls, count(*)::int as n from pc group by 1, 2`),
     db.execute(sql`
       with ${cte}
-      select to_char(created at time zone 'UTC', 'YYYY-MM-DD') as day, cls, count(*)::int as count
-      from pc where created >= ${fromIso}::timestamptz group by 1, 2`),
+      select to_char(created at time zone ${zone}::text, 'YYYY-MM-DD') as day, cls, count(*)::int as count
+      from pc where ${onOrAfterDay(sql`created`, firstDay, zone)} and created <= ${endIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
-      select to_char(m.finished_at at time zone 'UTC', 'YYYY-MM-DD') as day, ${MATCH_CLS} as cls, count(*)::int as count
+      select to_char(m.finished_at at time zone ${zone}::text, 'YYYY-MM-DD') as day, ${MATCH_CLS} as cls, count(*)::int as count
       from match m left join pc on pc.pid = ${MATCH_PID}
-      where m.status in ${PLAYED_SQL} and m.finished_at >= ${fromIso}::timestamptz group by 1, 2`),
+      where m.status in ${PLAYED_SQL} and ${onOrAfterDay(sql`m.finished_at`, firstDay, zone)} and m.finished_at <= ${endIso}::timestamptz group by 1, 2`),
     db.execute(sql`
       with ${cte}
       select m.game, ${MATCH_CLS} as cls, count(*)::int as count
@@ -254,10 +256,12 @@ export async function adminOverviewHandler(
     feed.push({ matchId: r.id, ref: await playerRef(kind, id), kind, name: label?.name ?? (kind === 'guest' ? guestLabel(id) : 'Player'), hidden: label?.hidden ?? false, traffic: r.traffic ?? (headless.has(r.id) ? 'test' : (classes.get(`${r.userId ? 'u' : 'g'}:${id}`) ?? 'human')), game: r.game, level: r.level, result, at: r.finishedAt.toISOString(), practiceMode: isPractice(r.flags) })
   }
   const body: AdminOverview = {
+    zone,
+    zoneFallback,
     generatedAt: now.toISOString(),
     players,
-    newPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(newRows), now, TREND_DAYS),
-    matchesPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, TREND_DAYS),
+    newPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(newRows), now, TREND_DAYS, zone),
+    matchesPerDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, TREND_DAYS, zone),
     matchesPerGame: GAMES.map((game) => ({ game, ...(gameSplit.get(game) ?? emptySplit()) })),
     feed,
   }
@@ -274,16 +278,16 @@ async function classesOf(db: Db, env: Env, pids: string[]): Promise<Map<string, 
 }
 
 export const ACTIVE_DAYS = 30
-export interface ActiveUsers {
+export interface ActiveUsers extends ZoneInfo {
   generatedAt: string
-  /** Distinct players with a finished match today (UTC), in the last 7 UTC days (today included) and in the last 30, by class. */
+  /** Distinct players with a finished match today, in the last 7 days (today included) and in the last 30, by class. Days are days in `zone`. */
   dau: Split
   wau: Split
   mau: Split
-  /** Players who finished matches on 2 or more distinct UTC days inside the 7-day and the 30-day window. */
+  /** Players who finished matches on 2 or more distinct days inside the 7-day and the 30-day window. */
   returning7: Split
   returning30: Split
-  /** Daily active players for each of the last 30 UTC days, oldest first. */
+  /** Daily active players for each of the last 30 days, oldest first. */
   perDay: DaySplit[]
 }
 
@@ -296,19 +300,20 @@ export async function adminActiveHandler(
   user: SessionUser,
   env: Env,
   now: Date = new Date(),
+  rawZone?: unknown,
 ): Promise<HandlerResponse<ActiveUsers | { error: string }>> {
   if (!isOwner(user, env)) return NOT_FOUND
-  const today = dayKey(now)
-  const w7 = dayKey(new Date(now.getTime() - 6 * DAY_MS))
-  const w30 = dayKey(new Date(now.getTime() - (ACTIVE_DAYS - 1) * DAY_MS))
-  // The window is explicit UTC: from 00:00:00 UTC of the first day to now. Nothing dated after now is counted, and the session time zone never matters.
-  const startIso = `${w30}T00:00:00.000Z`
+  const { zone, zoneFallback } = await zoneFor(db, rawZone)
+  const today = dayKeyIn(now, zone)
+  const w7 = addDays(today, -6)
+  const w30 = addDays(today, -(ACTIVE_DAYS - 1))
+  // The window is explicit: from 00:00 of the first day on the zone's clock (its first occurrence, if midnight repeats) to now. Nothing dated after now is counted, and the database session time zone never matters because every conversion names its zone.
   const endIso = now.toISOString()
   const cte = classCte(env)
   const played = sql`
-    select ${MATCH_PID} as pid, ${MATCH_CLS} as cls, (m.finished_at at time zone 'UTC')::date as d
+    select ${MATCH_PID} as pid, ${MATCH_CLS} as cls, (m.finished_at at time zone ${zone}::text)::date as d
     from match m left join pc on pc.pid = ${MATCH_PID}
-    where m.status in ${PLAYED_SQL} and m.finished_at >= ${startIso}::timestamptz and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
+    where m.status in ${PLAYED_SQL} and ${onOrAfterDay(sql`m.finished_at`, w30, zone)} and m.finished_at <= ${endIso}::timestamptz and coalesce(m.user_id, m.guest_id) is not null`
   const [dayRows, totalRows] = await Promise.all([
     db.execute(sql`with ${cte}, m2 as (${played}) select to_char(d, 'YYYY-MM-DD') as day, cls, count(distinct pid)::int as count from m2 group by d, cls`),
     db.execute(sql`
@@ -328,7 +333,7 @@ export async function adminActiveHandler(
   }
   return {
     status: 200,
-    body: { generatedAt: now.toISOString(), ...out, perDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, ACTIVE_DAYS) },
+    body: { zone, zoneFallback, generatedAt: now.toISOString(), ...out, perDay: fillSplits(rowsOf<{ day: string; cls: string; count: number }>(dayRows), now, ACTIVE_DAYS, zone) },
   }
 }
 

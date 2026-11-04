@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { cn } from '../lib/cn'
-import { axisMax, learnCopy, pointsFor, THIN_UNDER, type Point } from '../lib/learn-copy'
+import { axisMax, learnCopy, learnHeading, pointsFor, THIN_UNDER, type Point } from '../lib/learn-copy'
 import { LEVELS } from '../lib/level-info'
 import { personaFor } from '../personas'
 import { shortDate } from './charts/format'
@@ -113,7 +113,7 @@ export function LearnGraph({ game, initial, defaultLevel, compact = false }: { g
   return (
     <section className="grid gap-4 rounded-card border border-line bg-surface p-4 shadow-card md:p-5" aria-labelledby={`learn-h-${game}`} data-testid="learn-graph" data-learns={view ? String(view.learns) : undefined}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-        <h2 id={`learn-h-${game}`} className="font-display text-display-sm">Watch the AI learn</h2>
+        <h2 id={`learn-h-${game}`} className="font-display text-display-sm">{learnHeading(game)}</h2>
         <div role="radiogroup" aria-label="Opponent level for the graph" className="flex gap-1 rounded-full bg-surface-2 p-1">
           {LEVELS.map((l) => (
             <label key={l} className={cn('inline-flex min-h-8 cursor-pointer items-center rounded-full px-3 text-xs font-semibold focus-within:outline-2 focus-within:outline-action', l === level ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink')}>

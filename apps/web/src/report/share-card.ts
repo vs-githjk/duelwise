@@ -74,7 +74,7 @@ export function cardHeadline(input: Pick<CardInput, 'game' | 'outcome' | 'level'
 export function shareCardSvg(input: CardInput): string {
   const persona = personaFor(input.level)
   const lines = wrapHeadline(cardHeadline(input))
-  const detail = input.rounds ? `, rounds ${input.rounds.you} to ${input.rounds.ai}, ${input.moves} recorded inputs` : input.moves > 0 ? `, ${input.moves} ${input.moves === 1 ? 'move' : 'moves'}` : ''
+  const detail = input.rounds ? `, rounds ${input.rounds.you} to ${input.rounds.ai}, ${input.moves} recorded inputs` : input.moves > 0 ? `, ${input.moves} ${input.game === 'fleet' ? (input.moves === 1 ? 'shot' : 'shots') : input.moves === 1 ? 'move' : 'moves'}` : ''
   const sub = `${LEVEL_LABEL[input.level]} level${detail}.`
   const avatar = (AVATAR_SVG[persona.avatar] ?? '').replace(/<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/<!--[\s\S]*?-->/g, '')
   const headline = lines.map((l, i) => `<tspan x="72" dy="${i === 0 ? 0 : 84}">${esc(l)}</tspan>`).join('')

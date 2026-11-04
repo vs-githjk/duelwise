@@ -1,7 +1,8 @@
 export interface Agent {
   /** Returns the chosen action as integers (turn games: one encoded action; realtime: one per action dimension). */
   act(obs: unknown, state?: unknown): Promise<number[]>
-  reset(seed: number): void
+  /** `seat`, when given, replaces the seat the agent was made for: a page learns the player's side only after the server row exists, which is after the opponent is built. */
+  reset(seed: number, seat?: 0 | 1): void
   dispose(): void
 }
 

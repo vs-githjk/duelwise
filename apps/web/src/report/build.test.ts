@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { replay } from '@duelwise/core/src/replay'
+import { decodeRecord, encodeRecord } from '@duelwise/core/src/match-record'
+import { getCore } from '@duelwise/core/src/games/index'
 import { wordCore } from '@duelwise/core/src/games/word/core'
 import { buildReportBody } from './build'
 import { MATERIAL } from './chess'
+import { publicBody, reportTiles } from './copy'
 import { playRandom, playScript } from './testing'
+import { humanActionCount } from './walk'
 
 // 1. f3 e5 2. g4 Qh4#: Black checkmates in two.
 const FOOLS = ['f2f3', 'e7e5', 'g2g4', 'd8h4']
@@ -124,5 +128,231 @@ describe("Hold'em has its own report", () => {
     expect(r.moves).toBeGreaterThan(0)
     expect(r.note).toBeNull()
     expect(r.moments.at(-1)!.kind).toBe('end')
+  })
+})
+
+describe('Fleet report', () => {
+  const rec = playRandom('fleet', 3, 0)
+  const core = getCore('fleet')
+
+  test("a fleet record is not read as a Hold'em hand", () => {
+    const r = buildReportBody(rec)
+    expect(r.game).toBe('fleet')
+    expect(r.evaluator).toBe('none')
+    expect(r.moments.map((m) => m.label)).toContain('Shots used')
+    expect(r.moments.some((m) => /hand|chip|fold/i.test(m.text))).toBe(false)
+    expect(r.moments.at(-1)!.kind).toBe('end')
+  })
+
+  test('shots used and ships left match the record', () => {
+    const r = buildReportBody(rec)
+    const mine = rec.actions.filter((a) => a[1] === 0 && core.decodeAction(a[2] as number).kind === 'shot').length
+    const theirs = rec.actions.filter((a) => a[1] === 1 && core.decodeAction(a[2] as number).kind === 'shot').length
+    expect(r.moments.find((m) => m.label === 'Shots used')!.text).toBe(`You fired ${mine} shots; Marlow fired ${theirs}.`)
+    // The count on the tile, the share card and the report card is shots only, never the five placements.
+    expect(r.moves).toBe(mine)
+    const left = r.moments.find((m) => m.label === 'Ships left')!
+    expect(left.value).toMatch(/^\d of 5$/)
+    // Exactly one side lost every ship.
+    expect(left.text.includes('0.') || left.text.startsWith('You finished with 0')).toBe(true)
+  })
+
+  test('the tile says shots, owner and public', () => {
+    const r = buildReportBody(rec)
+    expect(reportTiles({ game: 'fleet', mode: 'owner', status: 'ready' }, r)[0]).toMatchObject({ label: 'Your shots', value: String(r.moves) })
+    expect(reportTiles({ game: 'fleet', mode: 'public', status: 'ready' }, r)[0]).toMatchObject({ label: 'Shots fired', value: String(r.moves) })
+  })
+
+  test('the stored record keeps all five setup actions of both seats, and they decode as ships', () => {
+    const stored = decodeRecord(encodeRecord(rec))
+    for (const seat of [0, 1]) {
+      const placed = stored.actions.filter((a) => a[1] === seat && core.decodeAction(a[2] as number).kind === 'place')
+      expect(placed).toHaveLength(5)
+      expect(placed.map((a) => a[0])).toEqual([0, 1, 2, 3, 4])
+    }
+  })
+
+  test('the luck line ends with the verdict and stays under 180 characters', () => {
+    for (const seed of [3, 4, 5, 6, 7, 8]) {
+      for (const seat of [0, 1] as const) {
+        const r = buildReportBody(playRandom('fleet', seed, seat))
+        const luck = r.moments.find((m) => m.label === 'Luck')
+        if (!luck) continue
+        expect(luck.text.length).toBeLessThan(180)
+        expect(luck.text).toMatch(/You ran (lucky|unlucky|about even)(, and still lost on the chase)?\.$/)
+        expect(luck.publicText!).not.toMatch(/\b(You|Your|you|your)\b/)
+      }
+    }
+  })
+
+  test('the report rebuilds identically and the record replays', () => {
+    expect(replay(rec).ok).toBe(true)
+    const r1 = buildReportBody(rec)
+    const r2 = buildReportBody(rec)
+    expect(r1).toEqual(r2)
+  })
+
+  test('a public report holds no setup: no coordinates, no ship cells, no first person', () => {
+    const body = publicBody(buildReportBody(rec))
+    const text = JSON.stringify(body)
+    expect(text).not.toMatch(/\b[A-J](10|[1-9])\b/)
+    expect(text).not.toMatch(/vertical|"cells?"|ships":/)
+    expect(text).not.toMatch(/\b(You|Your|you|your)\b/)
+    // The public wording still names the player.
+    expect(body.moments.find((m) => m.label === 'Shots used')!.text).toMatch(/^The player fired/)
+  })
+
+  test('a resigned match with no shots still reports, with no luck line', () => {
+    const r = buildReportBody(playScript('fleet', 9, [], 0, 'medium', true))
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+  })
+})
+
+describe('Crosscurrent report', () => {
+  const CORNERS = [0, 7, 56, 63]
+  const rec = playRandom('slack', 3, 0)
+  const core = getCore('slack')
+  /** Independent replay: every placement with who played it, the discs it flipped and the disc lead (human minus opponent) after it. */
+  function facts(r: typeof rec) {
+    let s = core.init(r.seed)
+    const out: Array<{ seat: number; cell: number; flips: number; lead: number }> = []
+    let passes = [0, 0]
+    for (const [, seat, n] of r.actions) {
+      const code = n as number
+      const before = (s as { cells: number[] }).cells
+      s = core.step(s, (seat === 0 ? [code, null] : [null, code]) as never)
+      if (code === 64) { passes[seat]!++; continue }
+      const cells = (s as { cells: number[] }).cells
+      const flips = cells.filter((v, i) => v !== before[i] && before[i] !== 0).length
+      const mine = cells.filter((v) => v === r.humanSeat + 1).length
+      const theirs = cells.filter((v) => v === 2 - r.humanSeat).length
+      out.push({ seat, cell: code, flips, lead: mine - theirs })
+    }
+    return { out, passes }
+  }
+
+  test('is its own report, not a Hold\'em hand and not a bare result', () => {
+    const r = buildReportBody(rec)
+    expect(r.game).toBe('slack')
+    expect(r.evaluator).toBe('none')
+    expect(r.moments.length).toBeGreaterThan(1)
+    expect(r.moments.at(-1)!.kind).toBe('end')
+    expect(r.moments.at(-1)!.text).toMatch(/discs/)
+    expect(r.moments.some((m) => /hand|chip|fold|ship|column/i.test(m.text))).toBe(false)
+    expect(r.series).not.toBeNull()
+    expect(r.slackView).toBeTruthy()
+  })
+
+  test('the chart has one point per disc placed (passes are not moves) and ends at the final disc lead', () => {
+    const r = buildReportBody(rec)
+    const f = facts(rec)
+    expect(r.series!.points).toEqual(f.out.map((x) => x.lead))
+    expect(r.moves).toBe(f.out.filter((x) => x.seat === rec.humanSeat).length)
+    expect(humanActionCount(rec)).toBe(r.moves)
+    expect(r.series!.unit).toMatch(/disc/)
+  })
+
+  test('chart marks sit on the move they name', () => {
+    const r = buildReportBody(rec)
+    const f = facts(rec)
+    for (const m of r.series!.marks) {
+      expect(m.at).toBeGreaterThanOrEqual(0)
+      expect(m.at).toBeLessThan(f.out.length)
+    }
+    const labels = r.series!.marks.map((m) => m.label)
+    expect(new Set(labels).size).toBe(labels.length)
+  })
+
+  test('the corner line counts each side\'s corner placements and nothing else', () => {
+    for (const seed of [3, 4, 5, 6, 7, 8, 9, 10]) {
+      for (const seat of [0, 1] as const) {
+        const rr = playRandom('slack', seed, seat)
+        const f = facts(rr)
+        const mine = f.out.filter((x) => x.seat === seat && CORNERS.includes(x.cell)).length
+        const theirs = f.out.filter((x) => x.seat !== seat && CORNERS.includes(x.cell)).length
+        const line = buildReportBody(rr).moments.find((m) => m.label === 'Corners')
+        if (mine + theirs === 0) expect(line).toBeUndefined()
+        else {
+          expect(line!.text).toContain(`You took ${mine === 1 ? '1 corner' : `${mine} corners`}`)
+          expect(line!.text).toContain(`Marlow took ${theirs}`)
+        }
+      }
+    }
+  })
+
+  test('the biggest turn of each side matches the flips in the record', () => {
+    const r = buildReportBody(rec)
+    const f = facts(rec)
+    const mineBest = Math.max(0, ...f.out.filter((x) => x.seat === rec.humanSeat).map((x) => x.flips))
+    const best = r.moments.find((m) => m.tag === 'biggest turn')
+    if (mineBest >= 3) expect(best!.value).toBe(`+${mineBest}`)
+    else expect(best).toBeUndefined()
+    const theirBest = Math.max(0, ...f.out.filter((x) => x.seat !== rec.humanSeat).map((x) => x.flips))
+    const worst = r.moments.find((m) => m.tag === "Marlow's biggest turn")
+    if (theirBest >= 3) expect(worst!.value).toBe(`+${theirBest}`)
+    else expect(worst).toBeUndefined()
+  })
+
+  test('the "lead changed for good" line names a placement after which the leader led and kept leading to the end', () => {
+    let named = 0
+    for (const seed of [44, ...Array.from({ length: 150 }, (_, i) => i + 1)]) {
+      const rr = playRandom('slack', seed, 0)
+      const f = facts(rr)
+      const m = buildReportBody(rr).moments.find((x) => x.tag === 'the lead changed for good')
+      if (!m) continue
+      named++
+      const n = Number(/Placement (\d+)/.exec(m.label)![1]) - 1
+      const final = Math.sign(f.out.at(-1)!.lead)
+      expect(final).not.toBe(0)
+      for (const x of f.out.slice(n)) expect(Math.sign(x.lead)).toBe(final)
+      expect(Math.sign(f.out[n - 1]?.lead ?? 0)).not.toBe(final)
+    }
+    expect(named).toBeGreaterThan(20)
+  })
+
+  test('the passes line matches the record', () => {
+    for (const seed of [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+      const rr = playRandom('slack', seed, 0)
+      const f = facts(rr)
+      const line = buildReportBody(rr).moments.find((m) => m.label === 'Passes')
+      if (f.passes[0] + f.passes[1] === 0) expect(line).toBeUndefined()
+      else expect(line!.text).toContain(`You passed ${f.passes[0]}`)
+    }
+  })
+
+  test('the final board counts add up to the final discs on the tile', () => {
+    const r = buildReportBody(rec)
+    const v = r.slackView!
+    expect(v.cells).toHaveLength(64)
+    expect(v.cells.filter((c) => c === 1).length).toBe(v.discs[0])
+    expect(v.cells.filter((c) => c === 2).length).toBe(v.discs[1])
+    const tile = reportTiles({ game: 'slack', mode: 'owner', status: 'ready', level: 'medium' }, r).find((t) => t.label === 'Final discs')!
+    expect(tile.value).toBe(`${v.discs[0]} to ${v.discs[1]}`)
+    expect(reportTiles({ game: 'slack', mode: 'owner', status: 'ready', level: 'medium' }, r)[0]).toMatchObject({ label: 'Your moves', value: String(r.moves) })
+  })
+
+  test('the public view says "the player", never "you", and rebuilds identically', () => {
+    const r = buildReportBody(rec)
+    expect(buildReportBody(rec)).toEqual(r)
+    expect(replay(rec).ok).toBe(true)
+    const pub = publicBody(r)
+    expect(JSON.stringify({ moments: pub.moments, series: pub.series, reason: pub.reason })).not.toMatch(/\b(You|Your|you|your)\b/)
+  })
+
+  test('a resigned match reports without inventing moments', () => {
+    const r = buildReportBody(playScript('slack', 9, [19, 18], 0, 'medium', true))
+    expect(r.moments.at(-1)!.kind).toBe('end')
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+    expect(r.slackView ?? null).toBeNull()
+    expect(r.series).toBeNull()
+  })
+
+  test('a record from an older core version gives the result only', () => {
+    const r = buildReportBody({ ...rec, coreVersion: 'old' })
+    expect(r.moments.map((m) => m.kind)).toEqual(['end'])
+  })
+
+  test('the closing note says what the chart counts', () => {
+    expect(buildReportBody(rec).note).toMatch(/discs/i)
   })
 })
