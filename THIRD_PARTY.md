@@ -110,6 +110,7 @@ Lining numerals are set once on `body` (`font-variant-numeric: lining-nums`), an
 - Tracks (title, author): relax_background1 (joaquinton), jazz improvisation looped (Pro Sensory), Determined Pursuit (Emma_MA), Win Jingle (Fupi), Game over short jingle (Kosmo The Cat). Re-encoded to MP3 and trimmed; total about 4.4 MB.
 - Used by: `apps/web/src/lib/music.ts` (three match loops and the win and loss stingers). The board loop plays on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; the stingers play on the result of all eight games.
 - Crosscurrent's other cues (your disc, the opponent's disc, the flip ripple, a corner, a pass, a draw) are synthesised in the browser with the Web Audio API in `apps/web/src/games/slack/sounds.ts`, so no sound file is shipped for them.
+- Twelve Yards' other cues (the kick, the net, the keeper's glove, the whistle, the crowd's cheer and groan) are synthesised in the browser with the Web Audio API in `apps/web/src/games/penalty/sounds.ts`, so no sound file or recording is shipped for them.
 
 ## Quaternius paid animation clips (P2, Oct 23)
 

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
-import { penaltyCore, type Kick, type Zone } from '@duelwise/core/src/games/penalty/core'
+import { KICKS, penaltyCore, type Kick, type Zone } from '@duelwise/core/src/games/penalty/core'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -10,7 +10,6 @@ import { PlayHud } from '../../components/PlayHud'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { ResultPanel } from '../../components/ResultPanel'
 import { StrengthLine } from '../../components/SiteElo'
-import { getVolume, isMuted } from '../../lib/audio'
 import { isOffline, subscribeConnection } from '../../lib/connection'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { setRatedLive } from '../../lib/match-active'
@@ -41,10 +40,15 @@ import {
   tapZone,
   type Role,
 } from './match'
+import { cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed } from './sounds'
 import { usePenaltyMatch } from './usePenaltyMatch'
 import './penalty.css'
 
 export const meta = { title: 'Twelve Yards' }
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+}
 
 // The registry file is written by the measurement. Until a level has a measured block it shows as In training and no strength is shown.
 // Eager glob: a missing file is an empty object, not a build error.
@@ -106,42 +110,6 @@ function aimPath(zone: number): string {
   const c = cellCentre(zone)
   const midX = (SPOT.x + c.x) / 2 + (zone % 3 === 0 ? 18 : zone % 3 === 2 ? -18 : 0)
   return `M ${SPOT.x} ${SPOT.y - 12} Q ${midX} ${(SPOT.y + c.y) / 2 - 16} ${c.x} ${c.y}`
-}
-
-// Short synthesised cues (Web Audio, no files), honouring the shared volume and mute from lib/audio.
-type Cue = 'strike' | 'net' | 'save' | 'miss'
-const CUES: Record<Cue, Array<{ freq: number; at: number; len: number; type: OscillatorType; gain: number }>> = {
-  strike: [{ freq: 150, at: 0, len: 0.08, type: 'triangle', gain: 1 }],
-  miss: [{ freq: 180, at: 0, len: 0.16, type: 'sine', gain: 0.5 }],
-  net: [
-    { freq: 660, at: 0, len: 0.06, type: 'sine', gain: 0.6 },
-    { freq: 880, at: 0.05, len: 0.14, type: 'sine', gain: 0.7 },
-  ],
-  save: [{ freq: 220, at: 0, len: 0.12, type: 'square', gain: 0.45 }],
-}
-let ctx: AudioContext | null = null
-function cue(name: Cue): void {
-  try {
-    if (isMuted() || typeof AudioContext === 'undefined') return
-    ctx ??= new AudioContext()
-    void ctx.resume().catch(() => {})
-    const t0 = ctx.currentTime
-    for (const n of CUES[name]) {
-      const osc = ctx.createOscillator()
-      const amp = ctx.createGain()
-      osc.type = n.type
-      osc.frequency.value = n.freq
-      const peak = 0.18 * getVolume() * n.gain
-      amp.gain.setValueAtTime(0.0001, t0 + n.at)
-      amp.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t0 + n.at + 0.01)
-      amp.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.len)
-      osc.connect(amp).connect(ctx.destination)
-      osc.start(t0 + n.at)
-      osc.stop(t0 + n.at + n.len + 0.02)
-    }
-  } catch {
-    // never let a sound break a game
-  }
 }
 
 /** `?seed=<number>` fixes the first match's seed, for tests and bug reports (the match is then not counted); later matches are random. `?side=0|1` pins who kicks first (lib/dev-side.ts). */
@@ -238,6 +206,14 @@ export default function PenaltyPage() {
     return () => setRatedLive(false)
   }, [ratedLive])
 
+  // The referee's whistle opens the shootout, and the shared win or loss jingle sounds with the result panel (not after a resignation, which is no ending to cheer or groan at).
+  useEffect(() => {
+    if (playingNow) playCue('whistleStart')
+  }, [playingNow])
+  useEffect(() => {
+    if (over && live.result && !live.resigned) playResultStinger(live.result, human)
+  }, [over])
+
   const resetScene = () => {
     run.current++
     clearTimers()
@@ -267,7 +243,6 @@ export default function PenaltyPage() {
     if (live.unsent !== null) zone = live.unsent
     setSelected(zone)
     setPhase('set')
-    cue('strike')
     const next = await live.kick(zone, performance.now() - pickOpened.current)
     if (my !== run.current) return
     if (!next) {
@@ -277,20 +252,36 @@ export default function PenaltyPage() {
     }
     const count = next.state.kicks.length
     const k = next.state.kicks[count - 1]!
+    const terminal = penaltyCore.terminal(next.state)
+    const reduced = prefersReducedMotion()
     skipFrom.current = performance.now() + SKIP_AFTER_MS
-    // At 0 ms both choices show. SET_MS later the transforms go on, and the ball and keeper leave together.
-    timers.current.push(window.setTimeout(() => setPhase('go'), SET_MS))
+    // At 0 ms both choices show. SET_MS later the transforms go on, and the ball and keeper leave together (the boot is heard then).
+    timers.current.push(
+      window.setTimeout(() => {
+        setPhase('go')
+        playCue('strike')
+      }, SET_MS),
+    )
     timers.current.push(
       window.setTimeout(() => {
         setBeat('hit')
         setWord(outcomeWord(k))
         setScored(count)
-        cue(k.goal ? 'net' : k.onTarget ? 'save' : 'miss')
+        playTimed(cuesForKick(k, human, { terminal, reducedMotion: reduced }), reduced)
       }, CONTACT_MS),
     )
-    timers.current.push(window.setTimeout(() => setBeat('out'), CLEAR_MS))
+    // A kick that ends the shootout keeps its reveal on the screen (the ball in the net, the word, the score) until the hold is over; any other kick clears for the next pick.
+    if (!terminal) timers.current.push(window.setTimeout(() => setBeat('out'), CLEAR_MS))
+    let endHeard = false
+    const heardEnd = () => {
+      if (endHeard) return
+      endHeard = true
+      const r = penaltyCore.result(next.state)
+      if (r) playTimed(cuesForEnd(r, human))
+    }
     const done = () => {
       clearTimers()
+      heardEnd()
       setShown(count)
       setScored(count)
       setPhase('pick')
@@ -300,10 +291,21 @@ export default function PenaltyPage() {
       skipFrom.current = 0
       pickOpened.current = performance.now()
       locked.current = false
-      if (penaltyCore.terminal(next.state)) void live.conclude()
+      if (terminal) void live.conclude()
+      // Sudden death opens with a whistle, once the ten kicks are level.
+      else if (count === 2 * KICKS) playCue('whistleStart')
     }
     finish.current = done
-    timers.current.push(window.setTimeout(done, KICK_MS))
+    if (terminal) {
+      // Full time: the whistle and the crowd come as the last reveal ends, the verdict shows on the status line, and the result panel follows the hold.
+      timers.current.push(
+        window.setTimeout(() => {
+          setShown(count)
+          heardEnd()
+        }, KICK_MS),
+      )
+      timers.current.push(window.setTimeout(done, KICK_MS + endHoldMs(reduced)))
+    } else timers.current.push(window.setTimeout(done, KICK_MS))
   }
 
   // A tap during a reveal skips to the next pick. It is held back for a moment, so the second tap of a quick double tap only takes the kick.

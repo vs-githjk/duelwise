@@ -15,3 +15,5 @@ The files were re-encoded for the web (MP3, stereo, 44.1 kHz, 80 kbps for loops 
 Music plays only during a match (from Start to the result); every other page is silent. Where each plays: board on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; poker on Hold'em; action on Tinderbox, Coldstore and Twelve Yards; win and loss stingers on the result of all nine games.
 
 Crosscurrent's other cues (a disc placed by you or by the opponent, the flip ripple, a corner, a pass, a draw) are not files: they are tones the page synthesises in the browser with Web Audio, so there is nothing to license or credit beyond the music and stingers above.
+
+Twelve Yards' other cues (the boot on the ball, the net, the keeper's glove, a ball past the goal, the referee's whistle at the start and at full time, and the crowd: a cheer for your goal, a smaller one for your save, a big one for winning the shootout, and a groan when your kick fails or you lose) are not files either: they are filtered noise and tones the page synthesises with Web Audio in `apps/web/src/games/penalty/sounds.ts`. No recorded crowd is used.
