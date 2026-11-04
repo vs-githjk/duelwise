@@ -41,6 +41,8 @@ export function learningCopy(l: Learning, persona: string, game?: GameId): { tit
   }
   // Stormglass and Crosscurrent are scripted solvers: it can never train, so "yet" would promise something that cannot happen.
   if (l.reason === 'not_learning' && (game === 'fleet' || game === 'slack')) return { title: 'Not used for training', text: `${persona} is a scripted solver with nothing to train, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
+  // Twelve Yards is a hand-written habit reader: nothing to train either.
+  if (l.reason === 'not_learning' && game === 'penalty') return { title: 'Not used for training', text: `${persona} is a hand-written habit reader with nothing to train, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'not_learning') return { title: 'Not used for training', text: `${persona} does not learn from human matches yet, so this match is kept for your report and is not used to train.`, tone: 'neutral' }
   if (l.reason === 'resigned') return { title: 'Not used for training', text: 'Resigned matches are never used for training.', tone: 'warn' }
   if (l.reason === 'abandoned') return { title: 'Not used for training', text: 'Matches that were left unfinished are never used for training.', tone: 'warn' }

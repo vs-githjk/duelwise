@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import lines from '../personas/lines.json'
-import { isCloseLoss, sayLine, situationOf, type SaysInput } from './says'
+import { isCloseLoss, penaltyWin, sayLine, situationOf, type SaysInput } from './says'
 
 const base: SaysInput = { game: 'word', level: 'medium', result: { winner: 0, score: [1, 0], reason: 'solved first' }, humanSeat: 0, call: null, humanMoves: 3 }
 
@@ -62,4 +62,20 @@ test('Stormglass: a loss one shot short of sinking the last ship is a close matc
   expect(at(0)).toBe(false)
   expect(at()).toBe(false)
   expect(sayLine({ ...base, game: 'fleet', level: 'easy', result: lost, shortBy: 1 }).text).toBe('One shot short against Pip. That one stings. Run it back.')
+})
+
+test('Twelve Yards wins say the score and never "Clean win" for a one goal win or "Frame it" for Sable', () => {
+  const pen = (score: [number, number], level: SaysInput['level'], progress: SaysInput['progress'] = 'plain'): string =>
+    sayLine({ game: 'penalty', level, result: { winner: 0, score, reason: 'more goals' }, humanSeat: 0, call: null, humanMoves: 5, progress }).text
+  expect(pen([5, 4], 'easy')).toBe('Close win over Pip, 5 to 4. Well done.')
+  expect(pen([4, 1], 'easy')).toBe('Win over Pip, 4 to 1. Well done.')
+  expect(pen([5, 4], 'easy', 'practice')).toBe('Close win over Pip, 5 to 4. Win it again in a rated match to open Marlow.')
+  expect(pen([3, 1], 'champion', 'counted')).not.toMatch(/Frame it|accomplishment/)
+  expect(pen([3, 1], 'champion', 'counted')).toMatch(/partly the roll/)
+  // Another seat: the player is seat 1.
+  expect(penaltyWin('Clean win over Pip. Well done.', 'win', { result: { winner: 1, score: [4, 5], reason: 'more goals' }, humanSeat: 1 })).toBe('Close win over Pip, 5 to 4. Well done.')
+  // Losses, other games and the wording of every other level are untouched.
+  expect(penaltyWin('Pip had that one.', 'loss', { result: { winner: 1, score: [1, 3], reason: 'more goals' }, humanSeat: 0 })).toBe('Pip had that one.')
+  expect(sayLine({ ...base, level: 'easy', progress: 'plain' }).text).toBe('Clean win over Pip. Well done.')
+  for (const level of ['easy', 'medium', 'hard', 'champion'] as const) expect(pen([5, 4], level, 'counted')).not.toMatch(/[\u2013\u2014]/)
 })

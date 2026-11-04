@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState, useSyncExternalStore } from 'react'
 import { Link } from '@tanstack/react-router'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { acknowledgeNotice, getTrainingSettings, saveTrainingAllowed } from '../server/profile-fns'
 import type { Settings } from '../server/profile'
 import { cn } from '../lib/cn'
 import { trainingNoticeText } from '../lib/honest-copy'
+import { isOffline, subscribeConnection } from '../lib/connection'
+import { NO_OFFLINE_TICKETS } from '@duelwise/core/src/rated-path'
 import { registryFor } from '../lib/registries'
 
 const hiddenKey = (game: GameId) => `duelwise.notice-hidden.${game}`
@@ -79,10 +81,13 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
     setHiddenHere(true)
   }
   const [detail, setDetail] = useState(false)
+  const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
   if (!settings || settings.noticeSeen || hiddenHere) return null
   const copy = trainingNoticeText(game, registryFor(game)?.learnsFromHumans ?? false, PRODUCT.trainingDataBasis)
   if (compact && !detail) {
-    const summary = copy.trainable ? (settings.trainingAllowed ? 'This match may train the agents.' : 'This match will not be used for training.') : 'This match is recorded for your report, not for training.'
+    // A game with no offline tickets plays a local match while offline: nothing is uploaded, so no report is made either.
+    const noReport = offline && NO_OFFLINE_TICKETS.includes(game)
+    const summary = noReport ? 'You are offline: this match is not saved, so there is no report and nothing is used for training.' : copy.trainable ? (settings.trainingAllowed ? 'This match may train the agents.' : 'This match will not be used for training.') : 'This match is recorded for your report, not for training.'
     return (
       <section aria-label="How your matches are used" data-testid="training-notice" data-compact className={cn('flex items-center gap-x-3 rounded-card border border-line bg-surface-2 px-4 py-0.5', className)}>
         <p className="min-w-0 flex-1 line-clamp-2 text-sm text-muted">{summary}</p>

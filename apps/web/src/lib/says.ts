@@ -86,5 +86,20 @@ export function sayLine(i: SaysInput): { situation: Situation; text: string } {
     .replaceAll('{call}', i.call ? personaFor(i.call).name : '')
     .replaceAll('{wins}', String(i.record?.wins ?? 0))
     .replaceAll('{losses}', String(i.record?.losses ?? 0))
-  return { situation, text }
+  return { situation, text: i.game === 'penalty' ? penaltyWin(text, situation, i) : text }
+}
+
+/**
+ * Twelve Yards wins say what the score was and stay honest about what a shootout is: "Clean win" is not true of a one-goal win, and a win over Sable is real but
+ * five kicks each are short and partly the roll, so "Frame it" promised more than the score can show. Other games and every other line are as lines.json has them.
+ */
+export function penaltyWin(text: string, situation: Situation, i: Pick<SaysInput, 'result' | 'humanSeat'>): string {
+  if (situation !== 'win' && situation !== 'callRight') return text
+  const me = i.result.score?.[i.humanSeat]
+  const them = i.result.score?.[(1 - i.humanSeat) as Seat]
+  if (typeof me !== 'number' || typeof them !== 'number') return text
+  const close = me - them === 1
+  return text
+    .replace(/^Clean win over (\S+?)\./, (_m, who: string) => `${close ? 'Close win' : 'Win'} over ${who}, ${me} to ${them}.`)
+    .replace('That is a real accomplishment. Frame it.', 'A shootout is short and partly the roll, so it is a real win and the next one tells you more.')
 }

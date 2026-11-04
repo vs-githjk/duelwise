@@ -19,24 +19,36 @@ const OUTCOME_WORD: Record<PenaltyKickRow['outcome'], string> = { goal: 'goal', 
 /** Kicks that land at the same place share a key, so they can be spread sideways and none hides another. */
 const placeKey = (k: PenaltyKickRow): number => k.zone * 10 + (k.outcome === 'over' ? 1 : k.outcome === 'wide' ? 2 : 0)
 
-/** The centre of a kick's marker. A kick that missed the frame sits just outside it: above the bar for over, beside the post it went past for wide. */
-function place(k: PenaltyKickRow, nth: number, sharing: number): { x: number; y: number } {
+/** Marker radius: smaller when several kicks share a place, so they fit side by side. */
+const radiusFor = (sharing: number): number => (sharing > 1 ? 9 : 11)
+
+/**
+ * The centre of a kick's marker. Kicks to one spot sit in a small grid inside it (three to a row, so five or six stay within the cell, never over a post); a
+ * kick that missed the frame sits just outside it: above the bar for over, beside the post it went past for wide, in a row or column that stays in the picture.
+ */
+export function place(k: PenaltyKickRow, nth: number, sharing: number): { x: number; y: number } {
   const col = k.zone % 3
   const row = Math.floor(k.zone / 3)
-  const spread = sharing > 1 ? (nth - (sharing - 1) / 2) * 24 : 0
-  const cx = GX + col * CW + CW / 2 + spread
+  const cx = GX + col * CW + CW / 2
   const cy = GY + row * CH + CH / 2
-  if (k.outcome === 'over') return { x: cx, y: GY - 14 }
+  const step = 21
+  if (k.outcome === 'over') return { x: cx + (nth - (sharing - 1) / 2) * Math.min(step, (CW - 14) / Math.max(1, sharing - 1)), y: GY - 14 }
   if (k.outcome === 'wide') {
-    if (col === 0) return { x: GX - 18, y: cy + spread }
-    if (col === 2) return { x: GX + GOAL_W + 18, y: cy + spread }
-    return { x: cx, y: GY + GOAL_H + 14 }
+    const along = (nth - (sharing - 1) / 2) * Math.min(step, (CH * 2) / Math.max(1, sharing))
+    if (col === 0) return { x: GX - 18, y: cy + along }
+    if (col === 2) return { x: GX + GOAL_W + 18, y: cy + along }
+    return { x: cx + (nth - (sharing - 1) / 2) * Math.min(step, (CW - 14) / Math.max(1, sharing - 1)), y: GY + GOAL_H + 14 }
   }
-  return { x: cx, y: cy }
+  if (sharing <= 1) return { x: cx, y: cy }
+  const perRow = Math.min(3, sharing)
+  const rows = Math.ceil(sharing / perRow)
+  const r = Math.floor(nth / perRow)
+  const c = nth % perRow
+  const inRow = r === rows - 1 ? sharing - r * perRow : perRow
+  return { x: cx + (c - (inRow - 1) / 2) * step, y: cy + (r - (rows - 1) / 2) * 19 }
 }
 
-function Marker({ k, x, y }: { k: PenaltyKickRow; x: number; y: number }) {
-  const r = 11
+function Marker({ k, x, y, r }: { k: PenaltyKickRow; x: number; y: number; r: number }) {
   return (
     <g data-testid={`pen-mark-${k.n}`} data-outcome={k.outcome}>
       {k.outcome === 'goal' ? <circle cx={x} cy={y} r={r} fill="var(--action)" stroke="var(--goal-post)" strokeWidth={2} /> : null}
@@ -47,7 +59,7 @@ function Marker({ k, x, y }: { k: PenaltyKickRow; x: number; y: number }) {
         </>
       ) : null}
       {k.outcome === 'over' || k.outcome === 'wide' ? <circle cx={x} cy={y} r={r} fill="var(--surface)" stroke="var(--ink)" strokeWidth={2} strokeDasharray="3 3" /> : null}
-      <text x={x} y={y + 4.5} textAnchor="middle" fontSize={13} fontWeight={700} fill={k.outcome === 'goal' ? 'var(--action-ink)' : 'var(--ink)'} style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <text x={x} y={y + 4.5} textAnchor="middle" fontSize={r > 10 ? 13 : 11} fontWeight={700} fill={k.outcome === 'goal' ? 'var(--action-ink)' : 'var(--ink)'} style={{ fontVariantNumeric: 'tabular-nums' }}>
         {k.n}
       </text>
     </g>
@@ -90,7 +102,7 @@ export function PenaltyMap({ view, viewer = 'owner', opponent = 'The AI' }: { vi
             const nth = seen.get(key) ?? 0
             seen.set(key, nth + 1)
             const p = place(k, nth, sharing.get(key) ?? 1)
-            return <Marker key={k.n} k={k} x={p.x} y={p.y} />
+            return <Marker key={k.n} k={k} x={p.x} y={p.y} r={radiusFor(sharing.get(key) ?? 1)} />
           })}
         </svg>
       </div>

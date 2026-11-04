@@ -4,7 +4,7 @@ import { buildReportBody } from './build'
 import { layoutLabels, type LabelIn } from './chart-labels'
 import { emptyReviewText, hasGameView, reportTiles } from './copy'
 import { shareCardSvg } from './share-card'
-import { PenaltyMap } from './PenaltyMap'
+import { PenaltyMap, place } from './PenaltyMap'
 import { playPairs, playRandom, playScript } from './testing'
 import { WordGrid } from './WordGrid'
 import { FourBoard } from './FourBoard'
@@ -226,5 +226,39 @@ describe('Twelve Yards kick map', () => {
     expect(tiles.find((t) => t.label === 'Goals')!.value).toBe(`${body.penaltyView!.goals[0]} to ${body.penaltyView!.goals[1]}`)
     expect(hasGameView(body)).toBe(true)
     expect(shareCardSvg({ game: 'penalty', level: 'medium', outcome: 'win', moves: 5, link: 'x' })).toContain('level, 5 kicks.')
+  })
+})
+
+describe('Twelve Yards kick map: repeated kicks', () => {
+  const kick = (n: number, zone: number, outcome: 'goal' | 'saved' | 'over' | 'wide') => ({ n, round: Math.ceil(n / 2), sudden: false, byMe: true, zone, dive: 2, outcome })
+  // The frame as PenaltyMap draws it: left post at 36, width 248, bar at 30, ground at 168; each spot 82.67 by 46.
+  test('kicks to one spot stay inside that spot, six of them too, and none sits on another', () => {
+    for (const zone of [0, 2, 4, 8]) {
+      const col = zone % 3
+      const row = Math.floor(zone / 3)
+      for (const count of [2, 3, 4, 5, 6]) {
+        const pts = Array.from({ length: count }, (_, i) => place(kick(2 * i + 1, zone, 'goal'), i, count))
+        for (const p of pts) {
+          expect(p.x - 9, `zone ${zone}, ${count} kicks: left edge`).toBeGreaterThanOrEqual(36 + col * 82.67)
+          expect(p.x + 9, `zone ${zone}, ${count} kicks: right edge`).toBeLessThanOrEqual(36 + (col + 1) * 82.67)
+          expect(p.y - 9).toBeGreaterThanOrEqual(30 + row * 46 - 1)
+          expect(p.y + 9).toBeLessThanOrEqual(30 + (row + 1) * 46 + 1)
+        }
+        for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) expect(Math.hypot(pts[a]!.x - pts[b]!.x, pts[a]!.y - pts[b]!.y), `${count} kicks, ${a} and ${b}`).toBeGreaterThanOrEqual(18)
+      }
+    }
+  })
+  test('misses stay inside the picture and apart: wide beside the post, over above the bar', () => {
+    for (const zone of [2, 5, 8, 0, 3, 6]) {
+      for (const outcome of ['wide', 'over'] as const) {
+        const pts = Array.from({ length: 5 }, (_, i) => place(kick(2 * i + 1, zone, outcome), i, 5))
+        for (const p of pts) {
+          expect(p.x - 9).toBeGreaterThanOrEqual(0)
+          expect(p.x + 9).toBeLessThanOrEqual(320)
+          expect(p.y - 9).toBeGreaterThanOrEqual(0)
+        }
+        for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) expect(Math.hypot(pts[a]!.x - pts[b]!.x, pts[a]!.y - pts[b]!.y)).toBeGreaterThanOrEqual(12)
+      }
+    }
   })
 })

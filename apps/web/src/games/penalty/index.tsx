@@ -97,7 +97,8 @@ function shotSpot(zone: number): { left: string; top: string } {
   return { left: `${(c.x / 328) * 100}%`, top: `${(c.y / 300) * 100}%` }
 }
 const pct = (left: number, top: number) => ({ left: `${left}%`, top: `${top}%` })
-const DIVE_SPOT = [pct(9, 18), pct(9, 42), pct(41, 8), pct(72, 18), pct(72, 42)]
+// Below the zone's own label (the picked dive's name is centred in its zone), so the tag never covers it.
+const DIVE_SPOT = [pct(9, 28), pct(9, 52), pct(41, 8), pct(72, 28), pct(72, 52)]
 
 /** A tag beside a shot's cell, kept inside the frame. */
 function tagAt(zone: number): { left: string; top: string } {
@@ -152,6 +153,11 @@ export default function PenaltyPage() {
   const drag = useRef<{ id: number; x: number; y: number; moved: boolean; scale: number } | null>(null)
   /** The click a browser sends after a drag lifts: not a tap on the ball. */
   const swallowClick = useRef(false)
+  /** The last input was a key (not a pointer), and which pick to put the focus back on when the reveal ends, so keyboard play never starts over from the top of the page. */
+  const byKey = useRef(false)
+  const refocus = useRef<number | null>(null)
+  /** Counts matches on this page; the clock in the header keys on it, so it restarts for a new match and not when the server reveals the seed at full time. */
+  const [matchNo, setMatchNo] = useState(0)
 
   const clearTimers = () => {
     for (const t of timers.current) clearTimeout(t)
@@ -214,6 +220,14 @@ export default function PenaltyPage() {
     if (over && live.result && !live.resigned) playResultStinger(live.result, human)
   }, [over])
 
+  // After a keyboard kick the focus goes back to a spot (the one just used, or the nearest the new role has) when the next pick opens.
+  useEffect(() => {
+    if (phase !== 'pick' || refocus.current === null || closing) return
+    const z = Math.min(refocus.current, pickRole === 'shooter' ? 8 : 4)
+    refocus.current = null
+    document.querySelector<HTMLElement>(`[data-testid="penalty-zone-${z}"]`)?.focus({ preventScroll: true })
+  }, [phase, shown, pickRole, closing])
+
   const resetScene = () => {
     run.current++
     clearTimers()
@@ -231,6 +245,7 @@ export default function PenaltyPage() {
     const s = fixedSeed
     setFixedSeed(undefined)
     resetScene()
+    setMatchNo((n) => n + 1)
     await live.start(level, s)
     pickOpened.current = performance.now()
   }
@@ -238,6 +253,7 @@ export default function PenaltyPage() {
   const commit = async (zone: Zone) => {
     if (!match || live.phase !== 'playing' || phase !== 'pick' || closing || locked.current) return
     locked.current = true
+    refocus.current = byKey.current ? zone : null
     const my = run.current
     // A pick whose reply was lost may already be on the server: that one is sent again, whatever is tapped now.
     if (live.unsent !== null) zone = live.unsent
@@ -326,7 +342,13 @@ export default function PenaltyPage() {
     if (r.commit) void commit(z)
   }
   const onAction = () => {
-    if (revealing || closing || !pressAction(selected)) return
+    if (revealing || closing) return
+    // A pick that never reached the server goes again, whatever the bar says is picked.
+    if (live.unsent !== null) {
+      void commit(live.unsent)
+      return
+    }
+    if (!pressAction(selected)) return
     void commit(selected!)
   }
 
@@ -496,10 +518,10 @@ export default function PenaltyPage() {
           />
         </section>
       ) : view ? (
-        <div className="pen pen-play grid grid-cols-[minmax(0,1fr)] content-start gap-2" data-testid="penalty-page" data-human-seat={human}>
+        <div onKeyDownCapture={() => (byKey.current = true)} onPointerDownCapture={() => (byKey.current = false)} className="pen pen-play grid grid-cols-[minmax(0,1fr)] content-start gap-2" data-testid="penalty-page" data-human-seat={human}>
           <h2 className="sr-only">Twelve Yards against {name}</h2>
           <div className="pen-top">
-            <PlayHud turn={closing ? 'over' : revealing ? 'ai' : 'you'} youLabel={`You, ${youOrder}`} matchKey={live.seed} />
+            <PlayHud turn={closing ? 'over' : revealing ? 'ai' : 'you'} youLabel={`You, ${youOrder}`} matchKey={matchNo} />
             <div className="pen-score" data-testid="penalty-score">
               {([human, (1 - human) as 0 | 1] as const).map((seat) => {
                 const slots = scoreSlots(scoreView ?? view, seat)
@@ -665,11 +687,12 @@ export default function PenaltyPage() {
             <button
               type="button"
               onClick={closing ? () => void begin(live.level) : onAction}
-              disabled={closing ? false : selected === null || revealing}
+              // aria-disabled, not disabled: a disabled button drops the keyboard focus, and it took 21 Tabs to get back to a spot after every kick.
+              aria-disabled={closing ? undefined : (selected === null && live.unsent === null) || revealing ? true : undefined}
               data-testid="penalty-action"
-              className="min-h-11 flex-1 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-40"
+              className="min-h-11 flex-1 rounded-control bg-action px-4 font-semibold text-action-ink aria-[disabled=true]:opacity-40"
             >
-              {closing ? 'Play again' : selected === null ? (pickRole === 'shooter' ? 'Pick a spot' : 'Pick a dive') : humanLabel}
+              {closing ? 'Play again' : live.unsent !== null ? 'Not sent. Tap to resend' : selected === null ? (pickRole === 'shooter' ? 'Pick a spot' : 'Pick a dive') : humanLabel}
             </button>
           </div>
           <p className="sr-only" role="status" aria-live="polite" data-testid="penalty-live">
