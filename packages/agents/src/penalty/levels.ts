@@ -11,15 +11,15 @@ export const EQ_KEEPER: readonly number[] = [0.1716, 0.2671, 0.1227, 0.1716, 0.2
 export type PenaltyLevelConfig =
   | { kind: 'pip' }
   | { kind: 'marlow'; /** Weight of the read as keeper; the rest is the equilibrium mix. */ read: number; /** Weight of the away-from-the-dives pick as kicker. */ kickRead: number }
-  | { kind: 'vesper'; read: number; /** Share of the small pattern reader mixed into its dives. */ reader: number; /** Weight of the corner swap as kicker. */ kickRead: number }
+  | { kind: 'vesper'; read: number; /** Share of the small pattern reader mixed into its dives. */ reader: number; /** How fast that share grows with the evidence of a pattern: share = max(reader, readerGrowth * (1 - P(equilibrium))). Kept under 1 because a reader that commits fully also stops losing to Sable. */ readerGrowth: number; /** Prior that the opponent is only playing the equilibrium, for that reader. */ prior: number; /** Weight of the corner swap as kicker. */ kickRead: number }
   | { kind: 'sable'; /** Best-response weight is min(cap, weight * (1 - P(equilibrium))). */ weight: number; /** The most it ever commits to its best response, so it never plays a pure pick on a guess. */ cap: number }
 
 /** Dials as first set in the sim (plan/bench/more-games-sim/pen9.ts, table t4). The proof is the dry ladder through the real harness (dry-ladder.ts): these agents differ from the sim's on Sable's opener and ties. Sable's weight is what makes it read a habit fast but stay near equilibrium when unsure. */
 export const PENALTY_LEVELS: Record<Level, PenaltyLevelConfig> = {
   easy: { kind: 'pip' },
   medium: { kind: 'marlow', read: 0.5, kickRead: 0.38 },
-  hard: { kind: 'vesper', read: 1, kickRead: 0.5, reader: 0.2 },
-  champion: { kind: 'sable', weight: 1.3, cap: 0.8 },
+  hard: { kind: 'vesper', read: 1, kickRead: 0.52, reader: 0.2, readerGrowth: 0.3, prior: 0.4 },
+  champion: { kind: 'sable', weight: 1.5, cap: 0.8 },
 }
 
 /**

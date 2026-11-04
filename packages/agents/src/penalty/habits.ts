@@ -134,21 +134,23 @@ function softOf(d: readonly number[]): Dist {
 function habitShapes(eq: readonly number[], favourites: readonly number[], mirror: (x: number) => number, flip: (x: number) => number, echo: (m: number) => Dist): Hypothesis[] {
   const n = eq.length
   const soft = (i: number) => softOf(one(i, n))
+  // What a shape says before it has enough history: the equilibrium, softened, so one early kick the equilibrium never plays (a middle-edge zone) does not rule the shape out.
+  const fall = softOf(eq)
   return [
     () => eq,
     ...favourites.map((f): Hypothesis => () => soft(f)),
-    (p) => (p.length ? soft(p[p.length - 1]!) : eq), // repeat
-    (p) => (p.length >= 2 ? soft(p[p.length - 2]!) : eq), // alternate
-    (p) => (p.length ? soft(mirror(p[p.length - 1]!)) : eq), // mirror
-    (p) => (p.length ? soft(flip(p[p.length - 1]!)) : eq), // other row, same side
-    (p) => (p.length ? soft(mirror(flip(p[p.length - 1]!))) : eq), // diagonal: other side, other row
-    (p) => (p.length >= 3 ? soft(p[p.length - 3]!) : eq), // same as three back
-    (p) => (p.length >= 4 ? soft(p[p.length - 4]!) : eq), // same as four back
-    (_p, m) => (m.length ? softOf(echo(m[m.length - 1]!)) : eq), // copies my last
-    (_p, m) => (m.length >= 2 ? softOf(echo(m[m.length - 2]!)) : eq), // copies my choice from two back
+    (p) => (p.length ? soft(p[p.length - 1]!) : fall), // repeat
+    (p) => (p.length >= 2 ? soft(p[p.length - 2]!) : fall), // alternate
+    (p) => (p.length ? soft(mirror(p[p.length - 1]!)) : fall), // mirror
+    (p) => (p.length ? soft(flip(p[p.length - 1]!)) : fall), // other row, same side
+    (p) => (p.length ? soft(mirror(flip(p[p.length - 1]!))) : fall), // diagonal: other side, other row
+    (p) => (p.length >= 3 ? soft(p[p.length - 3]!) : fall), // same as three back
+    (p) => (p.length >= 4 ? soft(p[p.length - 4]!) : fall), // same as four back
+    (_p, m) => (m.length ? softOf(echo(m[m.length - 1]!)) : fall), // copies my last
+    (_p, m) => (m.length >= 2 ? softOf(echo(m[m.length - 2]!)) : fall), // copies my choice from two back
     (_p, m) => {
       // avoids my last
-      if (!m.length) return eq
+      if (!m.length) return fall
       const away = echo(m[m.length - 1]!).map((x): number => (x > 0 ? 0 : 1))
       const sum = away.reduce((a, b) => a + b, 0)
       return softOf(away.map((x) => x / sum))
@@ -171,16 +173,16 @@ export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER, [0, 1, 2, 3, 4],
 const PRIOR_EQ = 0.8
 
 /** Equilibrium PRIOR_EQ, the others share the rest. */
-function prior(n: number): number[] {
-  const P0 = PRIOR_EQ
+function prior(n: number, eqShare: number = PRIOR_EQ): number[] {
+  const P0 = eqShare
   const p: number[] = new Array<number>(n).fill((1 - P0) / (n - 1))
   p[0] = P0
   return p
 }
 
 /** Bayes over the habit shapes: the predicted next choice, and the posterior that this stream is just equilibrium play. */
-export function predict(shapes: Hypothesis[], observed: number[], mine: number[]): { out: Dist; eqP: number } {
-  const post = prior(shapes.length)
+export function predict(shapes: Hypothesis[], observed: number[], mine: number[], eqShare: number = PRIOR_EQ): { out: Dist; eqP: number } {
+  const post = prior(shapes.length, eqShare)
   for (let t = 0; t < observed.length; t++) {
     let sum = 0
     for (let h = 0; h < shapes.length; h++) {
@@ -198,5 +200,8 @@ export function predict(shapes: Hypothesis[], observed: number[], mine: number[]
   return { out, eqP: post[0]! }
 }
 
-/** Vesper's small pattern reader for kicks: equilibrium, repeat, alternate, same as three back, same as four back (indexes into KICK_HABITS). */
-export const VESPER_SHAPES: Hypothesis[] = [0, 6, 7, 11, 12].map((i) => KICK_HABITS[i]!)
+/** Vesper's small pattern reader for kicks: equilibrium, repeat, alternate, same as three, four, five and six back. */
+export const VESPER_SHAPES: Hypothesis[] = [
+  ...[0, 6, 7, 11, 12].map((i) => KICK_HABITS[i]!),
+  ...[5, 6].map((k): Hypothesis => (p) => (p.length >= k ? softOf(one(p[p.length - k]!, ZONE_COUNT)) : softOf(EQ_SHOOTER))),
+]

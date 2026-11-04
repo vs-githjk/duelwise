@@ -4,7 +4,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
 import { choosePenaltyAction, createGameAgent, penaltyAgentAction } from './agent'
-import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
+import { bestKeeper, bestShooter, VESPER_SHAPES, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, VESPER_SWAP } from './levels'
 
 /** The dials the tests below read their exact numbers from, so a retune moves the formulas and not just the constants. */
@@ -337,6 +337,11 @@ describe('Vesper', () => {
     // The rule carries (1 - reader) of the dive; the small pattern reader may add to it or take a little away.
     expect(c[RL]! / 8000).toBeGreaterThan((1 - VESPER.reader) * want - 0.02)
     expect(c[LH]! / 8000).toBeLessThan(0.2)
+  })
+
+  test('its pattern reader sees a cycle of three, including kicks the equilibrium never plays: BL, TM, BR, BL, TM puts over 0.8 on BR next', () => {
+    const { out } = predict(VESPER_SHAPES, [BL, TM, BR, BL, TM], [2, 2, 2, 2, 2], PENALTY_LEVELS.hard.kind === 'vesper' ? (PENALTY_LEVELS.hard as { prior: number }).prior : 0.4)
+    expect(out[BR]!).toBeGreaterThan(0.8)
   })
 
   test('as keeper takes the most common of the last three when the last two kicks match', () => {
