@@ -170,6 +170,104 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     expect(await stingers(page)).toEqual([])
   })
 
+  test('keyboard play: after a kick the focus is on a spot again, so the next kick is a key press away, in both roles', async ({ page }) => {
+    test.setTimeout(90_000)
+    await startPractice(page, 0, 5)
+    await page.getByTestId('penalty-zone-0').focus()
+    for (let kick = 0; kick < 4; kick++) {
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      // Enter on a spot selects it, Enter again commits it.
+      await page.keyboard.press('Enter')
+      await page.keyboard.press('Enter')
+      await expect(scene(page)).toHaveAttribute('data-reveal', /set|go/)
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      const focused = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? '')
+      expect(focused, `after kick ${kick + 1} the focus is on a spot`).toMatch(/^penalty-zone-\d$/)
+    }
+    // And the action button no longer drops the focus: pressing it while it is not ready does nothing and the focus stays on it.
+    await page.getByTestId('penalty-action').focus()
+    await page.keyboard.press('Enter')
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('penalty-action')
+    await expect(page.getByTestId('penalty-action')).toBeDisabled()
+  })
+
+  test('a pick that did not reach the server says so in the play bar, on a phone, and sends again from there', async ({ page }) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(URL)
+    await page.locator('[data-mode-option="practice"]').click()
+    await page.getByTestId('penalty-start').click()
+    await expect(scene(page)).toBeVisible()
+    let dropping = true
+    await page.route(/_serverFn/, async (route) => {
+      const m = /\/_serverFn\/([^?]+)/.exec(route.request().url())
+      const isTurn = !!m && Buffer.from(m[1]!, 'base64').toString().includes('penaltyTurn')
+      if (dropping && isTurn) await route.abort('failed')
+      else await route.continue()
+    })
+    const z = page.getByTestId('penalty-zone-0')
+    await z.click()
+    await z.click()
+    const bar = page.getByTestId('penalty-action')
+    await expect(bar).toHaveText('Not sent. Tap to resend')
+    const box = (await bar.boundingBox())!
+    expect(box.y, 'the bar is in the window').toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height, 'the bar is above the bottom edge').toBeLessThanOrEqual(844)
+    await expect(bar).not.toBeDisabled()
+    dropping = false
+    await bar.click()
+    await expect(scene(page)).toHaveAttribute('data-reveal', /set|go/)
+    await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+    await expect(bar).not.toHaveText('Not sent. Tap to resend')
+  })
+
+  test('the match clock keeps its time at full time (it does not restart when the server reveals the seed)', async ({ page }) => {
+    test.setTimeout(150_000)
+    await startRated(page)
+    await playToPanel(page)
+    const clock = (await page.getByTestId('play-hud-clock').locator('.play-hud-clock').innerText()).trim()
+    expect(clock, 'the final time is shown').not.toMatch(/^0:00$/)
+    expect(clock).toMatch(/^\d+:\d\d$/)
+  })
+
+  test('offline, the notice says nothing is saved and no report is made, instead of promising a report', async ({ page, context }) => {
+    test.setTimeout(60_000)
+    await startPractice(page, 0, 5)
+    const notice = page.getByTestId('training-notice')
+    await expect(notice).toContainText('recorded for your report')
+    await context.setOffline(true)
+    await expect(notice).toContainText('offline')
+    await expect(notice).not.toContainText('recorded for your report')
+    await context.setOffline(false)
+    await expect(notice).toContainText('recorded for your report')
+  })
+
+  test('the You tag never covers the name of the dive you picked', async ({ page }) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({ width: 375, height: 667 })
+    await startPractice(page, 1, 5)
+    for (const [kick, dive] of [[0, 0], [1, 2], [2, 1]] as const) {
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      const zone = page.getByTestId(`penalty-zone-${kick === 1 ? 3 : dive}`)
+      await zone.click()
+      await zone.click()
+      await expect(scene(page)).toHaveAttribute('data-reveal', 'go')
+      if (kick === 1) continue
+      const overlap = await page.evaluate((d) => {
+        const btn = document.querySelector(`[data-testid="penalty-zone-${d}"]`)!
+        const range = document.createRange()
+        range.selectNodeContents(btn)
+        const label = range.getBoundingClientRect()
+        const tag = [...document.querySelectorAll('.pen-tag')].find((t) => t.textContent?.trim() === 'You')!.getBoundingClientRect()
+        const w = Math.min(label.right, tag.right) - Math.max(label.left, tag.left)
+        const h = Math.min(label.bottom, tag.bottom) - Math.max(label.top, tag.top)
+        return { label: label.width, w, h }
+      }, dive)
+      expect(overlap.label, 'the dive name is on the screen').toBeGreaterThan(10)
+      expect(overlap.w > 0 && overlap.h > 0, `the You tag overlaps the dive name (${JSON.stringify(overlap)})`).toBe(false)
+    }
+  })
+
   test('the report on a fixture shootout: the kick map, the habit line, named moments, owner and public, no overflow at 390', async ({ page }) => {
     test.setTimeout(60_000)
     const errors = watchConsole(page)
