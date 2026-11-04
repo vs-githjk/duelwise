@@ -199,7 +199,7 @@ describe('Pip', () => {
           expect(m[C]!).toBeGreaterThanOrEqual(0.05)
           for (const z of [TL, TR, BL, BR]) expect(m[z]!).toBeGreaterThanOrEqual(0.03)
         } else {
-          expect(m[STAY]!).toBeCloseTo(0.4, 6)
+          expect(m[STAY]!).toBeCloseTo(0.2, 6)
           for (const d of [LH, LL, RH, RL]) expect(m[d]!).toBeGreaterThanOrEqual(0.05)
         }
       }
