@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-03T21:00:00.000Z",
-      "promotedAt": "2026-11-04T08:13:41.347Z",
+      "promotedAt": "2026-11-04T09:36:05.718Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -88,30 +88,30 @@
             "lower": "medium",
             "upper": "hard",
             "n": 800,
-            "points": 454,
-            "score": 0.5675,
+            "points": 448,
+            "score": 0.56,
             "ci95": [
-              0.532928,
-              0.601427
+              0.525397,
+              0.594029
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 228,
+                "points": 224,
                 "ci95": [
-                  0.521044319049774,
-                  0.6176239597226154
+                  0.5110127868078989,
+                  0.6078457378541493
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 226,
+                "points": 224,
                 "ci95": [
-                  0.5160260758458871,
-                  0.6127373258713315
+                  0.5110127868078989,
+                  0.6078457378541493
                 ]
               }
             ]
@@ -120,30 +120,30 @@
             "lower": "hard",
             "upper": "champion",
             "n": 800,
-            "points": 461.5,
-            "score": 0.576875,
+            "points": 465,
+            "score": 0.58125,
             "ci95": [
-              0.542352,
-              0.610663
+              0.546754,
+              0.614969
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 237,
+                "points": 238,
                 "ci95": [
-                  0.5436883044007635,
-                  0.639551921119894
+                  0.5462106162120411,
+                  0.6419820478362016
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 224.5,
+                "points": 227,
                 "ci95": [
-                  0.5122656456621817,
-                  0.6090690982636591
+                  0.5185345769478606,
+                  0.6151812632969436
                 ]
               }
             ]
@@ -175,8 +175,10 @@
         "algorithm": "pattern-reader",
         "kind": "vesper",
         "read": 1,
-        "kickRead": 0.5,
-        "reader": 0.2
+        "kickRead": 0.52,
+        "reader": 0.2,
+        "readerGrowth": 0.3,
+        "prior": 0.4
       }
     },
     "champion": {
@@ -184,7 +186,7 @@
       "config": {
         "algorithm": "habit-reader-bayes",
         "kind": "sable",
-        "weight": 1.3,
+        "weight": 1.5,
         "cap": 0.8
       }
     }
@@ -200,9 +202,9 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-04T08:13:41.347Z",
+      "measuredAt": "2026-11-04T09:36:05.718Z",
       "harness": "bun",
-      "commit": "a2521df"
+      "commit": "9175747"
     },
     "medium": {
       "metric": "score vs easy",
@@ -214,37 +216,37 @@
       "n": 800,
       "opponents": "easy",
       "siteElo": 1075.882648,
-      "measuredAt": "2026-11-04T08:13:41.347Z",
+      "measuredAt": "2026-11-04T09:36:05.718Z",
       "harness": "bun",
-      "commit": "a2521df"
+      "commit": "9175747"
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.5675,
+      "value": 0.56,
       "ci95": [
-        0.532928,
-        0.601427
+        0.525397,
+        0.594029
       ],
       "n": 800,
       "opponents": "medium",
-      "siteElo": 1123.07455,
-      "measuredAt": "2026-11-04T08:13:41.347Z",
+      "siteElo": 1117.776789,
+      "measuredAt": "2026-11-04T09:36:05.718Z",
       "harness": "bun",
-      "commit": "a2521df"
+      "commit": "9175747"
     },
     "champion": {
       "metric": "score vs hard",
-      "value": 0.576875,
+      "value": 0.58125,
       "ci95": [
-        0.542352,
-        0.610663
+        0.546754,
+        0.614969
       ],
       "n": 800,
       "opponents": "hard",
-      "siteElo": 1176.919763,
-      "measuredAt": "2026-11-04T08:13:41.347Z",
+      "siteElo": 1174.740047,
+      "measuredAt": "2026-11-04T09:36:05.718Z",
       "harness": "bun",
-      "commit": "a2521df"
+      "commit": "9175747"
     }
   },
   "unpublished": {},
