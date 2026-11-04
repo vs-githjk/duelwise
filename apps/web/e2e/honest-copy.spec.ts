@@ -130,6 +130,10 @@ test.describe('training copy and site Elo', () => {
   test('every Coldstore level is published, so none wears an In training or Preview badge', async ({ page }) => {
     // Every level of every game is published now; a level that is in training would show the In training badge alone, never also a Preview one.
     await page.goto('/play/coldstore')
-    await expect(page.getByTestId('level-picker').getByTestId('preview-badge')).toHaveCount(0)
+    // The zero count below proves nothing unless the picker rendered with all four levels.
+    const picker = page.getByTestId('level-picker')
+    await expect(picker).toBeVisible()
+    await expect(picker.locator('label[data-persona]')).toHaveCount(4)
+    await expect(picker.getByTestId('preview-badge')).toHaveCount(0)
   })
 })
