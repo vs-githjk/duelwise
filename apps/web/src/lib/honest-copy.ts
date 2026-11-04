@@ -130,6 +130,7 @@ export function funnelNotes(game: GameId): { nothingUsed: string; notLearning: s
  */
 export function learnsNote(f: { learns: boolean; hasLearned: boolean; pretraining: string | null; selfPlay: boolean; game: GameId }): string {
   if (f.learns) return `Filtered human matches may be used to train this agent. ${f.hasLearned ? 'A promoted version has learned from them.' : 'No promoted version has learned from them yet.'}`
+  if (f.game === 'penalty') return 'Hand-written habit reader: does not learn from site matches, because there is nothing to train.'
   if (isScripted(f.game)) return 'Scripted solver: does not learn from site matches, because there is nothing to train.'
   const parts = ['Does not learn from site matches yet.']
   if (f.game === 'holdem') parts.push('Matches here are recorded for the player and are not used for training.')
@@ -146,9 +147,13 @@ export function notTrainedSentence(registries: Partial<Record<GameId, Pick<Regis
   const join = (names: string[]) => (names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
   // A scripted solver can never train, so it is not promised ("yet") like an agent that may learn later.
   const later = off.filter((g) => !isScripted(g)).map(nameOf)
-  const solvers = off.filter(isScripted).map(nameOf)
-  const solver = solvers.length === 0 ? '' : `${join(solvers)} ${solvers.length === 1 ? 'is a scripted solver' : 'are scripted solvers'} with nothing to train.`
-  if (later.length === 0) return `${join(solvers)} matches are not used for training at present: ${solver}`
+  const solvers = off.filter((g) => isScripted(g) && g !== 'penalty').map(nameOf)
+  const readers = off.filter((g) => g === 'penalty').map(nameOf)
+  const solverLine = solvers.length === 0 ? '' : `${join(solvers)} ${solvers.length === 1 ? 'is a scripted solver' : 'are scripted solvers'} with nothing to train.`
+  // Twelve Yards is not a solver: each level is a small hand-written reader of the kicks and dives so far.
+  const readerLine = readers.length === 0 ? '' : `${join(readers)} ${readers.length === 1 ? 'is a hand-written habit reader' : 'are hand-written habit readers'} with nothing to train.`
+  const solver = [solverLine, readerLine].filter(Boolean).join(' ')
+  if (later.length === 0) return `${join([...solvers, ...readers])} matches are not used for training at present: ${solver}`
   const head = `${join(later)} matches are not used for training at present: ${later.length === 1 ? 'that agent does' : 'those agents do'} not learn from human matches yet.`
   return solver ? `${head} ${solver}` : head
 }
