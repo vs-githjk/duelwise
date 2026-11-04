@@ -65,6 +65,9 @@ test.describe('shell', () => {
               lastWrite = Date.now()
             }
             await page.goto('/play', { timeout: 20_000 }).catch(() => null)
+            // The cards are not in the DOM at the load event: the page renders them once it has hydrated (the welcome gate starts as 'checking'). Counting
+            // straight after goto read 0 on every attempt, however fast the server learned the folder. A shipped card on screen means the list is drawn.
+            await page.getByTestId('game-card-four').waitFor({ timeout: 15_000 }).catch(() => null)
             return page.getByTestId('game-card-zz-fixture').count()
           },
           { timeout: 100_000, intervals: [500, 1000, 2000] },
