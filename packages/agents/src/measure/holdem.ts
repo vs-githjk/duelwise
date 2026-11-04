@@ -48,6 +48,8 @@ const TREE_EXCLUDE = ['packages/agents/registry/']
 
 const MAX_TABLE_BYTES = 15 * 1024 * 1024
 const LADDER_SEEDS = 7_000_000
+/** Deals per adjacent pair and per seat. 1000 like Twelve Yards: at 400 the Champion v Hard seat 1 lower bound was 0.4998, a rounding away from the bar, and 400 deals cannot tell a 0.55 seat from a 0.50 one. Same rule (Wilson 95% lower bound above 0.5), tighter interval. */
+export const LADDER_DEALS = 1000
 const BOT_SEEDS = 8_000_000
 const LBR_SEEDS = 9_000_000
 const BR_FIT_SEED = 11_000_001
@@ -215,13 +217,13 @@ export function duplicateBlock(a: Player, b: Player, base: number, totals: numbe
 }
 
 /** Evaluate the first player on each seat, using the same win, draw and loss rule as the ladder. */
-export function holdemSeatGate(seats: [number[], number[]], floor = 0.5) {
+export function holdemSeatGate(seats: [number[], number[]], floor = 0.5, minDeals = 400) {
   const bySeat = seats.map((values, seat) => {
     const rows = values.filter(Number.isFinite)
     const points = rows.reduce((n, chips) => n + (chips > 0 ? 1 : chips < 0 ? 0 : 0.5), 0)
     return { seat, n: rows.length, points, ci95: wilson(points, rows.length) }
   })
-  return { bySeat, passed: bySeat.every((s) => s.n >= 400 && s.ci95[0] > floor) }
+  return { bySeat, passed: bySeat.every((s) => s.n >= minDeals && s.ci95[0] > floor) }
 }
 
 export interface DuelStats {
@@ -260,7 +262,7 @@ async function ladder(): Promise<LadderRun> {
   const result = await runLadder({
     game: 'holdem',
     levels: [...LEVELS],
-    budget: { maxGames: 400, looks: [] },
+    budget: { maxGames: LADDER_DEALS, looks: [] },
     playPair: (pair, from, to) => {
       const key = `${pair.upper}>${pair.lower}`
       totals[key] ??= []
@@ -277,11 +279,11 @@ async function ladder(): Promise<LadderRun> {
     },
   })
   for (const pair of result.pairs) {
-    const gate = holdemSeatGate(seats[`${pair.upper}>${pair.lower}`]!)
+    const gate = holdemSeatGate(seats[`${pair.upper}>${pair.lower}`]!, 0.5, LADDER_DEALS)
     Object.assign(pair, { bySeat: gate.bySeat, passed: pair.passed && gate.passed })
   }
   if (result.baseline) {
-    const gate = holdemSeatGate(seats['easy>always-call']!)
+    const gate = holdemSeatGate(seats['easy>always-call']!, 0.5, LADDER_DEALS)
     Object.assign(result.baseline, { bySeat: gate.bySeat, passed: result.baseline.passed && gate.passed })
   }
   const mbb: LadderRun['mbb'] = {}
@@ -601,7 +603,7 @@ async function publish(hands: number, processes: number, brDeals: number, outPat
   const reg = publishLadder(parseRegistry(draft), lad.ladder, { harness: 'bun', commit, measuredAt: now, version: 'v1' })
   const lbrFor = (l: Level) => lbrRows.find((r) => r.level === l)!
   reg.versions[0]!.gate = {
-    rule: 'adjacent levels: the stronger level wins the duplicate-dealt game above 50% with a 95% Wilson lower bound; a game is one deal played twice with the seats swapped and is won when the level\'s combined chips over the two 30-hand matches are positive; 400 deals (800 matches); each seat must also clear a 95% Wilson lower bound above 50%',
+    rule: `adjacent levels: the stronger level wins the duplicate-dealt game above 50% with a 95% Wilson lower bound; a game is one deal played twice with the seats swapped and is won when the level's combined chips over the two 30-hand matches are positive; ${LADDER_DEALS} deals (${2 * LADDER_DEALS} matches); each seat must also clear a 95% Wilson lower bound above 50%`,
     eloLabel: 'site Elo; Easy anchored at 1000, each higher level is the chained gap from its duplicate-pair score',
     deals: `deal d is seed ${LADDER_SEEDS} + 100000 * (index of the upper level) + d, played from both seats`,
     checkpointRule: 'a pilot on other deals (seeds below 7,000,000) showed the snapshots barely differ head-to-head (the fine 5M table played mixed beats the earliest coarse snapshot by only about 55 Elo and the coarse 1.5M one by about 20, and the coarse 1.5M and 5M tables do not separate); Easy, Medium and Hard therefore share the earliest snapshot (250,000 iterations) and differ by how they play it: Hard plays it as it is but never shoves the weakest quarter of starting hands, Medium also plays half of its folds and raises as calls, Easy plays the loose-passive beginner mix with the same call dial (calls most folds, rarely shoves, never folds a premium hand before the flop); Champion is the final fine table (5,000,000 iterations) played as its mixed strategy, because the purified play was far more exploitable',
