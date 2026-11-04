@@ -130,7 +130,7 @@ test('Stormglass, Crosscurrent and Twelve Yards are scripted (no model to train)
   const note = (game: GameId) => learnsNote({ learns: false, hasLearned: false, pretraining: null, selfPlay: false, game })
   for (const scripted of ['fleet', 'slack', 'penalty'] as const) {
     expect(trainingStripLabel(false, scripted)).toBe('Scripted')
-    expect(note(scripted)).toBe('Scripted solver: does not learn from site matches, because there is nothing to train.')
+    expect(note(scripted)).toBe(scripted === 'penalty' ? 'Hand-written habit reader: does not learn from site matches, because there is nothing to train.' : 'Scripted solver: does not learn from site matches, because there is nothing to train.')
     expect(funnelNotes(scripted)).toEqual({ nothingUsed: 'Nothing is used for training.', notLearning: 'not used: this agent is scripted and has nothing to train.' })
     expect(`${resultTrainingNote(scripted, fake(false), true)} ${reportLearnsCard(scripted, fake(false)).text} ${trainingNoticeText(scripted, false, 'opt-in').text}`).not.toMatch(/\byet\b/i)
   }

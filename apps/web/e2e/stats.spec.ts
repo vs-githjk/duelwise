@@ -84,7 +84,7 @@ test.describe('agent stats', () => {
       } else if (!champion) {
         await expect(page.getByTestId('tile-champion')).toContainText('In training')
       }
-      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : game === 'fleet' || game === 'slack' || game === 'penalty' ? 'Scripted solver: does not learn from site matches' : 'Does not learn from site matches yet')
+      await expect(page.getByTestId('learns-note')).toContainText(learnsOf(game) ? 'Filtered human matches may be used to train this agent' : game === 'penalty' ? 'Hand-written habit reader: does not learn from site matches' : game === 'fleet' || game === 'slack' ? 'Scripted solver: does not learn from site matches' : 'Does not learn from site matches yet')
       if (game === 'word') await expect(page.getByTestId('learns-note')).not.toContainText(/self-play/i)
     }
   })

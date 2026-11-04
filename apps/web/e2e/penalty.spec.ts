@@ -594,8 +594,8 @@ test.describe('Twelve Yards at 360 wide', () => {
   })
 })
 
-// On the page the shell adds a header (back link, title, badges) and the training notice above the scene, so at 393x659 (an iPhone with Safari's bars) the lower part of the goal
-// and the ball are below the fold until the player scrolls, while the Shoot bar sticks to the bottom and stays whole. At 393x852 (an iPhone with no bars) the whole column fits.
+// On the page the shell adds a header (back link, title, badges) and the training notice above the scene, so at 393x659 (an iPhone with Safari's bars) Start scrolls the page just
+// far enough to bring the whole scene, the ball included, above the Shoot bar, which sticks to the bottom and stays whole. At 393x852 (an iPhone with no bars) the whole column fits with no scroll.
 for (const height of [659, 852]) {
   test.describe(`Twelve Yards at 393x${height}${height === 659 ? ', the height Safari leaves on an iPhone' : ''}`, () => {
     test.use({ viewport: { width: 393, height } })
@@ -611,20 +611,21 @@ for (const height of [659, 852]) {
       await watchFrames(scene)
       await watchScreen(scene)
       const first = await spot(scene)
-      expect(first.y, 'the page has not scrolled').toBe(0)
+      if (fits) expect(first.y, 'the page has not scrolled').toBe(0)
+      else expect(first.y, 'Start scrolled the page down just far enough for the scene to clear the bar').toBeGreaterThan(0)
 
+      await expect(action).toHaveText('Pick a spot')
+      await expect(action).toBeDisabled()
       await page.getByTestId('penalty-zone-0').tap()
       await expectOnScreen(action, 'Shoot enabled')
       await expect(action).toHaveText('Shoot')
-      if (fits) {
-        await expectOnScreen(pad, 'the ball')
-        const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
-        expect(gap, 'the bar covers no part of the scene at this height').toBeGreaterThanOrEqual(0)
-      }
+      await expectOnScreen(pad, 'the ball')
+      const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
+      expect(gap, 'the bar covers no part of the scene at this height').toBeGreaterThanOrEqual(0)
       await kicked(page, () => action.tap())
       await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
       await expectOnScreen(action, 'Save')
-      if (fits) await expectOnScreen(pad, 'the ball in goal')
+      await expectOnScreen(pad, 'the ball in goal')
       await expectStill(scene, first, 'after a kick')
 
       let kicks = 1

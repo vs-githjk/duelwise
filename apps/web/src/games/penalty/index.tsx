@@ -219,8 +219,23 @@ export default function PenaltyPage() {
   const youFirst = human === 0
   // A match opens at the top of the page, whatever the setup page was scrolled to, so the header and HUD are on screen (instant, once per start). On a phone the
   // action bar then sticks to the bottom of the screen by itself (penalty.css), and from 1024 up the scene is sized so the whole column fits.
+  // A phone too short for the header, the scene and the bar together (an iPhone with Safari's bars) then scrolls down just far enough to bring the whole scene above the bar,
+  // so no part of the goal and not the ball is hidden under it. The page is still settling on the first frame, so that is measured two frames later.
   useLayoutEffect(() => {
-    if (live.phase === 'playing') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    if (live.phase !== 'playing') return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    if (window.innerWidth >= 1024) return
+    const clear = () => {
+      const sceneEl = document.querySelector('[data-testid="penalty-scene"]')
+      const bar = document.querySelector('.pen-bar')
+      if (!sceneEl || !bar) return
+      const hidden = sceneEl.getBoundingClientRect().bottom - (window.innerHeight - (bar as HTMLElement).offsetHeight - 4)
+      if (hidden > 0) window.scrollBy({ top: hidden, behavior: 'instant' })
+    }
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(clear)
+    })
+    return () => cancelAnimationFrame(raf)
   }, [live.seed, live.phase === 'playing'])
   // A counted match the server holds is live: leaving the page resigns it. (Never true while Rated is shut, but the pill reads it.)
   const ratedLive = live.counted && !practice && live.phase === 'playing'
@@ -636,9 +651,12 @@ export default function PenaltyPage() {
 
           {/* Full time keeps the live layout: the bar stays in its place and its button becomes Play again, and nothing is inserted above the scene. */}
           <div className="pen-bar">
-            <div className="pen-chip" data-testid="penalty-chip" aria-hidden={closing || selected === null}>
-              {closing || selected === null ? '' : pickLabel(pickRole, selected)}
-            </div>
+            {/* The chip names the pick beside the button once there is one; before that the button takes the whole bar and says what to do. */}
+            {!closing && selected !== null ? (
+              <div className="pen-chip" data-testid="penalty-chip">
+                {pickLabel(pickRole, selected)}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={closing ? () => void begin(live.level) : onAction}
@@ -646,7 +664,7 @@ export default function PenaltyPage() {
               data-testid="penalty-action"
               className="min-h-11 flex-1 rounded-control bg-action px-4 font-semibold text-action-ink disabled:opacity-40"
             >
-              {closing ? 'Play again' : humanLabel}
+              {closing ? 'Play again' : selected === null ? (pickRole === 'shooter' ? 'Pick a spot' : 'Pick a dive') : humanLabel}
             </button>
           </div>
           <p className="sr-only" role="status" aria-live="polite" data-testid="penalty-live">

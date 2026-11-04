@@ -27,7 +27,8 @@ for (const g of GAMES) {
         await expect(page.getByTestId(g.board)).toBeVisible()
         await expect(page.getByTestId(g.hud)).toBeVisible()
         // Crosscurrent on a 657 tall screen cannot fit its Place bar (board at its 320 floor), so it keeps its own scroll of just far enough to show the bar (under 48)
-        const allowed = g.name === 'crosscurrent' && vh < 700 ? 48 : 0
+        // Twelve Yards on a phone (the lowest level's longer header can leave the goal 23 px under the bar) scrolls just far enough to bring the whole scene above its bar, never more than 48
+        const allowed = (g.name === 'crosscurrent' && vh < 700) || (g.name === 'twelve-yards' && vw < 1024) ? 48 : 0
         expect(await page.evaluate(() => window.scrollY), 'scrollY after Start').toBeLessThanOrEqual(allowed)
         const top = (await page.getByTestId('game-shell').locator('header').boundingBox())!
         expect(top.y).toBeGreaterThanOrEqual(0)

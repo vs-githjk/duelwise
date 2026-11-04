@@ -103,13 +103,13 @@ test.describe('Twelve Yards page', () => {
         await expect(page.getByTestId('penalty-first')).toHaveText('You kick first. Pip kicks second.')
         await expect(page.getByTestId('play-hud')).toContainText('You, kick first')
         await expect(page.locator('[data-testid^="penalty-zone-"]')).toHaveCount(9)
-        await expect(action(page)).toHaveText('Shoot')
+        await expect(action(page)).toHaveText('Pick a spot')
       } else {
         await expect(role).toHaveText("Pip kicks first. You're in goal.")
         await expect(page.getByTestId('penalty-first')).toHaveText('Pip kicks first. You kick second.')
         await expect(page.getByTestId('play-hud')).toContainText('You, kick second')
         await expect(page.locator('[data-testid^="penalty-zone-"]')).toHaveCount(5)
-        await expect(action(page)).toHaveText('Save')
+        await expect(action(page)).toHaveText('Pick a dive')
       }
       // Practice: the header says so and the match is not counted.
       await expect(page.getByText('Practice, unrated')).toBeVisible()
@@ -200,13 +200,21 @@ test.describe('Twelve Yards fits on one screen', () => {
     }
   }
 
-  test('the Shoot bar stays whole on a phone with Safari bars (393x659), the page is not scrolled by Start', async ({ page }) => {
-    await page.setViewportSize({ width: 393, height: 659 })
-    await startMatch(page, 0)
-    await page.getByTestId('penalty-zone-0').tap().catch(() => page.getByTestId('penalty-zone-0').click())
-    await expectOnScreen(action(page), 'Shoot at 393x659')
-    expect((await scrolled(page)).y).toBe(0)
-  })
+  for (const size of [{ width: 393, height: 659 }, { width: 375, height: 667 }]) {
+    test(`${size.width}x${size.height} (Safari's bars): Start scrolls just far enough that the whole scene and the ball clear the sticky bar`, async ({ page }) => {
+      await page.setViewportSize(size)
+      await startMatch(page, 0)
+      await expect(action(page)).toHaveText('Pick a spot')
+      await expect.poll(async () => (await scrolled(page)).y, { message: 'Start scrolled the page down' }).toBeGreaterThan(0)
+      const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
+      expect(gap, 'the bar covers no part of the scene').toBeGreaterThanOrEqual(0)
+      await expectOnScreen(page.getByTestId('penalty-pad'), 'the ball')
+      await expectOnScreen(scene(page), 'the scene')
+      await page.getByTestId('penalty-zone-0').click()
+      await expect(action(page)).toHaveText('Shoot')
+      await expectOnScreen(action(page), 'Shoot')
+    })
+  }
 })
 
 test.describe('Twelve Yards offline and Rated', () => {

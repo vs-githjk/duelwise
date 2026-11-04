@@ -4,7 +4,7 @@
 
 **Can you beat my agents?**
 
-Eight games. Learning from you, starting with Four in a Row. Beat them if you can.
+Nine games. Learning from you, starting with Four in a Row. Beat them if you can.
 
 **[Play now at duelwise.app](https://duelwise.app)**. No sign-up and no email: a name is enough. Google or GitHub sign-in is optional.
 
@@ -12,7 +12,7 @@ Pick a game and sit down across from Pip, Marlow, Vesper or Sable. Pip is easy t
 
 ## The games
 
-Eight games, each with a built-in opponent at four levels:
+Nine games, each with a built-in opponent at four levels:
 
 | Game | What it is |
 |---|---|
@@ -24,6 +24,7 @@ Eight games, each with a built-in opponent at four levels:
 | Coldstore | A first-person arena shooter. Real time. |
 | Stormglass | Hidden fleets on a ten by ten grid. Find theirs first. |
 | Crosscurrent | Close a line of their discs between two of yours and it flips. Most discs wins. |
+| Twelve Yards | A penalty shootout. Five kicks each, nine spots to shoot at, five dives to save. You pick at the same moment. |
 
 The four opponents are the same four characters in every game, one per level, each with its own style per game (`apps/web/src/personas/personas.json`):
 

@@ -107,8 +107,8 @@ test('the privacy sentence lists every game whose registry has learnsFromHumans 
   }
   expect(sentence).not.toMatch(/[\u2013\u2014]/)
   // Stormglass, Crosscurrent and Twelve Yards can never train, so they are not in the "yet" clause; every other game's wording is unchanged.
-  expect(sentence).toMatch(/Stormglass, Crosscurrent and Twelve Yards are scripted solvers with nothing to train\.$/)
-  expect(sentence.split('Stormglass, Crosscurrent and Twelve Yards are scripted')[0]).not.toMatch(/Stormglass|Crosscurrent|Twelve Yards/)
+  expect(sentence).toMatch(/Stormglass and Crosscurrent are scripted solvers with nothing to train\. Twelve Yards is a hand-written habit reader with nothing to train\.$/)
+  expect(sentence.split('Stormglass and Crosscurrent are scripted')[0]).not.toMatch(/Stormglass|Crosscurrent|Twelve Yards/)
   expect(sentence).toMatch(/those agents do not learn from human matches yet\. Stormglass/)
   expect(notTrainedSentence({})).toMatch(/Chess.*Four in a Row.*Tinderbox.*Coldstore/)
 })
