@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-03T21:00:00.000Z",
-      "promotedAt": "2026-11-04T07:57:43.775Z",
+      "promotedAt": "2026-11-04T08:13:41.347Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -56,30 +56,30 @@
             "lower": "easy",
             "upper": "medium",
             "n": 800,
-            "points": 493,
-            "score": 0.61625,
+            "points": 486,
+            "score": 0.6075,
             "ci95": [
-              0.582072,
-              0.649317
+              0.573226,
+              0.640747
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 248,
+                "points": 245,
                 "ci95": [
-                  0.5715045433497437,
-                  0.6662125059743524
+                  0.5639027290586999,
+                  0.6589570046826404
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 245,
+                "points": 241,
                 "ci95": [
-                  0.5639027290586999,
-                  0.6589570046826404
+                  0.5537852189563749,
+                  0.649264760674624
                 ]
               }
             ]
@@ -88,30 +88,30 @@
             "lower": "medium",
             "upper": "hard",
             "n": 800,
-            "points": 457,
-            "score": 0.57125,
+            "points": 454,
+            "score": 0.5675,
             "ci95": [
-              0.536696,
-              0.605123
+              0.532928,
+              0.601427
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 226,
+                "points": 228,
                 "ci95": [
-                  0.5160260758458871,
-                  0.6127373258713315
+                  0.521044319049774,
+                  0.6176239597226154
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 231,
+                "points": 226,
                 "ci95": [
-                  0.5285810177376596,
-                  0.6249445766174858
+                  0.5160260758458871,
+                  0.6127373258713315
                 ]
               }
             ]
@@ -120,30 +120,30 @@
             "lower": "hard",
             "upper": "champion",
             "n": 800,
-            "points": 473.5,
-            "score": 0.591875,
+            "points": 461.5,
+            "score": 0.576875,
             "ci95": [
-              0.557457,
-              0.625415
+              0.542352,
+              0.610663
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 235,
+                "points": 237,
                 "ci95": [
-                  0.5386474922018407,
-                  0.6346878562636461
+                  0.5436883044007635,
+                  0.639551921119894
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 238.5,
+                "points": 224.5,
                 "ci95": [
-                  0.5474722501348797,
-                  0.6431966331771557
+                  0.5122656456621817,
+                  0.6090690982636591
                 ]
               }
             ]
@@ -165,7 +165,7 @@
       "config": {
         "algorithm": "echo-last-kick",
         "kind": "marlow",
-        "read": 0.6,
+        "read": 0.5,
         "kickRead": 0.38
       }
     },
@@ -174,8 +174,9 @@
       "config": {
         "algorithm": "pattern-reader",
         "kind": "vesper",
-        "read": 0.9,
-        "kickRead": 0.5
+        "read": 1,
+        "kickRead": 0.5,
+        "reader": 0.2
       }
     },
     "champion": {
@@ -183,7 +184,7 @@
       "config": {
         "algorithm": "habit-reader-bayes",
         "kind": "sable",
-        "weight": 1,
+        "weight": 1.3,
         "cap": 0.8
       }
     }
@@ -199,51 +200,51 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-04T07:57:43.775Z",
+      "measuredAt": "2026-11-04T08:13:41.347Z",
       "harness": "bun",
-      "commit": "c46cf30"
+      "commit": "a2521df"
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.61625,
+      "value": 0.6075,
       "ci95": [
-        0.582072,
-        0.649317
+        0.573226,
+        0.640747
       ],
       "n": 800,
       "opponents": "easy",
-      "siteElo": 1082.283418,
-      "measuredAt": "2026-11-04T07:57:43.775Z",
+      "siteElo": 1075.882648,
+      "measuredAt": "2026-11-04T08:13:41.347Z",
       "harness": "bun",
-      "commit": "c46cf30"
+      "commit": "a2521df"
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.57125,
+      "value": 0.5675,
       "ci95": [
-        0.536696,
-        0.605123
+        0.532928,
+        0.601427
       ],
       "n": 800,
       "opponents": "medium",
-      "siteElo": 1132.13225,
-      "measuredAt": "2026-11-04T07:57:43.775Z",
+      "siteElo": 1123.07455,
+      "measuredAt": "2026-11-04T08:13:41.347Z",
       "harness": "bun",
-      "commit": "c46cf30"
+      "commit": "a2521df"
     },
     "champion": {
       "metric": "score vs hard",
-      "value": 0.591875,
+      "value": 0.576875,
       "ci95": [
-        0.557457,
-        0.625415
+        0.542352,
+        0.610663
       ],
       "n": 800,
       "opponents": "hard",
-      "siteElo": 1196.706969,
-      "measuredAt": "2026-11-04T07:57:43.775Z",
+      "siteElo": 1176.919763,
+      "measuredAt": "2026-11-04T08:13:41.347Z",
       "harness": "bun",
-      "commit": "c46cf30"
+      "commit": "a2521df"
     }
   },
   "unpublished": {},
