@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { SEALED_GAMES } from '@duelwise/core/src/sealed'
 import type { GameId } from '@duelwise/core/src/product'
+import { HUMAN_SEAT_FLAG } from '@duelwise/core/src/sides'
 import * as schema from '../db/schema'
 
 /**
@@ -89,12 +90,13 @@ const sealedTurnGames = sql.join(SEALED_TURN_GAMES.map((g) => sql`${g}`), sql`, 
 export function keptSealedFlags(game: string, flags: unknown): Record<string, unknown> {
   if (!SEALED_TURN_GAMES.some((g) => g === game) || typeof flags !== 'object' || flags === null) return {}
   const f = flags as Record<string, unknown>
-  return { ...(f.sealedLog !== undefined ? { sealedLog: f.sealedLog } : {}), ...(f[LOGGED_WIN_FLAG] === true ? { [LOGGED_WIN_FLAG]: true } : {}) }
+  // The player's seat stays with the log it belongs to: a log is read from the seat the row gave (sealed-log.ts), and a settled row must read the same.
+  return { ...(f.sealedLog !== undefined ? { sealedLog: f.sealedLog } : {}), ...(f.sealedLog !== undefined && f[HUMAN_SEAT_FLAG] !== undefined ? { [HUMAN_SEAT_FLAG]: f[HUMAN_SEAT_FLAG] } : {}), ...(f[LOGGED_WIN_FLAG] === true ? { [LOGGED_WIN_FLAG]: true } : {}) }
 }
 
 /** The new filterFlags of a row that is being settled by a rewrite (abandoned): the given flags, plus the practice marker the row already had, plus the unplayed marker of a sealed row with no setup, plus what keptSealedFlags keeps. */
 export const withPractice = (flags: Record<string, unknown>) =>
-  sql`${JSON.stringify(flags)}::jsonb || case when coalesce((${schema.match.filterFlags}->>'practice')::boolean, false) then '{"practice":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${unplayedGames}) and coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) <= ${SEALED_SETUP_TICKS} then '{"unplayed":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and ${schema.match.filterFlags}->'sealedLog' is not null then jsonb_build_object('sealedLog', ${schema.match.filterFlags}->'sealedLog') else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and coalesce((${schema.match.filterFlags}->>'loggedWin')::boolean, false) then '{"loggedWin":true}'::jsonb else '{}'::jsonb end`
+  sql`${JSON.stringify(flags)}::jsonb || case when coalesce((${schema.match.filterFlags}->>'practice')::boolean, false) then '{"practice":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${unplayedGames}) and coalesce(jsonb_array_length(${schema.match.filterFlags}->'sealedLog'->'human'), 0) <= ${SEALED_SETUP_TICKS} then '{"unplayed":true}'::jsonb else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and ${schema.match.filterFlags}->'sealedLog' is not null then jsonb_build_object('sealedLog', ${schema.match.filterFlags}->'sealedLog') else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and ${schema.match.filterFlags}->'sealedLog' is not null and ${schema.match.filterFlags} ? 'humanSeat' then jsonb_build_object('humanSeat', ${schema.match.filterFlags}->'humanSeat') else '{}'::jsonb end || case when ${schema.match.game} in (${sealedTurnGames}) and coalesce((${schema.match.filterFlags}->>'loggedWin')::boolean, false) then '{"loggedWin":true}'::jsonb else '{}'::jsonb end`
 
 /** For RETURNING: whether the row was started as practice. */
 export const practiceColumn = sql<boolean>`coalesce((${schema.match.filterFlags}->>'practice')::boolean, false)`

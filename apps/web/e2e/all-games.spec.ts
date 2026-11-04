@@ -281,17 +281,17 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     await expectStatsPage(page, 'slack')
   })
 
-  test('penalty: a full Practice shootout is played to the end on the real page, its record is valid, then its stats page renders', async ({ page, baseURL }) => {
+  test('penalty: a full Rated shootout is played to the end on the real page, its record is valid and counted, then its stats page renders', async ({ page, baseURL }) => {
     test.setTimeout(240_000)
     test.skip(!PLAYABLE.includes('penalty'), `penalty has no page: ${missingReason('penalty')}`)
     const seen = watchRequests(page)
     const errors = watchConsole(page)
-    // No ?seed: Twelve Yards has no rated path yet, so every match is Practice and is stored as such.
+    // No ?seed: a fixed test seed is never counted.
     await page.goto(`/play/${slug('penalty')}`)
     await chooseLevel(page, 'Easy')
     await page.getByRole('button', { name: 'Start match' }).click()
     await expect(page.getByTestId('penalty-scene')).toBeVisible()
-    await expect(page.getByTestId('preview-badge')).toHaveCount(1)
+    await expect(page.getByTestId('preview-badge')).toHaveCount(publishedLevels('penalty').includes('easy') ? 0 : 1)
     for (let i = 0; i < 40; i++) {
       if (await page.getByTestId('result-panel').isVisible()) break
       if ((await page.getByTestId('penalty-scene').getAttribute('data-reveal')) === null && (await page.getByTestId('penalty-action').count()) > 0) {
@@ -303,7 +303,9 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     }
     await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId('penalty-record')).toHaveAttribute('data-record-ok', 'true')
-    await expect(page.getByText('Practice, not rated')).toBeVisible()
+    // A Rated match is checked by the server: once counted the panel shows the rating line (a signed-in or guest rating) or the saved line.
+    await expect(page.getByTestId('result-elo').or(page.getByTestId('result-upload').filter({ hasText: 'Saved' }))).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('Practice, not rated')).toHaveCount(0)
     expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
     expect(errors).toEqual([])
     await expectStatsPage(page, 'penalty')

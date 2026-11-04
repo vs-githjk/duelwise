@@ -82,6 +82,8 @@ async function expectTargets(page: Page, label: string) {
 async function start(page: Page, seed: number) {
   await page.goto(`/play/twelve-yards?seed=${seed}&side=0`)
   await expect(page.getByTestId('penalty-setup')).toBeVisible()
+  // Rated is the default now; these specs are about the feel of a kick, played as Practice on a fixed seed.
+  await page.locator('[data-mode-option="practice"]').click()
   await page.getByTestId('penalty-start').click()
   await expect(page.getByTestId('penalty-scene')).toBeVisible()
 }

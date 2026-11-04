@@ -379,6 +379,15 @@ describe('leaving a rated match is a loss, from either side', () => {
     expect(r.status).toBe(200)
     expect((await ratingOf())!.games).toBe(1)
     expect((await ask(m.matchId, [1, 2, 3])).status).toBe(409)
+    // The settled row keeps its log and the seat the log belongs to, so it still reads the same.
+    expect(await storedLog(m.matchId)).toMatchObject({ humanSeat: 1, sealedLog: { human: expect.any(Array), agent: expect.any(Array) } })
+  })
+
+  test('an abandoned row keeps its log and seat too', async () => {
+    const m = await begin(SEED, 1)
+    await playOut(m, 1, USER, level, 2)
+    expect(await abandonStale(db, new Date(Date.now() + 24 * 3600_000), { siteElo })).toBe(1)
+    expect(await storedLog(m.matchId)).toMatchObject({ humanSeat: 1, abandoned: true, sealedLog: { human: expect.any(Array) } })
   })
 
   test('a match left open (closed tab, reload) is charged by the abandon sweep, once, with or without kicks', async () => {

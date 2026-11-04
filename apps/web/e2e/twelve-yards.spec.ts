@@ -2,8 +2,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 // Twelve Yards at /play/twelve-yards, the promoted page on GameShell, LevelPicker and ResultPanel. A Practice match end to end, with each kick order forced through the
 // dev ?side switch (and the seed's own side when none is given), the whole match on screen at laptop and phone sizes with no scroll, a scroll back to the top on Start, Rated
-// shut (every start is Practice until promotion part 2), the offline line and an offline Practice match. The feel (drag and tap aiming, the reveal, the keeper) is in
-// penalty.spec.ts and is not repeated here.
+// open (a counted match whose seed stays on the server: a whole Rated match from the side the e2e server gives, a resign, the hidden choice on the wire), the offline line
+// and an offline match. The feel (drag and tap aiming, the reveal, the keeper) is in penalty.spec.ts and is not repeated here.
+//
+// The Rated tests play the side the e2e server pins (DUELWISE_SIDE, 0 by default). Run this file once with DUELWISE_SIDE=0 and once with DUELWISE_SIDE=1 to walk both kick orders.
 
 const URL = '/play/twelve-yards'
 
@@ -25,8 +27,10 @@ async function openSetup(page: Page, side: 0 | 1, seed = 5) {
   await expect(page.getByTestId('penalty-setup')).toBeVisible()
 }
 
+/** A fixed-seed match is never counted, so these tests play it as Practice, which is what the header says. */
 async function startMatch(page: Page, side: 0 | 1, seed = 5) {
   await openSetup(page, side, seed)
+  await page.locator('[data-mode-option="practice"]').click()
   await page.getByTestId('penalty-start').click()
   await expect(scene(page)).toBeVisible()
 }
@@ -76,15 +80,19 @@ async function expectOnScreen(locator: Locator, label: string) {
 const scrolled = (page: Page) => page.evaluate(() => ({ y: Math.round(window.scrollY), x: Math.round(window.scrollX) }))
 
 test.describe('Twelve Yards page', () => {
-  test('setup: the level picker, Rated shut with its reason, Practice picked, nothing to scroll sideways', async ({ page }) => {
+  test('setup: the level picker, Rated open and picked with each level showing the strength it measured, nothing to scroll sideways', async ({ page }) => {
     const errors = watchConsole(page)
     await openSetup(page, 0)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Twelve Yards')
     for (const name of ['Pip', 'Marlow', 'Vesper', 'Sable']) await expect(page.getByTestId('level-picker').getByRole('radio', { name: new RegExp(`^${name}`) })).toBeVisible()
     const rated = page.locator('[data-mode-option="rated"]')
-    await expect(rated).toHaveAttribute('data-rated-unavailable', '')
-    await expect(rated).toContainText('Not open yet')
-    await expect(page.locator('[data-mode-option="practice"]')).toHaveAttribute('data-selected', 'true')
+    await expect(rated).not.toHaveAttribute('data-rated-unavailable', /.*/)
+    await expect(rated).not.toContainText('Not open yet')
+    await expect(page.locator('[data-mode-option="rated"] input')).toBeEnabled()
+    await expect(page.locator('[data-mode-option="rated"] input')).toBeChecked()
+    await expect(page.getByTestId('play-mode')).toHaveAttribute('data-mode', 'rated')
+    // Every level has a measured strength, so nothing is In training.
+    await expect(page.getByTestId('level-picker')).not.toContainText('In training')
     await expect(page.getByTestId('penalty-setup')).toContainText('first kick or the second at random')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
     expect(errors, 'no console errors').toEqual([])
@@ -129,6 +137,7 @@ test.describe('Twelve Yards page', () => {
     const sides = new Set<string>()
     for (const seed of [7, 8, 9, 10, 11, 12]) {
       await page.goto(`${URL}?seed=${seed}&side=seed`)
+      await page.locator('[data-mode-option="practice"]').click()
       await page.getByTestId('penalty-start').click()
       await expect(scene(page)).toBeVisible()
       sides.add((await page.getByTestId('penalty-page').getAttribute('data-human-seat')) ?? '')
@@ -148,6 +157,7 @@ test.describe('Twelve Yards page', () => {
     for (const size of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
       await page.setViewportSize(size)
       await openSetup(page, 0)
+      await page.locator('[data-mode-option="practice"]').click()
       const start = page.getByTestId('penalty-start')
       await start.scrollIntoViewIfNeeded()
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
@@ -209,11 +219,76 @@ test.describe('Twelve Yards fits on one screen', () => {
   })
 })
 
+/** The side the e2e server gives every Rated match (DUELWISE_SIDE, 0 when unset). */
+const SERVER_SIDE: 0 | 1 = process.env.DUELWISE_SIDE === '1' ? 1 : 0
+
+/** A real unseeded Rated start: a fixed seed is never counted. */
+async function startRated(page: Page) {
+  await page.goto(URL)
+  await expect(page.getByTestId('penalty-setup')).toBeVisible()
+  await expect(page.getByTestId('play-mode')).toHaveAttribute('data-mode', 'rated')
+  await page.getByTestId('penalty-start').click()
+  await expect(scene(page)).toBeVisible()
+}
+
 test.describe('Twelve Yards offline and Rated', () => {
-  test('every start is stored as Practice: the badge, the shut Rated option, and no rated copy', async ({ page }) => {
-    await startMatch(page, 0)
+  test(`a Rated match end to end as the ${SERVER_SIDE === 0 ? 'first' : 'second'} kicker (DUELWISE_SIDE=${SERVER_SIDE}): the opponent's pick comes with each kick, never before it, and the match is counted`, async ({ page }) => {
+    test.setTimeout(150_000)
+    const errors = watchConsole(page)
+    // What the server sends while the match runs. The seed and the opponent's picks may arrive only with the reply that ends the match.
+    const wire: string[] = []
+    page.on('response', async (r) => {
+      if (!r.url().includes('_serverFn')) return
+      try {
+        wire.push(await r.text())
+      } catch {
+        /* a response that was replaced by a navigation has no body */
+      }
+    })
+    await startRated(page)
+    await expect(page.getByTestId('leaving-notice')).toBeVisible()
+    await expect(page.getByTestId('penalty-page')).toHaveAttribute('data-human-seat', String(SERVER_SIDE))
+    await expect(page.getByText('Practice, unrated')).toHaveCount(0)
+    await expect(page.getByTestId('play-hud')).toContainText(SERVER_SIDE === 0 ? 'You, kick first' : 'You, kick second')
+    await takeKick(page, 0)
+    await takeKick(page, 1)
+    const midway = wire.length
+    expect(wire.slice(0, midway).filter((t) => t.includes('agentActions')), 'no reply during the match holds the opponent\'s picks').toEqual([])
+    await playToResult(page)
+    await expect(page.getByTestId('penalty-record')).toHaveAttribute('data-human-seat', String(SERVER_SIDE))
+    // The server accepted the record (its own log, then a re-run of the opponent): the match has a report link, which a refused record never gets.
+    await expect(page.getByTestId('result-report-link')).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByTestId('result-upload')).not.toContainText('could not be verified')
+    await expect(page.getByText('Practice, not rated')).toHaveCount(0)
+    const withPicks = wire.filter((t) => t.includes('agentActions'))
+    expect(withPicks.length, 'the opponent\'s picks and the seed came once, with the last kick').toBe(1)
+    expect(errors, 'no console errors').toEqual([])
+  })
+
+  test('a Rated match given up is a loss, and the page says so', async ({ page }) => {
+    await startRated(page)
+    await takeKick(page, 0)
+    await page.getByTestId('penalty-resign').click()
+    await page.getByTestId('penalty-resign-yes').click()
+    await expect(page.getByTestId('penalty-result')).toHaveText('You resigned.')
+    await expect(page.getByRole('button', { name: /^Rematch/ })).toBeVisible()
+  })
+
+  test('a Rated match is not a Practice match: no Practice badge in play, and the leaving notice shows', async ({ page }) => {
+    await startRated(page)
+    await expect(page.getByText('Practice, unrated')).toHaveCount(0)
+    await expect(page.getByTestId('leaving-notice')).toBeVisible()
+  })
+
+  test('Practice on the real server is still a server-held match: no seed on the page, played to the end, saved as Practice', async ({ page }) => {
+    test.setTimeout(150_000)
+    await page.goto(URL)
+    await page.locator('[data-mode-option="practice"]').click()
+    await page.getByTestId('penalty-start').click()
+    await expect(scene(page)).toBeVisible()
     await expect(page.getByText('Practice, unrated')).toBeVisible()
-    await expect(page.getByTestId('leaving-notice')).toHaveCount(0)
+    await playToResult(page)
+    await expect(page.getByText('Practice, not rated')).toBeVisible()
   })
 
   test('offline: the page says new matches are not rated, in its own flow, and a Practice match still plays to a kick', async ({ page, context }) => {
