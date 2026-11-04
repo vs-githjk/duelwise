@@ -254,7 +254,7 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     // The press skips to the result: the match is concluded and sent, not thrown away.
     await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 8000 })
     await expect.poll(() => finishes.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1)
-    await expect(page.getByTestId('result-upload').or(page.getByTestId('result-elo')).or(page.getByTestId('result-report-link'))).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('result-upload').or(page.getByTestId('result-elo')).or(page.getByTestId('result-report-link')).first()).toBeVisible({ timeout: 30_000 })
     // And the next match starts cleanly from there.
     await page.getByTestId('rematch').click()
     await expect(page.getByTestId('result-panel')).toHaveCount(0)
