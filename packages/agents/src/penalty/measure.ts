@@ -1,4 +1,4 @@
-// The Twelve Yards publish measurement: Pip against random legal play and every adjacent pair of levels, 400 games per seat,
+// The Twelve Yards publish measurement: Pip against random legal play and every adjacent pair of levels, 1000 games per seat,
 // through the real harness and the agents the site serves, on the module-path penalty core. Seat 0 kicks first and the roles swap every kick,
 // so "both seats" is first kicker and keeper first; the harness alternates the seat of the stronger level every game.
 // A level that fails the gate on a seat, or sits above one that did, stays In training; nothing here loosens the gate.
@@ -27,7 +27,7 @@ const CORE = { module: '@duelwise/core/src/games/penalty', export: 'createPenalt
 const AGENT = join(HERE, 'agent.ts')
 const RANDOM_AGENT = join(HERE, '..', 'measure', 'four-random.ts')
 
-export const GAMES_PER_SEAT = 400
+export const GAMES_PER_SEAT = 1000
 const LADDER_SEEDS = 60_000_000
 const BASELINE_SEEDS = 69_000_000
 const round = (x: number) => Math.round(x * 1e6) / 1e6

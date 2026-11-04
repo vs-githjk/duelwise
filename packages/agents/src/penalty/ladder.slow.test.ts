@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'bun:test'
 import { PAIRS, runDryLadder, type PairReport } from './dry-ladder'
 
-// Twelve Yards dry ladder gate (TY3). 800 games per pair through the real harness, 400 per seat.
+// Twelve Yards dry ladder gate (TY3). 2000 games per pair through the real harness, 1000 per seat.
 // Named .slow so run_suite.py skips it. Run it under heavy-lock.sh: bun test packages/agents/src/penalty/ladder.slow.test.ts
 const report = await runDryLadder()
 
 describe('Twelve Yards dry ladder, through the real harness', () => {
-  test('four pairs, 800 games each, 400 per seat', () => {
+  test('four pairs, 2000 games each, 1000 per seat', () => {
     expect(report.pairs.map((p) => p.label)).toEqual(PAIRS.map((p) => p.label))
     for (const p of report.pairs) {
-      expect(p.n).toBe(800)
-      expect(p.bySeat[0].n).toBe(400)
-      expect(p.bySeat[1].n).toBe(400)
+      expect(p.n).toBe(2000)
+      expect(p.bySeat[0].n).toBe(1000)
+      expect(p.bySeat[1].n).toBe(1000)
     }
   })
 
@@ -26,7 +26,7 @@ describe('Twelve Yards dry ladder, through the real harness', () => {
   }
 
   test('Sable v an equilibrium player is reported without a bar (claim C5)', () => {
-    expect(report.equilibrium.n).toBe(800)
+    expect(report.equilibrium.n).toBe(2000)
     expect(report.equilibrium.score).toBeGreaterThan(0)
     expect(report.equilibrium.score).toBeLessThan(1)
   })

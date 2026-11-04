@@ -92,7 +92,7 @@ describe('every real registry: measured or Practice per game and level', () => {
       expect(row.n).toBe(800)
     }
   })
-  test('Twelve Yards: exact set, from scripted habit readers, with 400 games on each seat of every row and no unpublished level', () => {
+  test('Twelve Yards: exact set, from scripted habit readers, with 1000 games on each seat of every row and no unpublished level', () => {
     const reg = real('penalty')
     expect(measuredSet(reg)).toEqual(['easy', 'medium', 'hard', 'champion'])
     expect(reg.learnsFromHumans).toBe(false)
@@ -103,10 +103,10 @@ describe('every real registry: measured or Practice per game and level', () => {
     expect(gate.searchLimit).toContain('no search and no clock')
     expect(gate.pairs.map((p) => p.upper)).toEqual(['medium', 'hard', 'champion'])
     for (const row of [gate.baseline, ...gate.pairs]) {
-      expect(row.bySeat.map((s: any) => [s.seat, s.n])).toEqual([[0, 400], [1, 400]])
+      expect(row.bySeat.map((s: any) => [s.seat, s.n])).toEqual([[0, 1000], [1, 1000]])
       expect(row.bySeat[0].points + row.bySeat[1].points).toBe(row.points)
       expect(row.bySeat.every((s: any) => wilsonFloor(s.points, s.n) > 0.5)).toBe(true)
-      expect(row.n).toBe(800)
+      expect(row.n).toBe(2000)
     }
   })
   test('Four fails when its gate evidence is weakened', () => {
@@ -314,7 +314,11 @@ describe('what the Twelve Yards measurement writes reaches the gate', () => {
     ...Array.from({ length: PENALTY_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 0, scoreA: i < first ? 1 : 0 })),
     ...Array.from({ length: PENALTY_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 1, scoreA: i < second ? 1 : 0 })),
   ] as GameRecord[]
-  const row = (first: number, second: number) => {
+  // The counts below are written for 400 games a seat; they scale to the real count, so a row keeps its proportions.
+  const scale = PENALTY_GAMES_PER_SEAT / 400
+  const row = (first400: number, second400: number) => {
+    const first = first400 * scale
+    const second = second400 * scale
     const n = PENALTY_GAMES_PER_SEAT * 2
     const floor = wilsonFloor(first + second, n)
     return penaltySeated({ points: first + second, n, score: (first + second) / n, ci95: [floor, 1], stoppedEarly: false, passed: floor > 0.5 }, rows(first, second))
@@ -360,7 +364,7 @@ describe('what the Twelve Yards measurement writes reaches the gate', () => {
   })
   test('the config the site plays is the one the code holds', () => {
     const reg = build(ladder())
-    expect(reg.levels.champion?.config).toMatchObject({ kind: 'sable', weight: 1.5, cap: 0.8 })
+    expect(reg.levels.champion?.config).toMatchObject({ kind: 'sable', weight: 1.1, cap: 0.8 })
     expect(reg.levels.easy?.config).toMatchObject({ kind: 'pip' })
   })
 })
