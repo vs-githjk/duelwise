@@ -21,7 +21,9 @@ export interface SealedSpec {
   game: GameId
   setupTicks: number
   /** Sees only what the agent's seat may see. A fresh random stream per tick lives inside, so a retried request gets the same move. */
-  agentAction(level: Level, seed: number, obs: unknown, seat: Seat, tick: number): number
+  agentAction(level: Level, seed: number, obs: unknown, seat: Seat, tick: number, entropy?: number[]): number
+  /** True when every step of the player draws one fresh random word from the system CSPRNG, kept in the log: the game's rolls and the opponent's draws come from those words, never from the seed. */
+  entropy?: boolean
 }
 
 export interface SealedTurnBody {
@@ -29,7 +31,7 @@ export interface SealedTurnBody {
   view: unknown
   over: boolean
   /** Present only once the game is over: the seed the record replays from, and the agent's actions in order. */
-  reveal?: { seed: number; agentActions: number[] }
+  reveal?: { seed: number; agentActions: number[]; entropy?: number[] }
 }
 
 /**
@@ -40,7 +42,8 @@ export interface SealedTurnBody {
 export const PENALTY_SPEC: SealedSpec = {
   game: 'penalty',
   setupTicks: 1,
-  agentAction: (level, seed, obs, seat) => penaltyAgentAction(level, seed, seat, obs as never),
+  entropy: true,
+  agentAction: (level, seed, obs, seat, _tick, entropy) => penaltyAgentAction(level, seed, seat, obs as never, entropy),
 }
 
 /** Longest action list a request may carry; the longest Fleet game is 5 setup plus 100 shots. */
@@ -67,10 +70,10 @@ export const FLEET_SPEC: SealedSpec = {
  * Rebuilds a match from the player's actions and the agent actions already stored. New agent actions are computed from the seed and what its
  * seat can see, so the player never supplies the agent's play and a stored action never changes.
  */
-export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[], storedAgent: number[] = [], humanSeat: Seat = 0): LogRun<S> {
+export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[], storedAgent: number[] = [], humanSeat: Seat = 0, entropy?: number[]): LogRun<S> {
   const agentSeat = (1 - humanSeat) as Seat
   // An agent action already stored is final: it was shown to the player, so a code change must not move it. Only new indexes are computed.
-  return runLog(core, seed, human, (s, i) => (i < storedAgent.length ? storedAgent[i] : spec.agentAction(level, seed, core.observe(s, agentSeat), agentSeat, i)), humanSeat)
+  return runLog(core, seed, human, (s, i) => (i < storedAgent.length ? storedAgent[i] : spec.agentAction(level, seed, core.observe(s, agentSeat), agentSeat, i, entropy)), humanSeat, entropy ? { entropy } : undefined)
 }
 
 const startsWith = (list: number[], prefix: number[]): boolean => prefix.every((n, i) => list[i] === n)
@@ -113,19 +116,21 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
     return err(409, 'actions must be the ones already played, plus at most one new one')
   }
 
-  const reply = (run: LogRun<unknown>): HandlerResponse<SealedTurnBody> => {
+  const reply = (run: LogRun<unknown>, words?: number[]): HandlerResponse<SealedTurnBody> => {
     const over = core.terminal(run.state)
     const view = core.observe(run.state, humanSeat)
-    return { status: 200, body: over ? { view, over, reveal: { seed: row.seed, agentActions: run.agent } } : { view, over } }
+    return { status: 200, body: over ? { view, over, reveal: { seed: row.seed, agentActions: run.agent, ...(words ? { entropy: words } : {}) } } : { view, over } }
   }
 
   // A request equal to the stored list is a retry (a dropped reply): the same answer, and the agent does not move again.
-  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat))
+  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat, stored.entropy), stored.entropy)
 
-  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat).state)) return err(409, 'the game is over')
+  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat, stored.entropy).state)) return err(409, 'the game is over')
+  // A game with fresh randomness draws the new step's word here, from the system CSPRNG; words already stored never change, so a retried request replays the same kick.
+  const words = spec.entropy ? [...(stored.entropy ?? []), ...Array.from(crypto.getRandomValues(new Int32Array(actions.length - (stored.entropy?.length ?? 0))))] : undefined
   let run: LogRun<unknown>
   try {
-    run = buildSealedLog(spec, core, level, row.seed, actions, stored.agent, humanSeat)
+    run = buildSealedLog(spec, core, level, row.seed, actions, stored.agent, humanSeat, words)
   } catch (e) {
     return err(400, e instanceof Error ? e.message : 'illegal action')
   }
@@ -133,7 +138,7 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
   const written = await db
     .update(schema.match)
     // A terminal log the player won also gets a marker, so a settling rewrite (the abandon sweeps) can see it without playing the log.
-    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent } satisfies SealedLog, ...(core.terminal(run.state) && core.result(run.state)?.winner === humanSeat ? { [LOGGED_WIN_FLAG]: true } : {}) } })
+    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent, ...(words ? { entropy: words } : {}) } satisfies SealedLog, ...(core.terminal(run.state) && core.result(run.state)?.winner === humanSeat ? { [LOGGED_WIN_FLAG]: true } : {}) } })
     .where(
       and(
         eq(schema.match.id, row.id),
@@ -146,9 +151,9 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
     // An identical request that overlapped this one may have won: it gets the same answer a later retry would.
     const now = (await db.select().from(schema.match).where(eq(schema.match.id, row.id)).limit(1))[0]
     const log = sealedLogOf(now?.filterFlags ?? null)
-    if (log && log.human.length === actions.length && startsWith(log.human, actions)) return reply(buildSealedLog(spec, core, level, row.seed, log.human, log.agent, humanSeat))
+    if (log && log.human.length === actions.length && startsWith(log.human, actions)) return reply(buildSealedLog(spec, core, level, row.seed, log.human, log.agent, humanSeat, log.entropy), log.entropy)
     return err(409, 'another request played this turn first')
   }
-  return reply(run)
+  return reply(run, words)
 }
 

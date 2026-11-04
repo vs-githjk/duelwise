@@ -23,7 +23,7 @@ export interface MatchRecordV1 {
   input: 'mouse' | 'touch' | 'keyboard'
   trainingAllowed: boolean
   /** Hold'em only: the match length chosen at the start, and where the player left (unrated). Absent means the default 30 hand match. */
-  options?: { hands?: number; untilBust?: boolean; leftAfter?: number }
+  options?: { hands?: number; untilBust?: boolean; leftAfter?: number; /** Twelve Yards, a match the server held: the kicks' random words, revealed when it ended. */ entropy?: number[] }
 }
 
 export class RecordError extends Error {
@@ -79,9 +79,15 @@ export function validateRecord(v: unknown): MatchRecordV1 {
   if (typeof v.input !== 'string' || !INPUTS.includes(v.input)) fail('bad input')
   if (typeof v.trainingAllowed !== 'boolean') fail('trainingAllowed must be a boolean')
   if (v.options !== undefined) {
-    if (v.game !== 'holdem') fail('options are only for holdem')
-    const why = optionsProblem(v.options)
-    if (why) fail('bad options: ' + why)
+    if (v.game === 'penalty') {
+      const o = v.options
+      const keys = isObj(o) ? Object.keys(o) : []
+      if (!isObj(o) || keys.length !== 1 || keys[0] !== 'entropy' || !Array.isArray(o.entropy) || o.entropy.length > 34 || !o.entropy.every((n) => Number.isInteger(n))) fail('bad options: penalty options are only a list of whole-number entropy words')
+    } else {
+      if (v.game !== 'holdem') fail('options are only for holdem')
+      const why = optionsProblem(v.options)
+      if (why) fail('bad options: ' + why)
+    }
   }
   return v as unknown as MatchRecordV1
 }

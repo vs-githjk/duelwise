@@ -637,4 +637,28 @@ describe('createGameAgent', () => {
     expect(counts[0]! / N).toBeGreaterThan(0.18)
     expect(counts[0]! / N).toBeLessThan(0.3)
   })
+
+  test('with the match\'s words the draw and the favourites come from them: the seed is ignored, the words decide, a missing word throws', () => {
+    const words = Array.from({ length: 34 }, (_, i) => (i * 40503 + 17) | 0)
+    const o = (n: number) => obs('shooter', Array.from({ length: n }, (_, i) => view(i % 2 === 0, (i * 5) % 9, (i * 3) % 5)))
+    for (const level of LEVELS) {
+      for (let n = 0; n < 8; n++) expect(penaltyAgentAction(level, 1, 1, o(n), words)).toBe(penaltyAgentAction(level, 424242, 1, o(n), words))
+    }
+    const stream = (w: number[]) => Array.from({ length: 30 }, (_, n) => penaltyAgentAction('easy', 1, 1, o(n), w))
+    expect(stream(words)).toEqual(stream(words))
+    expect(stream(words)).not.toEqual(stream(words.map((x) => x ^ 0x55555)))
+    expect(() => penaltyAgentAction('easy', 1, 1, o(3), [5, 6])).toThrow('no entropy')
+    expect(() => penaltyAgentAction('easy', 1, 1, o(0), [])).toThrow('no entropy')
+  })
+
+  test('the words keep the level\'s mix: Sable\'s opening over many word sets matches its seed-driven opening', () => {
+    const N = 6000
+    const a = new Array<number>(9).fill(0)
+    const b = new Array<number>(9).fill(0)
+    for (let i = 0; i < N; i++) {
+      a[penaltyAgentAction('champion', i * 7919, 0, obs('shooter'), [(i * 2654435761) | 0])]!++
+      b[penaltyAgentAction('champion', i * 7919, 0, obs('shooter'))]!++
+    }
+    for (let z = 0; z < 9; z++) expect(Math.abs(a[z]! - b[z]!) / N).toBeLessThan(0.03)
+  })
 })

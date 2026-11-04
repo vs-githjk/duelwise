@@ -7,7 +7,7 @@ export { TurnRefused }
 export interface PenaltyTurnReply {
   view: PenaltyObs
   over: boolean
-  reveal?: { seed: number; agentActions: number[] }
+  reveal?: { seed: number; agentActions: number[]; entropy?: number[] }
 }
 
 /** Sends every pick I have made so far, one per kick; the server picks the opponent's for the newest kick only after it has that pick, and answers with my view. A retried request gets the same answer. */
