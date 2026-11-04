@@ -5,7 +5,11 @@ import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
 import { choosePenaltyAction, createGameAgent, penaltyAgentAction } from './agent'
 import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
-import { EQ_KEEPER, EQ_SHOOTER } from './levels'
+import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, VESPER_SWAP } from './levels'
+
+/** The dials the tests below read their exact numbers from, so a retune moves the formulas and not just the constants. */
+const MARLOW = PENALTY_LEVELS.medium as { kind: 'marlow'; read: number; kickRead: number }
+const VESPER = PENALTY_LEVELS.hard as { kind: 'vesper'; read: number; kickRead: number; reader: number }
 
 const zoneAt = (z: number) => one(z, 9)
 const diveAt = (d: number) => one(d, 5)
@@ -199,7 +203,7 @@ describe('Pip', () => {
           expect(m[C]!).toBeGreaterThanOrEqual(0.05)
           for (const z of [TL, TR, BL, BR]) expect(m[z]!).toBeGreaterThanOrEqual(0.03)
         } else {
-          expect(m[STAY]!).toBeCloseTo(0.2, 6)
+          expect(m[STAY]!).toBeCloseTo((1 - PIP_HABIT_SHARE) * PIP_KEEPER.stay, 6)
           for (const d of [LH, LL, RH, RL]) expect(m[d]!).toBeGreaterThanOrEqual(0.05)
         }
       }
@@ -234,14 +238,13 @@ function shares(c: number[]): number[] {
 }
 
 describe('Marlow', () => {
-  test('as keeper answers the last kick about 75% of the time, whichever zone it was', () => {
+  test('as keeper answers the last kick at its read weight, whichever zone it was', () => {
     for (let z = 0; z < 9; z++) {
       const hist = [view(false, C, LH), view(true, TL, LH), view(false, z, STAY)]
       const c = draws('medium', obs('keeper', hist), 4000)
       const share = c[COVER[z]!]! / 4000
-      // 0.75 on the cover plus its share of the equilibrium 0.25.
-      expect(share).toBeGreaterThan(0.74)
-      expect(share).toBeLessThan(0.87)
+      // The read weight on the cover plus its share of the equilibrium for the rest.
+      expect(Math.abs(share - (MARLOW.read + (1 - MARLOW.read) * EQ_KEEPER[COVER[z]!]!))).toBeLessThan(0.03)
     }
   })
 
@@ -253,9 +256,11 @@ describe('Marlow', () => {
   test('as shooter goes away from the side the keeper dived to most', () => {
     const hist = [view(true, C, LH), view(false, TL, LL), view(true, C, LL)]
     const c = draws('medium', obs('shooter', hist), 3000)
-    expect((c[TR]! + c[BR]!) / 3000).toBeGreaterThan(0.64)
+    // The kick weight on the away corner plus the right-hand corners' own equilibrium share of the rest.
+    const away = MARLOW.kickRead + (1 - MARLOW.kickRead) * (EQ_SHOOTER[TR]! + EQ_SHOOTER[BR]!)
+    expect(Math.abs((c[TR]! + c[BR]!) / 3000 - away)).toBeLessThan(0.03)
     const d = draws('medium', obs('shooter', [view(true, C, RH), view(true, C, RL)]), 3000)
-    expect((d[TL]! + d[BL]!) / 3000).toBeGreaterThan(0.64)
+    expect(Math.abs((d[TL]! + d[BL]!) / 3000 - (MARLOW.kickRead + (1 - MARLOW.kickRead) * (EQ_SHOOTER[TL]! + EQ_SHOOTER[BL]!)))).toBeLessThan(0.03)
   })
 
   test('as shooter keeps the height of its favourite corner when it goes away, in both rows', () => {
@@ -275,23 +280,34 @@ describe('Marlow', () => {
     expect(openerSides('medium')).toEqual(new Set([0, 2]))
     const tied = [view(true, C, LH), view(true, C, RL)]
     expect(openerSides('medium', tied)).toEqual(new Set([0, 2]))
-    // 0.45 on the salt corner plus that corner's own share of the equilibrium 0.55, for each of the four corners.
+    // The kick weight on the salt corner plus that corner's own share of the equilibrium for the rest, for each of the four corners.
     const corners = new Set<number>()
     for (let salt = 0; salt < 40; salt++) {
       const m = exactMix('medium', obs('shooter', tied), salt)
       const corner = m.indexOf(Math.max(...m))
       corners.add(corner)
-      expect(m[corner]!).toBeCloseTo(0.45 + 0.55 * EQ_SHOOTER[corner]!, 6)
+      expect(m[corner]!).toBeCloseTo(MARLOW.kickRead + (1 - MARLOW.kickRead) * EQ_SHOOTER[corner]!, 6)
     }
     expect(corners).toEqual(new Set([TL, TR, BL, BR]))
   })
 })
 
 describe('Vesper', () => {
-  test('as shooter swaps corners each kick', () => {
+  test('as shooter leans to a swap but loosely: the swap is half the mix, split across and up or down, the rest is the equilibrium', () => {
     for (const z of [TL, TR, BL, BR]) {
-      const c = draws('hard', obs('shooter', [view(true, z, STAY), view(false, C, STAY)]), 3000)
-      expect(c[mirrorZone(z)]! / 3000).toBeGreaterThan(0.74)
+      const m = exactMix('hard', obs('shooter', [view(true, z, STAY), view(false, C, STAY)]))
+      const across = mirrorZone(z)
+      const flip = (x: number) => (x < 3 ? x + 6 : x - 6)
+      const want = new Array<number>(9).fill(0)
+      want[across] += VESPER_SWAP.across
+      want[flip(across)] += VESPER_SWAP.acrossOtherRow
+      want[flip(z)] += VESPER_SWAP.sameSideOtherRow
+      want[z] += VESPER_SWAP.repeat
+      for (let i = 0; i < 9; i++) expect(m[i]!).toBeCloseTo(VESPER.kickRead * want[i]! + (1 - VESPER.kickRead) * EQ_SHOOTER[i]!, 6)
+      // Loose: no kick is as likely as 0.45, and the row varies (both rows get a real share).
+      expect(Math.max(...m)).toBeLessThan(0.4)
+      expect(m[across]! + m[flip(across)]!).toBeGreaterThan(0.3)
+      expect(Math.min(m[across]!, m[flip(across)]!)).toBeGreaterThan(0.19)
     }
   })
 
@@ -303,7 +319,8 @@ describe('Vesper', () => {
       const m = exactMix('hard', obs('shooter', [view(true, C, LH)]), salt)
       const corner = m.indexOf(Math.max(...m))
       corners.add(corner)
-      expect(m[corner]!).toBeCloseTo(0.75 + 0.25 * EQ_SHOOTER[corner]!, 6)
+      // The swap runs from the salt corner: across leads, with its own equilibrium share of the rest.
+      expect(m[corner]!).toBeCloseTo(VESPER.kickRead * VESPER_SWAP.across + (1 - VESPER.kickRead) * EQ_SHOOTER[corner]!, 6)
     }
     expect(corners).toEqual(new Set([TL, TR, BL, BR]))
   })
@@ -313,11 +330,12 @@ describe('Vesper', () => {
     for (let i = 0; i < 5; i++) expect(Math.abs(f[i]! - EQ_KEEPER[i]!)).toBeLessThan(0.03)
   })
 
-  test('as keeper expects a swap when the last two kicks differ: read 0.75 plus its equilibrium share', () => {
+  test('as keeper expects a swap when the last two kicks differ: its read weight plus its equilibrium share', () => {
     // Zones BR then TL: the swap predicts BR, the most common of the two would say TL or BR's cover by count.
     const c = draws('hard', obs('keeper', [view(false, BR, STAY), view(true, C, STAY), view(false, TL, STAY)]), 8000)
-    const want = 0.75 + 0.25 * EQ_KEEPER[RL]!
-    expect(Math.abs(c[RL]! / 8000 - want)).toBeLessThan(0.02)
+    const want = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[RL]!
+    // The rule carries (1 - reader) of the dive; the small pattern reader may add to it or take a little away.
+    expect(c[RL]! / 8000).toBeGreaterThan((1 - VESPER.reader) * want - 0.02)
     expect(c[LH]! / 8000).toBeLessThan(0.2)
   })
 
@@ -325,8 +343,8 @@ describe('Vesper', () => {
     // BR, BR, BR, C, TL, TL: the last three are C, TL, TL, so TL; all six would say BR.
     const hist = [BR, BR, BR, C, TL, TL].map((z) => view(false, z, STAY))
     const c = draws('hard', obs('keeper', hist), 8000)
-    const want = 0.75 + 0.25 * EQ_KEEPER[LH]!
-    expect(Math.abs(c[LH]! / 8000 - want)).toBeLessThan(0.02)
+    const want = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[LH]!
+    expect(c[LH]! / 8000).toBeGreaterThan((1 - VESPER.reader) * want - 0.02)
     expect(c[RL]! / 8000).toBeLessThan(0.2)
   })
 })
@@ -374,16 +392,19 @@ describe('Sable', () => {
     expect(floored([0.6, 0.4], 0.03)).toEqual([0.6, 0.4])
   })
 
-  test('after five kicks to one zone its keeper answers that zone over 97%', () => {
+  test('after five kicks to one zone its keeper answers that zone at its 80% cap and never more', () => {
     for (const z of [TL, TR, C, BL, BR]) {
       const hist: KickView[] = []
       for (let i = 0; i < 5; i++) hist.push(view(false, z, STAY), view(true, C, LH))
       const c = draws('champion', obs('keeper', hist.slice(0, 9)), 3000)
-      expect(c[COVER[z]!]! / 3000).toBeGreaterThan(0.97)
+      const share = c[COVER[z]!]! / 3000
+      // The cap is 0.8, plus that dive's own equilibrium share of the other 0.2: a read never becomes a pure pick.
+      expect(share).toBeGreaterThan(0.8)
+      expect(share).toBeLessThan(0.8 + 0.2 * EQ_KEEPER[COVER[z]!]! + 0.03)
     }
   })
 
-  test('after five dives to one side its shooter goes to the other side over 95%', () => {
+  test('after five dives to one side its shooter goes to the other side about 80% of the time', () => {
     for (const [dive, zones] of [
       [LH, [TR, MR, BR, TM, BM]],
       [RL, [TL, ML, BL, TM, BM]],
@@ -391,15 +412,18 @@ describe('Sable', () => {
       const hist: KickView[] = []
       for (let i = 0; i < 5; i++) hist.push(view(true, C, dive), view(false, C, STAY))
       const c = draws('champion', obs('shooter', hist.slice(0, 9)), 3000)
-      expect(zones.reduce((a: number, z: number) => a + c[z]!, 0) / 3000).toBeGreaterThan(0.95)
+      const side = zones.reduce((a: number, z: number) => a + c[z]!, 0) / 3000
+      expect(side).toBeGreaterThan(0.8)
+      expect(side).toBeLessThan(0.95)
     }
   })
 
-  test('a keeper facing TL TR TL TR TL covers top right over 97%', () => {
+  test('a keeper facing TL TR TL TR TL covers top right at its 80% cap and never more', () => {
     const zones = [TL, TR, TL, TR, TL]
     const hist = zones.flatMap((z): KickView[] => [view(false, z, STAY), view(true, C, STAY)]).slice(0, 9)
     const c = draws('champion', obs('keeper', hist), 3000)
-    expect(c[RH]! / 3000).toBeGreaterThan(0.97)
+    expect(c[RH]! / 3000).toBeGreaterThan(0.8)
+    expect(c[RH]! / 3000).toBeLessThan(0.8 + 0.2 * EQ_KEEPER[RH]! + 0.03)
   })
 
   test('with no history no side is favoured, whatever the salt', () => {
@@ -473,7 +497,10 @@ describe('Sable', () => {
     ['alternate', [BL, TR, BL, TR, BL, TR], [2, 2, 2, 2, 2, 2], LL],
     ['mirror', [TL, TR, TL, TR, TL, TL], [2, 2, 2, 2, 2, 2], RH],
     ['copies my last', [TL, TR, TL, TL, TR, TR], [RH, LH, LH, RH, RH, LH], LH],
-    ['avoids my last', [TR, BL, BR, TR, BL, BR], [LH, LH, LH, LH, LH, LH], STAY],
+    ['same as three back', [TL, BR, TR, TL, BR, TR, TL, BR, TR], [2, 2, 2, 2, 2, 2, 2, 2, 2], LH],
+    ['same as four back', [TL, TR, BL, BR, TL, TR, BL, BR], [2, 2, 2, 2, 2, 2, 2, 2], LH],
+    // Ten kicks that never touch the zones the equilibrium uses or the zone my dive covers: only this shape explains them.
+    ['avoids my last', [TM, ML, BM, MR, ML, TM, MR, BM, TM, BM], [LH, LH, LH, LH, LH, LH, LH, LH, LH, LH], STAY],
   ]
   for (const [name, opp, mine, dive] of keeperShapes) {
     test(`keeper reads the "${name}" habit`, () => {
@@ -494,6 +521,8 @@ describe('Sable', () => {
     ['alternate', [LL, RL, LL, RL, LL, RL], [C, C, C, C, C, C], BR],
     ['mirror', [LH, RH, LH, RH, LH, LH], [C, C, C, C, C, C], BL],
     ['copies my last', [STAY, RL, RL, RL, RL, RL], [BR, BR, BR, BR, BR, TL], BL],
+    ['same as three back', [LH, RL, STAY, LH, RL, STAY, LH, RL, STAY], [C, C, C, C, C, C, C, C, C], BR],
+    ['same as four back', [LH, RL, STAY, RH, LH, RL, STAY, RH], [C, C, C, C, C, C, C, C], BR],
     ['avoids my last', [LH, RH, LH, RH, LH, RH], [BR, TL, BR, TL, BR, TL], BR],
   ]
   for (const [name, opp, mine, zone] of shooterShapes) {
@@ -504,6 +533,29 @@ describe('Sable', () => {
       expect(bestShooter(predict(DIVE_HABITS, s.oppDives, s.myKicks).out)).toEqual(zoneAt(zone))
     })
   }
+
+  test('keeper reads a shooter who copies my dive from two kicks back', () => {
+    // The shooter's kick t is a zone that my dive t-2 covers.
+    const mine = [LH, RL, RH, LL, STAY, LH, RL, RH, LL, STAY]
+    const zoneCovered = (d: number) => COVER.indexOf(d)
+    const opp = mine.map((_, t) => (t < 2 ? C : zoneCovered(mine[t - 2]!)))
+    const hist = opp.map((z, t) => view(false, z, mine[t]!))
+    const s = streamsOf(hist)
+    const read = predict(KICK_HABITS, s.oppKicks, s.myDives).out
+    // The next kick is the zone my dive from two back (mine[8]) covers; only this shape says so, the others leave it near 0.16.
+    expect(read[zoneCovered(mine[8]!)]!).toBeGreaterThan(0.8)
+    const without = predict(KICK_HABITS.filter((_, h) => h !== KICK_HABITS.length - 2), s.oppKicks, s.myDives).out
+    expect(without[zoneCovered(mine[8]!)]!).toBeLessThan(0.3)
+  })
+
+  test('Sable never plays a pure pick: even after a long run of one habit every choice keeps a real share, in both roles', () => {
+    const kicks: KickView[] = []
+    for (let i = 0; i < 9; i++) kicks.push(view(false, TL, STAY), view(true, C, LH))
+    const k = exactMix('champion', obs('keeper', kicks.slice(0, 17)))
+    expect(Math.max(...k)).toBeLessThanOrEqual(0.8 + 0.2 * EQ_KEEPER[RH]! + 1e-9)
+    const sh = exactMix('champion', obs('shooter', Array.from({ length: 17 }, () => view(true, C, LH))))
+    expect(Math.max(...sh)).toBeLessThanOrEqual(0.8 + 0.2 * 0.2525 + 1e-9)
+  })
 
   test('reads habits only inside the match it is given: an empty history is the same whatever came before', () => {
     const rngA = makeRng(21)

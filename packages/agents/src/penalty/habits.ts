@@ -22,6 +22,16 @@ export function mirrorDive(d: number): number {
   return d === 2 ? 2 : d < 2 ? d + 3 : d - 3
 }
 
+/** The same side, the other row: top and bottom swap, the middle row and the centre stay. */
+export function flipZone(z: number): number {
+  return z < 3 ? z + 6 : z >= 6 ? z - 6 : z
+}
+
+/** The same side, high for low and low for high; a stay stays. */
+export function flipDive(d: number): number {
+  return d === 2 ? 2 : d % 3 === 0 ? d + 1 : d - 1
+}
+
 /** 0 left, 1 stay, 2 right. */
 export function sideOfDive(d: number): 0 | 1 | 2 {
   return d === 2 ? 1 : d < 2 ? 0 : 2
@@ -117,11 +127,11 @@ function softOf(d: readonly number[]): Dist {
 }
 
 /**
- * Eleven habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's distribution
+ * Fourteen habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's distribution
  * from the stream so far (`prev`) and from what I did alongside it (`mine`). Index 0 is the equilibrium. `echo` turns one of my
  * choices into the opponent's choices that follow it, for the "copies my last" and "avoids my last" shapes.
  */
-function habitShapes(eq: readonly number[], favourites: readonly number[], mirror: (x: number) => number, echo: (m: number) => Dist): Hypothesis[] {
+function habitShapes(eq: readonly number[], favourites: readonly number[], mirror: (x: number) => number, flip: (x: number) => number, echo: (m: number) => Dist): Hypothesis[] {
   const n = eq.length
   const soft = (i: number) => softOf(one(i, n))
   return [
@@ -130,7 +140,12 @@ function habitShapes(eq: readonly number[], favourites: readonly number[], mirro
     (p) => (p.length ? soft(p[p.length - 1]!) : eq), // repeat
     (p) => (p.length >= 2 ? soft(p[p.length - 2]!) : eq), // alternate
     (p) => (p.length ? soft(mirror(p[p.length - 1]!)) : eq), // mirror
+    (p) => (p.length ? soft(flip(p[p.length - 1]!)) : eq), // other row, same side
+    (p) => (p.length ? soft(mirror(flip(p[p.length - 1]!))) : eq), // diagonal: other side, other row
+    (p) => (p.length >= 3 ? soft(p[p.length - 3]!) : eq), // same as three back
+    (p) => (p.length >= 4 ? soft(p[p.length - 4]!) : eq), // same as four back
     (_p, m) => (m.length ? softOf(echo(m[m.length - 1]!)) : eq), // copies my last
+    (_p, m) => (m.length >= 2 ? softOf(echo(m[m.length - 2]!)) : eq), // copies my choice from two back
     (_p, m) => {
       // avoids my last
       if (!m.length) return eq
@@ -149,13 +164,17 @@ function zonesOfDive(dive: number): Dist {
 }
 
 /** Shapes for a stream of kicks (the shooter's choices, read beside my dives) and for a stream of dives (read beside my kicks). */
-export const KICK_HABITS: Hypothesis[] = habitShapes(EQ_SHOOTER, [...CORNERS, 4], mirrorZone, zonesOfDive)
-export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER, [0, 1, 2, 3, 4], mirrorDive, (z) => one(COVER[z]!, DIVE_COUNT))
+export const KICK_HABITS: Hypothesis[] = habitShapes(EQ_SHOOTER, [...CORNERS, 4], mirrorZone, flipZone, zonesOfDive)
+export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER, [0, 1, 2, 3, 4], mirrorDive, flipDive, (z) => one(COVER[z]!, DIVE_COUNT))
 
-/** Equilibrium 0.5, the others share the rest. */
+/** Prior that a stream is plain equilibrium play. High on purpose: with a dozen shapes some shape fits any short noisy stream, and a lower prior made Sable commit to coincidences. */
+const PRIOR_EQ = 0.8
+
+/** Equilibrium PRIOR_EQ, the others share the rest. */
 function prior(n: number): number[] {
-  const p: number[] = new Array<number>(n).fill(0.5 / (n - 1))
-  p[0] = 0.5
+  const P0 = PRIOR_EQ
+  const p: number[] = new Array<number>(n).fill((1 - P0) / (n - 1))
+  p[0] = P0
   return p
 }
 
@@ -178,3 +197,6 @@ export function predict(shapes: Hypothesis[], observed: number[], mine: number[]
   }
   return { out, eqP: post[0]! }
 }
+
+/** Vesper's small pattern reader for kicks: equilibrium, repeat, alternate, same as three back, same as four back (indexes into KICK_HABITS). */
+export const VESPER_SHAPES: Hypothesis[] = [0, 6, 7, 11, 12].map((i) => KICK_HABITS[i]!)

@@ -37,7 +37,7 @@ export function learnCopy(i: { game: GameId; learns: boolean; champion: Champion
   if (i.game === 'penalty') {
     return {
       title: `${name} is a hand-written habit reader with nothing to train.`,
-      body: `${name} is not a learned model: each level is a small program that reads the kicks and dives so far in this match, so there is nothing to train. Your match is recorded for your report and the board.`,
+      body: `${name} is not a learned model: Pip keeps a favourite corner and a favourite dive; the other three are small programs that read the kicks and dives so far in this match. There is nothing to train. Your match is recorded for your report and the board.`,
     }
   }
   if (i.game === 'fleet' || i.game === 'slack') {

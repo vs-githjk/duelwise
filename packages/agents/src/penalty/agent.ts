@@ -3,12 +3,12 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng, Seat } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
-import { bestKeeper, bestShooter, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
-import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, PIP_SHOOTER } from './levels'
+import { bestKeeper, bestShooter, VESPER_SHAPES, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
+import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, PIP_SHOOTER, VESPER_SWAP } from './levels'
 
 /**
  * Twelve Yards agent: four habit levels, each a small scripted reader of the opponent's last kicks. Pip has one favourite corner
- * and one favourite dive. Marlow echoes the last kick. Vesper expects a pattern. Sable weighs eleven habit shapes and answers the
+ * and one favourite dive. Marlow echoes the last kick. Vesper expects a pattern. Sable weighs fourteen habit shapes and answers the
  * likeliest, staying near the equilibrium mix when nothing stands out.
  *
  * choosePenaltyAction is pure: the action depends on the level, the observation, the rng state and the salt, and nothing is kept
@@ -41,6 +41,11 @@ function favourites(salt: number): { shoot: number; dive: number; side: 0 | 2 } 
   return { shoot: CORNERS[h & 3]!, dive: SIDE_DIVES[(h >>> 2) & 3]!, side: (h >>> 4) & 1 ? 2 : 0 }
 }
 
+/** The corner above or below this one (top row 0 and 2, bottom row 6 and 8). */
+function otherRow(corner: number): number {
+  return corner < 3 ? corner + 6 : corner - 6
+}
+
 /** Pip's kicks: a favourite corner, its mirror, a little on the other corners, the centre and the edge zones. Stateless, so nothing it saw changes it. */
 function pipShooter(fav: number): Dist {
   const d = new Array<number>(ZONE_COUNT).fill(PIP_SHOOTER.edge)
@@ -61,7 +66,7 @@ function pipKeeper(fav: number): Dist {
   return d
 }
 
-function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
+export function levelDist(level: Level, obs: PenaltyObs, salt: number): Dist {
   const cfg = PENALTY_LEVELS[level]
   const shooter = obs.role === 'shooter'
   const eq = shooter ? EQ_SHOOTER : EQ_KEEPER
@@ -75,7 +80,7 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
     case 'marlow': {
       if (shooter) {
         // Goes away from the side the keeper dived to most, at the favourite corner's height; the first kick is the favourite.
-        if (!s.oppDives.length) return zone(fav.shoot)
+        if (!s.oppDives.length) return mix(zone(fav.shoot), eq, cfg.kickRead)
         let left = 0
         let right = 0
         for (const d of s.oppDives) {
@@ -91,10 +96,16 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
     }
     case 'vesper': {
       if (shooter) {
-        // Swaps corners every kick: strong, and predictable on purpose.
-        if (!s.myKicks.length) return zone(fav.shoot)
-        const last = s.myKicks[s.myKicks.length - 1]!
-        return mix(zone(last % 3 === 1 ? fav.shoot : mirrorZone(last)), eq, cfg.kickRead)
+        // Leans towards a swap of corners, but a loose one: the other side of the goal in either row, or the other row on the same side, or a repeat.
+        const last = s.myKicks.length ? s.myKicks[s.myKicks.length - 1]! : fav.shoot
+        const from = CORNERS.includes(last as (typeof CORNERS)[number]) ? last : fav.shoot
+        const across = mirrorZone(from)
+        const swap = new Array<number>(ZONE_COUNT).fill(0)
+        swap[across] += VESPER_SWAP.across
+        swap[otherRow(across)] += VESPER_SWAP.acrossOtherRow
+        swap[otherRow(from)] += VESPER_SWAP.sameSideOtherRow
+        swap[from] += VESPER_SWAP.repeat
+        return mix(swap, eq, cfg.kickRead)
       }
       if (!s.oppKicks.length) return [...EQ_KEEPER]
       const cnt = new Array<number>(ZONE_COUNT).fill(0)
@@ -102,13 +113,16 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
       const common = cnt.indexOf(Math.max(...cnt))
       const n = s.oppKicks.length
       const pred = n >= 2 && s.oppKicks[n - 1] !== s.oppKicks[n - 2] ? s.oppKicks[n - 2]! : common
-      return mix(dive(COVER[pred]!), eq, cfg.read)
+      // Mostly the rule above, with a share of a small pattern reader (repeat, alternate, three back, four back) so that a loop of corners does not beat the rule every time.
+      const { out, eqP } = predict(VESPER_SHAPES, s.oppKicks, s.myDives)
+      const reader = mix(bestKeeper(out, fav.side), eq, Math.min(cfg.read, 1 - eqP))
+      return mix(reader, mix(dive(COVER[pred]!), eq, cfg.read), cfg.reader)
     }
     case 'sable': {
       const stream = shooter ? s.oppDives : s.oppKicks
       if (!stream.length) return floored(eq, OPEN_FLOOR)
       const { out, eqP } = shooter ? predict(DIVE_HABITS, s.oppDives, s.myKicks) : predict(KICK_HABITS, s.oppKicks, s.myDives)
-      const conf = Math.min(1, (1 - eqP) * cfg.weight)
+      const conf = Math.min(cfg.cap, (1 - eqP) * cfg.weight)
       return mix(shooter ? bestShooter(out, fav.side) : bestKeeper(out, fav.side), eq, conf)
     }
   }
@@ -117,7 +131,7 @@ function distFor(level: Level, obs: PenaltyObs, salt: number): Dist {
 /** This level's pick now: a zone 0..8 as shooter, a dive 0..4 as keeper. Reads only `obs`; draws from `rng`; `salt` fixes the favourites of Pip, Marlow and Vesper, and breaks Sable's left/right ties. */
 export function choosePenaltyAction(level: Level, obs: PenaltyObs, rng: Rng, salt: number): number {
   if (obs.role === null) throw new Error('penalty: no action once the shootout is over')
-  return pick(distFor(level, obs, salt), rng)
+  return pick(levelDist(level, obs, salt), rng)
 }
 
 /** The seat's mixed seed: the match seed with the seat folded in, so two agents of the same level do not draw the same numbers or pick the same favourites. */
