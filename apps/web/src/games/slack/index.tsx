@@ -87,23 +87,18 @@ export default function SlackPage() {
     setRatedLive(ratedLive)
     return () => setRatedLive(false)
   }, [ratedLive])
-  // On a short phone the Place bar can start below the fold. Before the first paint of a match, scroll just far enough to bring it on screen (instant, so nothing is
-  // seen to move); where it already fits, nothing scrolls and the page stays exactly where it was.
-  // On a laptop a match opens at the top of the page, whatever the setup page was scrolled to (the header and HUD must not start above the screen). The page is
-  // still settling on the first frame (the notice takes its compact size), so the bar is measured two frames later, and only a screen too short for it scrolls.
+  // A match opens at the top of the page, whatever the setup page was scrolled to, so the header and HUD are on screen (instant, once per start). The page is
+  // still settling on the first frame (the notice takes its compact size), so the Place bar is measured two frames later; only a screen too short for it
+  // scrolls down, just far enough to bring the bar on screen.
   useLayoutEffect(() => {
     if (match.phase !== 'playing') return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     const reveal = () => {
       const bar = document.querySelector('[data-testid="slack-action"]')
       if (!bar) return
       const over = bar.getBoundingClientRect().bottom - window.innerHeight + 8
       if (over > 0) window.scrollBy({ top: over, behavior: 'instant' })
     }
-    if (window.innerWidth < 1024) {
-      reveal()
-      return
-    }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     let raf = requestAnimationFrame(() => {
       raf = requestAnimationFrame(reveal)
     })

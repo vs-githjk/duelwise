@@ -10,8 +10,6 @@ const GAMES = [
 
 for (const g of GAMES) {
   for (const [vw, vh, practice] of [[1280, 800, false], [1366, 657, true], [390, 844, false]] as const) {
-    // Crosscurrent keeps its own phone path (it reveals the Place bar), so a phone is chess and Four only
-    if (vw < 1024 && g.name === 'crosscurrent') continue
     for (const reduce of [false, true]) {
       test(`${g.name} opens at the top after Start from the lowest level, ${vw} by ${vh}${practice ? ', Practice' : ''}${reduce ? ', reduced motion' : ''}`, async ({ page }) => {
         await page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })

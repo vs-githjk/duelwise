@@ -4,8 +4,9 @@ import { expect, test, type Page } from '@playwright/test'
  * The installable offline app, against the production build (the service worker is registered only there).
  * Run: PORT=<free port> bunx playwright test -c playwright.prod.config.ts e2e-prod/pwa-offline.spec.ts --workers=1
  *
- * Flow: open the site online so the worker installs and tickets are issued, go offline, reload Four in a Row and Tinderbox,
- * play a whole Four in a Row match offline, go back online, watch the upload queue drain, and see the match count rise.
+ * Flow: open the site online so the worker installs and the models are cached, go offline, reload Four in a Row and Tinderbox,
+ * play a whole Four in a Row match offline (it is unrated: no game issues offline tickets), go back online, and see that nothing was queued
+ * and the public match count did not move.
  */
 const FOUR = '/play/four-in-a-row'
 const TINDERBOX = '/play/tinderbox'
@@ -70,10 +71,11 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   expect(await page.evaluate(async () => !!(await caches.match('/agents/four/v1/easy.onnx')))).toBe(true)
   expect(await page.evaluate(async () => !!(await caches.match('/play/tinderbox')))).toBe(true)
 
-  // 2. Online: opening the games fills the offline ticket pool (two per level for a level never played).
+  // 2. Online: opening the games issues no offline tickets (offline matches are unrated in every game).
   await page.goto(FOUR)
   await expect(page.getByTestId('four-setup')).toBeVisible()
-  await expect.poll(() => tickets(page, 'four', 'easy'), { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
+  await page.waitForTimeout(3000)
+  expect(await tickets(page, 'four', 'easy')).toBe(0)
   await page.goto(TINDERBOX)
   await expect(page.getByTestId('prematch').or(page.getByTestId('select'))).toBeVisible()
 
@@ -81,7 +83,7 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   await context.setOffline(true)
   await page.goto(TINDERBOX)
   await expect(page.getByTestId('prematch').or(page.getByTestId('select'))).toBeVisible()
-  await expect(page.getByTestId('offline-chip')).toHaveText('Offline: matches will sync later')
+  await expect(page.getByTestId('offline-chip')).toHaveText('Offline: new matches are not rated')
   await page.goto(FOUR)
   await page.reload()
   await expect(page.getByTestId('four-setup')).toBeVisible()
@@ -93,13 +95,11 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   await page.goto(FOUR)
   await expect(page.getByTestId('four-setup')).toBeVisible()
 
-  // 4. Offline: a whole counted-on-sync match, on a ticket.
-  const startUsed = await tickets(page, 'four', 'easy')
+  // 4. Offline: a whole match plays from the cache. It is unrated, says why, and nothing is queued for upload.
   await page.getByRole('radio', { name: /Easy/ }).check()
   await page.getByRole('button', { name: 'Start match' }).click()
   await expect(page.getByTestId('four-board')).toBeVisible()
   await expect(page.getByTestId('four-board')).toHaveAttribute('data-turn', 'you')
-  expect(await tickets(page, 'four', 'easy')).toBe(startUsed - 1)
   for (let i = 0; i < 44; i++) {
     if (await page.getByTestId('result-panel').isVisible()) break
     await expect(page.getByTestId('four-board')).toHaveAttribute('data-turn', /you|over/)
@@ -111,20 +111,18 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   }
   await expect(page.getByTestId('result-panel')).toBeVisible()
   await expect(page.getByTestId('four-record')).toHaveAttribute('data-record-ok', 'true')
-  await expect(page.getByTestId('result-upload')).toContainText('Saved on this device')
-  await expect(page.getByTestId('result-unrated')).toHaveCount(0)
-  await expect.poll(() => queued(page)).toBe(1)
+  await expect(page.getByTestId('result-unrated')).toContainText('not counted')
+  expect(await queued(page)).toBe(0)
 
-  // 5. Online again: the queue drains by itself and the page says the match now counts.
+  // 5. Online again: the chip goes away by itself and still nothing is queued.
   await context.setOffline(false)
   // The chip checks the server every 4 s while offline, so allow a few rounds on a busy machine.
   await expect(page.getByTestId('offline-chip')).toHaveCount(0, { timeout: 40_000 })
-  await expect.poll(() => queued(page), { timeout: 60_000 }).toBe(0)
-  await expect(page.getByTestId('result-upload')).toContainText('now counts', { timeout: 30_000 })
-  await expect(page.getByTestId('result-report-link')).toBeVisible()
+  expect(await queued(page)).toBe(0)
 
-  // 6. The server counted it: the public match count went up by one (the server check finishes a few seconds after the answer).
-  await expect.poll(() => boardCount(page), { timeout: 90_000, intervals: [2000, 3000, 5000] }).toBe(before + 1)
+  // 6. The offline match counted nowhere: the public match count is where it was.
+  await page.waitForTimeout(5000)
+  expect(await boardCount(page)).toBe(before)
 })
 
 test('an update is offered, never forced, and the worker is absent from dev', async ({ page }) => {
