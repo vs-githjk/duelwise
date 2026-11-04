@@ -54,9 +54,9 @@ describe('every real registry: measured or Practice per game and level', () => {
     expect(measuredSet(real('four'))).toEqual(['easy', 'medium', 'hard', 'champion'])
     expect(measuredSet(real('word'))).toEqual(['easy', 'medium', 'hard', 'champion'])
   })
-  test('chess and Hold em were republished on the 400 per seat rule; Hold em Champion stays Practice', () => {
+  test('chess was republished on the 400 per seat rule and Hold em on 1000 deals per seat; both measure all four levels', () => {
     expect(measuredSet(real('chess'))).toEqual(['easy', 'medium', 'hard', 'champion'])
-    expect(measuredSet(real('holdem'))).toEqual(['easy', 'medium', 'hard'])
+    expect(measuredSet(real('holdem'))).toEqual(['easy', 'medium', 'hard', 'champion'])
   })
   test('fighter and arena on this branch: exact sets', () => {
     expect(measuredSet(real('fighter'))).toEqual(['easy', 'medium', 'hard', 'champion'])
