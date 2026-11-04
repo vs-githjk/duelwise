@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Link } from '@tanstack/react-router'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { acknowledgeNotice, getTrainingSettings, saveTrainingAllowed } from '../server/profile-fns'
@@ -82,11 +82,15 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
   }
   const [detail, setDetail] = useState(false)
   const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
+  // Whether the match began offline, fixed when the notice first shrinks to its match line: a match that began online and then lost its connection is still on the server and still sends its record when it can, so only one that began offline is local and unsaved.
+  const beganOffline = useRef<boolean | null>(null)
+  if (!compact) beganOffline.current = null
+  else if (beganOffline.current === null) beganOffline.current = offline
   if (!settings || settings.noticeSeen || hiddenHere) return null
   const copy = trainingNoticeText(game, registryFor(game)?.learnsFromHumans ?? false, PRODUCT.trainingDataBasis)
   if (compact && !detail) {
     // A game with no offline tickets plays a local match while offline: nothing is uploaded, so no report is made either.
-    const noReport = offline && NO_OFFLINE_TICKETS.includes(game)
+    const noReport = beganOffline.current === true && NO_OFFLINE_TICKETS.includes(game)
     const summary = noReport ? 'You are offline: this match is not saved, so there is no report and nothing is used for training.' : copy.trainable ? (settings.trainingAllowed ? 'This match may train the agents.' : 'This match will not be used for training.') : 'This match is recorded for your report, not for training.'
     return (
       <section aria-label="How your matches are used" data-testid="training-notice" data-compact className={cn('flex items-center gap-x-3 rounded-card border border-line bg-surface-2 px-4 py-0.5', className)}>

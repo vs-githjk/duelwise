@@ -99,6 +99,8 @@ function shotSpot(zone: number): { left: string; top: string } {
 const pct = (left: number, top: number) => ({ left: `${left}%`, top: `${top}%` })
 // Below the zone's own label (the picked dive's name is centred in its zone), so the tag never covers it.
 const DIVE_SPOT = [pct(9, 28), pct(9, 52), pct(41, 8), pct(72, 28), pct(72, 52)]
+// The opponent keeper's tag has to stay off the keeper and inside the frame: towards the middle of the goal, away from the side the keeper dived to, above a low dive and under a high one.
+const KEEPER_TAG = [pct(34, 47), pct(34, 31), pct(41, 8), pct(54, 47), pct(54, 31)]
 
 /** A tag beside a shot's cell, kept inside the frame. */
 function tagAt(zone: number): { left: string; top: string } {
@@ -666,7 +668,7 @@ export default function PenaltyPage() {
                 <span className="pen-tag" style={lastKick.kicker === human ? tagAt(lastKick.zone) : DIVE_SPOT[lastKick.dive]} aria-hidden="true">
                   You
                 </span>
-                <span className="pen-tag" style={lastKick.kicker === human ? DIVE_SPOT[lastKick.dive] : tagAt(lastKick.zone)} aria-hidden="true">
+                <span className="pen-tag" style={lastKick.kicker === human ? KEEPER_TAG[lastKick.dive] : tagAt(lastKick.zone)} aria-hidden="true">
                   {name}
                 </span>
               </>

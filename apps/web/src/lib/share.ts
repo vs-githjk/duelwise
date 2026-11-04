@@ -35,7 +35,7 @@ export function marginOf(f: Pick<ShareFacts, 'game' | 'result' | 'humanSeat' | '
     case 'penalty': {
       const mine = result.score?.[humanSeat]
       const theirs = result.score?.[(1 - humanSeat) as Seat]
-      return typeof mine === 'number' && typeof theirs === 'number' ? `${Math.max(mine, theirs)} goals to ${Math.min(mine, theirs)}` : null
+      return typeof mine === 'number' && typeof theirs === 'number' ? `${Math.max(mine, theirs)} to ${Math.min(mine, theirs)}` : null
     }
     case 'fighter':
     case 'arena': {
@@ -61,6 +61,7 @@ export function shareText(f: ShareFacts): string {
   const when = `${MONTHS[d.getMonth()]} ${d.getDate()}`
   let line2: string
   if (drew) line2 = `${called}Drew with ${opp}.`
+  else if (f.game === 'penalty' && margin) line2 = won ? `${called}Won ${margin} against ${opp}.${f.rank ? ` #${f.rank.place} of ${f.rank.of}.` : ''}` : `${called}${opp} won ${margin}.`
   else if (won) line2 = `${called}Beat ${opp}${margin ? ` in ${margin}` : ''}.${f.rank ? ` #${f.rank.place} of ${f.rank.of}.` : ''}`
   else line2 = `${called}${opp} took it${margin ? ` in ${margin}` : ''}.`
   const slug = PRODUCT.games[f.game].slug

@@ -273,16 +273,45 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     expect(clock).toMatch(/^\d+:\d\d$/)
   })
 
-  test('offline, the notice says nothing is saved and no report is made, instead of promising a report', async ({ page, context }) => {
-    test.setTimeout(60_000)
+  test('the notice is true offline: a match that began online and lost its connection still says its record is kept (it is sent later), one that began offline says nothing is saved', async ({ page, context }) => {
+    test.setTimeout(90_000)
+    // Began online, then offline mid-match: the match is on the server, so the line must not claim "not saved".
     await startPractice(page, 0, 5)
     const notice = page.getByTestId('training-notice')
     await expect(notice).toContainText('recorded for your report')
     await context.setOffline(true)
-    await expect(notice).toContainText('offline')
-    await expect(notice).not.toContainText('recorded for your report')
-    await context.setOffline(false)
+    await expect(page.getByTestId('offline-chip').or(page.getByTestId('penalty-offline-slot'))).toBeVisible()
     await expect(notice).toContainText('recorded for your report')
+    await expect(notice).not.toContainText('not saved')
+    await context.setOffline(false)
+    // Began offline: a local match, no server row, no report.
+    await page.goto(`${URL}?seed=7&side=0`)
+    await expect(page.getByTestId('penalty-setup')).toBeVisible()
+    await page.locator('[data-mode-option="practice"]').click()
+    await expect(page.getByTestId('penalty-start')).toBeEnabled()
+    await page.waitForTimeout(800)
+    await context.setOffline(true)
+    await page.getByTestId('penalty-start').click()
+    await expect(scene(page)).toBeVisible()
+    await expect(page.getByTestId('training-notice')).toContainText('You are offline: this match is not saved')
+    await context.setOffline(false)
+    // Back online, the same local match still says so: it never had a server row.
+    await expect(page.getByTestId('training-notice')).toContainText('not saved')
+  })
+
+  test('chess: a match that began online and goes offline keeps saying its record is kept for the report', async ({ page, context }) => {
+    test.setTimeout(120_000)
+    await page.goto('/play/chess?seed=3')
+    await page.getByRole('radio', { name: /Easy/ }).check()
+    await page.getByRole('button', { name: 'Start match' }).click()
+    await expect(page.getByTestId('chess-board')).toHaveAttribute('data-turn', 'you', { timeout: 90_000 })
+    const notice = page.getByTestId('training-notice')
+    await expect(notice).toContainText('report')
+    await context.setOffline(true)
+    await page.waitForTimeout(600)
+    await expect(notice).not.toContainText('not saved')
+    await expect(notice).toContainText('report')
+    await context.setOffline(false)
   })
 
   test('the You tag never covers the name of the dive you picked', async ({ page }) => {
@@ -309,6 +338,47 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
       expect(overlap.label, 'the dive name is on the screen').toBeGreaterThan(10)
       expect(overlap.w > 0 && overlap.h > 0, `the You tag overlaps the dive name (${JSON.stringify(overlap)})`).toBe(false)
     }
+  })
+
+  test('the opponent keeper\'s name tag stays off the keeper and above the goal line, for every dive it makes', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 375, height: 667 })
+    await startPractice(page, 0, 5)
+    const seen = new Set<number>()
+    for (let kick = 0; kick < 10 && !(await page.getByTestId('penalty-result').count()); kick += 2) {
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      const z = page.getByTestId(`penalty-zone-${[0, 8, 6, 2, 3][(kick / 2) % 5]}`)
+      await z.click()
+      await z.click()
+      await expect(scene(page)).toHaveAttribute('data-beat', 'hit', { timeout: 5000 })
+      await page.waitForTimeout(200)
+      const r = await page.evaluate(() => {
+        const rect = (el: Element | null | undefined) => el?.getBoundingClientRect()
+        const sc = document.querySelector('[data-testid="penalty-scene"]')!
+        const tag = [...sc.querySelectorAll('.pen-tag')].find((t) => t.textContent?.trim() !== 'You')
+        const keeper = rect(sc.querySelector('.pen-keeper-svg'))
+        const frame = rect(sc.querySelector('.pen-frame'))
+        const t = rect(tag)
+        if (!t || !keeper || !frame) return null
+        const w = Math.min(t.right, keeper.right) - Math.max(t.left, keeper.left)
+        const h = Math.min(t.bottom, keeper.bottom) - Math.max(t.top, keeper.top)
+        return { overlapW: w, overlapH: h, tagBottom: t.bottom, goalLine: frame.bottom, tagLeft: t.left, tagRight: t.right, frameLeft: frame.left, frameRight: frame.right, dive: Number((sc.querySelector('.pen-mark-dive') as HTMLElement | null)?.dataset.dive ?? -1) }
+      })
+      expect(r, 'the keeper tag is on screen').not.toBeNull()
+      seen.add(r!.dive)
+      expect(r!.overlapW > 2 && r!.overlapH > 2, `the tag sits on the keeper (${JSON.stringify(r)})`).toBe(false)
+      expect(r!.tagBottom, `the tag is above the goal line (${JSON.stringify(r)})`).toBeLessThanOrEqual(r!.goalLine + 1)
+      expect(r!.tagLeft).toBeGreaterThanOrEqual(r!.frameLeft - 1)
+      expect(r!.tagRight).toBeLessThanOrEqual(r!.frameRight + 1)
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      if (await page.getByTestId('penalty-result').count()) break
+      // The opponent's kick in between: take a dive pick and move on.
+      const d = page.getByTestId('penalty-zone-2')
+      await d.click()
+      await d.click()
+      await expect(scene(page)).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+    }
+    expect(seen.size, 'more than one kind of dive was checked').toBeGreaterThanOrEqual(1)
   })
 
   test('the report on a fixture shootout: the kick map, the habit line, named moments, owner and public, no overflow at 390', async ({ page }) => {

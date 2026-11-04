@@ -19,3 +19,13 @@ test('margins in each unit and no dashes anywhere', () => {
   expect(marginOf({ game: 'holdem', result: { winner: 0, score: [0, 0], reason: 'fold' }, humanSeat: 0, humanMoves: 0 })).toBeNull()
   expect(/[\u2013\u2014]/.test(shareText(win))).toBe(false)
 })
+
+test('Twelve Yards share text says the score, "Won 2 to 1", never "goals to" or "Beat in"', () => {
+  const pen: ShareFacts = { game: 'penalty', level: 'champion', call: null, result: { winner: 0, score: [2, 1], reason: 'more goals' }, humanSeat: 0, humanMoves: 5, rank: null, date: d, host: 'duelwise.app' }
+  expect(marginOf(pen)).toBe('2 to 1')
+  expect(shareText(pen).split('\n')[1]).toBe('Won 2 to 1 against Sable.')
+  expect(shareText({ ...pen, rank: { place: 3, of: 40 } }).split('\n')[1]).toBe('Won 2 to 1 against Sable. #3 of 40.')
+  expect(shareText({ ...pen, result: { winner: 1, score: [1, 2], reason: 'more goals' } }).split('\n')[1]).toBe('Sable won 2 to 1.')
+  expect(shareText({ ...pen, humanSeat: 1, result: { winner: 1, score: [1, 2], reason: 'more goals' } }).split('\n')[1]).toBe('Won 2 to 1 against Sable.')
+  expect(shareText(pen)).not.toMatch(/goals/)
+})
