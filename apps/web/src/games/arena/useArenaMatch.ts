@@ -6,7 +6,7 @@ import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import type { Level } from '@duelwise/core/src/product'
 import type { Seat } from '@duelwise/core/src/types'
 import { createAgent, type RuntimeAgent } from '@duelwise/agents/src/runtime/agent'
-import { seatView, viewDue, FRAME_SKIP } from '@duelwise/agents/src/arena/view'
+import { buyIdle, seatView, viewDue, FRAME_SKIP } from '@duelwise/agents/src/arena/view'
 import type { ArenaReply } from '@duelwise/agents/src/arena/agent'
 import { play, registerSounds, getVolume, isMuted, subscribeAudio } from '../../lib/audio'
 import { playStinger } from '../../lib/music'
@@ -538,7 +538,8 @@ export function useArenaMatch(agentVersion: (level: Level) => string, learnsFrom
         const roundEnd = s.phase === PHASE.ROUND_END
         const p0 = roundEnd ? 0 : packInput(s.phase === PHASE.BUY ? mine : mine)
         let p1 = 0
-        if (!roundEnd) {
+        // After its last buy decision the opponent stands still until the round starts, as in training (buyIdle).
+        if (!roundEnd && !buyIdle(s.frame, l.anchor, s.phase)) {
           if (l.agentFirst !== null) {
             p1 = l.agentFirst
             l.agentFirst = null

@@ -9,7 +9,7 @@ import { LEVEL_LIMITS, type LimiterConfig } from '@duelwise/core/src/limiter'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import { createGameAgent, type ArenaReply, type ArenaTick } from '../arena/agent'
-import { ArenaSeatInput, seatView, viewDue } from '../arena/view'
+import { ArenaSeatInput, buyIdle, seatView, viewDue } from '../arena/view'
 import { writeRegistry, type Registry } from '../registry'
 import { buildGameRegistry, GATE_MATCHES, gateLevel, type BotRow, type GameGate, type PublishInput } from './fighter'
 import { wilson } from './ladder'
@@ -116,8 +116,11 @@ export async function recordArenaGame(a: ArenaSeatPlan, b: ArenaSeatPlan, seed: 
         rec.decisions.push([s.frame, input.move, flagBits(input)])
         if (s.phase === PHASE.LIVE) rec.aim.push([input.yaw, input.pitch])
       }
-      const inputs = [0, 1].map((seat) => (s.phase === PHASE.ROUND_END ? 0 : (queue[seat]!.shift() ?? rest[seat]!)))
-      if (s.phase !== PHASE.ROUND_END) for (const seat of [0, 1]) if (meters[seat]!.feed(inputs[seat]!)) seats[seat]!.pressFrames.push(s.frame)
+      const idle = buyIdle(s.frame, anchor, s.phase)
+      const inputs = [0, 1].map((seat) => (s.phase === PHASE.ROUND_END || idle ? 0 : (queue[seat]!.shift() ?? rest[seat]!)))
+      // The meter skips the frames the sim idles a seat (the round end and the rest of a buy phase): the limiter keeps the held input across them, as
+      // the env does, so pressing it again when the seat's turn comes back is not a new press by the agent.
+      if (s.phase !== PHASE.ROUND_END && !idle) for (const seat of [0, 1]) if (meters[seat]!.feed(inputs[seat]!)) seats[seat]!.pressFrames.push(s.frame)
       stepPacked(s, inputs[0]!, inputs[1]!)
       frames++
     }

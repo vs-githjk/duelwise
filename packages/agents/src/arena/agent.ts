@@ -23,6 +23,8 @@ export interface ArenaAgentOpts extends AgentOpts {
   onObserve?: (sourceFrame: number) => void
   /** Limiter override. Tests only: a negative probe builds the agent without its level's delay or aim limit. */
   limits?: LimiterConfig
+  /** Take the likeliest action at every decision instead of sampling (tests that compare a run with the training env frame for frame). */
+  greedy?: boolean
 }
 
 /** What the page passes as `state`: the sim frame, the frame the current phase began, the phase and this seat's weapon. */
@@ -66,9 +68,10 @@ async function loadModel(level: Level): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer())
 }
 
-function sample(logits: Float32Array, rng: Rng): number {
+function sample(logits: Float32Array, rng: Rng, greedy = false): number {
   let max = -Infinity
   for (let i = 0; i < logits.length; i++) max = Math.max(max, logits[i]!)
+  if (greedy) return logits.indexOf(max)
   let sum = 0
   const p = new Float64Array(logits.length)
   for (let i = 0; i < logits.length; i++) {
@@ -121,7 +124,7 @@ export async function createGameAgent(level: Level, opts: ArenaAgentOpts = {}): 
       const logits = Object.values(out)
       if (logits.length < nvec.length || nvec.some((n, d) => logits[d]!.length !== n)) throw new Error('arena model has the wrong action heads')
       const heads = new Int32Array(nvec.length)
-      for (let d = 0; d < heads.length; d++) heads[d] = sample(logits[d]!, rng)
+      for (let d = 0; d < heads.length; d++) heads[d] = sample(logits[d]!, rng, opts.greedy)
       if (badHead(heads, 0) >= 0) throw new Error('arena model produced an illegal action')
       const [first, later] = hands.decide(heads, tick.frame, tick.phase, tick.weapon)
       rest = later

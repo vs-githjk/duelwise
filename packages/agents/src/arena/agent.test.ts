@@ -11,7 +11,7 @@ import { nextSeed } from '@duelwise/core/src/bridge/env-host'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Level } from '@duelwise/core/src/product'
 import { createGameAgent, PRACTICE_MODELS, PUBLISHED_V1, type ArenaReply } from './agent'
-import { ArenaSeatInput, BUY_DECISIONS, FRAME_SKIP, OBS_FEATURES, seatView, V2_FEATURES, viewDue } from './view'
+import { ArenaSeatInput, BUY_DECISIONS, buyIdle, FRAME_SKIP, OBS_FEATURES, seatView, V2_FEATURES, viewDue } from './view'
 
 /** Exported from the b2 gated Hard snapshot (step 14,024,704) with training/trainer/ppo/export.py: 90 inputs, a move head of 10. */
 const V2_MODEL = join(import.meta.dir, '../../test-fixtures/arena-v2-hard-b2.onnx')
@@ -43,7 +43,7 @@ async function drive(level: Level, seed: number, frames: number, modelBytes?: Ui
       } else expect(r[0]).toBe(r[1])
     }
     const before = s.phase === PHASE.BUY ? -1 : s.players[1].money
-    stepPacked(s, 0, s.phase === PHASE.ROUND_END ? 0 : (queue.shift() ?? rest))
+    stepPacked(s, 0, s.phase === PHASE.ROUND_END || buyIdle(s.frame, anchor, s.phase) ? 0 : (queue.shift() ?? rest))
     if (before >= 0 && s.players[1].money < before) spentOutsideBuy = true
   }
   agent.dispose()
@@ -80,7 +80,7 @@ describe('arena view schedule', () => {
 })
 
 describe('arena agent', () => {
-  test('a level is a preview unless the registry publishes it (Easy now)', async () => {
+  test('a level is a preview unless the registry publishes it (all four are published)', async () => {
     const bytes = new Uint8Array(await Bun.file(V2_MODEL).arrayBuffer())
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const agent = await createGameAgent(level, { modelBytes: bytes })
@@ -89,19 +89,18 @@ describe('arena agent', () => {
     }
     expect(PUBLISHED_V1).toEqual((Object.keys(registry.levels) as Level[]))
     expect((await createGameAgent('easy', { modelBytes: bytes })).preview).toBe(!(Object.keys(registry.levels) as Level[]).includes('easy'))
-    expect((await createGameAgent('medium', { modelBytes: bytes })).preview).toBe(true)
-    expect((await createGameAgent('hard', { modelBytes: bytes })).preview).toBe(true)
-    expect((await createGameAgent('champion', { modelBytes: bytes })).preview).toBe(false)
+    for (const level of ['medium', 'hard', 'champion'] as const) expect((await createGameAgent(level, { modelBytes: bytes })).preview).toBe(!(Object.keys(registry.levels) as Level[]).includes(level))
+    expect(PUBLISHED_V1).toEqual(['easy', 'medium', 'hard', 'champion'])
   })
 
-  test('every level loads a b4 or b3 network: no level is served the old preview net, every file exists, and only the unpublished Medium and Hard are Practice', async () => {
+  test('every level loads a b4 or b3 network: no level is served the old preview net, every file exists, and a level is Practice only when the registry does not publish it', async () => {
     const root = join(import.meta.dir, '../../../../apps/web/public')
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
       const path = PRACTICE_MODELS[level]
       expect(path, level).not.toContain('preview')
       expect(await Bun.file(join(root, path)).exists(), path).toBe(true)
     }
-    // Published levels (KC3) load their own v1 file; Medium runs the Easy network under its own limits, Hard (held) the b3 checkpoint.
+    // Published levels load their own v1 file. These are the files a level falls back to while the registry does not publish it: Medium runs the Easy network under its own limits, Hard the b3 checkpoint.
     expect(PRACTICE_MODELS.easy).toBe('agents/arena/v1/easy.onnx')
     expect(PRACTICE_MODELS.medium).toBe('agents/arena/v1/easy.onnx')
     expect(PRACTICE_MODELS.hard).toBe('agents/arena/practice/hard-b3.onnx')

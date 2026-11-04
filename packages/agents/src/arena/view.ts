@@ -47,6 +47,16 @@ export function viewDue(frame: number, anchor: number, delayFrames: number, phas
   return { capture: since === 0 || (since + delayFrames) % FRAME_SKIP === 0, decide }
 }
 
+/**
+ * True from the end of the last buy decision to the start of the live phase. The training env steps both seats neutral through the rest of the
+ * buy phase (env.ts fastForward), so a runtime that drives a seat from the agent's replies must do the same: holding the last buy decision's
+ * turn and walk through the buy phase's 10 seconds starts the round facing away from where the network was trained to start it
+ * (Hard measured 63 of 100 here against 78 in training for the same network, until this was found).
+ */
+export function buyIdle(frame: number, anchor: number, phase: number): boolean {
+  return phase === PHASE.BUY && frame - anchor >= BUY_DECISIONS * FRAME_SKIP
+}
+
 const flagBits = (i: ArenaInput): number => i.walk + 2 * i.crouch + 4 * i.jump + 8 * i.fire + 16 * i.reload
 const clamp = (v: number, lim: number): number => Math.max(-lim, Math.min(lim, v))
 
