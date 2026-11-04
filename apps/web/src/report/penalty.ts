@@ -99,7 +99,7 @@ export function penaltyReport(rec: MatchRecordV1, sentence: string, opponent: st
     moments.push({
       kind: read * 2 > mine.length ? 'turning' : 'info',
       label: `${opponent} in goal`,
-      tag: 'who guessed your side',
+      tag: 'who guessed the side',
       text: `${opponent} went to the side you shot to on ${read} of your ${mine.length} kicks.${tail('You')}`,
       publicText: `${opponent} went to the side the player shot to on ${read} of the player's ${mine.length} kicks.${tail('The player')}`,
     })

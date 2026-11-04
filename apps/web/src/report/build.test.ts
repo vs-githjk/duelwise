@@ -448,7 +448,7 @@ describe('Twelve Yards report', () => {
     const mine = kicksOf(rec).filter((k) => k.kicker === rec.humanSeat)
     const side = (d: number) => (d === 2 ? 1 : d < 2 ? 0 : 2)
     const read = mine.filter((k) => side(k.dive) === k.zone % 3).length
-    const m = r.moments.find((x) => x.tag === 'who guessed your side')!
+    const m = r.moments.find((x) => x.tag === 'who guessed the side')!
     expect(m.text).toContain(`on ${read} of your ${mine.length} kicks`)
   })
 
