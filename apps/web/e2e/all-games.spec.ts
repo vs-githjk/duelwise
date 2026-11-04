@@ -281,6 +281,34 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     await expectStatsPage(page, 'slack')
   })
 
+  test('penalty: a full Practice shootout is played to the end on the real page, its record is valid, then its stats page renders', async ({ page, baseURL }) => {
+    test.setTimeout(240_000)
+    test.skip(!PLAYABLE.includes('penalty'), `penalty has no page: ${missingReason('penalty')}`)
+    const seen = watchRequests(page)
+    const errors = watchConsole(page)
+    // No ?seed: Twelve Yards has no rated path yet, so every match is Practice and is stored as such.
+    await page.goto(`/play/${slug('penalty')}`)
+    await chooseLevel(page, 'Easy')
+    await page.getByRole('button', { name: 'Start match' }).click()
+    await expect(page.getByTestId('penalty-scene')).toBeVisible()
+    await expect(page.getByTestId('preview-badge')).toHaveCount(1)
+    for (let i = 0; i < 40; i++) {
+      if (await page.getByTestId('result-panel').isVisible()) break
+      if ((await page.getByTestId('penalty-scene').getAttribute('data-reveal')) === null && (await page.getByTestId('penalty-action').count()) > 0) {
+        const zone = page.getByTestId(`penalty-zone-${i % 5}`)
+        await zone.click()
+        await zone.click()
+      }
+      await page.waitForTimeout(400)
+    }
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('penalty-record')).toHaveAttribute('data-record-ok', 'true')
+    await expect(page.getByText('Practice, not rated')).toBeVisible()
+    expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
+    expect(errors).toEqual([])
+    await expectStatsPage(page, 'penalty')
+  })
+
   test('fighter: a fast-forwarded match at the lowest published level finishes with a valid record, then its stats page renders', async ({ page, baseURL }) => {
     test.setTimeout(300_000)
     test.skip(!PLAYABLE.includes('fighter'), `fighter has no page: ${missingReason('fighter')}`)

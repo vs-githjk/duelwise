@@ -32,6 +32,8 @@ beforeAll(async () => {
 })
 afterAll(() => client.close())
 const listed = RATED_NOT_OPEN as GameId[]
+/** What the list holds for real (Twelve Yards until its rated path opens); each test adds Crosscurrent and the list goes back to this after it. */
+const real = [...RATED_NOT_OPEN]
 beforeEach(async () => {
   listed.push('slack')
   await db.execute(sql`truncate table match, guest, rating, profile, "user" cascade`)
@@ -66,11 +68,12 @@ function playSlack(matchId: string, seed: number): MatchRecordV1 {
 
 afterEach(() => {
   listed.length = 0
+  listed.push(...real)
 })
 
 describe('a game with no rated path yet (Crosscurrent, listed for these tests)', () => {
-  test('the list holds the game for the length of a test and is empty again after it', () => {
-    expect([...RATED_NOT_OPEN]).toEqual(['slack'])
+  test('the list holds the game for the length of a test and is as it was after it', () => {
+    expect([...RATED_NOT_OPEN]).toEqual([...real, 'slack'])
   })
 
   test('a start that does not ask for Practice is stored as Practice, and so is one that asks for it', async () => {

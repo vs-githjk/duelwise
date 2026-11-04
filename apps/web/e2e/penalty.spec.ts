@@ -1,8 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-// Twelve Yards at /dev/penalty on a 360 wide phone (groundwork, dev server only). The goal scene must not move while a match goes on,
+// Twelve Yards at /play/twelve-yards on a 360 wide phone: the feel the owner approved (drag or tap aiming, the reveal, the keeper), as a Practice match with a fixed
+// seed and the first kick forced to the player (?side=0). The goal scene must not move while a match goes on,
 // nothing overflows sideways, every tap target is at least 44 px, one tap never takes a kick, and the DOM shows nothing of the agent's
-// pick before the player commits. Written against the dev page; promotion moves it to /play/twelve-yards.
+// pick before the player commits. The promotion checks (both kick orders, fit at laptop and phone sizes, scroll on Start) are in twelve-yards.spec.ts.
 
 test.use({ viewport: { width: 360, height: 780 }, hasTouch: true })
 
@@ -78,8 +79,8 @@ async function expectTargets(page: Page, label: string) {
 }
 
 async function start(page: Page, seed: number) {
-  await page.goto(`/dev/penalty?seed=${seed}`)
-  await expect(page.getByTestId('penalty-page')).toBeVisible()
+  await page.goto(`/play/twelve-yards?seed=${seed}&side=0`)
+  await expect(page.getByTestId('penalty-setup')).toBeVisible()
   await page.getByTestId('penalty-start').click()
   await expect(page.getByTestId('penalty-scene')).toBeVisible()
 }
@@ -592,46 +593,56 @@ test.describe('Twelve Yards at 360 wide', () => {
   })
 })
 
-test.describe('Twelve Yards in the height Safari leaves on an iPhone', () => {
-  test.use({ viewport: { width: 393, height: 659 } })
+// On the page the shell adds a header (back link, title, badges) and the training notice above the scene, so at 393x659 (an iPhone with Safari's bars) the lower part of the goal
+// and the ball are below the fold until the player scrolls, while the Shoot bar sticks to the bottom and stays whole. At 393x852 (an iPhone with no bars) the whole column fits.
+for (const height of [659, 852]) {
+  test.describe(`Twelve Yards at 393x${height}${height === 659 ? ', the height Safari leaves on an iPhone' : ''}`, () => {
+    test.use({ viewport: { width: 393, height } })
 
-  test('the whole Shoot button shows without a scroll, through a kick and at full time, and the scene never moves', async ({ page }) => {
-    test.setTimeout(120_000)
-    await start(page, 2)
-    const scene = page.getByTestId('penalty-scene')
-    const action = page.getByTestId('penalty-action')
-    const pad = page.getByTestId('penalty-pad')
-    await expectNoOverflow(page, 'start')
-    await watchFrames(scene)
-    await watchScreen(scene)
-    const first = await spot(scene)
-    expect(first.y, 'the page has not scrolled').toBe(0)
+    test('the whole Shoot button shows without a scroll, through a kick and at full time, and the scene never moves', async ({ page }) => {
+      test.setTimeout(120_000)
+      const fits = height >= 800
+      await start(page, 2)
+      const scene = page.getByTestId('penalty-scene')
+      const action = page.getByTestId('penalty-action')
+      const pad = page.getByTestId('penalty-pad')
+      await expectNoOverflow(page, 'start')
+      await watchFrames(scene)
+      await watchScreen(scene)
+      const first = await spot(scene)
+      expect(first.y, 'the page has not scrolled').toBe(0)
 
-    await page.getByTestId('penalty-zone-0').tap()
-    await expectOnScreen(action, 'Shoot enabled')
-    await expect(action).toHaveText('Shoot')
-    await expectOnScreen(pad, 'the ball')
-    const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
-    expect(gap, 'the bar covers no part of the scene at this height').toBeGreaterThanOrEqual(0)
-    await kicked(page, () => action.tap())
-    await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
-    await expectOnScreen(action, 'Save')
-    await expectOnScreen(pad, 'the ball in goal')
-    await expectStill(scene, first, 'after a kick')
+      await page.getByTestId('penalty-zone-0').tap()
+      await expectOnScreen(action, 'Shoot enabled')
+      await expect(action).toHaveText('Shoot')
+      if (fits) {
+        await expectOnScreen(pad, 'the ball')
+        const gap = await page.evaluate(() => document.querySelector('.pen-bar')!.getBoundingClientRect().top - document.querySelector('.pen-scene')!.getBoundingClientRect().bottom)
+        expect(gap, 'the bar covers no part of the scene at this height').toBeGreaterThanOrEqual(0)
+      }
+      await kicked(page, () => action.tap())
+      await expect(page.getByTestId('penalty-role')).toHaveText("You're in goal.")
+      await expectOnScreen(action, 'Save')
+      if (fits) await expectOnScreen(pad, 'the ball in goal')
+      await expectStill(scene, first, 'after a kick')
 
-    let kicks = 1
-    while (!(await over(page)) && kicks < 30) {
-      await kick(page, 0)
-      kicks++
-    }
-    await expect(action).toHaveText('Play again')
-    await expectOnScreen(action, 'Play again')
-    await expectStill(scene, first, 'full time')
-    await expectNoFrameShift(page, 'whole match at 393x659')
-    await expectNoScreenShift(page, 'whole match at 393x659')
-    await expectNoOverflow(page, 'full time')
+      let kicks = 1
+      while (!(await over(page)) && kicks < 30) {
+        await kick(page, 0)
+        kicks++
+      }
+      await expect(action).toHaveText('Play again')
+      await expectOnScreen(action, 'Play again')
+      await expect(page.getByRole('button', { name: /^Rematch/ })).toBeVisible()
+      await expectStill(scene, first, 'full time')
+      await expectNoFrameShift(page, `whole match at 393x${height}`)
+      await expectNoScreenShift(page, `whole match at 393x${height}`)
+      await expectNoOverflow(page, 'full time')
+    })
   })
+}
 
+test.describe('Twelve Yards on a shorter phone', () => {
   test('on a shorter phone the bar sticks to the bottom, so the button still shows whole', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 553 })
     await start(page, 2)

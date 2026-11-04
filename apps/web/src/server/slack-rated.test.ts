@@ -95,8 +95,8 @@ function claimWin(rec: MatchRecordV1): MatchRecordV1 {
 }
 
 describe('Crosscurrent is open for rated play', () => {
-  test('no game is left without a rated path, and a start that says Rated is stored as Rated', async () => {
-    expect([...RATED_NOT_OPEN]).toEqual([])
+  test('Crosscurrent is not on the no-rated-path list (only Twelve Yards is), and a start that says Rated is stored as Rated', async () => {
+    expect([...RATED_NOT_OPEN]).not.toContain('slack')
     const m = await begin()
     expect((await rowOf(m.matchId)).filterFlags).toEqual({ humanSeat: 0 })
   })
