@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { cn } from '../lib/cn'
@@ -12,6 +12,7 @@ import { PracticeBadge } from './PracticeBadge'
 import { setPractice, usePractice } from '../lib/practice'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
+import { nextMatchEpoch } from '../lib/began-offline'
 import { HowToPlay } from './HowToPlay'
 import { GameSoundControl } from './GameSoundControl'
 import { matchMusicWanted, moodForGame, setMatchMusic } from '../lib/music'
@@ -77,6 +78,9 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
     setMatchMusic(matchOn ? moodForGame(game) : null)
     return () => setMatchMusic(null)
   }, [matchOn, game])
+  // Play again keeps the level, so the notice needs another way to know a new match began: the result going away.
+  const epoch = useRef({ epoch: 0, hadResult: false })
+  epoch.current = nextMatchEpoch(epoch.current, Boolean(result))
   const isDesktop = useIsDesktop()
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (
@@ -106,7 +110,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
           {actions}
         </div>
       </header>
-      {blocked ? null : <TrainingNotice game={game} compact={level !== undefined} />}
+      {blocked ? null : <TrainingNotice game={game} compact={level !== undefined} matchKey={epoch.current.epoch} />}
       {blocked ? (
         <DesktopOnlyNotice game={game} />
       ) : (

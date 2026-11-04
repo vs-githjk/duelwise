@@ -8,6 +8,7 @@ import { trainingNoticeText } from '../lib/honest-copy'
 import { isOffline, subscribeConnection } from '../lib/connection'
 import { NO_OFFLINE_TICKETS } from '@duelwise/core/src/rated-path'
 import { registryFor } from '../lib/registries'
+import { trackBeganOffline, type BeganOfflineState } from '../lib/began-offline'
 
 const hiddenKey = (game: GameId) => `duelwise.notice-hidden.${game}`
 function readHidden(game: GameId): boolean {
@@ -71,7 +72,7 @@ export function TrainingToggle({ allowed, busy, onChange, className }: { allowed
  * match. Says plainly what is stored and gives the opt-out right there. Not a consent checkbox:
  * under legitimate interest the toggle starts on and opting out is one click.
  */
-export function TrainingNotice({ game, compact = false, className }: { game: GameId; /** True once a match has started: the notice shrinks to one line, with the full text one tap away. */ compact?: boolean; className?: string }) {
+export function TrainingNotice({ game, compact = false, matchKey = 0, className }: { game: GameId; /** Changes for each new match (a rematch keeps the notice compact), so what it noted about the last match is dropped. */ matchKey?: number; /** True once a match has started: the notice shrinks to one line, with the full text one tap away. */ compact?: boolean; className?: string }) {
   const { settings, busy, setAllowed, dismiss } = useTrainingSettings()
   // A notice with no switch (the game does not train) is dismissed for this game only, and remembered in this browser; it must not hide the full notice on a game that does.
   const [hiddenHere, setHiddenHere] = useState(false)
@@ -83,14 +84,13 @@ export function TrainingNotice({ game, compact = false, className }: { game: Gam
   const [detail, setDetail] = useState(false)
   const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
   // Whether the match began offline, fixed when the notice first shrinks to its match line: a match that began online and then lost its connection is still on the server and still sends its record when it can, so only one that began offline is local and unsaved.
-  const beganOffline = useRef<boolean | null>(null)
-  if (!compact) beganOffline.current = null
-  else if (beganOffline.current === null) beganOffline.current = offline
+  const beganOffline = useRef<BeganOfflineState>({ matchKey, value: null })
+  beganOffline.current = trackBeganOffline(beganOffline.current, { compact, offline, matchKey })
   if (!settings || settings.noticeSeen || hiddenHere) return null
   const copy = trainingNoticeText(game, registryFor(game)?.learnsFromHumans ?? false, PRODUCT.trainingDataBasis)
   if (compact && !detail) {
     // A game with no offline tickets plays a local match while offline: nothing is uploaded, so no report is made either.
-    const noReport = beganOffline.current === true && NO_OFFLINE_TICKETS.includes(game)
+    const noReport = beganOffline.current.value === true && NO_OFFLINE_TICKETS.includes(game)
     const summary = noReport ? 'You are offline: this match is not saved, so there is no report and nothing is used for training.' : copy.trainable ? (settings.trainingAllowed ? 'This match may train the agents.' : 'This match will not be used for training.') : 'This match is recorded for your report, not for training.'
     return (
       <section aria-label="How your matches are used" data-testid="training-notice" data-compact className={cn('flex items-center gap-x-3 rounded-card border border-line bg-surface-2 px-4 py-0.5', className)}>
