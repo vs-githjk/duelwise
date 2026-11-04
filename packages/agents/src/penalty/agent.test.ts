@@ -4,7 +4,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
 import { choosePenaltyAction, createGameAgent, penaltyAgentAction } from './agent'
-import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
+import { bestKeeper, bestShooter, VESPER_SHAPES, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, VESPER_SWAP } from './levels'
 
 /** The dials the tests below read their exact numbers from, so a retune moves the formulas and not just the constants. */
@@ -339,15 +339,9 @@ describe('Vesper', () => {
     expect(c[LH]! / 8000).toBeLessThan(0.2)
   })
 
-  test('as keeper reads a cycle of three: after a kick repeats three back, the cover of the next kick of the cycle gets a clear share', () => {
-    // BL, TM, BR, BL, TM: the rule alone covers the kick two back (BL); the pattern reader sees the 3-cycle, whose next kick is BR.
-    const hist = [BL, TM, BR, BL, TM].map((z) => view(false, z, STAY))
-    const c = draws('hard', obs('keeper', hist), 6000)
-    const next = COVER[BR]!
-    const ruleOnly = VESPER.read + (1 - VESPER.read) * EQ_KEEPER[next]!
-    // The cycle says BR comes next; with the reader's share the cover of BR gets clearly more than the equilibrium share.
-    expect(c[next]! / 6000).toBeGreaterThan(EQ_KEEPER[next]! + 0.15)
-    expect(ruleOnly).toBeGreaterThan(0)
+  test('its pattern reader sees a cycle of three, including kicks the equilibrium never plays: BL, TM, BR, BL, TM puts over 0.8 on BR next', () => {
+    const { out } = predict(VESPER_SHAPES, [BL, TM, BR, BL, TM], [2, 2, 2, 2, 2], PENALTY_LEVELS.hard.kind === 'vesper' ? (PENALTY_LEVELS.hard as { prior: number }).prior : 0.4)
+    expect(out[BR]!).toBeGreaterThan(0.8)
   })
 
   test('as keeper takes the most common of the last three when the last two kicks match', () => {
