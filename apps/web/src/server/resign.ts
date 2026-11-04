@@ -7,6 +7,7 @@ import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
 import { recordEvent } from './telemetry'
 import { loggedOutcome } from '@duelwise/core/src/sealed-log'
+import { assignedSeat } from '@duelwise/core/src/sides'
 import { isPractice, isUnplayed, keptSealedFlags, LOGGED_WIN_FLAG, PRACTICE_FLAG, sealedLogStill, UNPLAYED_FLAG } from './competitive'
 
 type Db = PgDatabase<any, typeof schema>
@@ -56,7 +57,7 @@ export async function resignMatchHandler(
     // A sealed match whose setup never reached the server was never played and revealed nothing: ending it costs no rating.
     const notPlayed = isUnplayed(read.game, read.filterFlags)
     // The server's own log may already say the player won (the winning shot stored, the reply lost): giving up then costs nothing.
-    const won = loggedOutcome(read.game as GameId, read.seed, read.filterFlags)?.result?.winner === 0
+    const won = loggedOutcome(read.game as GameId, read.seed, read.filterFlags)?.result?.winner === assignedSeat(read.filterFlags)
     const updated = await db
       .update(schema.match)
       .set({ status: 'resigned', trainingAllowed: false, invalidReason: 'resigned', filterFlags: { resigned: true, resignTick, ...(isPractice(read.filterFlags) ? { [PRACTICE_FLAG]: true } : {}), ...(notPlayed ? { [UNPLAYED_FLAG]: true } : {}), ...keptSealedFlags(read.game, read.filterFlags), ...(won ? { [LOGGED_WIN_FLAG]: true } : {}) }, finishedAt: new Date() })

@@ -37,6 +37,7 @@ import { GAMES_PER_SEAT as FLEET_GAMES_PER_SEAT, buildFleetRegistry, seated, sea
 import type { GameRecord } from '@duelwise/agents/src/measure/harness'
 import type { LadderResult } from '@duelwise/agents/src/measure/ladder'
 import { GAMES_PER_SEAT as SLACK_GAMES_PER_SEAT, buildSlackRegistry, seated as slackSeated } from '@duelwise/agents/src/slack/measure'
+import { GAMES_PER_SEAT as PENALTY_GAMES_PER_SEAT, buildPenaltyRegistry, seated as penaltySeated } from '@duelwise/agents/src/penalty/measure'
 
 const REGISTRY_DIR = join(import.meta.dir, '../../../../packages/agents/registry')
 const LEVELS: Level[] = ['easy', 'medium', 'hard', 'champion']
@@ -88,6 +89,23 @@ describe('every real registry: measured or Practice per game and level', () => {
     for (const row of [gate.baseline, ...gate.pairs]) {
       expect(row.bySeat.map((s: any) => [s.seat, s.n])).toEqual([[0, 400], [1, 400]])
       expect(row.bySeat[0].points + row.bySeat[1].points).toBe(row.points)
+      expect(row.n).toBe(800)
+    }
+  })
+  test('Twelve Yards: exact set, from scripted habit readers, with 400 games on each seat of every row and no unpublished level', () => {
+    const reg = real('penalty')
+    expect(measuredSet(reg)).toEqual(['easy', 'medium', 'hard', 'champion'])
+    expect(reg.learnsFromHumans).toBe(false)
+    expect(reg.unpublished).toEqual({})
+    expect(reg.versions[0]!.status).toBe('measured')
+    const gate = reg.versions[0]!.gate as { strengthSource: string; searchLimit: string; baseline: any; pairs: any[] }
+    expect(gate.strengthSource).toContain('scripted habit readers')
+    expect(gate.searchLimit).toContain('no search and no clock')
+    expect(gate.pairs.map((p) => p.upper)).toEqual(['medium', 'hard', 'champion'])
+    for (const row of [gate.baseline, ...gate.pairs]) {
+      expect(row.bySeat.map((s: any) => [s.seat, s.n])).toEqual([[0, 400], [1, 400]])
+      expect(row.bySeat[0].points + row.bySeat[1].points).toBe(row.points)
+      expect(row.bySeat.every((s: any) => wilsonFloor(s.points, s.n) > 0.5)).toBe(true)
       expect(row.n).toBe(800)
     }
   })
@@ -288,6 +306,62 @@ describe('what the Crosscurrent measurement writes reaches the gate', () => {
     const reg = build(ladder())
     delete (reg.versions[0]!.gate as any).baseline.bySeat
     expect(measuredSet(reg)).toEqual([])
+  })
+})
+
+describe('what the Twelve Yards measurement writes reaches the gate', () => {
+  const rows = (first: number, second: number) => [
+    ...Array.from({ length: PENALTY_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 0, scoreA: i < first ? 1 : 0 })),
+    ...Array.from({ length: PENALTY_GAMES_PER_SEAT }, (_, i) => ({ seatOfA: 1, scoreA: i < second ? 1 : 0 })),
+  ] as GameRecord[]
+  const row = (first: number, second: number) => {
+    const n = PENALTY_GAMES_PER_SEAT * 2
+    const floor = wilsonFloor(first + second, n)
+    return penaltySeated({ points: first + second, n, score: (first + second) / n, ci95: [floor, 1], stoppedEarly: false, passed: floor > 0.5 }, rows(first, second))
+  }
+  const ladder = (hard = row(300, 300), baseline = row(380, 380)): LadderResult => ({
+    game: 'penalty',
+    levels: [...LEVELS],
+    pairs: [{ lower: 'easy', upper: 'medium', ...row(350, 350) }, { lower: 'medium', upper: 'hard', ...hard }, { lower: 'hard', upper: 'champion', ...row(280, 280) }],
+    baseline: { label: 'random', ...baseline },
+    elo: { easy: 1000, medium: 1300, hard: 1500, champion: 1600 },
+  })
+  const prior = (): Registry => ({
+    game: 'penalty',
+    champion: 'v1',
+    versions: [{ version: 'v1', parent: null, createdAt: '2026-11-03T04:00:00.000Z', promotedAt: null, status: 'preview', artifacts: {}, sha256: {}, trainedSteps: 0, humanMatchesUsed: 0, gate: null }],
+    levels: Object.fromEntries(LEVELS.map((l) => [l, { version: 'v1', config: {} }])),
+    measured: {},
+    unpublished: {},
+    unpublishedConfig: {},
+    learnsFromHumans: false,
+  })
+  const build = (l: LadderResult) => buildPenaltyRegistry(prior(), l, { commit: 'abc1234', now: '2026-11-03T13:00:00.000Z' })
+
+  test('a full pass shows all four levels, with no learning claim', () => {
+    const reg = build(ladder())
+    expect(measuredSet(reg)).toEqual(LEVELS)
+    expect(reg.learnsFromHumans).toBe(false)
+    expect((reg.versions[0]!.gate as { strengthSource: string }).strengthSource).toContain('scripted habit readers')
+  })
+  test('a pair that passes pooled but fails the keeper-first seat keeps that level and the ones above In training', () => {
+    const reg = build(ladder(row(395, 205)))
+    expect(measuredSet(reg)).toEqual(['easy', 'medium'])
+    expect(reg.unpublished?.hard).toContain('from every seat')
+  })
+  test('a thin first seat on Pip against random keeps Pip and everything above In training', () => {
+    const reg = build(ladder(row(300, 300), row(210, 380)))
+    expect(measuredSet(reg)).toEqual([])
+  })
+  test('a gate with no seat rows shows nothing', () => {
+    const reg = build(ladder())
+    delete (reg.versions[0]!.gate as any).baseline.bySeat
+    expect(measuredSet(reg)).toEqual([])
+  })
+  test('the config the site plays is the one the code holds', () => {
+    const reg = build(ladder())
+    expect(reg.levels.champion?.config).toMatchObject({ kind: 'sable', weight: 1.5 })
+    expect(reg.levels.easy?.config).toMatchObject({ kind: 'pip' })
   })
 })
 

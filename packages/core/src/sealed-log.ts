@@ -1,9 +1,10 @@
 import type { MatchRecordV1 } from './match-record'
 import { getCore } from './games/index'
 import type { GameId } from './product'
+import { assignedSeat } from './sides'
 import type { GameCore, Result, Seat } from './types'
 
-/** What the server stores for a sealed turn game: every action each seat took, in that seat's own order. Seat 0 is the player. */
+/** What the server stores for a sealed turn game: every action each seat took, in that seat's own order. `human` is the player's, whatever seat the player has (seat 0 unless the match row gave the other side). */
 export interface SealedLog {
   human: number[]
   agent: number[]
@@ -18,31 +19,32 @@ export interface LogRun<S> {
 }
 
 /**
- * Plays a sealed log through the real core. Each step takes the next human action for seat 0 and, when seat 1
- * is to act, `agentMove(state, index)`. It stops where the game wants a human action that is not there yet.
+ * Plays a sealed log through the real core. Each step takes the next human action for the player's seat (`humanSeat`, 0 by default) and, when the other
+ * seat is to act, `agentMove(state, index)`. It stops where the game wants a human action that is not there yet, before the agent is asked for anything.
  * Throws on an illegal action, on human actions left over after the game ended, or when `agentMove` has no move.
  */
-export function runLog<S>(core: GameCore<S, any, any>, seed: number, human: number[], agentMove: (s: S, index: number) => number | undefined): LogRun<S> {
+export function runLog<S>(core: GameCore<S, any, any>, seed: number, human: number[], agentMove: (s: S, index: number) => number | undefined, humanSeat: Seat = 0): LogRun<S> {
+  const agentSeat = (1 - humanSeat) as Seat
   let s = core.init(seed)
   const agent: number[] = []
   let hi = 0
   while (!core.terminal(s)) {
     const toAct = core.toAct(s)
     const step: [unknown, unknown] = [null, null]
-    if (toAct.includes(0)) {
+    if (toAct.includes(humanSeat)) {
       if (hi >= human.length) break
       const n = human[hi]!
-      const chosen = core.legal(s, 0).find((l) => core.encodeAction(l) === n)
+      const chosen = core.legal(s, humanSeat).find((l) => core.encodeAction(l) === n)
       if (chosen === undefined) throw new Error(`illegal action ${n}`)
-      step[0] = chosen
+      step[humanSeat] = chosen
       hi++
     }
-    if (toAct.includes(1)) {
+    if (toAct.includes(agentSeat)) {
       const n = agentMove(s, agent.length)
       if (n === undefined) throw new Error('no agent action')
-      const chosen = core.legal(s, 1 as Seat).find((l) => core.encodeAction(l) === n)
+      const chosen = core.legal(s, agentSeat).find((l) => core.encodeAction(l) === n)
       if (chosen === undefined) throw new Error(`illegal agent action ${n}`)
-      step[1] = chosen
+      step[agentSeat] = chosen
       agent.push(n)
     }
     s = core.step(s, step as never)
@@ -69,7 +71,7 @@ export function loggedOutcome(game: GameId, seed: number, flags: Record<string, 
   if (!log) return null
   try {
     const core = getCore(game)
-    const run = runLog(core, seed, log.human, (_s, i) => log.agent[i])
+    const run = runLog(core, seed, log.human, (_s, i) => log.agent[i], assignedSeat(flags))
     return { result: core.terminal(run.state) ? core.result(run.state) : null }
   } catch {
     return null
@@ -85,11 +87,12 @@ export function recordMatchesLog(rec: MatchRecordV1, flags: Record<string, unkno
   if (!log) return false
   try {
     const core = getCore(rec.game)
-    const run = runLog(core, rec.seed, log.human, (_s, i) => log.agent[i])
+    const humanSeat = assignedSeat(flags)
+    const run = runLog(core, rec.seed, log.human, (_s, i) => log.agent[i], humanSeat)
     if (!core.terminal(run.state) || run.humanUsed !== log.human.length || run.agent.length !== log.agent.length) return false
     const played: [number[], number[]] = [[], []]
     for (const [, seat, a] of [...rec.actions].sort((x, y) => x[0] - y[0])) played[seat].push(a)
-    return JSON.stringify(played) === JSON.stringify([log.human, log.agent])
+    return JSON.stringify(played) === JSON.stringify(humanSeat === 0 ? [log.human, log.agent] : [log.agent, log.human])
   } catch {
     return false
   }

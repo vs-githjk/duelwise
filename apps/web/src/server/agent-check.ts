@@ -5,8 +5,8 @@ import { isLegal } from '@duelwise/core/src/games/holdem/match'
 import { hasRandomSide } from '@duelwise/core/src/sides'
 import type { Seat } from '@duelwise/core/src/types'
 
-/** Games whose agent is re-run on the server. Word Duel plays its agent on the server already; the real-time games have no check yet. Crosscurrent's search is a pure function of the position and a seeded rng with a node cap and no clock, so the server reproduces every move. */
-export const SERVER_CHECKED: readonly GameId[] = ['chess', 'four', 'holdem', 'slack']
+/** Games whose agent is re-run on the server. Word Duel plays its agent on the server already; the real-time games have no check yet. Twelve Yards' agent is a pure function of the seed and the kicks so far (penaltyAgentAction), so the server reproduces every kick and dive. Crosscurrent's search is a pure function of the position and a seeded rng with a node cap and no clock, so the server reproduces every move. */
+export const SERVER_CHECKED: readonly GameId[] = ['chess', 'four', 'holdem', 'slack', 'penalty']
 
 /** The agent surface the check needs (a subset of the agents package's PreviewAgent). */
 export interface CheckAgent {

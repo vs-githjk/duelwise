@@ -1,4 +1,4 @@
-import { KICKS, penaltyCore, type Kick, type PenaltyState, type Zone } from '@duelwise/core/src/games/penalty/core'
+import { KICKS, penaltyCore, type Kick, type KickView, type PenaltyObs, type PenaltyState, type Zone } from '@duelwise/core/src/games/penalty/core'
 import type { Seat } from '@duelwise/core/src/types'
 import type { PreviewAgent } from '@duelwise/agents/src/agent-types'
 
@@ -44,6 +44,56 @@ export function pickLabel(role: Role, pick: number): string {
 
 export function startMatch(seed: number, human: Seat = HUMAN): PenaltyMatch {
   return { state: penaltyCore.init(seed), human, log: [] }
+}
+
+/**
+ * The match as the server's counted-match reply describes it: the finished kicks the player may see, and nothing else. The seed is not known until the match is
+ * over, so the state carries seed 0; every read the page makes (observe, terminal, result) uses the kicks only. `log` is rebuilt from the kicks.
+ */
+export function matchFromView(view: PenaltyObs, human: Seat): PenaltyMatch {
+  const kicks = view.kicks.map((k: KickView): Kick => ({
+    kicker: k.byMe ? human : ((1 - human) as Seat),
+    zone: k.zone,
+    dive: k.dive,
+    goal: k.outcome === 'goal',
+    onTarget: k.outcome !== 'wide',
+  }))
+  const log = kicks.map((k): [Zone, Zone] => (k.kicker === 0 ? [k.zone, k.dive as Zone] : [k.dive as Zone, k.zone]))
+  return { state: { seed: 0, kicks }, human, log }
+}
+
+/** True when two finished kicks are the same kick (who, both picks, and the outcome). */
+export function sameKick(a: Kick, b: Kick): boolean {
+  return a.kicker === b.kicker && a.zone === b.zone && a.dive === b.dive && a.goal === b.goal && a.onTarget === b.onTarget
+}
+
+/**
+ * The record of a counted match that has just ended, from the player's picks, the opponent's picks the server revealed and the seed it revealed: both lists
+ * are played through the real core. Throws when they do not make exactly one finished shootout. The state it returns holds the real seed.
+ */
+export function recordFromPicks(seed: number, human: Seat, mine: number[], theirs: number[]): { actions: Array<[number, Seat, number]>; state: PenaltyState } {
+  const bad = 'The server sent a match that does not add up.'
+  const agent = (1 - human) as Seat
+  let s = penaltyCore.init(seed)
+  const actions: Array<[number, Seat, number]> = []
+  let tick = 0
+  while (!penaltyCore.terminal(s)) {
+    const a = mine[tick]
+    const b = theirs[tick]
+    if (a === undefined || b === undefined) throw new Error(bad)
+    const pair: [Zone, Zone] = [0, 0]
+    pair[human] = a as Zone
+    pair[agent] = b as Zone
+    try {
+      s = penaltyCore.step(s, pair)
+    } catch {
+      throw new Error(bad)
+    }
+    actions.push([tick, 0, pair[0]], [tick, 1, pair[1]])
+    tick++
+  }
+  if (tick !== mine.length || tick !== theirs.length) throw new Error(bad)
+  return { actions, state: s }
 }
 
 /**

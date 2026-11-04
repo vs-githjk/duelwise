@@ -3,7 +3,7 @@ import { GOAL_PER_MILLE, penaltyCore, type Dive, type KickView, type PenaltyObs,
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
 import type { Rng } from '@duelwise/core/src/types'
-import { choosePenaltyAction, createGameAgent } from './agent'
+import { choosePenaltyAction, createGameAgent, penaltyAgentAction } from './agent'
 import { bestKeeper, bestShooter, COVER, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, one, predict, streamsOf } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER } from './levels'
 
@@ -576,12 +576,13 @@ describe('createGameAgent', () => {
   })
 
   test('seats mix into both the rng and the salt; seeds change the favourite', async () => {
-    const o = obs('shooter')
+    // A pick belongs to the kick (the number of kicks played), so the stream is read over a growing history, as in a match.
+    const history = (n: number) => Array.from({ length: n }, (_, i) => view(i % 2 === 0, (i * 5) % 9, (i * 3) % 5))
     const stream = async (seat: 0 | 1, seed: number, n: number) => {
       const a = await createGameAgent('easy', { seat })
       a.reset(seed)
       const out: number[] = []
-      for (let i = 0; i < n; i++) out.push((await a.act(o))[0]!)
+      for (let i = 0; i < n; i++) out.push((await a.act(obs('shooter', history(i))))[0]!)
       return out
     }
     const side = (xs: number[]) => {
@@ -600,5 +601,40 @@ describe('createGameAgent', () => {
     expect(favs[0].some((f, i) => f !== favs[1][i])).toBe(true)
     expect(new Set(favs[0]).size).toBeGreaterThanOrEqual(2)
     expect(new Set(favs[1]).size).toBeGreaterThanOrEqual(2)
+  })
+
+  test('a pick is a pure function of level, seed, seat and the kicks so far: the factory agent plays exactly penaltyAgentAction, whatever it was asked before', async () => {
+    for (const level of LEVELS) {
+      for (const seat of [0, 1] as const) {
+        const a = await createGameAgent(level, { seat })
+        a.reset(77, seat)
+        // Ask in a scrambled order, twice: nothing is carried from one call to the next.
+        const asks = [3, 0, 7, 3, 1, 0]
+        for (const n of asks) {
+          const kicks = Array.from({ length: n }, (_, i) => view((i + seat) % 2 === 0, (i * 7) % 9, (i * 2) % 5))
+          const o = { ...obs((n + seat) % 2 === 0 ? 'shooter' : 'keeper', kicks), seat }
+          expect((await a.act(o))[0]).toBe(penaltyAgentAction(level, 77, seat, o))
+        }
+      }
+    }
+  })
+
+  test('the draw belongs to the kick: the same history gives the same pick, a longer one draws afresh, and the seat and the seed each change the stream', () => {
+    const o = (n: number) => obs('shooter', Array.from({ length: n }, (_, i) => view(i % 2 === 0, (i * 5) % 9, (i * 3) % 5)))
+    const stream = (seed: number, seat: 0 | 1) => Array.from({ length: 40 }, (_, n) => penaltyAgentAction('easy', seed, seat, o(n)))
+    expect(stream(9, 1)).toEqual(stream(9, 1))
+    expect(new Set(stream(9, 1)).size).toBeGreaterThan(3)
+    expect(stream(9, 1)).not.toEqual(stream(9, 0))
+    expect(stream(9, 1)).not.toEqual(stream(10, 1))
+  })
+
+  test('over many seeds the first kick follows the level\'s own mix: Sable\'s opening draws stay inside the equilibrium floor', () => {
+    const counts = new Array<number>(9).fill(0)
+    const N = 6000
+    for (let seed = 0; seed < N; seed++) counts[penaltyAgentAction('champion', seed * 7919, 0, obs('shooter'))]!++
+    // The opening mix is the equilibrium with a floor of 3% on every zone, so every zone turns up and the corners lead.
+    for (const c of counts) expect(c / N).toBeGreaterThan(0.02)
+    expect(counts[0]! / N).toBeGreaterThan(0.18)
+    expect(counts[0]! / N).toBeLessThan(0.3)
   })
 })

@@ -18,6 +18,9 @@ import {
   diveOf,
   flightOf,
   lastKickLine,
+  matchFromView,
+  recordFromPicks,
+  sameKick,
   outcomeWord,
   pastDeadZone,
   pressAction,
@@ -344,5 +347,56 @@ describe('penalty match logic', () => {
     // The word holds long enough to read.
     expect(CLEAR_MS - CONTACT_MS).toBeGreaterThanOrEqual(600)
     expect(SKIP_AFTER_MS).toBeLessThan(CONTACT_MS)
+  })
+})
+
+describe('a counted match as the server describes it', () => {
+  // The page of a counted match never holds the seed. It shows the views the server sends, and builds the record from the lists the last reply reveals.
+  const picksFor = (human: 0 | 1, n = 40) => {
+    const mine: number[] = []
+    const theirs: number[] = []
+    let s = penaltyCore.init(31337)
+    for (let i = 0; i < n && !penaltyCore.terminal(s); i++) {
+      const shooter = (i % 2) as 0 | 1
+      const pick = (seat: 0 | 1) => (seat === shooter ? (i * 4 + 1) % 9 : (i + 2) % 5)
+      mine.push(pick(human))
+      theirs.push(pick((1 - human) as 0 | 1))
+      const pair: [number, number] = [0, 0]
+      pair[human] = mine[i]!
+      pair[1 - human] = theirs[i]!
+      s = penaltyCore.step(s, pair as never)
+    }
+    return { mine, theirs, state: s }
+  }
+
+  for (const human of [0, 1] as const) {
+    test(`as seat ${human}: the kicks a view describes are the kicks the real core made, so the page shows what the record will hold`, () => {
+      const { mine, theirs, state } = picksFor(human)
+      const built = recordFromPicks(31337, human, mine, theirs)
+      expect(built.state).toEqual(state)
+      expect(built.actions).toHaveLength(2 * mine.length)
+      const shown = matchFromView(penaltyCore.observe(state, human), human)
+      expect(shown.state.seed).toBe(0)
+      expect(shown.state.kicks).toHaveLength(state.kicks.length)
+      shown.state.kicks.forEach((k, i) => expect(sameKick(k, state.kicks[i]!)).toBe(true))
+      expect(penaltyCore.result(shown.state)).toEqual(penaltyCore.result(state))
+      expect(penaltyCore.observe(shown.state, human)).toEqual(penaltyCore.observe(state, human))
+      // The log rebuilt from the view is the pairs the record holds, one per kick, seat 0 first.
+      expect(shown.log).toEqual(state.kicks.map((k) => (k.kicker === 0 ? [k.zone, k.dive] : [k.dive, k.zone])))
+    })
+  }
+
+  test('lists that are short, long or illegal do not make a record', () => {
+    const { mine, theirs } = picksFor(0)
+    expect(() => recordFromPicks(31337, 0, mine.slice(0, -1), theirs)).toThrow('does not add up')
+    expect(() => recordFromPicks(31337, 0, mine, theirs.slice(0, -1))).toThrow('does not add up')
+    expect(() => recordFromPicks(31337, 0, [...mine, 4], [...theirs, 1])).toThrow('does not add up')
+    expect(() => recordFromPicks(31337, 0, [99, ...mine.slice(1)], theirs)).toThrow('does not add up')
+  })
+
+  test('two kicks differ when any part of them differs', () => {
+    const k: Kick = { kicker: 0, zone: 4, dive: 2, goal: false, onTarget: true }
+    expect(sameKick(k, { ...k })).toBe(true)
+    for (const other of [{ kicker: 1 }, { zone: 5 }, { dive: 3 }, { goal: true }, { onTarget: false }] as Partial<Kick>[]) expect(sameKick(k, { ...k, ...other } as Kick)).toBe(false)
   })
 })

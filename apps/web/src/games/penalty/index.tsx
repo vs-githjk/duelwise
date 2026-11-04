@@ -14,7 +14,7 @@ import { getVolume, isMuted } from '../../lib/audio'
 import { isOffline, subscribeConnection } from '../../lib/connection'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { setRatedLive } from '../../lib/match-active'
-import { setPractice, usePractice } from '../../lib/practice'
+import { usePractice } from '../../lib/practice'
 import { visibleRegistry } from '../../lib/strength-gates'
 import { personaFor, styleLine } from '../../personas'
 import {
@@ -56,9 +56,6 @@ const levelInfo = levelInfoFromRegistry(registry)
 
 /** Each opponent's own line in this game. Without it an unmeasured level shows the generic early-version line instead of who it is. */
 const STYLE: Record<Level, string> = { easy: styleLine('easy', 'penalty'), medium: styleLine('medium', 'penalty'), hard: styleLine('hard', 'penalty'), champion: styleLine('champion', 'penalty') }
-
-/** Rated is shut for every match until the server can re-run the opponent (RATED_NOT_OPEN); the server stores each start as Practice whatever the page sends. */
-const RATED_SHUT = 'Not open yet. Rated opens once the server can check the opponent, so every match is Practice for now.'
 
 function firstSelectable(): Level {
   return (['easy', 'medium', 'hard', 'champion'] as const).find((l) => !levelInfo[l].inTraining) ?? 'easy'
@@ -188,9 +185,6 @@ export default function PenaltyPage() {
   /** The click a browser sends after a drag lifts: not a tap on the ball. */
   const swallowClick = useRef(false)
 
-  // Every match is Practice (see RATED_SHUT). GameShell resets the flag when the page opens, and this effect runs after it, so the setup shows Practice picked.
-  useEffect(() => setPractice(true), [])
-
   const clearTimers = () => {
     for (const t of timers.current) clearTimeout(t)
     timers.current = []
@@ -222,7 +216,7 @@ export default function PenaltyPage() {
   useLayoutEffect(() => {
     if (live.phase === 'playing') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [live.seed, live.phase === 'playing'])
-  // A counted match the server holds is live: leaving the page resigns it. (Never true while Rated is shut, but the pill reads it.)
+  // A rated match the server holds is live: leaving the page resigns it, and the offline pill says so.
   const ratedLive = live.counted && !practice && live.phase === 'playing'
   useEffect(() => {
     setRatedLive(ratedLive)
@@ -254,6 +248,8 @@ export default function PenaltyPage() {
     if (!match || live.phase !== 'playing' || phase !== 'pick' || closing || locked.current) return
     locked.current = true
     const my = run.current
+    // A pick whose reply was lost may already be on the server: that one is sent again, whatever is tapped now.
+    if (live.unsent !== null) zone = live.unsent
     setSelected(zone)
     setPhase('set')
     cue('strike')
@@ -304,6 +300,10 @@ export default function PenaltyPage() {
 
   const onZone = (z: Zone) => {
     if (revealing || closing) return
+    if (live.unsent !== null) {
+      void commit(live.unsent)
+      return
+    }
     const r = tapZone(selected, z)
     setSelected(r.selected)
     if (r.commit) void commit(z)
@@ -330,6 +330,7 @@ export default function PenaltyPage() {
     const dx = (e.clientX - d.x) / d.scale
     const dy = (e.clientY - d.y) / d.scale
     if (pastDeadZone(dx, dy)) d.moved = true
+    if (live.unsent !== null) return
     const aim = aimFromDrag(dx, dy, pickRole)
     if (aim === null) {
       if (d.moved) setSelected(null)
@@ -345,7 +346,8 @@ export default function PenaltyPage() {
     if (!d.moved) return
     swallowClick.current = true
     const aim = aimFromDrag((e.clientX - d.x) / d.scale, (e.clientY - d.y) / d.scale, pickRole)
-    if (aim === null) setSelected(null)
+    if (live.unsent !== null) void commit(live.unsent)
+    else if (aim === null) setSelected(null)
     else void commit(aim)
   }
   const onPadCancel = () => {
@@ -453,7 +455,7 @@ export default function PenaltyPage() {
             Five penalties each. Drag from the ball to a spot in the goal and lift, or tap a spot and tap it again. You and {personaFor(picked).name} choose at the same moment, so neither sees the other&apos;s pick first. Each match gives you the first kick or the second at random.
           </p>
           {offline ? <OfflinePill text={chipText(false, false)} /> : null}
-          <PlayMode disabled={live.phase === 'starting'} ratedUnavailable={RATED_SHUT} />
+          <PlayMode disabled={live.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} descriptions={STYLE} statsSlug={PRODUCT.games.penalty.slug} disabled={live.phase === 'starting'}
             action={
               <>

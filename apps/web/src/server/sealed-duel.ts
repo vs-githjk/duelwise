@@ -6,6 +6,8 @@ import { runLog, sealedLogOf, type LogRun, type SealedLog } from '@duelwise/core
 import type { GameId, Level } from '@duelwise/core/src/product'
 import type { GameCore, Seat } from '@duelwise/core/src/types'
 import { chooseFleetAction } from '@duelwise/agents/src/fleet/agent'
+import { penaltyAgentAction } from '@duelwise/agents/src/penalty/agent'
+import { assignedSeat } from '@duelwise/core/src/sides'
 import * as schema from '../db/schema'
 import { LOGGED_WIN_FLAG } from './competitive'
 import { sameCaller, type Caller, type HandlerResponse } from './match-handlers'
@@ -14,7 +16,7 @@ export { recordMatchesLog } from '@duelwise/core/src/sealed-log'
 
 type Db = PgDatabase<any, typeof schema>
 
-/** One sealed turn game: how many setup actions the player sends in the first request, and how its agent picks an action. */
+/** One sealed turn game: how many setup actions the player sends in the first request, and how its agent picks an action. The player's seat is the one the match row gave (seat 0 unless the game has random sides). */
 export interface SealedSpec {
   game: GameId
   setupTicks: number
@@ -23,11 +25,22 @@ export interface SealedSpec {
 }
 
 export interface SealedTurnBody {
-  /** The player's view (`observe(state, 0)`), never anything else of the state. */
+  /** The player's view (`observe(state, humanSeat)`), never anything else of the state. */
   view: unknown
   over: boolean
   /** Present only once the game is over: the seed the record replays from, and the agent's actions in order. */
   reveal?: { seed: number; agentActions: number[] }
+}
+
+/**
+ * Twelve Yards: one action a kick, so the first request carries the first kick. A kick is simultaneous: the agent's pick is computed only after the player's
+ * pick is in the request, from what its own seat can see (the kicks already played), and the answer shows the finished kick. The pick is a pure function of the
+ * row seed and the kick index (penaltyAgentAction), so a retried request gets the same pick and the server's re-check of the finished record reproduces it.
+ */
+export const PENALTY_SPEC: SealedSpec = {
+  game: 'penalty',
+  setupTicks: 1,
+  agentAction: (level, seed, obs, seat) => penaltyAgentAction(level, seed, seat, obs as never),
 }
 
 /** Longest action list a request may carry; the longest Fleet game is 5 setup plus 100 shots. */
@@ -54,9 +67,10 @@ export const FLEET_SPEC: SealedSpec = {
  * Rebuilds a match from the player's actions and the agent actions already stored. New agent actions are computed from the seed and what its
  * seat can see, so the player never supplies the agent's play and a stored action never changes.
  */
-export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[], storedAgent: number[] = []): LogRun<S> {
+export function buildSealedLog<S>(spec: SealedSpec, core: GameCore<S, any, any>, level: Level, seed: number, human: number[], storedAgent: number[] = [], humanSeat: Seat = 0): LogRun<S> {
+  const agentSeat = (1 - humanSeat) as Seat
   // An agent action already stored is final: it was shown to the player, so a code change must not move it. Only new indexes are computed.
-  return runLog(core, seed, human, (s, i) => (i < storedAgent.length ? storedAgent[i] : spec.agentAction(level, seed, core.observe(s, 1), 1, i)))
+  return runLog(core, seed, human, (s, i) => (i < storedAgent.length ? storedAgent[i] : spec.agentAction(level, seed, core.observe(s, agentSeat), agentSeat, i)), humanSeat)
 }
 
 const startsWith = (list: number[], prefix: number[]): boolean => prefix.every((n, i) => list[i] === n)
@@ -90,6 +104,7 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
 
   const core = getCore(spec.game)
   const level = row.level as Level
+  const humanSeat = assignedSeat(row.filterFlags)
   const stored: SealedLog = sealedLogOf(row.filterFlags) ?? { human: [], agent: [] }
   const fresh = stored.human.length === 0
   if (fresh) {
@@ -100,17 +115,17 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
 
   const reply = (run: LogRun<unknown>): HandlerResponse<SealedTurnBody> => {
     const over = core.terminal(run.state)
-    const view = core.observe(run.state, 0)
+    const view = core.observe(run.state, humanSeat)
     return { status: 200, body: over ? { view, over, reveal: { seed: row.seed, agentActions: run.agent } } : { view, over } }
   }
 
   // A request equal to the stored list is a retry (a dropped reply): the same answer, and the agent does not move again.
-  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent))
+  if (!fresh && actions.length === stored.human.length) return reply(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat))
 
-  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent).state)) return err(409, 'the game is over')
+  if (!fresh && core.terminal(buildSealedLog(spec, core, level, row.seed, stored.human, stored.agent, humanSeat).state)) return err(409, 'the game is over')
   let run: LogRun<unknown>
   try {
-    run = buildSealedLog(spec, core, level, row.seed, actions, stored.agent)
+    run = buildSealedLog(spec, core, level, row.seed, actions, stored.agent, humanSeat)
   } catch (e) {
     return err(400, e instanceof Error ? e.message : 'illegal action')
   }
@@ -118,7 +133,7 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
   const written = await db
     .update(schema.match)
     // A terminal log the player won also gets a marker, so a settling rewrite (the abandon sweeps) can see it without playing the log.
-    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent } satisfies SealedLog, ...(core.terminal(run.state) && core.result(run.state)?.winner === 0 ? { [LOGGED_WIN_FLAG]: true } : {}) } })
+    .set({ filterFlags: { ...(row.filterFlags ?? {}), sealedLog: { human: actions, agent: run.agent } satisfies SealedLog, ...(core.terminal(run.state) && core.result(run.state)?.winner === humanSeat ? { [LOGGED_WIN_FLAG]: true } : {}) } })
     .where(
       and(
         eq(schema.match.id, row.id),
@@ -131,7 +146,7 @@ export async function sealedTurnHandler(db: Db, input: unknown, who: Caller, spe
     // An identical request that overlapped this one may have won: it gets the same answer a later retry would.
     const now = (await db.select().from(schema.match).where(eq(schema.match.id, row.id)).limit(1))[0]
     const log = sealedLogOf(now?.filterFlags ?? null)
-    if (log && log.human.length === actions.length && startsWith(log.human, actions)) return reply(buildSealedLog(spec, core, level, row.seed, log.human, log.agent))
+    if (log && log.human.length === actions.length && startsWith(log.human, actions)) return reply(buildSealedLog(spec, core, level, row.seed, log.human, log.agent, humanSeat))
     return err(409, 'another request played this turn first')
   }
   return reply(run)

@@ -239,7 +239,7 @@ export async function startMatchHandler(
   await recordEvent(db, { kind: 'match_started', matchId, game, level, who, device: deviceClass(opts.userAgent), trainingAllowed: playerAllowed })
   // Word Duel's answer is a function of the seed, so a counted match never sends the seed to the browser;
   // the player is told the marks of each guess (server/word-marks.ts) and the seed once the match is over.
-  if (isSealed(game as GameId)) return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true } }
+  if (isSealed(game as GameId)) return { status: 200, body: { matchId, seed: 0, agentVersion, sealed: true, ...(humanSeat === undefined ? {} : { humanSeat }) } }
   return { status: 200, body: { matchId, seed, agentVersion, ...(humanSeat === undefined ? {} : { humanSeat }) } }
 }
 
@@ -398,8 +398,8 @@ export async function finishMatchHandler(
     const out = replay(rec)
     result = out.result
     if (!out.ok) reason = out.error ?? 'replay failed'
-    // The player is always seat 0 in a sealed game; replay and the log compare never read this field, so a seat-1 upload would turn a loss into a win.
-    else if (isSealed(row.game as GameId) && rec.humanSeat !== 0) reason = 'a sealed match is played from seat 0'
+    // The player's seat in a sealed game is the one the row gave (seat 0 unless the game has random sides); replay and the log compare never read this field, so a flipped upload would turn a loss into a win.
+    else if (isSealed(row.game as GameId) && rec.humanSeat !== assignedSeat(row.filterFlags)) reason = `a sealed match is played from seat ${assignedSeat(row.filterFlags)}`
     else if (row.game === 'word' && !wordRecordMatchesMarks(rec, row.seed, row.filterFlags)) reason = 'record does not match the marked rounds'
     // Every other sealed game keeps a log of the server's own turns (server/sealed-duel.ts); the record must be exactly that, to the end.
     else if (sealedTurn && !recordMatchesLog(rec, row.filterFlags)) reason = 'record does not match the logged turns'
@@ -470,7 +470,7 @@ export async function finishMatchHandler(
     // A sealed turn game needs no guess: the seed is revealed after a loss, so an edit can look like anything, but the server holds the match itself.
     // The agent won: the loss, whatever went wrong with the record. Still running: the page uploads only after the server says the match is over
     // (useFleetMatch finishCounted), so no honest build sends this; it is giving up. The player won: nothing, no gain and no charge.
-    const owesLoss = logged ? logged.result === null || logged.result.winner === 1 : contradicts
+    const owesLoss = logged ? logged.result === null || logged.result.winner === 1 - assignedSeat(row.filterFlags) : contradicts
     // The flag covers a retry: an earlier upload that died mid-check already moved the row to 'started', so `ticketed` is false here.
     if (!owesLoss || ticketed || ticketUsed(row.filterFlags) || !row.userId || isPractice(row.filterFlags) || isUnplayed(row.game, row.filterFlags)) return { status: 200, body: { valid, reason, result: null } }
     const change = await applyRatingIfRanked(db, {

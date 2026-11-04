@@ -17,7 +17,7 @@ import { isMuted } from '../lib/audio'
 import { PRACTICE_RESULT } from '../lib/practice'
 
 /** Games whose opponent moves the server re-runs before a rated match counts (server/agent-check.ts SERVER_CHECKED); a guest's check finishes after the answer. */
-const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem', 'slack']
+const SERVER_CHECKED_GAMES: readonly string[] = ['chess', 'four', 'holdem', 'slack', 'penalty']
 
 export type Outcome = 'win' | 'loss' | 'draw'
 

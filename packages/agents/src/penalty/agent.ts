@@ -1,7 +1,7 @@
 import type { PenaltyObs } from '@duelwise/core/src/games/penalty/core'
 import type { Level } from '@duelwise/core/src/product'
 import { makeRng } from '@duelwise/core/src/rng'
-import type { Rng } from '@duelwise/core/src/types'
+import type { Rng, Seat } from '@duelwise/core/src/types'
 import type { AgentOpts, PreviewAgent } from '../agent-types'
 import { bestKeeper, bestShooter, CORNERS, COVER, DIVE_COUNT, DIVE_HABITS, floored, KICK_HABITS, mirrorDive, mirrorZone, mix, one, predict, sideOfDive, SIDE_DIVES, streamsOf, ZONE_COUNT, type Dist } from './habits'
 import { EQ_KEEPER, EQ_SHOOTER, PENALTY_LEVELS, PIP_HABIT_SHARE, PIP_KEEPER, PIP_SHOOTER } from './levels'
@@ -120,23 +120,38 @@ export function choosePenaltyAction(level: Level, obs: PenaltyObs, rng: Rng, sal
   return pick(distFor(level, obs, salt), rng)
 }
 
+/** The seat's mixed seed: the match seed with the seat folded in, so two agents of the same level do not draw the same numbers or pick the same favourites. */
+function mixedSeed(seed: number, seat: Seat): number {
+  return (seed ^ Math.imul(seat + 1, 0x9e3779b1)) | 0
+}
+
+/**
+ * This level's pick for one kick, as a pure function of the match seed, the agent's seat and what that seat can see. The random draw belongs to the kick
+ * (the number of kicks already taken), so nothing is carried between calls and the same inputs give the same pick wherever they are asked: on the page
+ * (unrated play), on the server when it plays the opponent of a counted match (server/sealed-duel.ts), and in the server's re-check of a record.
+ */
+export function penaltyAgentAction(level: Level, seed: number, seat: Seat, obs: PenaltyObs): number {
+  const mixed = mixedSeed(seed, seat)
+  const salt = Math.imul(mixed ^ 0x5bd1e995, 0x85ebca6b) | 0
+  const rng = makeRng(hashSalt(mixed ^ Math.imul(obs.kicks.length + 1, 0x85ebca6b)) | 0)
+  return choosePenaltyAction(level, obs, rng, salt)
+}
+
 /** Matches the factory signature in agent-dispatch.ts: (level, opts) => Promise<PreviewAgent>. */
 export async function createGameAgent(level: Level, opts: AgentOpts = {}): Promise<PreviewAgent> {
   const seat = opts.seat ?? 1
-  let rng: Rng = makeRng(0)
-  let salt = 0
+  let seed = 0
+  let forSeat: Seat = seat
   return {
     // false: this agent is final, not a stand-in for one that is still being trained.
     preview: false,
-    reset(seed, forSeat) {
-      // Mixing in the seat keeps two agents of the same level from drawing the same numbers or picking the same favourites. A page learns the
-      // player's side only after the server row exists, which is after the opponent is built, so it passes the seat here.
-      const mixed = (seed ^ Math.imul((forSeat ?? seat) + 1, 0x9e3779b1)) | 0
-      rng = makeRng(mixed)
-      salt = Math.imul(mixed ^ 0x5bd1e995, 0x85ebca6b) | 0
+    reset(next, nextSeat) {
+      // A page learns the player's side only after the server row exists, which is after the opponent is built, so it passes the seat here.
+      seed = next
+      forSeat = nextSeat ?? seat
     },
     async act(obs) {
-      return [choosePenaltyAction(level, obs as PenaltyObs, rng, salt)]
+      return [penaltyAgentAction(level, seed, forSeat, obs as PenaltyObs)]
     },
     dispose() {},
   }
