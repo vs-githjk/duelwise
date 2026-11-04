@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-03T21:00:00.000Z",
-      "promotedAt": "2026-11-04T04:01:11.428Z",
+      "promotedAt": "2026-11-04T07:57:43.775Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -56,11 +56,11 @@
             "lower": "easy",
             "upper": "medium",
             "n": 800,
-            "points": 498,
-            "score": 0.6225,
+            "points": 493,
+            "score": 0.61625,
             "ci95": [
-              0.588398,
-              0.655431
+              0.582072,
+              0.649317
             ],
             "passed": true,
             "bySeat": [
@@ -76,10 +76,10 @@
               {
                 "seat": 1,
                 "n": 400,
-                "points": 250,
+                "points": 245,
                 "ci95": [
-                  0.5765790054917597,
-                  0.6710429208875072
+                  0.5639027290586999,
+                  0.6589570046826404
                 ]
               }
             ]
@@ -88,30 +88,30 @@
             "lower": "medium",
             "upper": "hard",
             "n": 800,
-            "points": 537,
-            "score": 0.67125,
+            "points": 457,
+            "score": 0.57125,
             "ci95": [
-              0.637947,
-              0.702916
+              0.536696,
+              0.605123
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 269,
+                "points": 226,
                 "ci95": [
-                  0.6250583009886355,
-                  0.7166599574147529
+                  0.5160260758458871,
+                  0.6127373258713315
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 268,
+                "points": 231,
                 "ci95": [
-                  0.6224940955007717,
-                  0.7142717243750314
+                  0.5285810177376596,
+                  0.6249445766174858
                 ]
               }
             ]
@@ -120,30 +120,30 @@
             "lower": "hard",
             "upper": "champion",
             "n": 800,
-            "points": 539,
-            "score": 0.67375,
+            "points": 473.5,
+            "score": 0.591875,
             "ci95": [
-              0.640498,
-              0.705341
+              0.557457,
+              0.625415
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 261,
+                "points": 235,
                 "ci95": [
-                  0.6045847903542647,
-                  0.6975139598284409
+                  0.5386474922018407,
+                  0.6346878562636461
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 278,
+                "points": 238.5,
                 "ci95": [
-                  0.6482028143889341,
-                  0.7380873907627221
+                  0.5474722501348797,
+                  0.6431966331771557
                 ]
               }
             ]
@@ -165,8 +165,8 @@
       "config": {
         "algorithm": "echo-last-kick",
         "kind": "marlow",
-        "read": 0.75,
-        "kickRead": 0.45
+        "read": 0.6,
+        "kickRead": 0.38
       }
     },
     "hard": {
@@ -174,8 +174,8 @@
       "config": {
         "algorithm": "pattern-reader",
         "kind": "vesper",
-        "read": 0.75,
-        "kickRead": 0.75
+        "read": 0.9,
+        "kickRead": 0.5
       }
     },
     "champion": {
@@ -183,7 +183,8 @@
       "config": {
         "algorithm": "habit-reader-bayes",
         "kind": "sable",
-        "weight": 1.5
+        "weight": 1,
+        "cap": 0.8
       }
     }
   },
@@ -198,51 +199,51 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-04T04:01:11.428Z",
+      "measuredAt": "2026-11-04T07:57:43.775Z",
       "harness": "bun",
-      "commit": "7bdce5d"
+      "commit": "c46cf30"
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.6225,
+      "value": 0.61625,
       "ci95": [
-        0.588398,
-        0.655431
+        0.582072,
+        0.649317
       ],
       "n": 800,
       "opponents": "easy",
-      "siteElo": 1086.88896,
-      "measuredAt": "2026-11-04T04:01:11.428Z",
+      "siteElo": 1082.283418,
+      "measuredAt": "2026-11-04T07:57:43.775Z",
       "harness": "bun",
-      "commit": "7bdce5d"
+      "commit": "c46cf30"
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.67125,
+      "value": 0.57125,
       "ci95": [
-        0.637947,
-        0.702916
+        0.536696,
+        0.605123
       ],
       "n": 800,
       "opponents": "medium",
-      "siteElo": 1210.896375,
-      "measuredAt": "2026-11-04T04:01:11.428Z",
+      "siteElo": 1132.13225,
+      "measuredAt": "2026-11-04T07:57:43.775Z",
       "harness": "bun",
-      "commit": "7bdce5d"
+      "commit": "c46cf30"
     },
     "champion": {
       "metric": "score vs hard",
-      "value": 0.67375,
+      "value": 0.591875,
       "ci95": [
-        0.640498,
-        0.705341
+        0.557457,
+        0.625415
       ],
       "n": 800,
       "opponents": "hard",
-      "siteElo": 1336.875678,
-      "measuredAt": "2026-11-04T04:01:11.428Z",
+      "siteElo": 1196.706969,
+      "measuredAt": "2026-11-04T07:57:43.775Z",
       "harness": "bun",
-      "commit": "7bdce5d"
+      "commit": "c46cf30"
     }
   },
   "unpublished": {},
