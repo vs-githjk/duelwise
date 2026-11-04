@@ -98,7 +98,7 @@ A strength number is a claim, so each one has to be earned.
 |---|---|
 | Chess | Beat the level below from each seat over 400 games per seat (Easy plays a random mover). Hard must also clear a score bar against a 2-ply bot. |
 | Four in a Row | Beat the level below in up to 400 games (Easy plays a random mover), stopping early at 100 or 200 only on a stricter 99% bound. A new champion version must beat the old one over at least 400 games with a score of at least 55%. |
-| Heads-Up Hold'em | Beat the level below over 400 deals, each played twice with the seats swapped, overall and from each seat (Easy plays an always-call bot). |
+| Heads-Up Hold'em | Beat the level below over 1000 deals, each played twice with the seats swapped, overall and from each seat (Easy plays an always-call bot). |
 | Word Duel | Play all 1,975 answer words and average fewer guesses than the level below, with 95% intervals that do not overlap. |
 | Tinderbox, Coldstore | Clear a bar set for that level against every scripted bot, over 400 matches on each seat. Then beat the next published level below over 400 matches with the seats swapped. |
 
