@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -40,6 +40,11 @@ export default function FourPage() {
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
+  // A match opens at the top of the page, whatever the setup page was scrolled to (Start sits below the level cards), so the header and HUD do not start
+  // above the screen on a laptop. Instant, so nothing is seen to move; phones keep their own flow.
+  useLayoutEffect(() => {
+    if (match.phase === 'playing' && window.innerWidth >= 1024) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [match.seed, match.phase === 'playing'])
 
   const begin = (level: Level) => {
     const s = fixedSeed

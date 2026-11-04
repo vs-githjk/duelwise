@@ -1,5 +1,5 @@
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
 import { GameShell } from '../../components/GameShell'
@@ -85,6 +85,11 @@ export default function ChessPage() {
   useEffect(() => {
     if (match.phase !== 'playing') setConfirming(false)
   }, [match.phase])
+  // A match opens at the top of the page. The setup page is long (Start sits below the level cards), and a player who scrolled down to it would otherwise land
+  // part-way down the laptop layout with the header and HUD above the screen. Instant, so nothing is seen to move; phones keep their own flow.
+  useLayoutEffect(() => {
+    if (match.phase === 'playing' && window.innerWidth >= 1024) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [match.seed, match.phase === 'playing'])
 
   const begin = (level: Level) => {
     const { seed, fen } = fixed
