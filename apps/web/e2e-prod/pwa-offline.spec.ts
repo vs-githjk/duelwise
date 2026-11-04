@@ -6,13 +6,13 @@ import { expect, test, type Page } from '@playwright/test'
  *
  * Flow: open the site online so the worker installs and the models are cached, go offline, reload Four in a Row and Tinderbox,
  * play a whole Four in a Row match offline (it is unrated: no game issues offline tickets), go back online, and see that nothing was queued
- * and the public match count did not move.
+ * and no match call was sent.
  */
 const FOUR = '/play/four-in-a-row'
 const TINDERBOX = '/play/tinderbox'
 
-// No x-dw-test header here: the prod config sends it, which tags the match as test traffic and the landing board drops it.
-test.use({ serviceWorkers: 'allow', extraHTTPHeaders: {} })
+// The prod config sends the x-dw-test marker, so this run is tagged as test traffic.
+test.use({ serviceWorkers: 'allow' })
 
 async function queued(page: Page): Promise<number> {
   return page.evaluate(
@@ -57,14 +57,14 @@ async function boardCount(page: Page): Promise<number> {
   return texts.reduce((sum, t) => sum + (Number(t.replaceAll(',', '')) || 0), 0)
 }
 
-test('installs, plays Four in a Row offline on a ticket, and the match counts once back online', async ({ page, context }) => {
+test('installs, plays Four in a Row offline from the cache, unrated, and nothing is sent', async ({ page, context }) => {
   test.setTimeout(240_000)
   await context.addInitScript(() => {
     for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
   })
 
   // 1. Online: the worker installs and takes over the page.
-  const before = await boardCount(page)
+  await boardCount(page)
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined))
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null), { timeout: 60_000 }).toBe(true)
   // Install finishes only when every required file and every model is in the cache.
@@ -95,7 +95,12 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   await page.goto(FOUR)
   await expect(page.getByTestId('four-setup')).toBeVisible()
 
-  // 4. Offline: a whole match plays from the cache. It is unrated, says why, and nothing is queued for upload.
+  // 4. Offline: a whole match plays from the cache. It is unrated, says why, and nothing is queued or sent. From here to the end, no server function call
+  // (the match start, the finish and upload, tickets: all POSTs to /_serverFn/<id>, whose ids are opaque) may carry a Four in a Row match.
+  const sent: string[] = []
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().includes('/_serverFn') && /four/i.test(r.postData() ?? '')) sent.push(r.url())
+  })
   await page.getByRole('radio', { name: /Easy/ }).check()
   await page.getByRole('button', { name: 'Start match' }).click()
   await expect(page.getByTestId('four-board')).toBeVisible()
@@ -120,9 +125,10 @@ test('installs, plays Four in a Row offline on a ticket, and the match counts on
   await expect(page.getByTestId('offline-chip')).toHaveCount(0, { timeout: 40_000 })
   expect(await queued(page)).toBe(0)
 
-  // 6. The offline match counted nowhere: the public match count is where it was.
+  // 6. The offline match counted nowhere: the browser never sent a Four in a Row start, finish or ticket call, and the landing strip still shows.
   await page.waitForTimeout(5000)
-  expect(await boardCount(page)).toBe(before)
+  expect(sent, 'server function calls that carried a Four in a Row match').toEqual([])
+  await boardCount(page)
 })
 
 test('an update is offered, never forced, and the worker is absent from dev', async ({ page }) => {
