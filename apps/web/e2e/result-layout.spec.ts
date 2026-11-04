@@ -65,6 +65,26 @@ const FINISH: Record<string, (page: Page) => Promise<void>> = {
       await page.waitForTimeout(120)
     }
   },
+  penalty: async (page) => {
+    // A whole shootout on a fixed seed (unrated), picks 0 to 4 round and round: the result waits for the last reveal and the end hold.
+    await pick(page, '/play/twelve-yards?seed=3')
+    const panel = page.getByTestId('result-panel')
+    const scene = page.getByTestId('penalty-scene')
+    for (let i = 0; i < 30 && !(await panel.isVisible()); i++) {
+      if (await page.getByTestId('penalty-result').count()) {
+        await page.waitForTimeout(150)
+        continue
+      }
+      if ((await scene.getAttribute('data-reveal')) !== null) {
+        await page.waitForTimeout(150)
+        i--
+        continue
+      }
+      const z = page.getByTestId(`penalty-zone-${i % 5}`)
+      await z.click()
+      await z.click()
+    }
+  },
   fleet: async (page) => {
     // hold=0 removes the opponent's pause; a whole match is played shot by shot to the sinking of a fleet.
     await page.goto('/play/stormglass?hold=0')
@@ -160,7 +180,7 @@ for (const vp of [{ name: 'desktop-1440', use: VIEWPORTS[0].use }, { name: 'ipho
 for (const vp of VIEWPORTS) {
   test.describe(`the back control on ${vp.name}`, () => {
     test.use(vp.use)
-    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent']] as const) {
+    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent'], ['penalty', 'twelve-yards']] as const) {
       test(`${game}: "All games" is a 44 px arrow button to /play with a visible focus ring`, async ({ page }) => {
         await page.goto(`/play/${slug}`)
         const back = page.getByTestId('game-back')

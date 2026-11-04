@@ -179,3 +179,29 @@ test('crosscurrent: the board, the status row and the Place bar stay put on ever
   }
   await expectNoFrameShift(page, 'crosscurrent')
 })
+
+test('twelve yards: the scene, the pick bar and the role line stay put on every frame across four kicks, the reveals and both roles', async ({ page }) => {
+  test.setTimeout(150_000)
+  await page.goto('/play/twelve-yards?seed=3&side=0')
+  await page.locator('[data-mode-option="practice"]').click()
+  await page.getByRole('button', { name: 'Start match' }).click()
+  const scene = page.getByTestId('penalty-scene')
+  await expect(scene).toBeVisible()
+  const bar = page.getByTestId('penalty-action')
+  const role = page.getByTestId('penalty-role')
+  const start = await bringIntoView(page, scene)
+  const barStart = await spot(page, bar)
+  const roleStart = await spot(page, role)
+  await watchFrames(scene, bar, role)
+  for (let i = 0; i < 4; i++) {
+    await expect(scene).not.toHaveAttribute('data-reveal', /set|go/)
+    const z = page.getByTestId(`penalty-zone-${i % 5}`)
+    await z.click()
+    await z.click()
+    await expect(scene).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+    await expectStill(page, scene, start, `twelve yards scene after kick ${i + 1}`)
+    await expectStill(page, bar, barStart, `twelve yards pick bar after kick ${i + 1}`)
+    await expectStill(page, role, roleStart, `twelve yards role line after kick ${i + 1}`)
+  }
+  await expectNoFrameShift(page, 'twelve yards')
+})

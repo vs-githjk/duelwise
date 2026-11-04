@@ -27,6 +27,7 @@ const GAMES: Game[] = [
   { key: 'word', inMatch: (p) => p.getByTestId('word-input'), play: async (p) => { await p.getByTestId('word-input').fill('crane'); await p.getByTestId('word-input').press('Enter') } },
   { key: 'fleet', startButton: (p) => p.getByTestId('fleet-ready'), inMatch: (p) => p.getByTestId('fleet-fire'), play: async (p) => { const c = p.locator('[data-testid^="fleet-cell-"][data-state="open"]').first(); await c.click(); await c.click() } },
   { key: 'slack', inMatch: (p) => p.getByTestId('slack-board'), play: async (p) => { const c = p.locator('[data-testid^="slack-cell-"][data-legal]').first(); await c.click(); await c.click() } },
+  { key: 'penalty', startButton: (p) => p.getByTestId('penalty-start'), inMatch: (p) => p.getByTestId('penalty-scene'), play: async (p) => { const z = p.getByTestId('penalty-zone-0'); await z.click(); await z.click() } },
   { key: 'fighter', phased: true, inMatch: (p) => p.getByTestId('fighter-stage'), play: async (p) => { for (const k of ['ArrowRight', 'KeyJ', 'ArrowLeft']) { await p.keyboard.down(k); await p.waitForTimeout(150); await p.keyboard.up(k) } } },
   { key: 'arena', phased: true, inMatch: (p) => p.getByTestId('arena-stage'), play: async (p) => { for (const k of ['KeyW', 'KeyD', 'Space']) { await p.keyboard.down(k); await p.waitForTimeout(150); await p.keyboard.up(k) } } },
 ]

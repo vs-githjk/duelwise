@@ -6,7 +6,7 @@ import { sideForSeed } from '@duelwise/core/src/sides.ts'
 // Each match gives the player a random side (core/sides.ts). `?side=seed` makes the page take the side the fixed seed gives, so a spec forces a side by
 // choosing its seed; without it the e2e server pins the player to seat 0 (VITE_DUELWISE_SIDE) and the older specs keep their games.
 
-function seedFor(game: 'chess' | 'four' | 'slack', side: 0 | 1, from = 1): number {
+function seedFor(game: 'chess' | 'four' | 'slack' | 'penalty', side: 0 | 1, from = 1): number {
   for (let s = from; ; s++) if (sideForSeed(game, s) === side) return s
 }
 
@@ -416,6 +416,36 @@ test.describe('Rated, with the side from the server (run with DUELWISE_SIDE=1)',
     await expect(page.getByTestId('result-panel')).toBeVisible()
     await expect(page.getByTestId('result-report-link')).toBeVisible({ timeout: 60_000 })
     await expect(page.getByTestId('result-upload')).not.toContainText('could not be verified')
+    expect(errors).toEqual([])
+  })
+})
+
+test.describe('Twelve Yards: who kicks first, at random each match', () => {
+  async function open(page: Page, side: 0 | 1) {
+    await page.goto(`/play/twelve-yards?seed=${seedFor('penalty', side)}&side=seed`)
+    await expect(page.getByTestId('penalty-setup')).toBeVisible()
+    await page.locator('[data-mode-option="practice"]').click()
+    await page.getByTestId('penalty-start').click()
+    await expect(page.getByTestId('penalty-scene')).toBeVisible()
+  }
+
+  test('the setup says the first kick is random, and each side the seed gives opens as that side: the role line, the header, the first reveal', async ({ page }) => {
+    test.setTimeout(90_000)
+    const errors = watchConsole(page)
+    await page.goto('/play/twelve-yards')
+    await expect(page.getByTestId('penalty-setup')).toContainText('the first kick or the second at random')
+    for (const side of [0, 1] as const) {
+      await open(page, side)
+      await expect(page.getByTestId('penalty-page')).toHaveAttribute('data-human-seat', String(side))
+      await expect(page.getByTestId('penalty-role')).toContainText(side === 0 ? 'You kick first. You shoot.' : "kicks first. You're in goal.")
+      await expect(page.getByTestId('play-hud')).toContainText(side === 0 ? 'You, kick first' : 'You, kick second')
+      // One pick: as the first kicker it is a shot, as the second a dive; the last-kick line names who shot.
+      await page.getByTestId('penalty-zone-0').click()
+      await page.getByTestId('penalty-zone-0').click()
+      await expect(page.getByTestId('penalty-last')).toContainText(side === 0 ? /^You went / : /^Pip went /, { timeout: 5000 })
+      await expect(page.getByTestId('penalty-scene')).not.toHaveAttribute('data-reveal', /.+/, { timeout: 8000 })
+      await expect(page.getByTestId('penalty-role')).toContainText(side === 0 ? "You're in goal." : 'You shoot.')
+    }
     expect(errors).toEqual([])
   })
 })

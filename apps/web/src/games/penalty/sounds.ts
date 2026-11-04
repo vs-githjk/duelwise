@@ -289,6 +289,18 @@ export function scheduleCue(ctx: BaseAudioContext, out: AudioNode, cue: PenaltyC
   }
 }
 
+/** Test hook: the cues that were actually scheduled, in order (window.__duelwisePenaltySounds), so a spec can tell what a match sounded like without listening. Capped. */
+function heard(cue: PenaltyCue): void {
+  try {
+    const w = window as unknown as { __duelwisePenaltySounds?: string[] }
+    const list = (w.__duelwisePenaltySounds ??= [])
+    list.push(cue)
+    if (list.length > 200) list.shift()
+  } catch {
+    // no window
+  }
+}
+
 /** Plays one cue through the shared AudioContext, so mute and volume apply. Silent where Web Audio is missing; never throws. */
 export function playCue(cue: PenaltyCue, delayMs = 0, reducedMotion = false): void {
   try {
@@ -296,6 +308,7 @@ export function playCue(cue: PenaltyCue, delayMs = 0, reducedMotion = false): vo
     const ctx = sharedAudioContext()
     if (!ctx) return
     if (!claim(SOURCES[cue], delayMs, LENGTH[cue])) return
+    heard(cue)
     resumeAudioContext()
     scheduleCue(ctx, ctx.destination, cue, ctx.currentTime + delayMs / 1000, getVolume(), reducedMotion)
   } catch {

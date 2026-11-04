@@ -8,6 +8,8 @@ const GAMES = {
   four: { play: '/play/four-in-a-row', board: 'four-board', board_lb: '/leaderboard/four-in-a-row' },
   // Crosscurrent's play HUD carries data-turn, like the other boards.
   slack: { play: '/play/crosscurrent', board: 'play-hud', board_lb: '/leaderboard/crosscurrent' },
+  // Twelve Yards picks are simultaneous, so its scene has no turn to wait for: it is playing when the scene is there.
+  penalty: { play: '/play/twelve-yards', board: 'penalty-scene', board_lb: '/leaderboard/twelve-yards' },
 } as const
 
 async function devSignIn(page: Page, name: string) {
@@ -25,7 +27,7 @@ async function startMatch(page: Page, game: keyof typeof GAMES, query = '') {
   await page.getByRole('radio', { name: /Easy/ }).check()
   await page.getByRole('button', { name: 'Start match' }).click()
   await expect(page.getByTestId(GAMES[game].board)).toBeVisible()
-  await expect(page.getByTestId(GAMES[game].board)).toHaveAttribute('data-turn', 'you')
+  if (game !== 'penalty') await expect(page.getByTestId(GAMES[game].board)).toHaveAttribute('data-turn', 'you')
 }
 
 async function resign(page: Page) {
@@ -35,7 +37,7 @@ async function resign(page: Page) {
   await expect(page.getByTestId('result-reason')).toHaveText('You resigned.')
 }
 
-for (const game of ['chess', 'four', 'slack'] as const) {
+for (const game of ['chess', 'four', 'slack', 'penalty'] as const) {
   test.describe(`${game}: rated resign`, () => {
     test('resigning a counted match is a loss: the rating shown drops and the leaderboard reflects it', async ({ page }) => {
       await devSignIn(page, `res-${game}`)
@@ -62,7 +64,7 @@ for (const game of ['chess', 'four', 'slack'] as const) {
   })
 }
 
-for (const game of ['four', 'slack'] as const) {
+for (const game of ['four', 'slack', 'penalty'] as const) {
   test(`${game}: closing the page during a counted match sends a beacon that resigns it`, async ({ page }) => {
     await devSignIn(page, `leaver-${game}`)
     await startMatch(page, game)
