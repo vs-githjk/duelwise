@@ -117,7 +117,7 @@ function softOf(d: readonly number[]): Dist {
 }
 
 /**
- * Eleven habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's distribution
+ * Fourteen habit shapes for one stream of choices (the opponent's kicks, or their dives). Each gives the next choice's distribution
  * from the stream so far (`prev`) and from what I did alongside it (`mine`). Index 0 is the equilibrium. `echo` turns one of my
  * choices into the opponent's choices that follow it, for the "copies my last" and "avoids my last" shapes.
  */
@@ -130,7 +130,10 @@ function habitShapes(eq: readonly number[], favourites: readonly number[], mirro
     (p) => (p.length ? soft(p[p.length - 1]!) : eq), // repeat
     (p) => (p.length >= 2 ? soft(p[p.length - 2]!) : eq), // alternate
     (p) => (p.length ? soft(mirror(p[p.length - 1]!)) : eq), // mirror
+    (p) => (p.length >= 3 ? soft(p[p.length - 3]!) : eq), // same as three back
+    (p) => (p.length >= 4 ? soft(p[p.length - 4]!) : eq), // same as four back
     (_p, m) => (m.length ? softOf(echo(m[m.length - 1]!)) : eq), // copies my last
+    (_p, m) => (m.length >= 2 ? softOf(echo(m[m.length - 2]!)) : eq), // copies my choice from two back
     (_p, m) => {
       // avoids my last
       if (!m.length) return eq
@@ -152,10 +155,14 @@ function zonesOfDive(dive: number): Dist {
 export const KICK_HABITS: Hypothesis[] = habitShapes(EQ_SHOOTER, [...CORNERS, 4], mirrorZone, zonesOfDive)
 export const DIVE_HABITS: Hypothesis[] = habitShapes(EQ_KEEPER, [0, 1, 2, 3, 4], mirrorDive, (z) => one(COVER[z]!, DIVE_COUNT))
 
-/** Equilibrium 0.5, the others share the rest. */
+/** Prior that a stream is plain equilibrium play. High on purpose: with a dozen shapes some shape fits any short noisy stream, and a lower prior made Sable commit to coincidences. */
+const PRIOR_EQ = 0.8
+
+/** Equilibrium PRIOR_EQ, the others share the rest. */
 function prior(n: number): number[] {
-  const p: number[] = new Array<number>(n).fill(0.5 / (n - 1))
-  p[0] = 0.5
+  const P0 = PRIOR_EQ
+  const p: number[] = new Array<number>(n).fill((1 - P0) / (n - 1))
+  p[0] = P0
   return p
 }
 
