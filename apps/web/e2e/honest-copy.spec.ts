@@ -127,11 +127,9 @@ test.describe('training copy and site Elo', () => {
     await expect(page.getByTestId('elo-explainer').first()).toBeVisible()
   })
 
-  test('a level that is in training does not also wear a Preview badge', async ({ page }) => {
-    // Every turn-based level and every Tinderbox level is published now; Coldstore still has unpublished levels, shown as Practice.
+  test('every Coldstore level is published, so none wears an In training or Preview badge', async ({ page }) => {
+    // Every level of every game is published now; a level that is in training would show the In training badge alone, never also a Preview one.
     await page.goto('/play/coldstore')
-    const picker = page.getByTestId('level-picker')
-    await expect(picker.locator('label[data-persona="medium"]').getByTestId('preview-badge')).toHaveText('In training')
-    await expect(picker.getByTestId('preview-badge').filter({ hasNotText: 'In training' })).toHaveCount(0)
+    await expect(page.getByTestId('level-picker').getByTestId('preview-badge')).toHaveCount(0)
   })
 })
