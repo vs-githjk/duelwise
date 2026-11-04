@@ -95,11 +95,23 @@ test('installs, plays Four in a Row offline from the cache, unrated, and nothing
   await page.goto(FOUR)
   await expect(page.getByTestId('four-setup')).toBeVisible()
 
-  // 4. Offline: a whole match plays from the cache. It is unrated, says why, and nothing is queued or sent. From here to the end, no server function call
-  // (the match start, the finish and upload, tickets: all POSTs to /_serverFn/<id>, whose ids are opaque) may carry a Four in a Row match.
+  // 4. Offline: a whole match plays from the cache. It is unrated, says why, and nothing is queued or sent. From here to the end, the browser must not send
+  // a match to the server. The calls are server function POSTs to /_serverFn/<id> (the ids are opaque, so the body tells them apart; match-recorder.ts serverApi,
+  // tickets.ts serverTicketApi):
+  //   start      JSON { game, level, ... } with no count field
+  //   finish     multipart/form-data carrying the gzipped record (a Blob part named "record")
+  //   tickets    JSON { game, level, count } with count above 0
+  // The viewer probe (JSON { game: 'four', level: 'easy', count: 0 }) runs on every return to online to learn who is signed in and issues nothing, so it is allowed.
   const sent: string[] = []
   page.on('request', (r) => {
-    if (r.method() === 'POST' && r.url().includes('/_serverFn') && /four/i.test(r.postData() ?? '')) sent.push(r.url())
+    if (r.method() !== 'POST' || !r.url().includes('/_serverFn')) return
+    if ((r.headers()['content-type'] ?? '').includes('multipart/form-data')) return void sent.push(`finish ${r.url()}`)
+    let body: unknown = null
+    try { body = JSON.parse(r.postData() ?? '') } catch { return }
+    const data = (body as { data?: { game?: unknown; count?: unknown } } | null)?.data ?? (body as { game?: unknown; count?: unknown } | null)
+    if (!data || data.game !== 'four') return
+    if (data.count === undefined) sent.push(`start ${r.url()}`)
+    else if (typeof data.count === 'number' && data.count > 0) sent.push(`tickets ${r.url()}`)
   })
   await page.getByRole('radio', { name: /Easy/ }).check()
   await page.getByRole('button', { name: 'Start match' }).click()
@@ -127,7 +139,7 @@ test('installs, plays Four in a Row offline from the cache, unrated, and nothing
 
   // 6. The offline match counted nowhere: the browser never sent a Four in a Row start, finish or ticket call, and the landing strip still shows.
   await page.waitForTimeout(5000)
-  expect(sent, 'server function calls that carried a Four in a Row match').toEqual([])
+  expect(sent, 'match start, finish or ticket calls for Four in a Row').toEqual([])
   await boardCount(page)
 })
 
