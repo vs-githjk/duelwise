@@ -3,14 +3,17 @@ import { penaltyCore, type Kick } from '@duelwise/core/src/games/penalty/core'
 import type { Result } from '@duelwise/core/src/types'
 import { resetAudioForTests, setMuted, setVolume } from '../../lib/audio'
 import { moodForGame, resetMusicForTests } from '../../lib/music'
-import { busActive, silenceAll, END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
+import { busActive, silenceAll, CUE_FILES, FILE_GAIN, preloadCueFiles, END_CROWD_DELAY_MS, END_HOLD_MS, END_HOLD_REDUCED_MS, MAX_VOICES, NET_TICKS, PEAK, cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, resetVoicesForTests, type PenaltyCue } from './sounds'
 
 const g = globalThis as unknown as Record<string, unknown>
-const saved = { window: g.window, Audio: g.Audio, localStorage: g.localStorage }
+const saved = { window: g.window, Audio: g.Audio, localStorage: g.localStorage, fetch: g.fetch }
 
 /** Every source the fake context starts, with the highest gain any envelope reached after it (the cue's peak before the master volume is applied by the page). */
-interface Src { kind: 'osc' | 'noise'; start: number; peak: number; ramps: number }
+interface Src { kind: 'osc' | 'noise'; start: number; peak: number; ramps: number; buffer?: unknown }
 let srcs: Src[] = []
+let failDecode = false
+let fetched: string[] = []
+let failFetch = false
 let gains: Array<{ peak: number; ramps: number }> = []
 let allParams: FakeParam[] = []
 class FakeParam {
@@ -40,6 +43,7 @@ class FakeCtx {
   destination = new FakeNode()
   resume() { return Promise.resolve() }
   createBuffer(_c: number, len: number) { return { getChannelData: () => new Float32Array(len) } }
+  decodeAudioData(bytes: { url: string }) { return failDecode ? Promise.reject(new Error('bad file')) : Promise.resolve({ url: bytes.url, getChannelData: () => new Float32Array(1) }) }
   createGain() {
     const rec = { peak: 0, ramps: 0 }
     gains.push(rec)
@@ -56,7 +60,9 @@ class FakeCtx {
   createBufferSource() {
     const s: Src = { kind: 'noise', start: -1, peak: 0, ramps: 0 }
     srcs.push(s)
-    return Object.assign(new FakeNode(), { start: (t: number) => { s.start = t }, stop() {} })
+    const node = Object.assign(new FakeNode(), { start: (t: number) => { s.start = t }, stop() {} })
+    Object.defineProperty(node, 'buffer', { get: () => s.buffer, set: (b) => { s.buffer = b } })
+    return node
   }
 }
 class FakeAudio {
@@ -69,6 +75,10 @@ beforeEach(() => {
   srcs = []
   gains = []
   allParams = []
+  failDecode = false
+  failFetch = false
+  fetched = []
+  g.fetch = (url: string) => { fetched.push(url); return failFetch ? Promise.resolve({ ok: false, status: 404 }) : Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve({ url }) }) }
   g.window = { AudioContext: FakeCtx }
   g.Audio = FakeAudio
   g.localStorage = { getItem: () => null, setItem: () => {} }
@@ -79,7 +89,7 @@ beforeEach(() => {
 afterEach(() => {
   resetMusicForTests()
   resetAudioForTests()
-  g.window = saved.window; g.Audio = saved.Audio; g.localStorage = saved.localStorage
+  g.fetch = saved.fetch; g.window = saved.window; g.Audio = saved.Audio; g.localStorage = saved.localStorage
 })
 
 const kick = (kicker: 0 | 1, outcome: 'goal' | 'save' | 'wide'): Kick => ({ kicker, zone: 4, dive: 0, goal: outcome === 'goal', onTarget: outcome !== 'wide' })
@@ -236,6 +246,87 @@ describe('playing', () => {
     playResultStinger({ winner: null, score: [4, 4], reason: 'level after sudden death' }, 0)
     const events = (g.window as { __duelwiseAudio?: { events: Array<{ type: string; outcome?: string }> } }).__duelwiseAudio!.events.filter((e) => e.type === 'stinger')
     expect(events.map((e) => e.outcome)).toEqual(['win', 'loss'])
+  })
+})
+
+const settle = () => new Promise((r) => setTimeout(r, 0))
+const FILE_CUES = Object.keys(CUE_FILES) as PenaltyCue[]
+
+describe('recorded crowd and whistle', () => {
+  test('the crowd and the whistle are files; the ball cues stay synthesised', () => {
+    expect(FILE_CUES.sort()).toEqual(['cheer', 'cheerBig', 'cheerSave', 'groan', 'groanBig', 'whistleFull', 'whistleStart'])
+    for (const c of ['strike', 'net', 'glove', 'wide'] as PenaltyCue[]) expect(CUE_FILES[c]).toBeUndefined()
+    for (const [cue, url] of Object.entries(CUE_FILES)) expect(url).toMatch(new RegExp(`/assets/audio/opengameart/crowd/${cue}\\.mp3$`))
+  })
+  test('nothing is fetched until a cue or the page asks, and then each file once', async () => {
+    expect(fetched).toHaveLength(0)
+    preloadCueFiles()
+    preloadCueFiles()
+    await settle()
+    expect(fetched.sort()).toEqual(Object.values(CUE_FILES).sort())
+  })
+  test('no fetch while sound is off', async () => {
+    setMuted(true)
+    preloadCueFiles()
+    await settle()
+    expect(fetched).toHaveLength(0)
+  })
+  test('once loaded, each cue plays its own file and no synthesised tone', async () => {
+    preloadCueFiles()
+    await settle()
+    for (const c of FILE_CUES) {
+      srcs = []
+      resetVoicesForTests()
+      playCue(c)
+      expect(srcs, c).toHaveLength(1)
+      expect(srcs[0]!.kind).toBe('noise')
+      expect((srcs[0]!.buffer as { url: string }).url).toBe(String(CUE_FILES[c]))
+    }
+  })
+  test('the recordings sit under the boot: gain times a full-scale file never passes the strike peak', () => {
+    for (const g2 of Object.values(FILE_GAIN)) expect(g2).toBeLessThanOrEqual(0.7)
+    for (const c of FILE_CUES) expect(FILE_GAIN[c], c).toBeDefined()
+  })
+  test('a recording is cut by muting, like every cue', async () => {
+    preloadCueFiles()
+    await settle()
+    playCue('cheerBig')
+    expect(busActive()).toBe(true)
+    setMuted(true)
+    expect(busActive()).toBe(false)
+    srcs = []
+    playCue('cheerBig')
+    expect(srcs).toHaveLength(0)
+  })
+  test('before the files arrive, a cue is the synthesised one', () => {
+    playCue('whistleFull')
+    expect(srcs.some((s) => s.kind === 'osc')).toBe(true)
+    srcs = []
+    resetVoicesForTests()
+    playCue('cheer')
+    expect(srcs.some((s) => s.kind === 'noise')).toBe(true)
+    expect(srcs.every((s) => s.buffer !== undefined && (s.buffer as { url?: string }).url === undefined)).toBe(true)
+  })
+  test('a file that will not load falls back to the synth, quietly', async () => {
+    failFetch = true
+    preloadCueFiles()
+    await settle()
+    for (const c of FILE_CUES) expect(() => playCue(c)).not.toThrow()
+    expect(srcs.length).toBeGreaterThan(0)
+    expect(srcs.every((s) => (s.buffer as { url?: string } | undefined)?.url === undefined)).toBe(true)
+  })
+  test('a file that will not decode falls back too', async () => {
+    failDecode = true
+    preloadCueFiles()
+    await settle()
+    playCue('whistleStart')
+    expect(srcs.some((s) => s.kind === 'osc')).toBe(true)
+  })
+  test('a context with no decoder or no fetch plays the synth and never throws', () => {
+    g.fetch = undefined
+    expect(() => preloadCueFiles()).not.toThrow()
+    playCue('groan')
+    expect(srcs.length).toBeGreaterThan(0)
   })
 })
 

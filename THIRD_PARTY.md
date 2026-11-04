@@ -110,7 +110,15 @@ Lining numerals are set once on `body` (`font-variant-numeric: lining-nums`), an
 - Tracks (title, author): relax_background1 (joaquinton), jazz improvisation looped (Pro Sensory), Determined Pursuit (Emma_MA), Win Jingle (Fupi), Game over short jingle (Kosmo The Cat). Re-encoded to MP3 and trimmed; total about 4.4 MB.
 - Used by: `apps/web/src/lib/music.ts` (three match loops and the win and loss stingers). The board loop plays on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; the stingers play on the result of all eight games.
 - Crosscurrent's other cues (your disc, the opponent's disc, the flip ripple, a corner, a pass, a draw) are synthesised in the browser with the Web Audio API in `apps/web/src/games/slack/sounds.ts`, so no sound file is shipped for them.
-- Twelve Yards' other cues (the kick, the net, the keeper's glove, the whistle, the crowd's cheer and groan) are synthesised in the browser with the Web Audio API in `apps/web/src/games/penalty/sounds.ts`, so no sound file or recording is shipped for them.
+- Twelve Yards' ball cues (the kick, the net, the keeper's glove, a ball past the goal) are synthesised in the browser with the Web Audio API in `apps/web/src/games/penalty/sounds.ts`, so no file is shipped for them.
+
+### Twelve Yards crowd and whistle (CC0 recordings)
+
+- Files: `apps/web/public/assets/audio/opengameart/crowd/*.mp3`, made 2026-11-04 from the recordings below (trimmed, mixed, faded and re-encoded; details in `cc0-music/CREDITS.md`). Used by `apps/web/src/games/penalty/sounds.ts`.
+- Licence of every source: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. No attribution is required; we credit anyway.
+- "Cheers" (https://opengameart.org/content/cheers-0), "Happy Halloween! (Group)" (https://opengameart.org/content/happy-halloween-group) and "OoOoOoOoOoOoOo" (https://opengameart.org/content/oooooooooooooo): recorded by AuraVoice, posted on OpenGameArt by Nocturnal_Vanguard.
+- "Applause in a large hall or church" (https://opengameart.org/content/applause-in-a-large-hall-or-church): eXpl0it3r.
+- "Referee's whistle blowing inside a gymnasium" (https://commons.wikimedia.org/wiki/File:218318_splicesound_referee-whistle-blow-gymnasium.wav, from https://freesound.org/people/SpliceSound/sounds/218318/): SpliceSound.
 
 ## Quaternius paid animation clips (P2, Oct 23)
 

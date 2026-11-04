@@ -40,7 +40,7 @@ import {
   tapZone,
   type Role,
 } from './match'
-import { cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, silenceAll } from './sounds'
+import { cuesForEnd, cuesForKick, endHoldMs, playCue, playResultStinger, playTimed, preloadCueFiles, silenceAll } from './sounds'
 import { usePenaltyMatch } from './usePenaltyMatch'
 import './penalty.css'
 
@@ -214,6 +214,17 @@ export default function PenaltyPage() {
     setRatedLive(ratedLive)
     return () => setRatedLive(false)
   }, [ratedLive])
+
+  // The crowd and whistle recordings load after the first tap or key on the page (never before, never blocking); until then a cue is the synthesised one.
+  useEffect(() => {
+    const go = () => preloadCueFiles()
+    window.addEventListener('pointerdown', go, { once: true })
+    window.addEventListener('keydown', go, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', go)
+      window.removeEventListener('keydown', go)
+    }
+  }, [])
 
   // The referee's whistle opens the shootout, and the shared win or loss jingle sounds with the result panel (not after a resignation, which is no ending to cheer or groan at).
   useEffect(() => {
