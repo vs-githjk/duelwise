@@ -7,7 +7,7 @@ import { decodeTable } from '@duelwise/core/src/games/holdem/table-format'
 import { MATCH_HANDS } from '@duelwise/core/src/games/holdem/match'
 import { HOLDEM_LEVELS, handPercentile } from '../holdem/agent'
 import { LEVELS } from '../runtime/levels'
-import { SOURCES, botPlayer, duplicateBlock, holdemSeatGate, lbrChunk, levelPlayer, publishedTable, shippedLookup } from './holdem'
+import { LADDER_DEALS, SOURCES, botPlayer, duplicateBlock, holdemSeatGate, lbrChunk, levelPlayer, publishedTable, shippedLookup } from './holdem'
 
 const V1 = join(import.meta.dir, '..', '..', '..', '..', 'apps', 'web', 'public', 'agents', 'holdem', 'v1')
 
@@ -16,6 +16,15 @@ test('Holdem strength gates require 400 matches and a passing Wilson bound on ea
   expect(holdemSeatGate([Array(400).fill(1), Array(400).fill(1)]).passed).toBe(true)
   expect(holdemSeatGate([Array(400).fill(1), Array(400).fill(-1)]).passed).toBe(false)
   expect(holdemSeatGate([Array(400).fill(1, 0, 300), Array(400).fill(1, 0, 300)]).passed).toBe(false)
+})
+
+test('the ladder seat gate wants LADDER_DEALS deals per seat, and a seat just under the bar at 400 deals can clear it at 1000', () => {
+  // 0.5487 over 400 deals has a lower bound of 0.4998 (the Oct 30 Champion v Hard seat 1); the same rate over 1000 deals clears 0.5.
+  const seat = (n: number, wins: number): number[] => Array.from({ length: n }, (_, i) => (i < wins ? 1 : -1))
+  expect(holdemSeatGate([seat(400, 219), seat(400, 219)]).passed).toBe(false)
+  expect(holdemSeatGate([seat(1000, 549), seat(1000, 549)], 0.5, LADDER_DEALS).passed).toBe(true)
+  expect(holdemSeatGate([seat(400, 260), seat(400, 260)], 0.5, LADDER_DEALS).passed).toBe(false)
+  expect(LADDER_DEALS).toBeGreaterThanOrEqual(1000)
 })
 
 test('each published table is the snapshot the measurement says, within the size limit', () => {

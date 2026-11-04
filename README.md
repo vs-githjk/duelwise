@@ -52,10 +52,10 @@ The four opponents are the same four characters in every game, one per level, ea
 |---|---|---|
 | Four in a Row | Self-play (AlphaZero style) with search on top. It has a retraining loop that exports filtered human matches, trains a challenger and promotes it only if it beats the current champion. | Wired, yes. It is the only game that is. No promoted version has used any human match yet (`humanMatchesUsed` is 0 in `four.json`). |
 | Chess | Neural nets trained on public Lichess games, plus a value net and self-play data. Easy, Medium and Hard imitate the moves of players in a rating band. Champion searches ahead using the value net. | No |
-| Heads-Up Hold'em | Strategy tables built by counterfactual regret self-play. Easy, Medium and Hard come from one 250,000 iteration run with different playing habits. Champion, still In training, uses a finer table from 5 million iterations. | No |
+| Heads-Up Hold'em | Strategy tables built by counterfactual regret self-play. Easy, Medium and Hard come from one 250,000 iteration run with different playing habits. Champion uses a finer table from 5 million iterations and beats Hard from both seats. | No |
 | Word Duel | Solvers, not learned models. Easy sometimes overlooks a clue, Medium favours common words, Hard picks the most informative guess and Champion looks two steps ahead. | No (nothing to train) |
 | Tinderbox | A neural policy trained by reinforcement learning in a league of its own past versions, with scripted test bots as the yardstick. Easy, Medium and Hard share one network under different limits, and Champion has its own. | No |
-| Coldstore | The same method as Tinderbox. | No |
+| Coldstore | A neural policy trained by reinforcement learning against scripted test bots and its own past versions. Easy and Medium share one network under different limits (no network trained for Medium beat Easy head to head), Hard and Champion each have their own. | No |
 | Stormglass | A scripted solver, not a learned model. Each level is a different algorithm. | No (nothing to train) |
 
 Making human matches train every learned agent is planned, under "What's coming next".
@@ -98,7 +98,7 @@ A strength number is a claim, so each one has to be earned.
 |---|---|
 | Chess | Beat the level below from each seat over 400 games per seat (Easy plays a random mover). Hard must also clear a score bar against a 2-ply bot. |
 | Four in a Row | Beat the level below in up to 400 games (Easy plays a random mover), stopping early at 100 or 200 only on a stricter 99% bound. A new champion version must beat the old one over at least 400 games with a score of at least 55%. |
-| Heads-Up Hold'em | Beat the level below over 400 deals, each played twice with the seats swapped, overall and from each seat (Easy plays an always-call bot). |
+| Heads-Up Hold'em | Beat the level below over 1000 deals, each played twice with the seats swapped, overall and from each seat (Easy plays an always-call bot). |
 | Word Duel | Play all 1,975 answer words and average fewer guesses than the level below, with 95% intervals that do not overlap. |
 | Tinderbox, Coldstore | Clear a bar set for that level against every scripted bot, over 400 matches on each seat. Then beat the next published level below over 400 matches with the seats swapped. |
 
@@ -107,7 +107,7 @@ In Chess, Four in a Row, Hold'em and Word Duel, every level under a level must p
 - **Site Elo.** In Chess, Four in a Row, Hold'em and Word Duel a published level shows a number such as "site Elo 1000". Easy is fixed at 1000 and each higher level is the chained gap from its head-to-head score. It measures our levels against each other. It is not a chess rating and not comparable to any outside scale. Tinderbox and Coldstore say in plain words what was measured instead.
 - **In training levels.** A level that has not cleared its gate is still playable. It is marked **In training** and shows no strength number, a rating earned against it is marked provisional, and its leaderboard column shows a player count instead of ranks.
 - **Gates are checked twice.** The measurement writes the evidence into the registry, and the web app re-checks that evidence (`apps/web/src/lib/strength-gates.ts`) before it shows a number. That second check can only remove a level, never add one.
-- **Published today.** 23 of 24 levels: Chess, Four in a Row, Word Duel, Tinderbox and Coldstore at all four levels; Hold'em at Easy, Medium and Hard. Hold'em Champion is In training.
+- **Published today.** 24 of 24 levels: every game at all four levels.
 - **Known limit.** Chess strength is on our own ladder only. It has not been anchored to an outside engine yet.
 - **Privacy.** Matches can train the agents on a legitimate-interest basis, with an opt-out: a notice before your first match and a switch that starts on. Turning it off also takes your earlier matches out of training exports. One config value (`trainingDataBasis` in `packages/core/src/product.ts`) makes it opt-in. The site stores no IP addresses and runs no third-party analytics. The full policy is at [duelwise.app/privacy](https://duelwise.app/privacy).
 

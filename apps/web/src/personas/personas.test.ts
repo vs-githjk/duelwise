@@ -110,8 +110,8 @@ test('chess and holdem levels show measured only where the registry measured the
       else expect([game, level, cell.state]).toEqual([game, level, 'in-training'])
     }
   }
-  // Hold'em Champion has not passed its per-seat gate (the overnight publish), so it stays Practice.
-  expect(rows.find((entry) => entry.game === 'holdem')!.cells.champion.state).toBe('in-training')
+  // Hold'em Champion passes every seat at 1000 deals per seat (Nov 4 publish), so it is measured like the other three levels.
+  expect(rows.find((entry) => entry.game === 'holdem')!.cells.champion.state).toBe('measured')
 })
 
 test('chess lines match the sampling config: temperature 0 picks the most likely move, a top-p cut avoids the long tail, plain sampling does neither', () => {

@@ -5,8 +5,8 @@
     {
       "version": "v1",
       "parent": null,
-      "createdAt": "2026-10-29T11:50:38.871Z",
-      "promotedAt": "2026-10-29T11:50:38.871Z",
+      "createdAt": "2026-11-04T12:09:36.039Z",
+      "promotedAt": "2026-11-04T12:09:36.039Z",
       "status": "measured",
       "artifacts": {
         "easy": "apps/web/public/agents/holdem/v1/easy.bin.gz",
@@ -23,7 +23,7 @@
       "trainedSteps": 5000000,
       "humanMatchesUsed": 0,
       "gate": {
-        "rule": "adjacent levels: the stronger level wins the duplicate-dealt game above 50% with a 95% Wilson lower bound; a game is one deal played twice with the seats swapped and is won when the level's combined chips over the two 30-hand matches are positive; 400 deals (800 matches); each seat must also clear a 95% Wilson lower bound above 50%",
+        "rule": "adjacent levels: the stronger level wins the duplicate-dealt game above 50% with a 95% Wilson lower bound; a game is one deal played twice with the seats swapped and is won when the level's combined chips over the two 30-hand matches are positive; 1000 deals (2000 matches); each seat must also clear a 95% Wilson lower bound above 50%",
         "eloLabel": "site Elo; Easy anchored at 1000, each higher level is the chained gap from its duplicate-pair score",
         "deals": "deal d is seed 7000000 + 100000 * (index of the upper level) + d, played from both seats",
         "checkpointRule": "a pilot on other deals (seeds below 7,000,000) showed the snapshots barely differ head-to-head (the fine 5M table played mixed beats the earliest coarse snapshot by only about 55 Elo and the coarse 1.5M one by about 20, and the coarse 1.5M and 5M tables do not separate); Easy, Medium and Hard therefore share the earliest snapshot (250,000 iterations) and differ by how they play it: Hard plays it as it is but never shoves the weakest quarter of starting hands, Medium also plays half of its folds and raises as calls, Easy plays the loose-passive beginner mix with the same call dial (calls most folds, rarely shoves, never folds a premium hand before the flop); Champion is the final fine table (5,000,000 iterations) played as its mixed strategy, because the purified play was far more exploitable",
@@ -112,156 +112,156 @@
           {
             "lower": "easy",
             "upper": "medium",
-            "n": 400,
-            "points": 273.5,
-            "score": 0.68375,
+            "n": 1000,
+            "points": 683,
+            "score": 0.683,
             "ci95": [
-              0.636615,
-              0.727389
+              0.653507,
+              0.711093
             ],
             "stoppedEarly": false,
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
-                "n": 400,
-                "points": 255,
+                "n": 1000,
+                "points": 640.5,
                 "ci95": [
-                  0.5892885147438963,
-                  0.6830956042732972
+                  0.6102733265663186,
+                  0.6696513542823412
                 ]
               },
               {
                 "seat": 1,
-                "n": 400,
-                "points": 232,
+                "n": 1000,
+                "points": 596,
                 "ci95": [
-                  0.5310957507438777,
-                  0.6273822821388529
+                  0.5652754707472443,
+                  0.6259897916119824
                 ]
               }
             ],
-            "mbbPerHand": 898.3125,
+            "mbbPerHand": 920.508333,
             "mbbCi95": [
-              716.809214,
-              1079.815786
+              802.435341,
+              1038.581326
             ],
-            "deals": 400
+            "deals": 1000
           },
           {
             "lower": "medium",
             "upper": "hard",
-            "n": 400,
-            "points": 262,
-            "score": 0.655,
+            "n": 1000,
+            "points": 665,
+            "score": 0.665,
             "ci95": [
-              0.607139,
-              0.699912
+              0.635164,
+              0.693573
             ],
             "stoppedEarly": false,
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
-                "n": 400,
-                "points": 233,
+                "n": 1000,
+                "points": 613,
                 "ci95": [
-                  0.5336117387282527,
-                  0.6298187326820635
+                  0.5824343264293439,
+                  0.6427008261393292
                 ]
               },
               {
                 "seat": 1,
-                "n": 400,
-                "points": 222,
+                "n": 1000,
+                "points": 580,
                 "ci95": [
-                  0.5060044332779559,
-                  0.6029492143289217
+                  0.5491604005563339,
+                  0.610227318076355
                 ]
               }
             ],
-            "mbbPerHand": 909.770833,
+            "mbbPerHand": 948.641667,
             "mbbCi95": [
-              705.467595,
-              1114.074072
+              820.45373,
+              1076.829603
             ],
-            "deals": 400
+            "deals": 1000
           },
           {
             "lower": "hard",
             "upper": "champion",
-            "n": 400,
-            "points": 247.5,
-            "score": 0.61875,
+            "n": 1000,
+            "points": 620.5,
+            "score": 0.6205,
             "ci95": [
-              0.570237,
-              0.665004
+              0.590017,
+              0.650061
             ],
             "stoppedEarly": false,
-            "passed": false,
+            "passed": true,
             "bySeat": [
               {
                 "seat": 0,
-                "n": 400,
-                "points": 225.5,
+                "n": 1000,
+                "points": 580.5,
                 "ci95": [
-                  0.5147722898896968,
-                  0.6115148925637293
+                  0.5496634972102944,
+                  0.6107203946638489
                 ]
               },
               {
                 "seat": 1,
-                "n": 400,
-                "points": 219.5,
+                "n": 1000,
+                "points": 564.5,
                 "ci95": [
-                  0.49975090608057116,
-                  0.5968216452073428
+                  0.5335802171374128,
+                  0.5949261310101928
                 ]
               }
             ],
-            "mbbPerHand": 469.8125,
+            "mbbPerHand": 508.908333,
             "mbbCi95": [
-              330.559561,
-              609.065439
+              421.561657,
+              596.25501
             ],
-            "deals": 400
+            "deals": 1000
           }
         ],
         "baseline": {
           "label": "always-call",
-          "n": 400,
-          "points": 354.5,
-          "score": 0.88625,
+          "n": 1000,
+          "points": 871.5,
+          "score": 0.8715,
           "ci95": [
-            0.851392,
-            0.91376
+            0.849328,
+            0.890829
           ],
           "bySeat": [
             {
               "seat": 0,
-              "n": 400,
-              "points": 301,
+              "n": 1000,
+              "points": 750.5,
               "ci95": [
-                0.7079392284373528,
-                0.7922570628487662
+                0.7227556078278631,
+                0.776327186140744
               ]
             },
             {
               "seat": 1,
-              "n": 400,
-              "points": 298,
+              "n": 1000,
+              "points": 733,
               "ci95": [
-                0.7000956762855488,
-                0.7852432994178142
+                0.7047270987752161,
+                0.7594896317424904
               ]
             }
           ],
-          "mbbPerHand": 1289.416667,
+          "mbbPerHand": 1252.883333,
           "mbbCi95": [
-            1167.296599,
-            1411.536734
+            1175.257988,
+            1330.508679
           ],
-          "deals": 400
+          "deals": 1000
         },
         "bots": [
           {
@@ -939,69 +939,83 @@
         "premiumProtection": true,
         "probabilityFloor": 0.05
       }
+    },
+    "champion": {
+      "version": "v1",
+      "config": {
+        "table": "champion.bin.gz",
+        "snapshot": "holdem-fine final.dwht",
+        "abstraction": "fine",
+        "iterations": 5000000,
+        "purify": false,
+        "explore": 0,
+        "beginner": false,
+        "shoveFloor": 0,
+        "callBias": 0,
+        "premiumProtection": true,
+        "probabilityFloor": 0.05
+      }
     }
   },
   "measured": {
     "easy": {
       "metric": "score vs always-call",
-      "value": 0.88625,
+      "value": 0.8715,
       "ci95": [
-        0.851392,
-        0.91376
+        0.849328,
+        0.890829
       ],
-      "n": 400,
+      "n": 1000,
       "opponents": "always-call",
       "siteElo": 1000,
-      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "d2b212c"
+      "commit": "8f9cc4e"
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.68375,
+      "value": 0.683,
       "ci95": [
-        0.636615,
-        0.727389
+        0.653507,
+        0.711093
       ],
-      "n": 400,
+      "n": 1000,
       "opponents": "easy",
-      "siteElo": 1133.946722,
-      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "siteElo": 1133.344577,
+      "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "d2b212c"
+      "commit": "8f9cc4e"
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.655,
+      "value": 0.665,
       "ci95": [
-        0.607139,
-        0.699912
+        0.635164,
+        0.693573
       ],
-      "n": 400,
+      "n": 1000,
       "opponents": "medium",
-      "siteElo": 1245.315604,
-      "measuredAt": "2026-10-29T11:50:38.871Z",
+      "siteElo": 1252.455312,
+      "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "d2b212c"
-    }
-  },
-  "unpublished": {
-    "champion": "in training: champion does not beat hard: score 0.6188 over 400 games, 95% interval [0.5702, 0.6650]"
-  },
-  "unpublishedConfig": {
+      "commit": "8f9cc4e"
+    },
     "champion": {
-      "table": "champion.bin.gz",
-      "snapshot": "holdem-fine final.dwht",
-      "abstraction": "fine",
-      "iterations": 5000000,
-      "purify": false,
-      "explore": 0,
-      "beginner": false,
-      "shoveFloor": 0,
-      "callBias": 0,
-      "premiumProtection": true,
-      "probabilityFloor": 0.05
+      "metric": "score vs hard",
+      "value": 0.6205,
+      "ci95": [
+        0.590017,
+        0.650061
+      ],
+      "n": 1000,
+      "opponents": "hard",
+      "siteElo": 1337.867314,
+      "measuredAt": "2026-11-04T12:09:36.039Z",
+      "harness": "bun",
+      "commit": "8f9cc4e"
     }
   },
+  "unpublished": {},
+  "unpublishedConfig": {},
   "learnsFromHumans": false
 }
