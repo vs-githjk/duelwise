@@ -50,6 +50,39 @@ async function playColumn(page: Page, col: number) {
 }
 
 test.describe('Four in a Row play page', () => {
+  test('the notice re-reads the connection for a rematch: an offline start does not carry into the next match, and an online one does not carry into an offline rematch', async ({ page }) => {
+    test.setTimeout(120_000)
+    // The browser is told it is offline, but the network stays up: a match started with the network really off cannot fetch the agent worker in the dev server.
+    await page.addInitScript(() => {
+      let online = true
+      Object.defineProperty(navigator, 'onLine', { get: () => online, configurable: true })
+      ;(window as unknown as { __setOnline: (v: boolean) => void }).__setOnline = (v) => {
+        online = v
+        window.dispatchEvent(new Event(v ? 'online' : 'offline'))
+      }
+    })
+    const setOnline = (v: boolean) => page.evaluate((x) => (window as unknown as { __setOnline: (v: boolean) => void }).__setOnline(x), v)
+    await start(page)
+    const notice = page.getByTestId('training-notice')
+    await expect(notice).toContainText('This match may train the agents.')
+    const resign = async () => {
+      await page.getByRole('button', { name: 'Resign' }).click()
+      await page.getByRole('button', { name: 'Yes, resign' }).click()
+      await expect(page.getByTestId('result-panel')).toBeVisible()
+    }
+    await resign()
+    await setOnline(false)
+    await page.getByTestId('rematch').click()
+    await expect(page.getByTestId('four-board')).toBeVisible()
+    await expect(notice).toContainText('You are offline: this match is not saved')
+    await resign()
+    await setOnline(true)
+    await page.getByTestId('rematch').click()
+    await expect(page.getByTestId('four-board')).toBeVisible()
+    await expect(notice).not.toContainText('not saved')
+    await expect(notice).toContainText('This match may train the agents.')
+  })
+
   test('is listed in /play', async ({ page }) => {
     await page.goto('/play')
     const card = page.getByTestId('game-card-four')

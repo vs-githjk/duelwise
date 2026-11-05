@@ -12,7 +12,7 @@ import { PracticeBadge } from './PracticeBadge'
 import { setPractice, usePractice } from '../lib/practice'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { TrainingNotice } from './TrainingNotice'
-import { nextMatchEpoch } from '../lib/began-offline'
+import { nextMatchEpoch, type MatchEpoch } from '../lib/began-offline'
 import { HowToPlay } from './HowToPlay'
 import { GameSoundControl } from './GameSoundControl'
 import { matchMusicWanted, moodForGame, setMatchMusic } from '../lib/music'
@@ -78,9 +78,9 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
     setMatchMusic(matchOn ? moodForGame(game) : null)
     return () => setMatchMusic(null)
   }, [matchOn, game])
-  // Play again keeps the level, so the notice needs another way to know a new match began: the result going away.
-  const epoch = useRef({ epoch: 0, hadResult: false })
-  epoch.current = nextMatchEpoch(epoch.current, Boolean(result))
+  // Play again keeps the level, so the notice needs another way to know a new match began: the result going away, or matchActive rising.
+  const epoch = useRef<MatchEpoch>({ epoch: 0, hadResult: false, wasActive: false })
+  epoch.current = nextMatchEpoch(epoch.current, { hasResult: Boolean(result), matchActive: Boolean(matchActive) && level !== undefined })
   const isDesktop = useIsDesktop()
   const blocked = cfg.devices === 'desktop' && !isDesktop && game !== 'fighter' && game !== 'arena'
   return (

@@ -15,8 +15,20 @@ export function trackBeganOffline(prev: BeganOfflineState, input: { compact: boo
   return prev
 }
 
-/** A counter that moves on when a finished match goes away (Play again): result shown, then not shown. */
-export function nextMatchEpoch(prev: { epoch: number; hadResult: boolean }, hasResult: boolean): { epoch: number; hadResult: boolean } {
-  if (prev.hadResult && !hasResult) return { epoch: prev.epoch + 1, hadResult: false }
-  return prev.hadResult === hasResult ? prev : { epoch: prev.epoch, hadResult: hasResult }
+export interface MatchEpoch {
+  epoch: number
+  hadResult: boolean
+  wasActive: boolean
+}
+
+/**
+ * A counter that moves on when a new match begins in a page that keeps its level: a shown result goes away (Play again in the chess-like games,
+ * which hand the result to GameShell), or `matchActive` rises (Coldstore and Tinderbox draw their result panel themselves and only report whether
+ * the match is live). A pause or a hidden tab leaves `matchActive` true, so neither counts as a new match.
+ */
+export function nextMatchEpoch(prev: MatchEpoch, input: { hasResult: boolean; matchActive: boolean }): MatchEpoch {
+  const { hasResult, matchActive } = input
+  const bump = (prev.hadResult && !hasResult) || (!prev.wasActive && matchActive)
+  if (!bump && prev.hadResult === hasResult && prev.wasActive === matchActive) return prev
+  return { epoch: bump ? prev.epoch + 1 : prev.epoch, hadResult: hasResult, wasActive: matchActive }
 }

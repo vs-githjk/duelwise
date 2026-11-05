@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { nextMatchEpoch, trackBeganOffline, type BeganOfflineState } from './began-offline'
+import { nextMatchEpoch, trackBeganOffline, type BeganOfflineState, type MatchEpoch } from './began-offline'
 
 const fresh: BeganOfflineState = { matchKey: 0, value: null }
 
@@ -25,15 +25,21 @@ test('leaving the match line clears it', () => {
   expect(trackBeganOffline(a, { compact: false, offline: false, matchKey: 0 }).value).toBeNull()
 })
 
-test('the match epoch moves on only when a shown result goes away', () => {
-  let s = { epoch: 0, hadResult: false }
-  s = nextMatchEpoch(s, false)
-  expect(s.epoch).toBe(0)
-  s = nextMatchEpoch(s, true)
-  expect(s.epoch).toBe(0)
-  s = nextMatchEpoch(s, true)
-  expect(s.epoch).toBe(0)
-  s = nextMatchEpoch(s, false)
-  expect(s.epoch).toBe(1)
-  expect(nextMatchEpoch(s, false).epoch).toBe(1)
+test('the match epoch moves on when a shown result goes away', () => {
+  let s: MatchEpoch = { epoch: 0, hadResult: false, wasActive: false }
+  const step = (hasResult: boolean, matchActive = false) => (s = nextMatchEpoch(s, { hasResult, matchActive }))
+  expect(step(false).epoch).toBe(0)
+  expect(step(true).epoch).toBe(0)
+  expect(step(true).epoch).toBe(0)
+  expect(step(false).epoch).toBe(1)
+  expect(step(false).epoch).toBe(1)
+})
+
+test('a page that reports only matchActive (Coldstore, Tinderbox) gets a new epoch for each rematch, not for a pause', () => {
+  let s: MatchEpoch = { epoch: 0, hadResult: false, wasActive: false }
+  const step = (matchActive: boolean) => (s = nextMatchEpoch(s, { hasResult: false, matchActive }))
+  expect(step(true).epoch).toBe(1)
+  expect(step(true).epoch, 'paused or hidden tab keeps matchActive true').toBe(1)
+  expect(step(false).epoch, 'match over').toBe(1)
+  expect(step(true).epoch, 'Play again').toBe(2)
 })

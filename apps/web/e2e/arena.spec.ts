@@ -227,6 +227,31 @@ test.describe('arena play page', () => {
     await page.waitForFunction(() => window.__arena!.lateReplies > 0, undefined, { timeout: 60_000 })
   })
 
+  test('the training notice re-reads the connection for a rematch (Coldstore keeps its level and draws its own result panel)', async ({ page }) => {
+    test.setTimeout(560_000)
+    // The browser is told it is offline while the network stays up, so the agent models still load.
+    await page.addInitScript(() => {
+      let online = true
+      Object.defineProperty(navigator, 'onLine', { get: () => online, configurable: true })
+      ;(window as unknown as { __setOnline: (v: boolean) => void }).__setOnline = (v) => {
+        online = v
+        window.dispatchEvent(new Event(v ? 'online' : 'offline'))
+      }
+    })
+    const setOnline = (v: boolean) => page.evaluate((x) => (window as unknown as { __setOnline: (v: boolean) => void }).__setOnline(x), v)
+    await page.goto(`/play/${SLUG}?seed=26&speed=20&renderer=debug`)
+    await setOnline(false)
+    await page.getByRole('button', { name: 'Start match' }).click()
+    await expect(page.getByTestId('arena-stage')).toHaveAttribute('data-phase', 'playing', { timeout: 60_000 })
+    const notice = page.getByTestId('training-notice')
+    await expect(notice).toContainText('You are offline: this match is not saved')
+    await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: 240_000 })
+    await setOnline(true)
+    await page.getByTestId('rematch').click()
+    await expect(page.getByTestId('arena-stage')).toHaveAttribute('data-phase', 'playing', { timeout: 60_000 })
+    await expect(notice).not.toContainText('not saved')
+  })
+
   test('the match record replays to its final hash and gzips under 2 MB', async ({ page }) => {
     test.setTimeout(280_000)
     const errors = watchConsole(page)
