@@ -1,10 +1,10 @@
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { competitive } from './competitive'
 import { and, eq, inArray } from 'drizzle-orm'
-import { decodeRecord } from '@duelwise/core/src/match-record'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import { LEVELS, ownRows } from './results'
+import { recordLen, seatsFor } from './record-seats'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -19,14 +19,14 @@ export async function getPath(db: Db, who: { userId?: string; guestId?: string }
   const own = ownRows(who)
   if (!own) return cleared
   const rows = await db
-    .select({ level: schema.match.level, result: schema.match.result, record: schema.match.record })
+    .select({ id: schema.match.id, level: schema.match.level, result: schema.match.result, finishedAt: schema.match.finishedAt, len: recordLen })
     .from(schema.match)
     .where(and(eq(schema.match.game, game), eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), inArray(schema.match.level, [...LEVELS]), competitive, own))
-  for (const r of rows) {
-    if (!r.record || !r.result || r.result.winner === null || cleared[r.level as Level]) continue
-    try {
-      if (decodeRecord(r.record).humanSeat === r.result.winner) cleared[r.level as Level] = true
-    } catch {}
+  const won = rows.filter((r) => r.result && r.result.winner !== null)
+  const seats = await seatsFor(db, won)
+  for (const r of won) {
+    if (cleared[r.level as Level]) continue
+    if (seats.get(r.id)?.seat === r.result!.winner) cleared[r.level as Level] = true
   }
   return cleared
 }

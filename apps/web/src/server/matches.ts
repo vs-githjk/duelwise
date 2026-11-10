@@ -5,6 +5,7 @@ import { getRequestHeader, setResponseStatus } from '@tanstack/react-start/serve
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { getServerDb } from './server-db'
 import { abandonStale } from './abandon'
+import { runThrottled } from './sweep-throttle'
 import { expireTickets } from './tickets'
 import { abandonTicketsHandler, issueTicketsHandler } from './ticket-issue'
 import { finishMatchFromUpload, startMatchHandler, sweepDeferredChecks } from './match-handlers'
@@ -32,17 +33,20 @@ export function siteEloFor(game: GameId, level: Level): number | null {
 
 /**
  * Settles counted matches that outlived their game's limit (a loss for the player, kept out of
- * training). Runs on the write paths and before the leaderboard is read; a failure here must never
+ * training). Runs on the write paths and before the leaderboard is read, throttled; a failure here must never
  * break the request that triggered it.
  */
 export async function sweepAbandoned(db: Awaited<ReturnType<typeof getServerDb>>['db'], now: Date = new Date()): Promise<void> {
-  try {
-    await abandonStale(db, now, { siteElo: siteEloFor })
-    await sweepDeferredChecks(db, now)
-    await expireTickets(db, now)
-  } catch (e) {
-    console.error('abandon sweep failed', e instanceof Error ? e.message : e)
-  }
+  // At most once per few minutes per server instance (see sweep-throttle.ts): the sweep is four to twelve queries and used to run on every request.
+  await runThrottled(db, now.getTime(), async () => {
+    try {
+      await abandonStale(db, now, { siteElo: siteEloFor })
+      await sweepDeferredChecks(db, now)
+      await expireTickets(db, now)
+    } catch (e) {
+      console.error('abandon sweep failed', e instanceof Error ? e.message : e)
+    }
+  })
 }
 
 export const startMatch = createServerFn({ method: 'POST' })

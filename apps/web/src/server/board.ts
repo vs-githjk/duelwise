@@ -3,7 +3,7 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import type * as schema from '../db/schema'
 import { withSuffixes } from '../lib/display-name'
 import { AGGREGATE_TTL_MS, cachedFor } from './ttl-cache'
-import { DAY_MS, LEVELS, WINDOW_DAYS, finishedResults, keysOf, loadNames, type FinishedResult } from './results'
+import { DAY_MS, LEVELS, WINDOW_DAYS, finishedOutcomes, finishedResults, keysOf, loadNames, type FinishedResult } from './results'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -106,7 +106,7 @@ export interface OpponentRecord {
 
 /** The fight card's records: each persona's wins and losses against people over the window, across every game. Draws are not counted. */
 export async function getOpponentRecords(db: Db, now: Date = new Date(), results?: FinishedResult[]): Promise<OpponentRecord[]> {
-  const rows = results ?? (await finishedResults(db, { since: new Date(now.getTime() - WINDOW_DAYS * DAY_MS) }))
+  const rows = results ?? (await finishedOutcomes(db, { since: new Date(now.getTime() - WINDOW_DAYS * DAY_MS) }))
   return LEVELS.map((level) => {
     const here = rows.filter((r) => r.level === level)
     return { level, wins: here.filter((r) => r.outcome === 'ai').length, losses: here.filter((r) => r.outcome === 'human').length }

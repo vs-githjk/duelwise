@@ -251,3 +251,24 @@ describe('getMyRecord', () => {
     expect(empty.activity).toEqual([])
   })
 })
+
+describe('record reads', () => {
+  test('a second board read does not download a record again, and a rewritten record is read afresh', async () => {
+    const { seatStats } = await import('./record-seats')
+    await put({ id: 'seat-a', humanSeat: 0, outcome: 'human', when: at(1) })
+    await put({ id: 'seat-b', humanSeat: 1, outcome: 'human', when: at(2) })
+    seatStats.fetched = 0
+    const first = await getBoard(db, NOW)
+    expect(seatStats.fetched).toBe(2)
+    const second = await getBoard(db, NOW)
+    expect(seatStats.fetched).toBe(2)
+    expect(second).toEqual(first)
+    expect(second.humanWins).toBe(2)
+    // Same id, other seat and a different finish time: the memo must not answer for it.
+    await db.execute(sql`delete from match where id = 'seat-a'`)
+    await put({ id: 'seat-a', humanSeat: 1, outcome: 'agent', when: at(3) })
+    const third = await getBoard(db, NOW)
+    expect(seatStats.fetched).toBe(3)
+    expect(third.humanWins).toBe(1)
+  })
+})

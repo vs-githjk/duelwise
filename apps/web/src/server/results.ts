@@ -1,11 +1,11 @@
-import { and, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { competitive } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
-import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
+import { recordLen, seatsFor, winnerCol } from './record-seats'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -35,6 +35,35 @@ export interface FinishedResult {
  * Valid finished matches since a date, read from the match store the same way stats.ts reads them: the record
  * must have replayed, a guest's match still waiting for its agent check is left out, and the human's seat comes from the record.
  */
+const finishedWhere = (opts: { game?: GameId; since: Date }) =>
+  and(
+    eq(schema.match.status, 'finished'),
+    eq(schema.match.recordValid, true),
+    isNotNull(schema.match.result),
+    gte(schema.match.finishedAt, opts.since),
+    inArray(schema.match.level, [...LEVELS]),
+    sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`,
+    competitive,
+    notTestMatch(),
+    ...(opts.game ? [eq(schema.match.game, opts.game)] : []),
+  )
+
+/** Only who won at which level: the opponents' records need no player, score or call, so the rows stay a few bytes each. */
+export async function finishedOutcomes(db: Db, opts: { game?: GameId; since: Date }): Promise<Array<{ level: Level; outcome: 'human' | 'ai' | 'draw' }>> {
+  const rows = await db
+    .select({ id: schema.match.id, level: schema.match.level, winner: winnerCol, finishedAt: schema.match.finishedAt, len: recordLen })
+    .from(schema.match)
+    .where(finishedWhere(opts))
+  const seats = await seatsFor(db, rows)
+  const out: Array<{ level: Level; outcome: 'human' | 'ai' | 'draw' }> = []
+  for (const r of rows) {
+    const info = seats.get(r.id)
+    if (!info || !r.finishedAt || !isLevel(r.level)) continue
+    out.push({ level: r.level, outcome: r.winner === null ? 'draw' : r.winner === info.seat ? 'human' : 'ai' })
+  }
+  return out
+}
+
 export async function finishedResults(db: Db, opts: { game?: GameId; since: Date }): Promise<FinishedResult[]> {
   const rows = await db
     .select({
@@ -44,35 +73,19 @@ export async function finishedResults(db: Db, opts: { game?: GameId; since: Date
       userId: schema.match.userId,
       guestId: schema.match.guestId,
       result: schema.match.result,
-      record: schema.match.record,
+      len: recordLen,
       finishedAt: schema.match.finishedAt,
       call: schema.match.call,
     })
     .from(schema.match)
-    .where(
-      and(
-        eq(schema.match.status, 'finished'),
-        eq(schema.match.recordValid, true),
-        gte(schema.match.finishedAt, opts.since),
-        inArray(schema.match.level, [...LEVELS]),
-        sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`,
-        competitive,
-        notTestMatch(),
-        ...(opts.game ? [eq(schema.match.game, opts.game)] : []),
-      ),
-    )
+    .where(finishedWhere(opts))
+  const seats = await seatsFor(db, rows)
   const out: FinishedResult[] = []
   for (const r of rows) {
-    if (!r.record || !r.result || !r.finishedAt || !isGame(r.game) || !isLevel(r.level)) continue
-    let seat: 0 | 1
-    let moves = 0
-    try {
-      const rec = decodeRecord(r.record)
-      seat = rec.humanSeat
-      moves = rec.actions.filter((a) => a[1] === seat).length
-    } catch {
-      continue
-    }
+    if (!r.result || !r.finishedAt || !isGame(r.game) || !isLevel(r.level)) continue
+    const info = seats.get(r.id)
+    if (!info) continue
+    const { seat, moves } = info
     const key = r.userId ? `u:${r.userId}` : r.guestId ? `g:${r.guestId}` : null
     if (!key) continue
     const kind = PRODUCT.games[r.game].kind

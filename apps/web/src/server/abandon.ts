@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lt } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, or } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import type { Result } from '@duelwise/core/src/types'
@@ -80,18 +80,19 @@ export const ABANDONED_ROW = { id: schema.match.id, userId: schema.match.userId,
  * match is scored once however many sweeps or late uploads race. Returns how many were abandoned.
  */
 export async function abandonStale(db: Db, now: Date = new Date(), opts: AbandonOptions = {}): Promise<number> {
-  let total = 0
-  for (const game of Object.keys(PRODUCT.games) as GameId[]) {
-    const cutoff = new Date(now.getTime() - MAX_MATCH_MS[game] - ABANDON_GRACE_MS)
-    const rows = await db
-      .update(schema.match)
-      .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: withPractice({ abandoned: true }) })
-      .where(and(eq(schema.match.game, game), eq(schema.match.status, 'started'), lt(schema.match.startedAt, cutoff)))
-      .returning(ABANDONED_ROW)
-    await settleAbandoned(db, game, rows, now, opts)
-    total += rows.length
+  const games = Object.keys(PRODUCT.games) as GameId[]
+  // One statement for every game (each with its own cutoff) instead of one per game: the common answer is "nothing to settle".
+  const stale = or(...games.map((game) => and(eq(schema.match.game, game), lt(schema.match.startedAt, new Date(now.getTime() - MAX_MATCH_MS[game] - ABANDON_GRACE_MS)))))
+  const rows = await db
+    .update(schema.match)
+    .set({ status: 'abandoned', trainingAllowed: false, invalidReason: 'abandoned', finishedAt: now, filterFlags: withPractice({ abandoned: true }) })
+    .where(and(eq(schema.match.status, 'started'), stale))
+    .returning({ ...ABANDONED_ROW, game: schema.match.game })
+  for (const game of games) {
+    const mine = rows.filter((r) => r.game === game)
+    if (mine.length) await settleAbandoned(db, game, mine, now, opts)
   }
-  return total
+  return rows.length
 }
 
 /** Most counted matches one player may have open at once (M2: it bounds what a script can write before the abandon rule runs). */
