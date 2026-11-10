@@ -33,6 +33,10 @@ export interface PlayHudProps {
   matchKey?: unknown
   /** Background class for the human seat dot; pass the colour the game's own legend uses for the player. The ring (3:1 against the page in both themes) comes from the HUD. */
   swatch?: string
+  /** A friend game: the second player's name, in place of the AI opponent's persona. */
+  opponentLabel?: string
+  /** A friend game: background class for the second player's dot, like `swatch`. */
+  opponentSwatch?: string
   className?: string
 }
 
@@ -40,7 +44,7 @@ export interface PlayHudProps {
  * The strip above every board: you and your opponent (persona and level), whose turn it is, and the
  * match clock. The clock is elapsed time only; no game here is timed by it.
  */
-export function PlayHud({ turn, youLabel = 'You', matchKey, swatch = 'bg-action', className }: PlayHudProps) {
+export function PlayHud({ turn, youLabel = 'You', matchKey, swatch = 'bg-action', opponentLabel, opponentSwatch, className }: PlayHudProps) {
   const { level } = useOpponent()
   const elapsed = useElapsed(turn !== 'over', matchKey)
   const persona = level ? personaFor(level) : null
@@ -51,8 +55,8 @@ export function PlayHud({ turn, youLabel = 'You', matchKey, swatch = 'bg-action'
         <span>{youLabel}</span>
       </span>
       <span className="play-hud-seat text-sm font-semibold" data-testid="play-hud-ai" data-active={turn === 'ai' ? '' : undefined}>
-        {level ? <Avatar level={level} size={22} decorative /> : null}
-        <span className="truncate">{persona && level ? `${persona.name}, ${LEVEL_LABEL[level]}` : 'Opponent'}</span>
+        {opponentSwatch ? <span data-swatch="them" className={cn('grid size-[22px] shrink-0 place-items-center rounded-full border-2 border-muted text-xs', opponentSwatch)} aria-hidden="true" /> : level ? <Avatar level={level} size={22} decorative /> : null}
+        <span className="truncate">{opponentLabel ?? (persona && level ? `${persona.name}, ${LEVEL_LABEL[level]}` : 'Opponent')}</span>
       </span>
       <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-sm text-muted" data-testid="play-hud-clock" data-volatile>
         <span aria-hidden="true" className="size-2 rounded-full bg-current opacity-60" />

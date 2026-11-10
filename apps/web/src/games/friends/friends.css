@@ -1,0 +1,5 @@
+/* Friend games on one device (M2). The HUD's "thinking" pulse belongs to an AI opponent; two people take turns, so the active seat only gets its ring. */
+.friend-hud[data-turn='ai'] .play-hud-seat[data-active] { animation: none; }
+[data-testid='friend-aside'] li[data-active] b { color: var(--action); }
+/* The curtain in Twelve Yards stands exactly where the goal stands (the scene is 300 of 328 wide units tall), so a hand-over moves nothing below it. */
+.pen-scene-wrap > .friend-curtain { height: calc(300 * 100cqw / 328); min-height: 0; padding-block: 12px; }

@@ -51,6 +51,8 @@ export interface GameShellProps {
   /** The page's own word on whether a match is running (loading or playing). Games that show the result without a `result` slot (Tinderbox, Coldstore) pass it so the music stops at the result. */
   matchActive?: boolean
   onOpenGuide?: () => void
+  /** A friend game on this device: nothing is rated, stored or trained on, so the training notice (and its server read) is left out. */
+  friends?: boolean
   children: ReactNode
   className?: string
 }
@@ -60,7 +62,7 @@ export interface GameShellProps {
  * thinking indicator; the board area; an aside that stacks under the board on a phone. Desktop-only
  * games show the notice on small or touch screens instead of mounting.
  */
-export function GameShell({ game, level, preview, previewLabel, thinking = false, aside, result, actions, matchActive, onOpenGuide, children, className }: GameShellProps) {
+export function GameShell({ game, level, preview, previewLabel, thinking = false, aside, result, actions, matchActive, onOpenGuide, friends = false, children, className }: GameShellProps) {
   const [guideOpen, setGuideOpen] = useState(false)
   useEffect(() => { if (!hasSeenGuide(game)) { markGuideSeen(game); setGuideOpen(true) } }, [game])
   // Every game page opens as Rated; a Practice pick lasts only as long as the page.
@@ -102,7 +104,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
         {level && practicePick ? <PracticeBadge /> : null}
         <ThinkingIndicator active={thinking} label={level ? `${personaFor(level).name} is thinking` : 'Thinking'} className="ml-1 max-lg:sr-only lg:min-w-44" />
         <div className="ml-auto flex items-center gap-2">
-          {cfg.kind !== 'realtime' ? <Link to="/leaderboard/$game" params={{ game: cfg.slug }} className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-ink" data-testid="game-leaderboard-link">
+          {cfg.kind !== 'realtime' ? <Link to="/leaderboard/$game" params={{ game: cfg.slug }} preload={friends ? false : undefined} className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-ink" data-testid="game-leaderboard-link">
             Leaderboard
           </Link> : null}
           <button type="button" onClick={openGuide} aria-label={level ? "How to play" : undefined} className="min-h-11 min-w-11 rounded-control border border-line bg-surface px-3 text-sm font-semibold">{level ? "?" : "How to play"}</button>
@@ -110,7 +112,7 @@ export function GameShell({ game, level, preview, previewLabel, thinking = false
           {actions}
         </div>
       </header>
-      {blocked ? null : <TrainingNotice game={game} compact={level !== undefined} matchKey={epoch.current.epoch} />}
+      {blocked || friends ? null : <TrainingNotice game={game} compact={level !== undefined} matchKey={epoch.current.epoch} />}
       {blocked ? (
         <DesktopOnlyNotice game={game} />
       ) : (

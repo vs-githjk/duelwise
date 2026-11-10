@@ -36,7 +36,7 @@ export const ZONE_LABEL = ['Top left', 'Top middle', 'Top right', 'Left', 'Middl
 export const DIVE_LABEL = ['Left high', 'Left low', 'Stay', 'Right high', 'Right low'] as const
 
 const ZONE_WORD = ['top left', 'top middle', 'top right', 'left', 'down the middle', 'right', 'bottom left', 'bottom middle', 'bottom right'] as const
-const DIVE_WORD = ['dived left high', 'dived left low', 'stayed', 'dived right high', 'dived right low'] as const
+export const DIVE_WORD = ['dived left high', 'dived left low', 'stayed', 'dived right high', 'dived right low'] as const
 
 export function pickLabel(role: Role, pick: number): string {
   return role === 'shooter' ? ZONE_LABEL[pick]! : DIVE_LABEL[pick]!

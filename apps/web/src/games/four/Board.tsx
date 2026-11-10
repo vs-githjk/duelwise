@@ -99,6 +99,10 @@ export interface BoardProps {
   opponent: string
   /** The player's seat: their stones are the yellow ones whichever side they have. */
   humanSeat?: number
+  /** A friend game on one device: each seat's name, so a column's label names whose stone is on top instead of "yours". */
+  seatNames?: readonly [string, string]
+  /** The seat whose stone hovers over the column; defaults to the player's seat. A friend game sets it to the seat to move. */
+  ghostSeat?: number
   state: FourState
   lastMove: LastMove | null
   winCells: ReadonlySet<string>
@@ -115,7 +119,7 @@ export interface BoardProps {
  * lie over the columns: they give mouse, touch and screen-reader play, with a roving tab stop and
  * arrow, Home and End keys. A hovered or focused column shows a ghost stone and its landing spot.
  */
-export function Board({ opponent, humanSeat = 0, state, lastMove, winCells, winLines, canMove, turn, onDrop }: BoardProps) {
+export function Board({ opponent, humanSeat = 0, seatNames, ghostSeat, state, lastMove, winCells, winLines, canMove, turn, onDrop }: BoardProps) {
   const [cursor, setCursor] = useState(3)
   const [hover, setHover] = useState<number | null>(null)
   const buttons = useRef<Array<HTMLButtonElement | null>>([])
@@ -176,7 +180,7 @@ export function Board({ opponent, humanSeat = 0, state, lastMove, winCells, winL
         {/* The ghost stone hovers in the strip above the board. */}
         {aimOpen ? (
           <g transform={`translate(${cx(aim)} ${TOP / 2}) scale(0.75)`} data-testid="ghost" style={{ pointerEvents: 'none' }}>
-            <Stone seat={humanSeat} humanSeat={humanSeat} ghost />
+            <Stone seat={ghostSeat ?? humanSeat} humanSeat={humanSeat} ghost />
           </g>
         ) : null}
         <path d={FACE} fillRule="evenodd" fill="var(--four-frame)" data-testid="four-slab" />
@@ -214,7 +218,7 @@ export function Board({ opponent, humanSeat = 0, state, lastMove, winCells, winL
               type="button"
               data-testid={`col-${col}`}
               aria-disabled={blocked}
-              aria-label={columnLabel(state, col, opponent, humanSeat)}
+              aria-label={columnLabel(state, col, opponent, humanSeat, seatNames)}
               tabIndex={col === cursor ? 0 : -1}
               onPointerEnter={() => setHover(col)}
               onPointerLeave={() => setHover(null)}

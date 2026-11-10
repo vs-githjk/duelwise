@@ -128,13 +128,15 @@ export interface WordLedgerProps {
   /** What is typed in the box right now, shown in the current round's dashed row. */
   draft: string
   over: boolean
+  /** The left lane's name. "You" on a page that is yours; a friend game's result shows both people by name. */
+  youName?: string
 }
 
 /**
  * The round ledger: one card, one row per round. Your tiles on the left, the opponent's marks on the right (circles only, same word),
  * a round number between them. The current round is a dashed row that fills as you type.
  */
-export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, over }: WordLedgerProps) {
+export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, over, youName = 'You' }: WordLedgerProps) {
   const played = Math.max(you.rows.length, opponent.rows.length)
   const live = !over && you.rows.length < maxGuesses
   const rounds = Math.max(played, you.rows.length + (live ? 1 : 0))
@@ -142,7 +144,7 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
     <section data-testid="word-ledger" aria-label="Round ledger" data-paper="" className="lane-paper grid gap-2 rounded-card border p-3 sm:p-4">
       <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2 text-base font-semibold text-muted sm:gap-x-3" aria-hidden="true" data-testid="ledger-header">
         <span />
-        <b className="text-base font-bold text-ink">You</b>
+        <b className="text-base font-bold text-ink">{youName}</b>
         <span data-testid="ledger-opponent">{opponentName}, same word</span>
       </div>
       <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-3">
@@ -151,7 +153,7 @@ export function WordLedger({ you, opponentName, opponent, maxGuesses, draft, ove
             <li key={i} className="grid place-items-center font-mono text-base font-semibold text-muted tabular">{i + 1}</li>
           ))}
         </ol>
-        <div data-testid="lane-you" role="group" aria-label={`You, ${you.rows.length} of ${maxGuesses} guesses`} className="grid auto-rows-[2.75rem] content-start gap-y-1.5">
+        <div data-testid="lane-you" role="group" aria-label={`${youName}, ${you.rows.length} of ${maxGuesses} guesses`} className="grid auto-rows-[2.75rem] content-start gap-y-1.5">
           {you.rows.map((m, i) => (
             <MyRow key={i} word={you.words[i] ?? ''} markers={m} animate={i === you.rows.length - 1} />
           ))}

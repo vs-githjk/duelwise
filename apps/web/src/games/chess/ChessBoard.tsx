@@ -53,6 +53,8 @@ export interface ChessBoardProps {
   plies: number
   /** Whose pieces sit at the bottom: the player's colour. White (the default) has rank 1 at the bottom and file a at the left; Black has rank 8 and file h. */
   orientation?: PieceColor
+  /** The colour whose pieces may be picked up. Defaults to `orientation`; a friend game on one device sets it to the side to move. */
+  mover?: PieceColor
   /** Called with a legal move. */
   onMove: (uci: string) => void
   /** Shown in the live notice under the board. */
@@ -65,7 +67,7 @@ export interface ChessBoardProps {
  * (White's by default, Black's when the match gave the player Black). Arrow keys move between squares as they look on the
  * screen (roving tab stop).
  */
-export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, orientation = 'w', onMove, onNotice }: ChessBoardProps) {
+export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, orientation = 'w', mover, onMove, onNotice }: ChessBoardProps) {
   const flipped = orientation === 'b'
   const pieces = useMemo(() => piecesFromFen(fen), [fen])
   const [selected, setSelected] = useState<string | null>(null)
@@ -84,7 +86,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, ori
   const pressed = useRef<{ sq: string; at: number } | null>(null)
 
   const canMove = turn === 'you'
-  const mine = (sq: string) => pieces.get(sq)?.color === orientation
+  const mine = (sq: string) => pieces.get(sq)?.color === (mover ?? orientation)
   const targets = useMemo(() => {
     const t = new Map<string, boolean>() // target square -> is a capture
     if (!selected) return t
@@ -323,7 +325,7 @@ export function ChessBoard({ fen, legal, lastMove, checkSquare, turn, plies, ori
       ) : null}
       {promo ? (
         <Promotion
-          color={orientation}
+          color={mover ?? orientation}
           onPick={(t) => {
             const { from, to } = promo
             setPromo(null)
