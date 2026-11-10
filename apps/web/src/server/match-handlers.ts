@@ -16,6 +16,7 @@ import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { type AgentCheck, CHECK_CLAIM_MS, SERVER_CHECKED } from './agent-check'
 import { applyRatingIfRanked } from './ratings'
 import { saveRatingChange } from './report-store'
+import { seatInfoOf } from './record-seats'
 import { isPractice, isUnplayed, LEFT_FLAG, PRACTICE_FLAG, sealedLogStill } from './competitive'
 import { deviceClass, recordEvent } from './telemetry'
 import { takeTicket, ticketUsed } from './tickets'
@@ -314,7 +315,7 @@ async function settleDeferredCheck(
     const settled = await db
       .update(schema.match)
       .set({
-        ...(why === undefined ? { trainingAllowed: sql`${trainable} and not coalesce((${schema.match.filterFlags}->>'deferredTrainingRevoked')::boolean, false)` } : { recordValid: false, record: null, invalidReason: why, trainingAllowed: false }),
+        ...(why === undefined ? { trainingAllowed: sql`${trainable} and not coalesce((${schema.match.filterFlags}->>'deferredTrainingRevoked')::boolean, false)` } : { recordValid: false, record: null, humanSeat: null, moves: null, invalidReason: why, trainingAllowed: false }),
         filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) - 'deferredCheckAt' - 'deferredTrainingRevoked'`,
       })
       .where(and(eq(schema.match.id, matchId), sql`${schema.match.filterFlags} ? 'deferredCheckAt'`)).returning({ id: schema.match.id })
@@ -327,7 +328,7 @@ async function settleDeferredCheck(
 /** Withdraw checks that may have been lost when a server stopped. */
 export async function sweepDeferredChecks(db: Db, now: Date = new Date()): Promise<number> {
   const rows = await db.update(schema.match).set({
-    recordValid: false, record: null, trainingAllowed: false,
+    recordValid: false, record: null, humanSeat: null, moves: null, trainingAllowed: false,
     invalidReason: "the opponent's moves could not be checked on the server (the check did not finish)",
     filterFlags: sql`coalesce(${schema.match.filterFlags}, '{}'::jsonb) - 'deferredCheckAt' - 'deferredTrainingRevoked'`,
   }).where(and(eq(schema.match.status, 'finished'), sql`(${schema.match.filterFlags}->>'deferredCheckAt')::bigint < ${now.getTime() - CHECK_CLAIM_MS}`)).returning({ id: schema.match.id })
@@ -429,6 +430,9 @@ export async function finishMatchHandler(
       result: !valid && sealedTurn ? (logged?.result ?? null) : rec.result,
       // Only a record the server accepted is kept; a rejected one is not stored (it can be as large as the cap allows).
       record: valid ? bytes : null,
+      // Stored with the record, from the same decoded upload, so public reads do not download it to learn the seat.
+      humanSeat: valid ? rec.humanSeat : null,
+      moves: valid ? seatInfoOf(rec).moves : null,
       recordValid: valid,
       invalidReason: reason ?? null,
       // A deferred match is not trainable until its check passes.

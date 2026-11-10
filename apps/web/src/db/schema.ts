@@ -1,4 +1,4 @@
-import { bigint, boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
+import { bigint, boolean, customType, index, integer, jsonb, pgTable, primaryKey, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 import type { Result } from '@duelwise/core/src/types'
 
 const bytea = customType<{ data: Uint8Array; driverData: Uint8Array | Buffer }>({
@@ -108,6 +108,9 @@ export const match = pgTable(
   status: text('status').$type<MatchStatus>().notNull().default('started'),
   result: jsonb('result').$type<Result | null>(),
   record: bytea('record'),
+  /** The human's seat (0 or 1) and how many actions they took, written with the record at finish so public reads need not download it. Null while no record is stored (and on rows from before the columns existed, until the backfill). */
+  humanSeat: smallint('human_seat'),
+  moves: integer('moves'),
   recordValid: boolean('record_valid'),
   invalidReason: text('invalid_reason'),
   filterFlags: jsonb('filter_flags').$type<Record<string, unknown> | null>(),

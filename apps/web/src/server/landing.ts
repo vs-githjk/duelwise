@@ -6,7 +6,7 @@ import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import type { Tally } from './stats'
-import { recordLen, seatsFor, winnerCol, type SeatInfo } from './record-seats'
+import { recordLen, seatCols, seatsFor, winnerCol, type SeatInfo } from './record-seats'
 import { AGGREGATE_TTL_MS, cachedFor } from './ttl-cache'
 
 type Db = PgDatabase<any, typeof schema>
@@ -82,6 +82,7 @@ const cols = {
   level: schema.match.level,
   winner: winnerCol,
   len: recordLen,
+  ...seatCols,
   finishedAt: schema.match.finishedAt,
 }
 

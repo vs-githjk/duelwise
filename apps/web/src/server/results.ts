@@ -5,7 +5,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import { guestLabel } from '../lib/display-name'
-import { recordLen, seatsFor, winnerCol } from './record-seats'
+import { recordLen, seatCols, seatsFor, winnerCol } from './record-seats'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -51,7 +51,7 @@ const finishedWhere = (opts: { game?: GameId; since: Date }) =>
 /** Only who won at which level: the opponents' records need no player, score or call, so the rows stay a few bytes each. */
 export async function finishedOutcomes(db: Db, opts: { game?: GameId; since: Date }): Promise<Array<{ level: Level; outcome: 'human' | 'ai' | 'draw' }>> {
   const rows = await db
-    .select({ id: schema.match.id, level: schema.match.level, winner: winnerCol, finishedAt: schema.match.finishedAt, len: recordLen })
+    .select({ id: schema.match.id, level: schema.match.level, winner: winnerCol, finishedAt: schema.match.finishedAt, len: recordLen, ...seatCols })
     .from(schema.match)
     .where(finishedWhere(opts))
   const seats = await seatsFor(db, rows)
@@ -74,6 +74,7 @@ export async function finishedResults(db: Db, opts: { game?: GameId; since: Date
       guestId: schema.match.guestId,
       result: schema.match.result,
       len: recordLen,
+      ...seatCols,
       finishedAt: schema.match.finishedAt,
       call: schema.match.call,
     })

@@ -1,6 +1,6 @@
 import { inArray, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
-import { decodeRecord } from '@duelwise/core/src/match-record'
+import { decodeRecord, type MatchRecordV1 } from '@duelwise/core/src/match-record'
 import * as schema from '../db/schema'
 
 type Db = PgDatabase<any, typeof schema>
@@ -9,6 +9,11 @@ type Db = PgDatabase<any, typeof schema>
 export interface SeatInfo {
   seat: 0 | 1
   moves: number
+}
+
+/** The two numbers stored beside a record (match.human_seat, match.moves), from the same rule the decoding read path uses. */
+export function seatInfoOf(rec: Pick<MatchRecordV1, 'humanSeat' | 'actions'>): SeatInfo {
+  return { seat: rec.humanSeat, moves: rec.actions.filter((a) => a[1] === rec.humanSeat).length }
 }
 
 /**
@@ -23,7 +28,13 @@ const MAX_MEMO = 20_000
 /** Records fetched per query on a cold instance: about 0.5 MB each, so a first read is a handful of requests, not hundreds. */
 const CHUNK = 400
 
-export const seatStats = { fetched: 0, reused: 0 }
+export const seatStats = { fetched: 0, reused: 0, stored: 0 }
+
+/**
+ * Select these beside recordLen. A row finished after migration 0008 (or backfilled) carries its seat and move count, so
+ * seatsFor answers it without touching the record; a row with both still null is read from its record as before.
+ */
+export const seatCols = { seat: schema.match.humanSeat, moves: schema.match.moves }
 
 /** The scalar a read selects beside the id, so the memo can tell a rewritten row from the one it knows. */
 export const recordLen = sql<number | null>`octet_length(${schema.match.record})`
@@ -32,6 +43,9 @@ export interface SeatRow {
   id: string
   finishedAt: Date | null
   len: number | null
+  /** match.human_seat and match.moves when the select asked for seatCols. */
+  seat?: number | null
+  moves?: number | null
 }
 
 const keyOf = (r: SeatRow) => `${r.id}:${r.finishedAt?.getTime() ?? 0}:${r.len ?? 0}`
@@ -46,6 +60,11 @@ export async function seatsFor(db: Db, rows: SeatRow[]): Promise<Map<string, Sea
   for (const r of rows) {
     if (!r.len) {
       out.set(r.id, null)
+      continue
+    }
+    if ((r.seat === 0 || r.seat === 1) && typeof r.moves === 'number') {
+      seatStats.stored++
+      out.set(r.id, { seat: r.seat, moves: r.moves })
       continue
     }
     const hit = known.get(keyOf(r))
@@ -68,7 +87,7 @@ export async function seatsFor(db: Db, rows: SeatRow[]): Promise<Map<string, Sea
       if (bytes) {
         try {
           const rec = decodeRecord(bytes)
-          info = { seat: rec.humanSeat, moves: rec.actions.filter((a) => a[1] === rec.humanSeat).length }
+          info = seatInfoOf(rec)
         } catch {
           info = null
         }
