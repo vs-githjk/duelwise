@@ -21,3 +21,12 @@ test('a failed load is not cached and the next call retries', async () => {
   expect(await cachedFor(db, 'k', 1001, 60_000, async () => { calls++; return 7 })).toBe(7)
   expect(calls).toBe(2)
 })
+
+test('a failed reload serves the last good value, and the next call tries again', async () => {
+  const db = {}
+  expect(await cachedFor<string>(db, 'k', 1000, 60_000, async () => 'old')).toBe('old')
+  let calls = 0
+  expect(await cachedFor<string>(db, 'k', 100_000, 60_000, async () => { calls++; throw new Error('quota') })).toBe('old')
+  expect(await cachedFor<string>(db, 'k', 100_001, 60_000, async () => { calls++; return 'new' })).toBe('new')
+  expect(calls).toBe(2)
+})
