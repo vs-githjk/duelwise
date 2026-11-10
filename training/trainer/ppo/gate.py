@@ -22,14 +22,15 @@ from . import league as L
 ROLE = {
     "fighter": {"rushdown": "rush", "turtle": "turtle", "random": "random", "zoner": "zoner", "throwloop": "throwloop", "backwalk": "backwalk", "pokeloop": "pokeloop", "sweepspam": "sweepspam", "fireball": "fireball", "throwtap": "throwtap", "fireball25": "fireball25"},
     "arena": {"rusher": "rush", "holder": "turtle", "random": "random", "peeker": "peek", "strafe": "strafe", "holdangle": "holdangle", "human-proxy": "human-proxy"},
+    "puck": {"random": "random", "striker": "rush", "goalie": "turtle", "banker": "bank", "shadow": "shadow"},
 }
 
 # (rush, turtle, random, the fighter's six exploit bots (KC1 added pokeloop, sweepspam and fireball) and the arena's peeker, strafe and holdangle, all R30) Wilson 95% lower bounds, 400 matches per bot (R15). Champion plays bots that see the live game.
 PUBLISH_BARS: dict[str, dict[str, float]] = {
-    "hard": {"rush": 0.60, "turtle": 0.60, "random": 0.95, "zoner": 0.60, "throwloop": 0.60, "backwalk": 0.60, "pokeloop": 0.60, "sweepspam": 0.60, "fireball": 0.60, "throwtap": 0.60, "fireball25": 0.60, "peek": 0.60, "strafe": 0.60, "holdangle": 0.60},
+    "hard": {"rush": 0.60, "turtle": 0.60, "random": 0.95, "zoner": 0.60, "throwloop": 0.60, "backwalk": 0.60, "pokeloop": 0.60, "sweepspam": 0.60, "fireball": 0.60, "throwtap": 0.60, "fireball25": 0.60, "peek": 0.60, "strafe": 0.60, "holdangle": 0.60, "bank": 0.60, "shadow": 0.60},
     "medium": {"rush": 0.50, "turtle": 0.50, "random": 0.90, "peek": 0.50, "strafe": 0.50, "holdangle": 0.50},
     "easy": {"rush": 0.35, "turtle": 0.35, "random": 0.85, "peek": 0.35, "strafe": 0.35, "holdangle": 0.35},
-    "champion": {"rush": 0.75, "turtle": 0.75, "zoner": 0.75, "throwloop": 0.75, "backwalk": 0.75, "pokeloop": 0.75, "sweepspam": 0.75, "fireball": 0.75, "throwtap": 0.75, "fireball25": 0.75, "peek": 0.75, "strafe": 0.75, "holdangle": 0.75},
+    "champion": {"rush": 0.75, "turtle": 0.75, "zoner": 0.75, "throwloop": 0.75, "backwalk": 0.75, "pokeloop": 0.75, "sweepspam": 0.75, "fireball": 0.75, "throwtap": 0.75, "fireball25": 0.75, "peek": 0.75, "strafe": 0.75, "holdangle": 0.75, "bank": 0.75, "shadow": 0.75},
 }
 
 

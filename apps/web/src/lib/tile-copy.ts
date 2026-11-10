@@ -15,10 +15,11 @@ const BASE: Record<GameId, string> = {
   fleet: 'Hidden fleets, ten by ten. Find theirs first.',
   slack: 'Close a line of their discs between two of yours and it flips.',
   penalty: 'Five penalties each. Pick a corner, or dive the right way.',
+  puck: 'Air hockey. First to 7 goals, or the lead at six minutes.',
 }
 
 /** The noun the tile counts this week's matches in. */
-export const MATCH_NOUN: Record<GameId, string> = { chess: 'games', four: 'games', holdem: 'matches', word: 'duels', fighter: 'fights', arena: 'matches', fleet: 'matches', slack: 'games', penalty: 'shootouts' }
+export const MATCH_NOUN: Record<GameId, string> = { chess: 'games', four: 'games', holdem: 'matches', word: 'duels', fighter: 'fights', arena: 'matches', fleet: 'matches', slack: 'games', penalty: 'shootouts', puck: 'matches' }
 
 const named = (level: Level) => personaFor(level).name
 const SIM_HZ = 60
@@ -47,7 +48,7 @@ export function tileNote(game: GameId, reg: RegistrySummary): string {
 }
 
 /** Lowercase count word for the copy; digits below six, where gameCountWord has no word. */
-const countWord = (n: number) => (n >= 6 && n <= 10 ? gameCountWord(n).toLowerCase() : String(n))
+const countWord = (n: number) => (n >= 6 && n <= 12 ? gameCountWord(n).toLowerCase() : String(n))
 
 export interface LearningFacts {
   game: GameId

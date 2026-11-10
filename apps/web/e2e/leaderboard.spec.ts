@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PRODUCT } from '@duelwise/core/src/product.ts'
+import { ALL_LEVELS, publishedLevels } from './published-levels'
 
 const FOUR = '/play/four-in-a-row'
 const WORD = '/play/word-duel'
@@ -87,11 +88,29 @@ test.describe('counted matches, ratings and the leaderboard', () => {
   })
 
   test('real-time games have no leaderboard and say why (S1)', async ({ page }) => {
-    for (const g of ['fighter', 'arena'] as const) {
+    for (const g of ['fighter', 'arena', 'puck'] as const) {
       await page.goto(`/leaderboard/${PRODUCT.games[g].slug}`)
       await expect(page.getByTestId('leaderboard-unranked')).toContainText('do not change a rating yet')
       await expect(page.getByTestId('leaderboard-empty')).toHaveCount(0)
       await expect(page.getByTestId('leaderboard-cta')).toHaveCount(0)
+      // WebKit can still be finishing the last page's own navigation when the next goto starts, which interrupts the goto.
+      await page.waitForLoadState('networkidle')
     }
+  })
+
+  test('Glasscut: its board says every level is in training and Practice counts nowhere, and /ai lists it with all four opponents and the same In training word', async ({ page }) => {
+    await page.goto(`/leaderboard/${PRODUCT.games.puck.slug}`)
+    await expect(page.getByTestId('board-title')).toHaveText('Glasscut board, last 30 days')
+    for (const level of ALL_LEVELS) {
+      if (publishedLevels('puck').includes(level)) continue
+      await expect(page.getByTestId(`board-practice-${level}`)).toContainText('Practice and counts nowhere')
+      await expect(page.getByTestId(`board-rows-${level}`)).toHaveCount(0)
+    }
+    await page.goto('/ai')
+    const row = page.getByTestId('cast-row-puck')
+    await expect(row).toBeVisible()
+    await expect(row).toContainText('Glasscut')
+    for (const level of ALL_LEVELS) if (!publishedLevels('puck').includes(level)) await expect(row).toContainText('In training')
+    await expect(row).not.toContainText('beats')
   })
 })

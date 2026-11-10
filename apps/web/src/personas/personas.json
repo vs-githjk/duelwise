@@ -20,7 +20,8 @@
         "arena": "Walks open lanes and aims after you do.",
         "fleet": "Fires at random and usually forgets to follow up a hit.",
         "slack": "Grabs the most discs it can and loves a corner.",
-        "penalty": "Has a favourite corner and sticks to it, mostly."
+        "penalty": "Has a favourite corner and sticks to it, mostly.",
+        "puck": "Hand-written, not trained. Chases the puck and hits it back."
       }
     },
     "medium": {
@@ -37,7 +38,8 @@
         "arena": "Plays like Pip, but reacts faster and turns quicker.",
         "fleet": "Hunts every other square, then works around a hit.",
         "slack": "Knows which squares matter and looks at your reply.",
-        "penalty": "Dives where you last shot and shoots away from where you dive."
+        "penalty": "Dives where you last shot and shoots away from where you dive.",
+        "puck": "Plays Vesper's network with slower hands, so it sees the same table and reacts a little later and less sharply."
       }
     },
     "hard": {
@@ -54,7 +56,8 @@
         "arena": "Pre-aims common peeks and wins first contact.",
         "fleet": "Hunts where ships fit best, then works around a hit.",
         "slack": "Looks a few moves ahead and limits your options.",
-        "penalty": "Reads your last few kicks, and leans towards swapping corners, loosely enough that you cannot name the next kick."
+        "penalty": "Reads your last few kicks, and leans towards swapping corners, loosely enough that you cannot name the next kick.",
+        "puck": "A trained agent that plays behind a human reaction delay and a capped mallet."
       }
     },
     "champion": {
@@ -71,7 +74,8 @@
         "arena": "Quick counter-aim at any range.",
         "fleet": "Fires at the most likely square every time, hunting or finishing.",
         "slack": "Looks furthest ahead and works out the endgame exactly when it can.",
-        "penalty": "Watches for your habits during the match, and keeps its own kicks unpredictable. It wins by catching habits: a player who truly mixes can hold it to about even."
+        "penalty": "Watches for your habits during the match, and keeps its own kicks unpredictable. It wins by catching habits: a player who truly mixes can hold it to about even.",
+        "puck": "A trained agent with the fastest mallet and the shortest reaction delay in the cast."
       }
     }
   },

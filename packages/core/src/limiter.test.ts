@@ -295,3 +295,12 @@ describe('DelayedStates', () => {
     expect(() => ring.view(4)).toThrow()
   })
 })
+
+describe('LEVEL_LIMITS.puck', () => {
+  test('delays are 300, 250, 200 and 150 ms; no APM cap (the mallet caps are the input caps); hold frames shrink with level', () => {
+    const P = LEVEL_LIMITS.puck
+    expect([P.easy.delayFrames, P.medium.delayFrames, P.hard.delayFrames, P.champion.delayFrames]).toEqual([18, 15, 12, 9])
+    for (const l of ['easy', 'medium', 'hard', 'champion'] as const) expect(P[l].apmCap).toBeNull()
+    expect([P.easy.minHoldFrames, P.medium.minHoldFrames, P.hard.minHoldFrames, P.champion.minHoldFrames]).toEqual([8, 6, 4, 2])
+  })
+})

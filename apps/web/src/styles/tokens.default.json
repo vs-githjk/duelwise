@@ -47,7 +47,8 @@
       "game-arena": "#0a95b8",
       "game-fleet": "#1b4d7a",
       "game-slack": "#2f7f78",
-      "game-penalty": "#3f7d2b"
+      "game-penalty": "#3f7d2b",
+      "game-puck": "#c23a5b"
     },
     "crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board": {
       "slack-water": "#4f8580",
@@ -134,6 +135,7 @@
     "game-fleet": "#6fa8dc",
     "game-slack": "#5fc3b8",
     "game-penalty": "#8fcf5f",
+    "game-puck": "#f0839c",
     "sea": "#1d3446",
     "sea-line": "#3f6482",
     "sea-deep": "#264359",

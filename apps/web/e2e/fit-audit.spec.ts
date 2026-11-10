@@ -58,7 +58,7 @@ async function ownerPage(browser: Browser, baseURL: string, vp: (typeof VIEWPORT
   return { context, page }
 }
 
-const GAMES = [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent'], ['penalty', 'twelve-yards']] as const
+const GAMES = [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent'], ['penalty', 'twelve-yards'], ['puck', 'glasscut']] as const
 
 for (const vp of VIEWPORTS) {
   test.describe(`fit on ${vp.name}`, () => {
@@ -90,12 +90,14 @@ for (const vp of VIEWPORTS) {
         await page.waitForLoadState('networkidle')
         if (game === 'fighter') await page.getByRole('button', { name: 'Choose your fighter' }).click()
         if (game === 'fleet') await page.getByTestId('fleet-ready').click()
+        else if (game === 'puck') await page.getByTestId('puck-start').click()
         else await page.getByRole('button', { name: 'Start match' }).click()
         if (game === 'fighter' || game === 'arena') {
           // The real-time games need a landscape phone.
           if (vp.touch) await page.setViewportSize({ width: vp.use.viewport!.height, height: vp.use.viewport!.width })
           await expect(page.getByTestId(`${game}-stage`)).toHaveAttribute('data-phase', 'playing', { timeout: 60_000 })
-        } else await page.waitForTimeout(1200)
+        } else if (game === 'puck') await page.waitForFunction(() => (window as unknown as { __puck?: { ready?: boolean } }).__puck?.ready === true)
+        else await page.waitForTimeout(1200)
         await measure(page, `${game}-during`, vp)
         await page.close()
       }

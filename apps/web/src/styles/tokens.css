@@ -51,6 +51,7 @@
   --game-fleet: #1b4d7a;
   --game-slack: #2f7f78;
   --game-penalty: #3f7d2b;
+  --game-puck: #c23a5b;
 
   /* crosscurrent surfaces: object colours, the same in every theme, since their contrast is against the board */
   --slack-water: #4f8580;
@@ -206,6 +207,7 @@
   --color-game-fleet: var(--game-fleet);
   --color-game-slack: var(--game-slack);
   --color-game-penalty: var(--game-penalty);
+  --color-game-puck: var(--game-puck);
   --color-slack-water: var(--slack-water);
   --color-slack-water-deep: var(--slack-water-deep);
   --color-slack-line: var(--slack-line);

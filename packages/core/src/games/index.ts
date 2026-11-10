@@ -9,6 +9,7 @@ import { core as arena } from './arena/index'
 import { core as fleet } from './fleet/index'
 import { core as slack } from './slack/index'
 import { core as penalty } from './penalty/index'
+import { core as puck } from './puck/index'
 
 // Each games/<id>/index.ts is a stub (`core = null`) until its owner replaces the file with
 // a module that exports the real `core`. This registry never needs editing again.
@@ -23,6 +24,7 @@ const OWNER: Record<GameId, string> = {
   fleet: 'Fleet lane (F1)',
   slack: 'Crosscurrent lane (SW1)',
   penalty: 'Twelve Yards lane (TY1)',
+  puck: 'Glasscut lane (P1)',
 }
 
 export class NotBuiltError extends Error {
@@ -34,7 +36,7 @@ export class NotBuiltError extends Error {
   }
 }
 
-const CORES: Record<GameId, GameCore<any, any, any> | null> = { chess, four, holdem, word, fighter, arena, fleet, slack, penalty }
+const CORES: Record<GameId, GameCore<any, any, any> | null> = { chess, four, holdem, word, fighter, arena, fleet, slack, penalty, puck }
 
 export function getCore(id: GameId): GameCore<any, any, any> {
   const core = CORES[id]

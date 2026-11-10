@@ -7,7 +7,7 @@ import { getLeaderboardView } from '../../server/leaderboard-fns'
 import { getLevelBoardView } from '../../server/identity-fns'
 import type { BoardColumn, LevelBoard } from '../../server/board'
 import { Avatar } from '../../personas/Avatar'
-import { LEVELS, LEVEL_LABEL } from '../../lib/level-info'
+import { LEVELS, LEVEL_LABEL, boardPracticeLine } from '../../lib/level-info'
 import { buildCast } from '../../personas/cast'
 import { personaFor } from '../../personas'
 import { registryFor } from '../../lib/registries'
@@ -120,7 +120,7 @@ function LevelColumns({ board, id }: { board: LevelBoard; id: GameId }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="level-columns">
       {board.columns.map((c) => (
-        <Column key={c.level} c={c} />
+        <Column key={c.level} c={c} game={id} />
       ))}
       <p className="text-sm text-muted md:col-span-2 xl:col-span-4" data-testid="board-note">
         Wins at that level in the last {board.windowDays} days, then the game's margin (fewest moves or guesses, the better score), then who got there first. Names are what players typed, a repeated name gets a number, and guests are included.
@@ -130,7 +130,7 @@ function LevelColumns({ board, id }: { board: LevelBoard; id: GameId }) {
   )
 }
 
-function Column({ c }: { c: BoardColumn }) {
+function Column({ c, game }: { c: BoardColumn; game: GameId }) {
   const name = personaFor(c.level).name
   const mine = c.rows.find((r) => r.me)
   return (
@@ -142,7 +142,7 @@ function Column({ c }: { c: BoardColumn }) {
       </header>
       {c.practice ? (
         <p className="px-4 py-4 text-sm text-muted" data-testid={`board-practice-${c.level}`}>
-          {name} is in training until it is measured. A win here counts on your own path, not on the board.
+          {boardPracticeLine(game, name)}
         </p>
       ) : c.rows.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted" data-testid={`board-empty-${c.level}`}>No wins at {LEVEL_LABEL[c.level]} yet. Be the first.</p>

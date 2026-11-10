@@ -1,4 +1,5 @@
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
+import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 
 export interface ChampionFacts {
   version: string
@@ -44,6 +45,12 @@ export function learnCopy(i: { game: GameId; learns: boolean; champion: Champion
     return {
       title: `${name} is a scripted solver with nothing to train.`,
       body: `${name} is a scripted solver, not a learned model: each level is a different algorithm, so there is nothing to train. Your match is recorded for your report and the board.`,
+    }
+  }
+  if (RATED_NOT_OPEN.includes(i.game)) {
+    return {
+      title: `${name} trains by self-play and test bots.`,
+      body: `${name} trains by self-play and against test bots, not from your matches. Every ${name} match is Practice: it is not rated and counts nowhere, not on a board and not on your report.`,
     }
   }
   if (!i.learns) {

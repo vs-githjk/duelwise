@@ -1,4 +1,4 @@
-import type { GameId } from './product'
+import type { GameId, Level } from './product'
 
 export type Seat = 0 | 1
 
@@ -11,7 +11,8 @@ export interface Result {
 export interface GameCore<S, A, O> {
   id: GameId
   version: string
-  init(seed: number, opts?: Record<string, unknown>): S
+  /** `ctx` is what a record carries besides its options: the opponent's level, for a game whose sim holds per-level limits (Glasscut's mallet). */
+  init(seed: number, opts?: Record<string, unknown>, ctx?: { level?: Level }): S
   /** Realtime: both seats every frame. */
   toAct(s: S): Seat[]
   /** Realtime returns []. */

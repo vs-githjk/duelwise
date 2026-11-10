@@ -383,7 +383,34 @@ function Penalty(): ReactNode {
   )
 }
 
-const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet, slack: Slack, penalty: Penalty }
+/** Glasscut: a pale glass table seen from above, two goal mouths, the centre line and circle, a mallet each side and the puck mid-table. Every shape sits whole inside the tile. */
+function Puck(): ReactNode {
+  return (
+    <>
+      <rect width={W} height={H} fill="#dfe9f1" />
+      <rect x={4} y={4} width={W - 8} height={H - 8} rx={9} fill="#f4f8fb" stroke="#9db4c6" strokeWidth={1.4} />
+      <rect x={4} y={4} width={W - 8} height={5} rx={2.5} fill="#ffffff" opacity={0.9} />
+      <g fill="none" stroke="var(--game-puck)" strokeWidth={1.1} opacity={0.75}>
+        <line x1={80} y1={9} x2={80} y2={H - 9} />
+        <circle cx={80} cy={45} r={14} />
+      </g>
+      <rect x={4} y={31} width={4} height={28} rx={1.5} fill="#33424f" />
+      <rect x={W - 8} y={31} width={4} height={28} rx={1.5} fill="#33424f" />
+      <g stroke="#15181e" strokeWidth={0.9}>
+        <circle cx={34} cy={52} r={8} fill="var(--game-puck)" />
+        <circle cx={116} cy={34} r={8} fill="#1b4d7a" />
+      </g>
+      <g fill="#ffffff" opacity={0.55}>
+        <circle cx={31.5} cy={49.5} r={2.4} />
+        <circle cx={113.5} cy={31.5} r={2.4} />
+      </g>
+      <circle cx={84} cy={50} r={4.6} fill="#15181e" />
+      <path d="M62 58 L78 52" stroke="#15181e" strokeOpacity={0.3} strokeWidth={1.6} strokeLinecap="round" strokeDasharray="1 3" />
+    </>
+  )
+}
+
+const TILES: Record<GameId, () => ReactNode> = { chess: Chess, four: Four, holdem: Holdem, word: Word, fighter: Fighter, arena: Arena, fleet: Fleet, slack: Slack, penalty: Penalty, puck: Puck }
 
 /** One game's miniature. Decorative: the card around it names the game. */
 export function GameTile({ game, className }: { game: GameId; className?: string }) {

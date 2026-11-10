@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test'
  */
 const FOUR = '/play/four-in-a-row'
 const TINDERBOX = '/play/tinderbox'
+const GLASSCUT = '/play/glasscut'
 
 // The prod config sends the x-dw-test marker, so this run is tagged as test traffic.
 test.use({ serviceWorkers: 'allow' })
@@ -60,7 +61,7 @@ async function boardCount(page: Page): Promise<number> {
 test('installs, plays Four in a Row offline from the cache, unrated, and nothing is sent', async ({ page, context }) => {
   test.setTimeout(240_000)
   await context.addInitScript(() => {
-    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
+    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack', 'penalty', 'puck']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
   })
 
   // 1. Online: the worker installs and takes over the page.
@@ -141,6 +142,55 @@ test('installs, plays Four in a Row offline from the cache, unrated, and nothing
   await page.waitForTimeout(5000)
   expect(sent, 'match start, finish or ticket calls for Four in a Row').toEqual([])
   await boardCount(page)
+})
+
+test('Glasscut installs for offline and a whole Practice match plays from the cache: valid record, nothing rated, nothing queued, nothing sent', async ({ page, context }) => {
+  test.setTimeout(240_000)
+  await context.addInitScript(() => {
+    for (const g of ['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack', 'penalty', 'puck']) localStorage.setItem(`duelwise.how-to-play.${g}`, 'seen')
+  })
+  await boardCount(page)
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null), { timeout: 60_000 }).toBe(true)
+  expect(await page.evaluate(async () => !!(await caches.match('/play/glasscut')))).toBe(true)
+  // Online first, so every lazy chunk of the page is fetched and cached the way a returning player has it.
+  await page.goto(GLASSCUT)
+  await expect(page.getByTestId('puck-start')).toBeVisible()
+  await page.waitForTimeout(3000)
+  expect(await tickets(page, 'puck', 'easy')).toBe(0)
+
+  await context.setOffline(true)
+  await page.goto(GLASSCUT)
+  await page.reload()
+  await expect(page.getByTestId('puck-start')).toBeVisible()
+  await expect(page.getByTestId('error-fallback')).toHaveCount(0)
+  await expect(page.getByTestId('offline-chip')).toHaveText('Offline: new matches are not rated')
+
+  const sent: string[] = []
+  page.on('request', (r) => {
+    if (r.method() !== 'POST' || !r.url().includes('/_serverFn')) return
+    if ((r.headers()['content-type'] ?? '').includes('multipart/form-data')) return void sent.push(`finish ${r.url()}`)
+    let body: unknown = null
+    try { body = JSON.parse(r.postData() ?? '') } catch { return }
+    const data = (body as { data?: { game?: unknown; count?: unknown } } | null)?.data ?? (body as { game?: unknown; count?: unknown } | null)
+    if (!data || data.game !== 'puck') return
+    // The viewer probe (count 0) learns who is signed in and issues nothing; a start has no count; a ticket request has a count above 0.
+    if (data.count === undefined) sent.push(`start ${r.url()}`)
+    else if (typeof data.count === 'number' && data.count > 0) sent.push(`tickets ${r.url()}`)
+  })
+  // A seeded test match, fast-forwarded: the same page, the same sim and the same record check as a real one.
+  await page.goto(`${GLASSCUT}?seed=3&autoplay=1&ff=30&level=easy`)
+  await page.getByTestId('puck-start').click()
+  await expect(page.getByTestId('puck-result')).toBeVisible({ timeout: 120_000 })
+  await expect(page.getByTestId('puck-stage')).toHaveAttribute('data-record-ok', 'true')
+  await expect(page.getByTestId('result-practice')).toBeVisible()
+  await expect(page.getByTestId('result-elo')).toHaveCount(0)
+  expect(await queued(page)).toBe(0)
+
+  await context.setOffline(false)
+  await expect(page.getByTestId('offline-chip')).toHaveCount(0, { timeout: 40_000 })
+  expect(await queued(page)).toBe(0)
+  await page.waitForTimeout(3000)
+  expect(sent, 'match start, finish or ticket calls for Glasscut').toEqual([])
 })
 
 test('an update is offered, never forced, and the worker is absent from dev', async ({ page }) => {

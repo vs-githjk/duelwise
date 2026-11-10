@@ -31,3 +31,12 @@ test('every unpublished reason in the real fighter and arena registries reads as
     }
   }
 })
+
+test('boardPracticeLine: an In training column on a game with no rated path says matches are Practice and count nowhere', async () => {
+  const { boardPracticeLine } = await import('./level-info')
+  const puck = boardPracticeLine('puck', 'Marlow')
+  expect(puck).toMatch(/Practice/)
+  expect(puck).toMatch(/count/)
+  expect(puck).not.toMatch(/counts on your own path/)
+  expect(boardPracticeLine('chess', 'Marlow')).toBe('Marlow is in training until it is measured. A win here counts on your own path, not on the board.')
+})

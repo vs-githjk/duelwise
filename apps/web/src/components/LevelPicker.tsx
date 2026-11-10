@@ -68,8 +68,9 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
     <div className={cn('grid gap-4', game && (beside ? 'max-lg:contents' : 'max-lg:contents lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start'))} data-testid="setup-picker">
     <div className="grid min-w-0 gap-4">
     {game && !ownResignNotice ? <ResignedNotice game={game} /> : null}
-    {game ? <PathCard game={game} state={state} practice={practice} /> : null}
-    <fieldset className={cn('grid gap-2', !beside && 'lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
+    {game ? <PathCard game={game} state={state} practice={practice} practiceMode={practiceMode} /> : null}
+    {/* With a game the page has a 340 px side column, so the cards get about 740 px at 1440: two columns left the text a 120 px sliver, one column gives it the whole row. */}
+    <fieldset className={cn('grid gap-2', !beside && !game && 'lg:grid-cols-2', className)} disabled={disabled} data-testid="level-picker">
       <legend className="sr-only">Opponent level</legend>
       {LEVELS.map((level) => {
         const info = levels[level] ?? { preview: true }
@@ -130,7 +131,7 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
           </label>
         )
       })}
-      {LEVELS.some((level) => levels[level]?.strength?.startsWith('site Elo ')) ? <div className={beside ? undefined : 'lg:col-span-2'}><EloExplainer /></div> : null}
+      {LEVELS.some((level) => levels[level]?.strength?.startsWith('site Elo ')) ? <div className={beside || game ? undefined : 'lg:col-span-2'}><EloExplainer /></div> : null}
     </fieldset>
     </div>
     {game ? (

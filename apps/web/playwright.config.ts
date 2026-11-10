@@ -9,7 +9,7 @@ const guidesSeen = {
   origins: [{
     origin: `http://localhost:${port}`,
     localStorage: [
-      ...['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack', 'penalty'].map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })),
+      ...['chess', 'four', 'holdem', 'word', 'fighter', 'arena', 'fleet', 'slack', 'penalty', 'puck'].map((game) => ({ name: `duelwise.how-to-play.${game}`, value: 'seen' })),
       // Every stop of the adventure path is open (the owner escape hatch, same as ?any=1), so a spec can pick any level.
       // e2e/path.spec.ts clears it to test the locks.
       { name: 'duelwise.any', value: '1' },

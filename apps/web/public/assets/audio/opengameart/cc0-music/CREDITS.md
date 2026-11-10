@@ -12,7 +12,7 @@ The files were re-encoded for the web (MP3, stereo, 44.1 kHz, 80 kbps for loops 
 | `stingers/win.mp3` | Win Jingle | Fupi | https://opengameart.org/content/win-jingle | `winfretless.ogg`, first 2.3 s | CC0 1.0 |
 | `stingers/loss.mp3` | Game over short jingle | Kosmo The Cat | https://opengameart.org/content/game-over-short-jingle | `Game over jingle.mp3`, first 3 s | CC0 1.0 |
 
-Music plays only during a match (from Start to the result); every other page is silent. Where each plays: board on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; poker on Hold'em; action on Tinderbox, Coldstore and Twelve Yards; win and loss stingers on the result of all nine games.
+Music plays only during a match (from Start to the result); every other page is silent. Where each plays: board on Chess, Four in a Row, Word Duel, Stormglass and Crosscurrent; poker on Hold'em; action on Tinderbox, Coldstore, Twelve Yards and Glasscut; win and loss stingers on the result of every game.
 
 Crosscurrent's other cues (a disc placed by you or by the opponent, the flip ripple, a corner, a pass, a draw) are not files: they are tones the page synthesises in the browser with Web Audio, so there is nothing to license or credit beyond the music and stingers above.
 

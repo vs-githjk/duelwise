@@ -79,3 +79,17 @@ test('Twelve Yards wins say the score and never "Clean win" for a one goal win o
   expect(sayLine({ ...base, level: 'easy', progress: 'plain' }).text).toBe('Clean win over Pip. Well done.')
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) expect(pen([5, 4], level, 'counted')).not.toMatch(/[\u2013\u2014]/)
 })
+
+test('a game with no rated path (Glasscut) never says to win in a rated match, or that anyone is up next', () => {
+  for (const level of ['easy', 'medium', 'hard', 'champion'] as const) {
+    for (const call of [null, level] as (SaysInput['call'])[]) {
+      for (const progress of ['counted', 'plain', 'practice', undefined] as const) {
+        const t = sayLine({ ...base, game: 'puck', level, call, ...(progress ? { progress } : {}) }).text
+        expect(t, `${level} ${call} ${progress}`).not.toMatch(/rated match|up next|is up\b|unlocked|to open/i)
+      }
+    }
+  }
+  expect(sayLine({ ...base, game: 'puck', level: 'easy', progress: 'practice' }).text).toBe('Clean win over Pip. Well done. Glasscut matches are Practice for now, so every opponent is open to try.')
+  // Other games keep the rated promise.
+  expect(sayLine({ ...base, level: 'easy', progress: 'practice' }).text).toContain('rated match to open Marlow')
+})

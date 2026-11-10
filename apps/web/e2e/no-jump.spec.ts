@@ -205,3 +205,33 @@ test('twelve yards: the scene, the pick bar and the role line stay put on every 
   }
   await expectNoFrameShift(page, 'twelve yards')
 })
+
+test('glasscut: the table and the HUD stay put on every frame across a live match with four mallet drags', async ({ page }) => {
+  test.setTimeout(150_000)
+  await page.goto('/play/glasscut?seed=3&level=easy')
+  await page.getByTestId('puck-start').click()
+  await page.waitForFunction(() => (window as unknown as { __puck?: { ready?: boolean } }).__puck?.ready === true)
+  const stage = page.getByTestId('puck-stage')
+  const hud = page.getByTestId('puck-hud')
+  const start = await bringIntoView(page, stage)
+  const hudStart = await spot(page, hud)
+  await watchFrames(stage, hud)
+  const box = (await stage.boundingBox())!
+  const before = await page.evaluate(() => (window as unknown as { __puck: { frame: number } }).__puck.frame)
+  // Four drags of the mallet (a finger that rests, moves and lifts), each followed by a wait, so the page sees touch moves while the puck is in play.
+  for (let i = 0; i < 4; i++) {
+    const x = box.x + box.width * (0.35 + 0.1 * i)
+    const y = box.y + box.height * 0.82
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 50, y - 40, { steps: 6 })
+    await page.mouse.move(x - 30, y + 10, { steps: 6 })
+    await page.mouse.up()
+    await page.waitForTimeout(500)
+    await expectStill(page, stage, start, `glasscut table after drag ${i + 1}`)
+    await expectStill(page, hud, hudStart, `glasscut HUD after drag ${i + 1}`)
+  }
+  const after = await page.evaluate(() => (window as unknown as { __puck: { frame: number } }).__puck.frame)
+  expect(after, 'the match was running').toBeGreaterThan(before + 60)
+  await expectNoFrameShift(page, 'glasscut')
+})

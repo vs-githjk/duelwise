@@ -1,0 +1,41 @@
+{
+  "name": "puck-league-b-hard",
+  "cmd": [
+    "scripts/py",
+    "-m",
+    "trainer.ppo.train_realtime",
+    "--game",
+    "puck",
+    "--stage",
+    "B",
+    "--level",
+    "hard",
+    "--steps",
+    "1000000000",
+    "--max-seconds",
+    "9000",
+    "--procs",
+    "2",
+    "--envs",
+    "128",
+    "--snapshot-every",
+    "1000000",
+    "--gate-every",
+    "4000000",
+    "--gate-games",
+    "64",
+    "--init",
+    "runs/puck-league-b-hard/init/sable-A-0089014272.pt",
+    "--frozen-dir",
+    "runs/puck-league-a/league/A"
+  ],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 2.75,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/puck-league-b-hard/ckpt/hard",
+  "milestones": {
+    "gatedLevels": "runs/puck-league-b-hard/levels/gated.json"
+  }
+}

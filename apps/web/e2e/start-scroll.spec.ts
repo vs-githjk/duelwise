@@ -7,6 +7,7 @@ const GAMES = [
   { name: 'four', url: '/play/four-in-a-row', board: 'four-board', hud: 'play-hud' },
   { name: 'crosscurrent', url: '/play/crosscurrent', board: 'slack-board', hud: 'play-hud' },
   { name: 'twelve-yards', url: '/play/twelve-yards', board: 'penalty-scene', hud: 'play-hud' },
+  { name: 'glasscut', url: '/play/glasscut', board: 'puck-stage', hud: 'puck-hud' },
 ] as const
 
 for (const g of GAMES) {

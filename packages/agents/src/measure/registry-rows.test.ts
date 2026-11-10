@@ -5,6 +5,7 @@ import type { Level } from '@duelwise/core/src/product'
 import { ARENA_BARS } from './arena'
 import { BARS, GATE_MATCHES, gateLevel, type BotRow } from './fighter'
 import { wilson } from './ladder'
+import { PUCK_BARS } from './puck'
 
 // JC3: the registries' gate rows are the eval output, and what is published follows from them. A level whose rows
 // clear every bar (Wilson lower bound, 400 matches) is published and measured; any other level is not.
@@ -13,15 +14,15 @@ interface Reg {
   levels: Record<string, unknown>
   measured: Record<string, { value: number; n: number; ci95: [number, number] }>
   unpublished?: Record<string, string>
-  versions: Array<{ gate: { levels: Record<string, { bots: Array<{ bot: string; wins: number; draws: number; losses: number; score: number; lower: number; bar: number | null }> | null }> } }>
+  versions: Array<{ gate: null | { levels: Record<string, { bots: Array<{ bot: string; wins: number; draws: number; losses: number; score: number; lower: number; bar: number | null }> | null }> } }>
 }
 const load = (game: string): Reg => JSON.parse(readFileSync(join(import.meta.dir, `../../registry/${game}.json`), 'utf8')) as Reg
 
-for (const [game, allBars] of [['fighter', BARS], ['arena', ARENA_BARS]] as const) {
+for (const [game, allBars] of [['fighter', BARS], ['arena', ARENA_BARS], ['puck', PUCK_BARS]] as const) {
   describe(`${game} registry gate rows`, () => {
     const reg = load(game)
     const bars = allBars
-    const gate = reg.versions[0]!.gate.levels
+    const gate = reg.versions[0]!.gate?.levels ?? {}
     for (const level of ['easy', 'medium', 'hard', 'champion'] as Level[]) {
       test(`${level}: rows are consistent, and published exactly when every bar is cleared`, () => {
         const detail = gate[level]?.bots
@@ -63,10 +64,10 @@ for (const [game, allBars] of [['fighter', BARS], ['arena', ARENA_BARS]] as cons
 // registry (packages/agents/eval/<game>/<level>.json); the registry's wins, draws and losses per bot and per seat equal it,
 // and a published level has an eval file. R35: nothing is published from rows that are not in the current eval.
 const EVAL_DIR = join(import.meta.dir, '../../eval')
-for (const game of ['fighter', 'arena'] as const) {
+for (const game of ['fighter', 'arena', 'puck'] as const) {
   describe(`${game} registry rows equal the eval output`, () => {
     const reg = load(game)
-    const gate = reg.versions[0]!.gate.levels
+    const gate = reg.versions[0]!.gate?.levels ?? {}
     for (const level of ['easy', 'medium', 'hard', 'champion'] as Level[]) {
       test(`${level}: published only with an eval file, and every row matches it`, () => {
         const file = join(EVAL_DIR, game, `${level}.json`)
@@ -92,8 +93,8 @@ for (const game of ['fighter', 'arena'] as const) {
 
   describe(`${game} unpublished reasons name only bots the level failed`, () => {
     const reg = load(game)
-    const gate = reg.versions[0]!.gate.levels
-    const botNames = ['random', 'rushdown', 'turtle', 'zoner', 'throwloop', 'backwalk', 'pokeloop', 'sweepspam', 'fireball', 'rusher', 'holder', 'peeker', 'strafe', 'holdangle']
+    const gate = reg.versions[0]!.gate?.levels ?? {}
+    const botNames = ['random', 'rushdown', 'turtle', 'zoner', 'throwloop', 'backwalk', 'pokeloop', 'sweepspam', 'fireball', 'rusher', 'holder', 'peeker', 'strafe', 'holdangle', 'striker', 'goalie', 'banker', 'shadow']
     for (const level of ['easy', 'medium', 'hard', 'champion'] as Level[]) {
       test(`${level}: a bot named in the reason is one it failed`, () => {
         // The "trails Hard" comparison names bots by head-to-head score, not by gate failure.

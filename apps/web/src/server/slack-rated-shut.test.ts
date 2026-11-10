@@ -32,7 +32,7 @@ beforeAll(async () => {
 })
 afterAll(() => client.close())
 const listed = RATED_NOT_OPEN as GameId[]
-/** What the list holds for real (Twelve Yards until its rated path opens); each test adds Crosscurrent and the list goes back to this after it. */
+/** What the list holds for real (Glasscut until its opponent is server-checked); each test adds Crosscurrent and the list goes back to this after it. */
 const real = [...RATED_NOT_OPEN]
 beforeEach(async () => {
   listed.push('slack')

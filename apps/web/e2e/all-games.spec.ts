@@ -311,6 +311,26 @@ test.describe(`${GAMES.length} games, end to end`, () => {
     await expectStatsPage(page, 'penalty')
   })
 
+  test('puck: a fast-forwarded Practice match against Pip is played to the end on the real page, its record is valid and nothing is rated, then its stats page renders', async ({ page, baseURL }) => {
+    test.setTimeout(180_000)
+    test.skip(!PLAYABLE.includes('puck'), `puck has no page: ${missingReason('puck')}`)
+    const seen = watchRequests(page)
+    const errors = watchConsole(page)
+    // ?seed makes an unrated test match, which allows ?autoplay=1&ff=N (a scripted hand plays you, N ticks per tick).
+    await page.goto(`/play/${slug('puck')}?seed=3&autoplay=1&ff=30&level=easy`)
+    await page.getByTestId('puck-start').click()
+    await expect(page.getByTestId('puck-stage')).toBeVisible()
+    // Every level is Practice until the registry publishes it, and the page says so.
+    await expect(page.getByTestId('puck-tag')).toHaveText(publishedLevels('puck').includes('easy') ? /.*/ : 'Practice, in training')
+    await expect(page.getByTestId('puck-result')).toBeVisible({ timeout: 120_000 })
+    await expect(page.getByTestId('puck-stage')).toHaveAttribute('data-record-ok', 'true')
+    await expect(page.getByTestId('result-practice')).toBeVisible()
+    await expect(page.getByTestId('result-elo')).toHaveCount(0)
+    expectNoInferenceTraffic(seen, new URL(baseURL!).origin)
+    expect(errors).toEqual([])
+    await expectStatsPage(page, 'puck')
+  })
+
   test('fighter: a fast-forwarded match at the lowest published level finishes with a valid record, then its stats page renders', async ({ page, baseURL }) => {
     test.setTimeout(300_000)
     test.skip(!PLAYABLE.includes('fighter'), `fighter has no page: ${missingReason('fighter')}`)

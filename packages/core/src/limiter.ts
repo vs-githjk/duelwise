@@ -308,7 +308,20 @@ function levels(bits: boolean): Record<Level, LimiterConfig> {
   }
 }
 
-export const LEVEL_LIMITS: Record<'fighter' | 'arena', Record<Level, LimiterConfig>> = {
+/**
+ * Air hockey (puck): delay 300, 250, 200 and 150 ms (the champion's 150 ms is a plan decision, D2). No APM
+ * cap: the level's mallet speed and acceleration (games/puck/constants.ts LEVEL_MALLET) are the input caps.
+ * The target a seat holds stays for at least 8, 6, 4 and 2 frames.
+ */
+const puckLevels = (): Record<Level, LimiterConfig> => ({
+  easy: mk(18, null, 8, null, 0),
+  medium: mk(15, null, 6, null, 0),
+  hard: mk(12, null, 4, null, 0),
+  champion: mk(9, null, 2, null, 0),
+})
+
+export const LEVEL_LIMITS: Record<'fighter' | 'arena' | 'puck', Record<Level, LimiterConfig>> = {
   fighter: levels(false),
+  puck: puckLevels(),
   arena: { ...levels(true), easy: mk(21, 100, 8, 165, 6, true), medium: mk(18, 160, 6, 220, 4, true) },
 }

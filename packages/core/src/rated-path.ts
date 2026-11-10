@@ -4,9 +4,9 @@ import type { GameId } from './product'
  * Games with no rated path yet: the server cannot re-run the opponent, so a record's opponent moves could be anything. Every match of one of these
  * is stored as Practice whatever the start asked for, and none gets offline tickets, so no rating, path stop or leaderboard row can rest on a record
  * nothing checks. Crosscurrent and Twelve Yards left it when their opponents joined the server-checked games (apps/web/src/server/agent-check.ts), and a new
- * game that is not server-checked joins it until it is. The list is empty today; a test pins the guard that reads it.
+ * game that is not server-checked joins it until it is. Glasscut (puck) is on it until its opponent is server-checked; a test pins the guard that reads it.
  */
-export const RATED_NOT_OPEN: readonly GameId[] = []
+export const RATED_NOT_OPEN: readonly GameId[] = ['puck']
 
 /**
  * Games kept out of offline tickets although they are rated. A ticket lets a player play without the server and upload only the matches they won,

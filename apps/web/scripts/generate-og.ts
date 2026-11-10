@@ -1,7 +1,6 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
-import { gameCountWord } from '../../../packages/core/src/product'
 
 // The link-preview image (Open Graph, 1200x630): public/og/duelwise-og.png.
 // Run: bun apps/web/scripts/generate-og.ts   (or tsx). Uses the X1 mark, the four persona portraits and Young Serif.
@@ -27,7 +26,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
 <g transform="translate(40 65) scale(0.98)">${inner}</g>
 <text x="530" y="212" font-family="Young Serif" font-size="96" fill="#1f1a17">Can you beat</text>
 <text x="530" y="322" font-family="Young Serif" font-size="96" fill="#2166f0">my agents?</text>
-<text x="530" y="378" font-family="Young Serif" font-size="28" fill="#6b5f57">${gameCountWord()} games. Four AI opponents. No sign-up.</text>
+<text x="530" y="378" font-family="Young Serif" font-size="28" fill="#6b5f57">Four AI opponents. No sign-up.</text>
 ${avatars}
 <text x="530" y="578" font-family="Young Serif" font-size="38" fill="#a63f0c">duelwise.app</text>
 </svg>`
