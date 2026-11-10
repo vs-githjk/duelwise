@@ -1,11 +1,12 @@
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNotNull, or, sql } from 'drizzle-orm'
 import { competitive, LOGGED_WIN_FLAG, PRACTICE_FLAG } from './competitive'
 import { notTestMatch } from './public-traffic'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
-import { getGameStats, type Tally } from './stats'
+import type { Tally } from './stats'
+import { recordLen, seatsFor, winnerCol, type SeatInfo } from './record-seats'
 import { AGGREGATE_TTL_MS, cachedFor } from './ttl-cache'
 
 type Db = PgDatabase<any, typeof schema>
@@ -47,21 +48,28 @@ export function outcomeOf(record: Uint8Array | null, winner: number | null | und
   return winner === seat ? 'human' : 'ai'
 }
 
+/** The same answer as outcomeOf, from a seat that was already read off the record. */
+function outcomeFromSeat(info: SeatInfo | null | undefined, winner: number | null | undefined): 'human' | 'ai' | 'draw' | null {
+  if (!info) return null
+  if (winner === null || winner === undefined) return 'draw'
+  return winner === info.seat ? 'human' : 'ai'
+}
+
 interface RawRow {
   id: string
   game: string
   level: string
-  result: { winner: number | null } | null
-  record: Uint8Array | null
+  winner: number | null
+  len: number | null
   finishedAt: Date | null
 }
 
-function toRows(rows: RawRow[], limit: number): ResultRow[] {
+function toRows(rows: RawRow[], limit: number, seats: Map<string, SeatInfo | null>): ResultRow[] {
   const out: ResultRow[] = []
   for (const r of rows) {
     if (out.length >= limit) break
     if (!r.finishedAt || !isGame(r.game)) continue
-    const outcome = outcomeOf(r.record, r.result?.winner)
+    const outcome = outcomeFromSeat(seats.get(r.id), r.winner)
     if (!outcome) continue
     out.push({ id: r.id, game: r.game, level: r.level as Level, outcome, finishedAt: r.finishedAt.toISOString() })
   }
@@ -72,30 +80,47 @@ const cols = {
   id: schema.match.id,
   game: schema.match.game,
   level: schema.match.level,
-  result: schema.match.result,
-  record: schema.match.record,
+  winner: winnerCol,
+  len: recordLen,
   finishedAt: schema.match.finishedAt,
 }
 
-/** The public board: a 7-day tally per game and the newest finished matches, with no player identity. */
+const WEEK_MS = 7 * 86_400_000
+
+/**
+ * The public board: a 7-day tally per game and the newest finished matches, with no player identity. Two queries in all
+ * (the week's rows, the newest rows), neither of which downloads a record the instance has already decoded.
+ */
 export async function getBoard(db: Db, now: Date = new Date(), latestLimit = 4): Promise<Board> {
-  const perGame: GameWeek[] = []
-  for (const game of GAMES) {
-    const s = await getGameStats(db, game, now, 1)
-    const t = Object.values(s.weekly[0]?.levels ?? {}).reduce((a, l) => ({ games: a.games + l.games, wins: a.wins + l.wins }), { games: 0, wins: 0 })
-    perGame.push({ game, ...t })
-  }
-  const rows = await db
+  const valid = and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), isNotNull(schema.match.result), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive, notTestMatch())
+  const week = await db
     .select(cols)
     .from(schema.match)
-    .where(and(eq(schema.match.status, 'finished'), eq(schema.match.recordValid, true), sql`${schema.match.filterFlags}->>'deferredCheckAt' is null`, competitive, notTestMatch()))
+    .where(and(valid, gte(schema.match.finishedAt, new Date(now.getTime() - WEEK_MS))))
+  const newest = await db
+    .select(cols)
+    .from(schema.match)
+    .where(valid)
     .orderBy(desc(schema.match.finishedAt))
     .limit(latestLimit * 3)
+  const seats = await seatsFor(db, [...week, ...newest])
+  const tallies = new Map<GameId, Tally>()
+  for (const m of week) {
+    const info = seats.get(m.id)
+    if (!info || !m.finishedAt || !isGame(m.game) || !(LEVEL_ORDER as readonly string[]).includes(m.level)) continue
+    // A match a week old to the millisecond belongs to the week before, like the owner stats.
+    if (now.getTime() - m.finishedAt.getTime() >= WEEK_MS) continue
+    const t = tallies.get(m.game) ?? { games: 0, wins: 0 }
+    t.games++
+    if (m.winner === info.seat) t.wins++
+    tallies.set(m.game, t)
+  }
+  const perGame: GameWeek[] = GAMES.map((game) => ({ game, ...(tallies.get(game) ?? { games: 0, wins: 0 }) }))
   return {
     matches: perGame.reduce((n, g) => n + g.games, 0),
     humanWins: perGame.reduce((n, g) => n + g.wins, 0),
     perGame,
-    latest: toRows(rows as RawRow[], latestLimit),
+    latest: toRows(newest as RawRow[], latestLimit, seats),
   }
 }
 
@@ -194,12 +219,13 @@ export async function getMyRecord(
     .orderBy(desc(schema.match.finishedAt))
     .limit(STATS_WINDOW)
 
+  const seats = await seatsFor(db, rows.filter((r) => r.status === 'finished' && r.recordValid === true))
   const mine: MyMatch[] = []
   for (const r of rows as Array<RawRow & Parameters<typeof learningOf>[0] & { status: string }>) {
     if (!r.finishedAt || !isGame(r.game)) continue
     const rejected = r.recordValid === false
     const gaveUp = r.status === 'resigned' || r.status === 'abandoned'
-    const outcome = gaveUp ? 'ai' : rejected ? null : outcomeOf(r.record, r.result?.winner)
+    const outcome = gaveUp ? 'ai' : rejected ? null : outcomeFromSeat(seats.get(r.id), r.winner)
     if (!rejected && !outcome) continue
     mine.push({ id: r.id, game: r.game, level: r.level as Level, outcome, finishedAt: r.finishedAt.toISOString(), learning: learningOf({ ...r, game: r.game }, learnsFromHumans) })
   }

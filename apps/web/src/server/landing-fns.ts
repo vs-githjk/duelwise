@@ -2,10 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { getSessionUser } from './caller'
 import { getServerDb } from './server-db'
-import { getBoardCached, getMyRecord, type Board, type MyRecord } from './landing'
+import { getMyRecord, type Board, type MyRecord } from './landing'
+import { databaseParts } from './landing-data'
 import { gameRecordsTrainable, registryFor } from './stats-fns'
 import { summariseRegistry } from './stats'
-import { getOpponentRecordsCached, type OpponentRecord } from './board'
+import type { OpponentRecord } from './board'
 import { learningStrip, tileNote, type LearningFacts } from '../lib/tile-copy'
 
 export interface CardData {
@@ -54,9 +55,8 @@ function learning(cs: CardData[]): { headline: string; body: string } {
 
 /** Everything the landing and the dashboard show: registry facts and the database's 7-day board. */
 export const getLandingData = createServerFn({ method: 'GET' }).handler(async (): Promise<LandingData> => {
-  const { db } = await getServerDb()
   const cs = cards()
-  return { cards: cs, board: await getBoardCached(db), records: await getOpponentRecordsCached(db), learning: learning(cs) }
+  return { cards: cs, ...(await databaseParts(getServerDb)), learning: learning(cs) }
 })
 
 export interface DashboardData extends LandingData {
@@ -65,14 +65,19 @@ export interface DashboardData extends LandingData {
 }
 
 export const getDashboardData = createServerFn({ method: 'GET' }).handler(async (): Promise<DashboardData> => {
-  const { db } = await getServerDb()
-  const user = await getSessionUser()
   const cs = cards()
-  return { cards: cs, board: await getBoardCached(db), records: await getOpponentRecordsCached(db), learning: learning(cs), mine: user ? await getMyRecord(db, user.id, 5, new Date(), (g) => gameRecordsTrainable(g)) : null }
+  const parts = await databaseParts(getServerDb)
+  let mine: MyRecord | null = null
+  try {
+    const user = await getSessionUser()
+    if (user) mine = await getMyRecord((await getServerDb()).db, user.id, 5, new Date(), (g) => gameRecordsTrainable(g))
+  } catch (e) {
+    console.error('dashboard record unavailable', e)
+  }
+  return { cards: cs, ...parts, learning: learning(cs), mine }
 })
 
 /** The opponents' wins and losses against people over the window (the same cached numbers the fight card shows), for the line after a loss. */
 export const getOpponentRecordsView = createServerFn({ method: 'GET' }).handler(async (): Promise<OpponentRecord[]> => {
-  const { db } = await getServerDb()
-  return getOpponentRecordsCached(db)
+  return (await databaseParts(getServerDb)).records
 })

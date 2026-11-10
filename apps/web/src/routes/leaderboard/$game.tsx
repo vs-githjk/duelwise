@@ -11,6 +11,8 @@ import { LEVELS, LEVEL_LABEL, boardPracticeLine } from '../../lib/level-info'
 import { buildCast } from '../../personas/cast'
 import { personaFor } from '../../personas'
 import { registryFor } from '../../lib/registries'
+import { orUnavailable } from '../../lib/unavailable'
+import { looksOffline } from '../../components/ErrorBoundary'
 
 export const Route = createFileRoute('/leaderboard/$game')({
   beforeLoad: ({ params }) => {
@@ -18,8 +20,10 @@ export const Route = createFileRoute('/leaderboard/$game')({
   },
   loader: async ({ params }) => {
     const game = gameBySlug(params.game)!
-    const [view, board] = await Promise.all([getLeaderboardView({ data: { game } }), getLevelBoardView({ data: { game } })])
-    return { ...view, board }
+    return orUnavailable(async () => {
+      const [view, board] = await Promise.all([getLeaderboardView({ data: { game } }), getLevelBoardView({ data: { game } })])
+      return { ...view, board }
+    }, looksOffline)
   },
   head: ({ params }) => {
     const id = gameBySlug(params.game)
@@ -28,15 +32,30 @@ export const Route = createFileRoute('/leaderboard/$game')({
   component: Leaderboard,
 })
 
+/** The database cannot be read right now (the site is up, the numbers are not). */
+function Unavailable({ id }: { id: GameId }) {
+  return (
+    <section className="grid max-w-md gap-3 py-10" role="status" data-testid="leaderboard-unavailable">
+      <h1 className="font-display text-display-md">Leaderboard is unavailable right now</h1>
+      <p className="text-muted">The {PRODUCT.games[id].displayName} board cannot be read at the moment. Games still work. Try again in a little while.</p>
+      <Link to="/play" className="inline-flex min-h-11 items-center text-action">
+        Back to all games
+      </Link>
+    </section>
+  )
+}
+
 function Leaderboard() {
   const id = gameBySlug(Route.useParams().game)!
-  const { rows, minGames, me, signedIn, ranked, board } = Route.useLoaderData()
+  const data = Route.useLoaderData()
   const tabs = useRef<HTMLElement>(null)
   useEffect(() => {
     const nav = tabs.current
     const active = nav?.querySelector<HTMLElement>('[aria-current="page"]')
     if (nav && active) nav.scrollLeft = active.offsetLeft - nav.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2
   }, [id])
+  if ('unavailable' in data) return <Unavailable id={id} />
+  const { rows, minGames, me, signedIn, ranked, board } = data
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6 py-8" data-testid="leaderboard">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
