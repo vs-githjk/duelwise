@@ -247,6 +247,18 @@ describe('summariseRegistry', () => {
     expect(four.levels.every((l) => l.reactionFrames === undefined && l.apmCap === undefined)).toBe(true)
   })
 
+  test('Glasscut (puck) shows its own reaction limits: Champion 9 frames (150 ms) and no action cap, Easy 18 frames', () => {
+    const reg = registry({ game: 'puck' })
+    reg.levels = { champion: { version: 'v2', config: {} } }
+    reg.measured = { champion: { ...reg.measured.medium!, metric: 'win rate vs scripted striker bot' } }
+    reg.unpublished = { easy: 'in training: no snapshot cleared the scripted-bot gate during training, so easy is not published.' }
+    const by = Object.fromEntries(summariseRegistry(reg).levels.map((l) => [l.level, l]))
+    expect(by.champion!.plain).toContain('including the rush bot')
+    expect(by.champion).toMatchObject({ reactionFrames: LEVEL_LIMITS.puck.champion.delayFrames })
+    expect(by.champion!.reactionFrames).toBe(9)
+    expect(by.easy).toMatchObject({ reactionFrames: 18 })
+  })
+
   test('the history rule drops the internal ruling tag, never showing "R15:"', () => {
     const reg = registry()
     reg.versions[1]!.gate = { rule: 'R15: 400 matches per bot, learner on both seats' }

@@ -10,6 +10,7 @@ import * as schema from '../db/schema'
 import { inTrainingCopy } from '../lib/level-info'
 import { strengthLine as fighterStrengthLine } from '../games/fighter/strength'
 import { strengthLine as arenaStrengthLine } from '../games/arena/strength'
+import { strengthLine as puckStrengthLine } from '../games/puck/strength'
 
 type Db = PgDatabase<any, typeof schema>
 
@@ -312,7 +313,7 @@ function readChanges(gate: unknown): ChangeItem[] {
 
 /** Realtime limits for one level: the level config when it records them, else the product limiter every agent runs under. */
 function realtimeLimits(game: GameId | undefined, level: Level, cfg: Record<string, unknown> | undefined): Pick<LevelSummary, 'reactionFrames' | 'apmCap'> {
-  if (game !== 'fighter' && game !== 'arena') return {}
+  if (game !== 'fighter' && game !== 'arena' && game !== 'puck') return {}
   const lim = LEVEL_LIMITS[game][level]
   return {
     reactionFrames: finite(cfg?.reactionFrames) ? cfg.reactionFrames : lim.delayFrames,
@@ -330,7 +331,7 @@ export function summariseRegistry(reg: Registry | null): RegistrySummary {
     return {
       level,
       state: 'measured',
-      ...(realtime ? { plain: reg.game === 'arena' ? arenaStrengthLine(reg, level) : fighterStrengthLine(reg, level) } : { siteElo: m.siteElo }),
+      ...(realtime ? { plain: reg.game === 'arena' ? arenaStrengthLine(reg, level) : reg.game === 'puck' ? puckStrengthLine(reg, level) : fighterStrengthLine(reg, level) } : { siteElo: m.siteElo }),
       metric: m.metric,
       value: m.value,
       ci95: m.ci95,

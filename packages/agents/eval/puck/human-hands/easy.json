@@ -1,0 +1,114 @@
+[
+ {
+  "bot": "random",
+  "games": 800,
+  "wins": 726,
+  "draws": 0,
+  "losses": 74,
+  "score": 0.9075,
+  "ci95": [
+   0.8854292599904071,
+   0.9256759558408173
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 365,
+    "draws": 0,
+    "losses": 35,
+    "score": 0.9125
+   },
+   "1": {
+    "games": 400,
+    "wins": 361,
+    "draws": 0,
+    "losses": 39,
+    "score": 0.9025
+   }
+  }
+ },
+ {
+  "bot": "striker",
+  "games": 800,
+  "wins": 175,
+  "draws": 0,
+  "losses": 625,
+  "score": 0.21875,
+  "ci95": [
+   0.1914844629440401,
+   0.24870365496385705
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 86,
+    "draws": 0,
+    "losses": 314,
+    "score": 0.215
+   },
+   "1": {
+    "games": 400,
+    "wins": 89,
+    "draws": 0,
+    "losses": 311,
+    "score": 0.2225
+   }
+  }
+ },
+ {
+  "bot": "goalie",
+  "games": 800,
+  "wins": 40,
+  "draws": 0,
+  "losses": 760,
+  "score": 0.05,
+  "ci95": [
+   0.036931386297886386,
+   0.06736960235474909
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 15,
+    "draws": 0,
+    "losses": 385,
+    "score": 0.0375
+   },
+   "1": {
+    "games": 400,
+    "wins": 25,
+    "draws": 0,
+    "losses": 375,
+    "score": 0.0625
+   }
+  }
+ },
+ {
+  "bot": "mouse",
+  "games": 800,
+  "wins": 207,
+  "draws": 0,
+  "losses": 593,
+  "score": 0.25875,
+  "ci95": [
+   0.22960587119233516,
+   0.29019993661310545
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 102,
+    "draws": 0,
+    "losses": 298,
+    "score": 0.255
+   },
+   "1": {
+    "games": 400,
+    "wins": 105,
+    "draws": 0,
+    "losses": 295,
+    "score": 0.2625
+   }
+  }
+ }
+]

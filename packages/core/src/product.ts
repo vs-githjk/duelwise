@@ -1,4 +1,4 @@
-export type GameId = 'chess' | 'four' | 'holdem' | 'word' | 'fighter' | 'arena' | 'fleet' | 'slack' | 'penalty'
+export type GameId = 'chess' | 'four' | 'holdem' | 'word' | 'fighter' | 'arena' | 'fleet' | 'slack' | 'penalty' | 'puck'
 export type Level = 'easy' | 'medium' | 'hard' | 'champion'
 
 export interface GameConfig {
@@ -8,9 +8,9 @@ export interface GameConfig {
   devices: 'all' | 'desktop'
 }
 
-const COUNT_WORDS = ['Six', 'Seven', 'Eight', 'Nine', 'Ten'] as const
+const COUNT_WORDS = ['Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'] as const
 
-/** Capitalised count word for the games on offer (six to ten); copy lowercases it where needed. */
+/** Capitalised count word for the games on offer (six to twelve); copy lowercases it where needed. */
 export function gameCountWord(count: number = Object.keys(GAMES).length): string {
   const word = COUNT_WORDS[count - 6]
   if (!word) throw new Error(`gameCountWord: no word for ${count} games (add one to COUNT_WORDS)`)
@@ -27,6 +27,7 @@ const GAMES: Record<GameId, GameConfig> = {
   fleet: { displayName: 'Stormglass', slug: 'stormglass', kind: 'turn', devices: 'all' },
   slack: { displayName: 'Crosscurrent', slug: 'crosscurrent', kind: 'turn', devices: 'all' },
   penalty: { displayName: 'Twelve Yards', slug: 'twelve-yards', kind: 'turn', devices: 'all' },
+  puck: { displayName: 'Glasscut', slug: 'glasscut', kind: 'realtime', devices: 'all' },
 }
 
 // The only place the product name lives. A game is playable when

@@ -98,6 +98,16 @@ test.describe('training copy and site Elo', () => {
     }
   })
 
+  test('Glasscut says its matches are Practice and not used to train anything, and offers no training switch', async ({ page }) => {
+    await page.goto('/play/glasscut')
+    const prematch = page.getByTestId('prematch')
+    await expect(prematch).toBeVisible()
+    await expect(prematch).not.toContainText('may use it to train')
+    await expect(prematch).toContainText(/not (from|used)|does not learn|Practice/)
+    await expect(page.getByRole('switch')).toHaveCount(0)
+    await expect(page.getByTestId('practice-note')).toContainText('Levels in training have not passed our strength test')
+  })
+
   test("Hold'em says its matches are not used for training and offers no switch", async ({ page }) => {
     await page.goto('/play/heads-up-holdem')
     const notice = page.getByTestId('training-notice')

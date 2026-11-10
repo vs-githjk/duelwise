@@ -126,11 +126,17 @@ class _Proc:
 class BridgeEnv:
     """A batch of n auto-resetting envs served by `bun packages/core/src/bridge/main.ts`."""
 
-    def __init__(self, game: str, n: int, seed: int = 0, level: str | None = None):
+    def __init__(self, game: str, n: int, seed: int = 0, level: str | None = None, *, champion_bot_delay: int = 0, goal_shaping: float = 0.0):
+        """`champion_bot_delay` (frames) and `goal_shaping` are training-only env options (puck); the gate and eval never pass them."""
         self.game, self.n, self.seed = game, n, seed
         cmd = [find_bun(), str(_main_ts()), "--game", game, "--n", str(n), "--seed", str(seed)]
         if level:
             cmd += ["--level", level]
+        if champion_bot_delay:
+            cmd += ["--champion-bot-delay", str(int(champion_bot_delay))]
+        if goal_shaping:
+            cmd += ["--goal-shaping", repr(float(goal_shaping))]
+        self.cmd = cmd
         self._p = _Proc(cmd, worktree_root(Path(__file__).resolve().parent))
         self._proc = self._p._proc
         self._closed = False

@@ -2,24 +2,26 @@ import { expect, test } from 'bun:test'
 import { PRODUCT, gameCountWord } from './product'
 
 test('tagline is exact', () => {
-  expect(PRODUCT.tagline).toBe('Nine games. Learning from you, starting with Four in a Row. Beat them if you can.')
+  expect(PRODUCT.tagline).toBe('Ten games. Learning from you, starting with Four in a Row. Beat them if you can.')
 })
 
 test('tagline count word follows the game count', () => {
   const n = Object.keys(PRODUCT.games).length
   expect(PRODUCT.tagline).toBe(`${gameCountWord()} games. Learning from you, starting with Four in a Row. Beat them if you can.`)
-  expect(gameCountWord()).toBe(['Six', 'Seven', 'Eight', 'Nine', 'Ten'][n - 6])
+  expect(gameCountWord()).toBe(['Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'][n - 6])
   expect(gameCountWord(6)).toBe('Six')
   expect(gameCountWord(7)).toBe('Seven')
   expect(gameCountWord(9)).toBe('Nine')
   expect(gameCountWord(10)).toBe('Ten')
   expect(() => gameCountWord(5)).toThrow()
-  expect(() => gameCountWord(11)).toThrow()
+  expect(gameCountWord(11)).toBe('Eleven')
+  expect(gameCountWord(12)).toBe('Twelve')
+  expect(() => gameCountWord(13)).toThrow()
 })
 
-test('nine games with display name and slug, no enabled flag', () => {
+test('ten games with display name and slug, no enabled flag', () => {
   const ids = Object.keys(PRODUCT.games).sort()
-  expect(ids).toEqual(['arena', 'chess', 'fighter', 'fleet', 'four', 'holdem', 'penalty', 'slack', 'word'])
+  expect(ids).toEqual(['arena', 'chess', 'fighter', 'fleet', 'four', 'holdem', 'penalty', 'puck', 'slack', 'word'])
   for (const g of Object.values(PRODUCT.games)) {
     expect(g.displayName.length).toBeGreaterThan(0)
     expect(g.slug).toMatch(/^[a-z0-9-]+$/)
@@ -27,6 +29,7 @@ test('nine games with display name and slug, no enabled flag', () => {
   }
   expect(PRODUCT.games.chess.displayName).toBe('Chess')
   expect(PRODUCT.games.penalty).toMatchObject({ displayName: 'Twelve Yards', slug: 'twelve-yards', kind: 'turn', devices: 'all' })
+  expect(PRODUCT.games.puck).toMatchObject({ displayName: 'Glasscut', slug: 'glasscut', kind: 'realtime', devices: 'all' })
   expect(PRODUCT.games.slack).toMatchObject({ displayName: 'Crosscurrent', slug: 'crosscurrent', kind: 'turn', devices: 'all' })
   expect(PRODUCT.games.four.displayName).toBe('Four in a Row')
   expect(PRODUCT.games.holdem.displayName).toBe("Heads-Up Hold'em")

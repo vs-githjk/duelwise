@@ -1,0 +1,142 @@
+[
+ {
+  "bot": "random",
+  "games": 800,
+  "wins": 797,
+  "draws": 0,
+  "losses": 3,
+  "score": 0.99625,
+  "ci95": [
+   0.9890331057081746,
+   0.9987238595832244
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 398,
+    "draws": 0,
+    "losses": 2,
+    "score": 0.995
+   },
+   "1": {
+    "games": 400,
+    "wins": 399,
+    "draws": 0,
+    "losses": 1,
+    "score": 0.9975
+   }
+  }
+ },
+ {
+  "bot": "striker",
+  "games": 800,
+  "wins": 779,
+  "draws": 0,
+  "losses": 21,
+  "score": 0.97375,
+  "ci95": [
+   0.9602042424027457,
+   0.9827677723212853
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 390,
+    "draws": 0,
+    "losses": 10,
+    "score": 0.975
+   },
+   "1": {
+    "games": 400,
+    "wins": 389,
+    "draws": 0,
+    "losses": 11,
+    "score": 0.9725
+   }
+  }
+ },
+ {
+  "bot": "goalie",
+  "games": 800,
+  "wins": 788,
+  "draws": 0,
+  "losses": 12,
+  "score": 0.985,
+  "ci95": [
+   0.9739656008520308,
+   0.9913988891556842
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 396,
+    "draws": 0,
+    "losses": 4,
+    "score": 0.99
+   },
+   "1": {
+    "games": 400,
+    "wins": 392,
+    "draws": 0,
+    "losses": 8,
+    "score": 0.98
+   }
+  }
+ },
+ {
+  "bot": "banker",
+  "games": 800,
+  "wins": 785,
+  "draws": 0,
+  "losses": 15,
+  "score": 0.98125,
+  "ci95": [
+   0.9692954729431799,
+   0.9886048586366404
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 393,
+    "draws": 0,
+    "losses": 7,
+    "score": 0.9825
+   },
+   "1": {
+    "games": 400,
+    "wins": 392,
+    "draws": 0,
+    "losses": 8,
+    "score": 0.98
+   }
+  }
+ },
+ {
+  "bot": "shadow",
+  "games": 800,
+  "wins": 787,
+  "draws": 0,
+  "losses": 13,
+  "score": 0.98375,
+  "ci95": [
+   0.9723972479218616,
+   0.9904791892765553
+  ],
+  "bySeat": {
+   "0": {
+    "games": 400,
+    "wins": 394,
+    "draws": 0,
+    "losses": 6,
+    "score": 0.985
+   },
+   "1": {
+    "games": 400,
+    "wins": 393,
+    "draws": 0,
+    "losses": 7,
+    "score": 0.9825
+   }
+  }
+ }
+]

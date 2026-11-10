@@ -150,16 +150,27 @@ for (const vp of VIEWPORTS) {
 const REALTIME = [
   { game: 'fighter', url: '/play/tinderbox?seed=13&speed=12&renderer=debug', before: async (page: Page) => { await page.getByRole('button', { name: 'Choose your fighter' }).click() }, timeout: 260_000 },
   { game: 'arena', url: '/play/coldstore?seed=26&speed=20&renderer=debug', before: async () => undefined, timeout: 300_000 },
+  // Glasscut: a seeded autoplay match at 30 ticks per tick; its Start button has its own test id and the result is its own panel (puck-result) with the shared verdict and actions.
+  { game: 'puck', url: '/play/glasscut?seed=3&autoplay=1&ff=30&level=easy', before: async () => undefined, timeout: 120_000, start: 'puck-start' },
 ] as const
-for (const vp of [{ name: 'desktop-1440', use: VIEWPORTS[0].use }, { name: 'iphone-15-landscape', use: phone(devices['iPhone 15 landscape']) }] as const) {
+const REALTIME_VIEWPORTS = [
+  { name: 'desktop-1440', use: VIEWPORTS[0].use },
+  { name: 'iphone-15-landscape', use: phone(devices['iPhone 15 landscape']) },
+  // Glasscut also plays in portrait, so its result is checked there too (the other two need a landscape phone).
+  { name: 'iphone-15-portrait', use: phone(devices['iPhone 15']), only: 'puck' },
+  { name: 'phone-360x780', use: { ...phone(devices['iPhone 15']), viewport: { width: 360, height: 780 } }, only: 'puck' },
+] as const
+for (const vp of REALTIME_VIEWPORTS) {
   for (const rt of REALTIME) {
+    if ('only' in vp && vp.only !== rt.game) continue
     test.describe(`${rt.game} result on ${vp.name}`, () => {
       test.use(vp.use)
       test('verdict, Rematch and the way back are on screen over the finished stage', async ({ page }) => {
         test.setTimeout(rt.timeout + 60_000)
         await page.goto(rt.url)
         await rt.before(page)
-        await page.getByRole('button', { name: 'Start match' }).click()
+        if ('start' in rt) await page.getByTestId(rt.start).click()
+        else await page.getByRole('button', { name: 'Start match' }).click()
         await expect(page.getByTestId('result-panel')).toBeVisible({ timeout: rt.timeout })
         await page.waitForTimeout(800)
         if (process.env.RESULT_SHOTS) await page.screenshot({ path: `${process.env.RESULT_SHOTS}/${rt.game}-${vp.name}-result-${TAG}.png` })
@@ -180,7 +191,7 @@ for (const vp of [{ name: 'desktop-1440', use: VIEWPORTS[0].use }, { name: 'ipho
 for (const vp of VIEWPORTS) {
   test.describe(`the back control on ${vp.name}`, () => {
     test.use(vp.use)
-    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent'], ['penalty', 'twelve-yards']] as const) {
+    for (const [game, slug] of [['chess', 'chess'], ['four', 'four-in-a-row'], ['holdem', 'heads-up-holdem'], ['word', 'word-duel'], ['fighter', 'tinderbox'], ['arena', 'coldstore'], ['fleet', 'stormglass'], ['slack', 'crosscurrent'], ['penalty', 'twelve-yards'], ['puck', 'glasscut']] as const) {
       test(`${game}: "All games" is a 44 px arrow button to /play with a visible focus ring`, async ({ page }) => {
         await page.goto(`/play/${slug}`)
         const back = page.getByTestId('game-back')

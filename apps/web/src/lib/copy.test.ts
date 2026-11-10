@@ -124,3 +124,13 @@ test('Crosscurrent results name the disc rule, never the raw reason', () => {
   expect(resultSentence({ winner: 1, score: [0, 1], reason: 'most discs' }, 0, 'Pip')).toBe('Pip finished with more discs than you.')
   expect(resultSentence({ winner: null, score: [0.5, 0.5], reason: 'level on discs' } as Result, 0, 'Pip')).toMatch(/same number of discs.*draw/)
 })
+
+test('air hockey finishes read as sentences, not the bare reason word', () => {
+  expect(resultSentence({ winner: 0, score: [7, 4], reason: 'goals' }, 0, 'Sable')).toBe('You won 7 to 4.')
+  expect(resultSentence({ winner: 1, score: [4, 7], reason: 'goals' }, 0, 'Sable')).toBe('Sable won 7 to 4.')
+  expect(resultSentence({ winner: 0, score: [7, 4], reason: 'goals' }, 0, 'Sable', true)).toBe('The player won 7 to 4.')
+  expect(resultSentence({ winner: 0, score: [5, 3], reason: 'time' }, 0, 'Sable')).toBe('Time was up with you ahead, 5 to 3.')
+  expect(resultSentence({ winner: 1, score: [3, 5], reason: 'time' }, 0, 'Sable')).toBe('Time was up with Sable ahead, 5 to 3.')
+  expect(resultSentence({ winner: 0, score: [5, 3], reason: 'time' }, 0, 'Sable', true)).toBe('Time was up with the player ahead, 5 to 3.')
+  expect(resultSentence({ winner: 1, score: [6, 7], reason: 'sudden' }, 0, 'Sable')).toBe('Sable won in sudden death, 7 to 6.')
+})

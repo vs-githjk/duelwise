@@ -53,10 +53,12 @@ export function verifiedStrength(reg: Registry | null, level: Level): boolean {
   const version = reg.versions.find((v) => v.version === reg.levels[level]?.version)
   const gate = obj(version?.gate)
   if (!gate) return false
-  if (reg.game === 'fighter' || reg.game === 'arena') {
+  if (reg.game === 'fighter' || reg.game === 'arena' || reg.game === 'puck') {
     const rows = obj(obj(gate.levels)?.[level])?.bots
     if (!Array.isArray(rows)) return false
-    const expected = reg.game === 'fighter'
+    const expected = reg.game === 'puck'
+      ? (level === 'hard' ? ['random', 'striker', 'goalie', 'banker', 'shadow'] : level === 'champion' ? ['striker', 'goalie', 'banker', 'shadow'] : ['random', 'striker', 'goalie'])
+      : reg.game === 'fighter'
       ? (level === 'easy' || level === 'medium' ? ['random', 'rushdown', 'turtle'] : level === 'champion' ? ['rushdown', 'turtle', 'zoner', 'throwloop', 'backwalk', 'pokeloop', 'sweepspam', 'fireball', 'throwtap', 'fireball25'] : ['random', 'rushdown', 'turtle', 'zoner', 'throwloop', 'backwalk', 'pokeloop', 'sweepspam', 'fireball', 'throwtap', 'fireball25'])
       : (level === 'champion' ? ['rusher', 'holder', 'peeker', 'strafe', 'holdangle'] : ['random', 'rusher', 'holder', 'peeker', 'strafe', 'holdangle'])
     return expected.every((name) => {
@@ -158,7 +160,9 @@ export function visibleRegistry(reg: Registry): Registry {
     if (out.levels[level]) out.unpublishedConfig[level] = out.levels[level]!.config
     delete out.levels[level]
     delete out.measured[level]
-    out.unpublished[level] = 'stays in training until the per-seat strength gate is verified'
+    // A level the registry already lists as unpublished keeps the reason its measurement wrote (the page shows it); only a level that claims
+    // to be published without a verifiable gate gets the generic sentence.
+    out.unpublished[level] = !reg.levels[level] && reg.unpublished?.[level] ? reg.unpublished[level]! : 'stays in training until the per-seat strength gate is verified'
   }
   return out
 }

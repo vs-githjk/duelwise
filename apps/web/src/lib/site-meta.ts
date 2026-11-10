@@ -4,7 +4,7 @@ import { PRODUCT, gameCountWord } from '@duelwise/core/src/product'
 export const SITE_ORIGIN = 'https://duelwise.app'
 export const SHARE_TITLE = `${PRODUCT.name}: Can you beat my agents?`
 export const SHARE_DESCRIPTION = `${gameCountWord()} games against four AI opponents, from easy Pip to champion Sable. No account needed.`
-const SHARE_IMAGE = `${SITE_ORIGIN}/og/duelwise-og.png?v=4`
+const SHARE_IMAGE = `${SITE_ORIGIN}/og/duelwise-og.png?v=5`
 const SHARE_ALT = 'Duelwise: Can you beat my agents? The Duelwise mark beside the four AI opponents, Pip, Marlow, Vesper and Sable.'
 
 /** The home page's address; other routes leave og:url unset rather than point at the wrong page. */

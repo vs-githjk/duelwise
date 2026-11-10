@@ -98,7 +98,10 @@ export function reportTiles(view: { game: GameId; mode: 'owner' | 'public'; stat
   const out: Tile[] = []
   if (counted) {
     // Real-time records hold input updates, so name that count accurately alongside the score.
-    if (body.rounds) {
+    if (body.rounds && view.game === 'puck') {
+      // Air hockey is decided in goals, and its record holds one input every tick, so the count of inputs says nothing a player could use.
+      out.push({ value: `${view.mode === 'owner' ? 'You' : 'Player'} ${body.rounds.you}, ${(view.level ? personaFor(view.level).name : 'Opponent')} ${body.rounds.ai}`, label: 'Goals' })
+    } else if (body.rounds) {
       out.push({ value: `${view.mode === 'owner' ? 'You' : 'Player'} ${body.rounds.you}, ${(view.level ? personaFor(view.level).name : 'Opponent')} ${body.rounds.ai}`, label: 'Rounds won' })
       out.push({ value: String(body.moves), label: 'Recorded inputs' })
     }

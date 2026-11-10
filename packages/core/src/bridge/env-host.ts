@@ -23,7 +23,8 @@ export interface BridgeEnv {
   step(actions: Int32Array): StepOut
 }
 
-export type EnvFactory = (opts: { n: number; seed: number; level?: string }) => BridgeEnv
+/** `championBotDelay` and `goalShaping` are training-only options (puck); gate and eval envs never set them. */
+export type EnvFactory = (opts: { n: number; seed: number; level?: string; championBotDelay?: number; goalShaping?: number }) => BridgeEnv
 
 /** Test-only game id handled by the host itself. */
 export const TOY_GAME = 'toy-counter'
@@ -88,12 +89,13 @@ export const createToyCounterEnv: EnvFactory = ({ n }) => {
 const NOT_BUILT: Record<string, string> = {
   fighter: 'The fighter env is not built yet; it belongs to Lane C (T7).',
   arena: 'The arena env is not built yet; it belongs to Lane C (T10).',
+  puck: 'The puck env is not built yet.',
 }
 
-/** Resolves the env factory for a game id. Fighter and arena load their own games/<id>/env.ts lazily. */
+/** Resolves the env factory for a game id. Fighter, arena and puck load their own games/<id>/env.ts lazily. */
 export async function loadEnvFactory(game: string): Promise<EnvFactory> {
   if (game === TOY_GAME) return createToyCounterEnv
-  if (game === 'fighter' || game === 'arena') {
+  if (game === 'fighter' || game === 'arena' || game === 'puck') {
     const mod = (await import(`../games/${game}/env`)) as { createEnv: EnvFactory | null }
     if (!mod.createEnv) throw new Error(NOT_BUILT[game])
     return mod.createEnv

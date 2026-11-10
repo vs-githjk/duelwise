@@ -1,5 +1,7 @@
 import type { GameId, Level } from '@duelwise/core/src/product'
 import type { Result, Seat } from '@duelwise/core/src/types'
+import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
+import { PRODUCT } from '@duelwise/core/src/product'
 import lines from '../personas/lines.json'
 import { LEVELS } from './level-info'
 import { personaFor } from '../personas'
@@ -10,7 +12,7 @@ import { personaFor } from '../personas'
  */
 export type Situation = 'win' | 'loss' | 'closeLoss' | 'draw' | 'callWrong' | 'callRight'
 
-const UNIT: Record<GameId, string> = { word: 'guess', chess: 'move', four: 'move', fighter: 'round', arena: 'round', holdem: 'hand', fleet: 'shot', slack: 'move', penalty: 'kick' }
+const UNIT: Record<GameId, string> = { word: 'guess', chess: 'move', four: 'move', fighter: 'round', arena: 'round', holdem: 'hand', fleet: 'shot', slack: 'move', penalty: 'kick', puck: 'goal' }
 
 export interface SaysInput {
   game: GameId
@@ -47,8 +49,9 @@ export function isCloseLoss(i: Pick<SaysInput, 'game' | 'result' | 'humanSeat' |
       return i.humanMoves > 15
     case 'fleet':
       return i.shortBy === 1
+    case 'puck':
     case 'penalty':
-      // A shootout lost by one goal is the close one.
+      // A shootout (or a Glasscut match) lost by one goal is the close one.
       return typeof me === 'number' && typeof them === 'number' && them - me === 1
     case 'slack':
       // The result carries a winner, not a disc count, so a close loss cannot be told from a heavy one.
@@ -76,10 +79,14 @@ export function sayLine(i: SaysInput): { situation: Situation; text: string } {
   const situation = situationOf(i)
   const set = (lines as Record<string, Record<string, string>>)[i.level]!
   let template = set[situation]!
-  if ((situation === 'win' || situation === 'callRight') && i.progress && i.progress !== 'counted') {
-    const suffix = i.progress === 'practice' ? 'Practice' : 'Plain'
+  // A game with no rated path has nothing to count or open: a win there uses the Plain line (no promise of a next opponent), whatever progress says.
+  const noRated = RATED_NOT_OPEN.includes(i.game)
+  const progress = noRated ? 'plain' : i.progress
+  if ((situation === 'win' || situation === 'callRight') && progress && progress !== 'counted') {
+    const suffix = progress === 'practice' ? 'Practice' : 'Plain'
     template = set[`${situation}${suffix}`] ?? template
   }
+  if (noRated && (situation === 'win' || situation === 'callRight')) template += ` ${PRODUCT.games[i.game].displayName} matches are Practice for now, so every opponent is open to try.`
   if (situation === 'loss' && i.level === 'champion' && i.record && i.record.wins + i.record.losses >= 20 && set.lossRecord) template = set.lossRecord
   const text = template
     .replaceAll('{unit}', UNIT[i.game])

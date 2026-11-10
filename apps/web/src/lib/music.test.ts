@@ -67,7 +67,7 @@ describe('mood for a game', () => {
   test('each game has its loop; there is no lobby loop', () => {
     for (const g of ['chess', 'four', 'word', 'fleet', 'slack']) expect(moodForGame(g)).toBe('board')
     expect(moodForGame('holdem')).toBe('poker')
-    for (const g of ['fighter', 'arena']) expect(moodForGame(g)).toBe('action')
+    for (const g of ['fighter', 'arena', 'penalty', 'puck']) expect(moodForGame(g)).toBe('action')
     expect(moodForGame('nope')).toBeNull()
     expect(Object.keys(TRACKS).sort()).toEqual(['action', 'board', 'poker'])
   })

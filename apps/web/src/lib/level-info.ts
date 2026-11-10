@@ -1,4 +1,5 @@
-import type { Level } from '@duelwise/core/src/product'
+import type { GameId, Level } from '@duelwise/core/src/product'
+import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path.ts'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { PRACTICE_COPY } from '../games/fighter/strength'
 
@@ -62,4 +63,10 @@ export function levelInfoFromRegistry(reg: Registry | null): Record<Level, Level
     }
   }
   return out
+}
+
+/** The line in an In training board column. A game with no rated path has no path a win could count on, so it says matches are Practice. */
+export function boardPracticeLine(game: GameId, name: string): string {
+  if (RATED_NOT_OPEN.includes(game)) return `${name} is in training until it is measured. Every match here is Practice and counts nowhere.`
+  return `${name} is in training until it is measured. A win here counts on your own path, not on the board.`
 }

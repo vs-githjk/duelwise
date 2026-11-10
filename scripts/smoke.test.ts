@@ -46,6 +46,14 @@ describe('smokeRoutes', () => {
   })
 })
 
+describe('smokeRoutes for Glasscut', () => {
+  test('lists the Glasscut play, stats and leaderboard pages by its slug, not by the internal id', () => {
+    const routes = smokeRoutes()
+    for (const p of ['/play/glasscut', '/agents/glasscut', '/leaderboard/glasscut']) expect(routes).toContain(p)
+    expect(routes.filter((r) => /\/puck$/.test(r))).toEqual([])
+  })
+})
+
 describe('runUrlSmoke', () => {
   test('url mode sends no POST without --allow-write', async () => {
     const calls: Call[] = []

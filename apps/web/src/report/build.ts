@@ -13,6 +13,7 @@ import { holdemMoments } from './holdem'
 import { fleetMoments } from './fleet'
 import { slackReport } from './slack'
 import { penaltyReport } from './penalty'
+import { puckReportMoments } from './puck'
 import { realtimeFacts, realtimeMoments, realtimeCoaching } from './realtime'
 
 export interface BuildOptions {
@@ -110,6 +111,10 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
   if (rec.game === 'penalty') {
     const r = penaltyReport(rec, sentence, opponent)
     return { ...base, moves: r.yourKicks, moments: r.moments, penaltyView: r.view, note: r.note }
+  }
+  // Air hockey has its own facts: goals, saves, posts and near misses read off the replay (the fighter's health swings do not apply).
+  if (rec.game === 'puck') {
+    return { ...base, moves: humanActionCount(rec), moments: [...puckReportMoments(rec, opponent), end] }
   }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)

@@ -1,0 +1,43 @@
+{
+  "name": "puck-league-a",
+  "cmd": [
+    "scripts/py",
+    "-m",
+    "trainer.ppo.train_realtime",
+    "--game",
+    "puck",
+    "--stage",
+    "A",
+    "--steps",
+    "1000000000",
+    "--max-seconds",
+    "14000",
+    "--procs",
+    "3",
+    "--envs",
+    "128",
+    "--snapshot-every",
+    "1000000",
+    "--gate-stage-a",
+    "--gate-every",
+    "10000000",
+    "--gate-games",
+    "64",
+    "--resume",
+    "--self-play-floor",
+    "0.5",
+    "--train-champion-bot-delay",
+    "9",
+    "--goal-shaping",
+    "0.002"
+  ],
+  "cpuSlots": 3,
+  "mps": false,
+  "maxHours": 4.0,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/puck-league-a/ckpt/A",
+  "milestones": {
+    "gatedLevels": "runs/puck-league-a/levels/gated.json"
+  }
+}

@@ -73,6 +73,8 @@ GAMES: dict[str, GameSpec] = {
     # Stage B anneals from 0.002, not 0.01: the arena has nine heads and 0.005 already blew its entropy up.
     "arena": GameSpec(nvec=(10, 2, 2, 2, 2, 2, 9, 7, 4), legacy_nvec=(9, 2, 2, 2, 2, 2, 9, 7, 4),
                       ppo={"lr": 3e-4, "minibatch": 1024, "ent_coef": 0.001}, ent_anneal=(0.002, 0.0005)),
+    # Air hockey: target bin over the own half, x (11) by y (9); see games/puck/env.ts (BIN_X, BIN_Y). Fighter defaults for PPO.
+    "puck": GameSpec(nvec=(11, 9), legacy_nvec=(11, 9), ent_anneal=(0.01, 0.001)),
 }
 
 
@@ -93,7 +95,21 @@ class StageCfg:
     init: Path | None
 
 
+def resolve_init(init: Path | str | None) -> Path | None:
+    """A checkpoint path, or a levels/gated.json whose newest gated Champion snapshot is the start (stage B from a running stage A)."""
+    if not init:
+        return None
+    p = Path(init)
+    if p.suffix != ".json":
+        return p
+    levels = json.loads(p.read_text()).get("levels", {})
+    if "champion" not in levels:
+        raise SystemExit(f"{p} has no gated champion snapshot yet")
+    return Path(levels["champion"]["path"])
+
+
 def make_stage(stage: str, level: str | None, init: Path | str | None) -> StageCfg:
+    init = resolve_init(init)
     if stage == "A":
         return StageCfg("A", "champion", "champion", Path(init) if init else None)
     if stage != "B":
@@ -187,8 +203,14 @@ class Trainer:
         seed: int = 0, ppo: PPOConfig | None = None, snapshot_every: int = 1_000_000, ckpt_every_s: float = 900.0,
         threads: int | None = None, log=None, close_steps: int = 0, warm_start: int = 0,
         gate_every: int = 2_000_000, gate_games: int = 48, gate_enabled: bool = True, gate_stage_a: bool = False,
+        self_play_floor: float = 0.0, train_champion_bot_delay: int = 0, goal_shaping: float = 0.0,
     ):
         self.game, self.cfg, self.paths = game, cfg, paths
+        # Training-only options (never reach the gate, whose envs are built by eval_bots with none of them):
+        # a fraction of games forced against this run's own snapshots, a reaction delay (frames) for the scripted bots at
+        # Champion, and the goal-direction shaping reward per decision.
+        self.self_play_floor = self_play_floor
+        self.env_opts = {"champion_bot_delay": train_champion_bot_delay, "goal_shaping": goal_shaping}
         # Arena stage A only: the close-range curriculum (env level "<level>@close") until this many total steps.
         self.close_steps = close_steps if cfg.stage == "A" else 0
         # Arena stage A only: a fresh run first fits the policy to this many decisions of the rusher and holder bots (bc.py).
@@ -253,7 +275,14 @@ class Trainer:
 
     def _pick(self) -> str:
         with self._lock:
+            if self.self_play_floor > 0:
+                own = self.league._own  # this run's own snapshots, not frozen Champion ones
+                if own and self.rng.random() < self.self_play_floor:
+                    return own[int(self.rng.integers(len(own)))].name
             return self.league.sample().name
+
+    def _make_env(self, p: int) -> BridgeEnv:
+        return BridgeEnv(self.game, self.envs_per_proc, seed=self.seed + 1000 * p, level=self.env_level, **{k: v for k, v in self.env_opts.items() if v})
 
     def _ppo_now(self, target: int) -> PPOConfig:
         """The PPO config for this update: in stage B the entropy bonus anneals from the game's start value to its end value."""
@@ -354,12 +383,12 @@ class Trainer:
         t_start = time.time()
         self.envs: list[BridgeEnv] = []
         try:
-            first = BridgeEnv(self.game, self.envs_per_proc, seed=self.seed, level=self.env_level)
+            first = self._make_env(0)
             self.envs.append(first)
             obs_size = int(first.obs_shape[-1])
             self._setup(obs_size, resume)
             for p in range(1, self.procs):
-                self.envs.append(BridgeEnv(self.game, self.envs_per_proc, seed=self.seed + 1000 * p, level=self.env_level))
+                self.envs.append(self._make_env(p))
             # Seeds depend on the step so a resumed run does not replay the same matches.
             self.obs = [e.reset([self.seed + 1000 * p + self.step * 7 + i for i in range(self.envs_per_proc)]) for p, e in enumerate(self.envs)]
             self.done_flag = [np.zeros(self.envs_per_proc, np.float32) for _ in self.envs]
@@ -684,6 +713,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--b-seconds", default="5400,4800,3600", help="--b2: hard,medium,easy time caps in seconds")
     ap.add_argument("--gate-every", type=int, default=2_000_000, help="stage B: steps between scripted-bot gate checks")
     ap.add_argument("--gate-games", type=int, default=48, help="stage B gate: matches per bot (arena: rounds are counted instead)")
+    ap.add_argument("--gate-stage-a", action="store_true", help="stage A: also gate the Champion against the scripted bots every --gate-every steps (passes are saved under gated/champion)")
+    ap.add_argument("--self-play-floor", type=float, default=0.0, help="training only: fraction of games forced against this run's own league snapshots (0 = plain PFSP)")
+    ap.add_argument("--train-champion-bot-delay", type=int, default=0, help="training only: frames of reaction delay for the scripted bots at Champion; the gate always uses 0")
+    ap.add_argument("--goal-shaping", type=float, default=0.0, help="training only: reward per decision while the learner touched last and the puck heads for the far goal (puck)")
     ap.add_argument("--max-seconds", type=float)
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
@@ -720,7 +753,9 @@ def main(argv: list[str] | None = None) -> int:
                      Path(a.league_dir) if a.league_dir else run_dir / "league" / key,
                      [Path(d) for d in a.frozen_dir], run_dir)
     Trainer(a.game, cfg, paths, procs=a.procs, envs_per_proc=a.envs, seed=a.seed, snapshot_every=a.snapshot_every,
-            close_steps=a.close_steps, warm_start=a.warm_start, gate_every=a.gate_every, gate_games=a.gate_games).run(
+            close_steps=a.close_steps, warm_start=a.warm_start, gate_every=a.gate_every, gate_games=a.gate_games,
+            gate_stage_a=a.gate_stage_a, self_play_floor=a.self_play_floor, train_champion_bot_delay=a.train_champion_bot_delay,
+            goal_shaping=a.goal_shaping).run(
         a.steps, resume=a.resume, max_seconds=a.max_seconds)
     return 0
 

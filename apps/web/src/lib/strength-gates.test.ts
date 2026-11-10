@@ -381,3 +381,41 @@ describe('chess 2-ply bot gate follows R44', () => {
     expect(measuredSet(seat)).toEqual(['easy', 'medium'])
   })
 })
+
+import { build as buildPuck, goodPairs as puckPairs, measure as puckMeasure, model as puckModel, strong as puckStrong } from '@duelwise/agents/src/measure/puck-fixtures'
+import { visibleRegistry as presented } from './strength-gates'
+
+describe('puck registry', () => {
+  test('the page gate (strength-gates) verifies exactly the published levels, and no more once a seat sample is cut', () => {
+    const reg = buildPuck(puckStrong, puckPairs)
+    for (const level of ['easy', 'medium', 'hard', 'champion'] as const) expect(verifiedStrength(reg, level)).toBe(true)
+    const cut = structuredClone(reg) as any
+    cut.versions[0].gate.levels.hard.bots[1].bySeat['1'].games = 399
+    cut.versions[0].gate.levels.hard.bots[1].bySeat['1'].losses -= 1
+    expect(verifiedStrength(cut, 'hard')).toBe(false)
+    expect(verifiedStrength(cut, 'medium')).toBe(true)
+    const noBot = structuredClone(reg) as any
+    noBot.versions[0].gate.levels.champion.bots = noBot.versions[0].gate.levels.champion.bots.filter((r: any) => r.bot !== 'shadow')
+    expect(verifiedStrength(noBot, 'champion')).toBe(false)
+    const weakLadder = structuredClone(reg) as any
+    weakLadder.versions[0].gate.ladder.pairs[1].bySeat['1'].wins = 200
+    weakLadder.versions[0].gate.ladder.pairs[1].bySeat['1'].losses = 200
+    expect(verifiedStrength(weakLadder, 'hard')).toBe(false)
+    expect(verifiedStrength(weakLadder, 'medium')).toBe(true)
+  })
+
+  test('a level the measurement left in training keeps its measured reason on the page, not the generic sentence', () => {
+    const reg = buildPuck({ ...puckStrong, hard: { measure: puckMeasure('hard', 392, { only: { banker: 230 } }), model: puckModel } }, puckPairs)
+    expect(reg.unpublished!.hard).toContain('banker: 230 of 400')
+    expect(presented(reg).unpublished!.hard).toBe(reg.unpublished!.hard)
+    expect(presented(reg).levels.hard).toBeUndefined()
+  })
+  test('a puck level that claims to be published without a verifiable gate is withheld with the generic sentence', () => {
+    const reg = structuredClone(buildPuck(puckStrong, puckPairs)) as any
+    reg.versions[0].gate.levels.medium.bots = []
+    const shown = presented(reg)
+    expect(shown.levels.medium).toBeUndefined()
+    expect(shown.unpublished!.medium).toBe('stays in training until the per-seat strength gate is verified')
+    expect(shown.levels.easy).toBeDefined()
+  })
+})

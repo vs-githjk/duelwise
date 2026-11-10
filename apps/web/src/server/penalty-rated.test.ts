@@ -103,7 +103,7 @@ async function playOut(m: { matchId: string }, side: Seat, who = USER, lvl: Leve
 
 describe('Twelve Yards is open for rated play', () => {
   test('it is on neither list that shuts rated, is server checked, and a start that says Rated is stored as Rated with the side the server gave', async () => {
-    expect([...RATED_NOT_OPEN]).toEqual([])
+    expect([...RATED_NOT_OPEN]).not.toContain('penalty')
     expect(SERVER_CHECKED).toContain('penalty')
     expect(isSealed('penalty')).toBe(true)
     expect(isTimeCapped('penalty', 'champion')).toBe(false)

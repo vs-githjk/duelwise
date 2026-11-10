@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product.ts'
+import { LEVEL_LIMITS } from '@duelwise/core/src/limiter.ts'
 
 const REGISTRY_DIR = join(import.meta.dirname, '..', '..', '..', 'packages', 'agents', 'registry')
 import { LEVELS } from '../src/lib/level-info'
@@ -77,8 +78,8 @@ test.describe('agent stats', () => {
       if (champion && !PRODUCT.games[game].kind.includes('realtime')) {
         await expect(page.getByTestId('tile-champion')).toContainText(String(Math.round(champion.siteElo)))
       } else if (PRODUCT.games[game].kind === 'realtime') {
-        // The reaction limit is a product constant, so the tile shows it whether or not the Champion is published.
-        await expect(page.getByTestId('tile-champion')).toContainText(`${PRODUCT.championMinDelayFrames} frames`)
+        // The reaction limit is a constant (the product minimum; Glasscut's Champion is Sable's 150 ms limiter row), so the tile shows it whether or not the Champion is published.
+        await expect(page.getByTestId('tile-champion')).toContainText(`${game === 'puck' ? LEVEL_LIMITS.puck.champion.delayFrames : PRODUCT.championMinDelayFrames} frames`)
         if (champion) await expect(page.getByTestId('tile-champion')).not.toContainText('In training')
         else await expect(page.getByTestId('tile-champion')).toContainText('In training')
       } else if (!champion) {

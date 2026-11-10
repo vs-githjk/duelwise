@@ -294,7 +294,7 @@ test.describe('link preview tags', () => {
   test('the site shares an absolute 1200x630 image and the truthful copy', async ({ page, request }) => {
     await page.goto('/')
     const content = (sel: string) => page.locator(sel).getAttribute('content')
-    expect(await content('meta[property="og:image"]')).toBe('https://duelwise.app/og/duelwise-og.png?v=4')
+    expect(await content('meta[property="og:image"]')).toBe('https://duelwise.app/og/duelwise-og.png?v=5')
     expect(await content('meta[property="og:image:width"]')).toBe('1200')
     expect(await content('meta[property="og:image:height"]')).toBe('630')
     expect(await content('meta[property="og:title"]')).toBe('Duelwise: Can you beat my agents?')

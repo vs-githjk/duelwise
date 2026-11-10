@@ -13,7 +13,7 @@ from pathlib import Path
 
 LEVELS = ("easy", "medium", "hard", "champion")
 STATUSES = ("preview", "measured", "candidate", "retired")
-GAMES = ("chess", "four", "holdem", "word", "fighter", "arena", "fleet", "slack", "penalty")
+GAMES = ("chess", "four", "holdem", "word", "fighter", "arena", "fleet", "slack", "penalty", "puck")
 
 
 class RegistryError(ValueError):

@@ -265,7 +265,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
       <div className="result-verdict grid content-start gap-2">
         <span className={cn('inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', outcome === 'win' ? 'bg-good-soft text-good-ink' : outcome === 'loss' ? 'bg-bad-soft text-bad-ink' : 'bg-neutral-soft text-neutral-ink')} data-testid="result-chip">
           <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-          {left ? 'Left early' : outcome === 'win' ? (game === 'penalty' && margin ? `Won ${margin.replace(' goals', '')}` : `Win${margin ? ` in ${margin}` : ''}`) : outcome === 'loss' ? 'Loss' : 'Draw'}
+          {left ? 'Left early' : outcome === 'win' ? ((game === 'penalty' || game === 'puck') && margin ? `Won ${margin.replace(' goals', '')}` : `Win${margin ? ` in ${margin}` : ''}`) : outcome === 'loss' ? 'Loss' : 'Draw'}
         </span>
         {practice ? <span className="inline-flex w-fit items-center rounded-full bg-action-soft px-3 py-1 text-xs font-semibold text-ink" data-testid="result-practice">{PRACTICE_RESULT}</span> : null}
         <h2 ref={headline} tabIndex={-1} className="result-headline font-display text-display-md leading-tight outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action" data-testid="result-headline">

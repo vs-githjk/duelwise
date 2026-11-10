@@ -82,6 +82,16 @@ export function resultSentence(result: Result, humanSeat: Seat, opponent: string
       const lo = Math.min(result.score[0], result.score[1])
       return `${who} won the shootout ${hi} to ${lo}.`
     }
+    // Air hockey: the core's own end reasons. The score is told from the winner's side, bigger number first.
+    case 'goals':
+    case 'time':
+    case 'sudden': {
+      const hi = Math.max(result.score[0], result.score[1])
+      const lo = Math.min(result.score[0], result.score[1])
+      if (reason === 'goals') return `${who} won ${hi} to ${lo}.`
+      if (reason === 'sudden') return `${who} won in sudden death, ${hi} to ${lo}.`
+      return `Time was up with ${humanWon ? you : opponent} ahead, ${hi} to ${lo}.`
+    }
     case 'level after sudden death':
       return 'The shootout was still level after sudden death, so it is a draw.'
     case 'four in a row':

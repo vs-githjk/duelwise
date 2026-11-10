@@ -45,3 +45,11 @@ test('a gate with its own summary shows it whole; without one the old first clau
   expect(gateLine({})).toBeNull()
   expect(gateLine(null)).toBeNull()
 })
+
+test('Glasscut matches are Practice: the learn copy never says a match is recorded for the report or the board', () => {
+  for (const learns of [false, true]) {
+    const c = learnCopy({ game: 'puck', learns, champion: null, sinceCount: 3, sinceEligible: 0 })
+    expect(`${c.title} ${c.body}`).not.toMatch(/for your report and the board/i)
+    expect(c.body).toMatch(/Practice/)
+  }
+})

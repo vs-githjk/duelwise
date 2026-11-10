@@ -56,6 +56,12 @@ export const guides: Record<GameId, Guide> = {
     controls: [{ keys: 'Touch or mouse', action: 'drag from the ball to a spot and lift to shoot, or tap a spot and tap it again' }, { keys: 'Tab and Enter or Space', action: 'move between the spots and pick one, then press Shoot or Save' }, { keys: 'Tap during the replay', action: 'skip to the next kick' }],
     win: 'The side with more goals wins. Stopping early is allowed once a side cannot be caught.', tip: 'A side that always picks the same corner gets read. Mix it up, and watch what your opponent keeps doing.',
   },
+  puck: {
+    goal: 'Score on the other end of the table. First to 7 goals wins.',
+    steps: ['Slide your mallet to hit the puck into their goal. You defend the near end and your mallet stays in your half.', 'On a phone, put a finger anywhere on the table and drag: the mallet moves the way your finger moves, and nothing jumps when you touch down. With a mouse, the mallet follows the cursor.', 'After a goal, the side that was scored on serves. A short pause shows who has the puck.', 'A puck that sits in one half for seven seconds goes to the other side, so nobody can stall. At six minutes, the side ahead wins; if it is level, the next goal wins.'],
+    controls: [{ keys: 'Touch', action: 'drag anywhere on the table to move your mallet' }, { keys: 'Mouse or trackpad', action: 'move the cursor, the mallet follows' }],
+    win: 'First to 7 goals, or the lead when six minutes are up. A level score goes to a sudden-death goal.', tip: 'Hit it off the side wall to change the angle. A straight shot is easy to see coming.',
+  },
 }
 
 const seen = new Set<GameId>()

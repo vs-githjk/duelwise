@@ -21,8 +21,10 @@ from ..paths import atomic_write_bytes
 
 # Order matters: it matches FIGHTER_BOT_KINDS / ARENA_BOT_KINDS in the env, whose bot sentinel is the first action head = -1 - index.
 BOT_KINDS = ("random", "rushdown", "turtle", "zoner", "throwloop", "backwalk", "pokeloop", "sweepspam", "fireball", "throwtap", "fireball25")
-BOTS = {"fighter": BOT_KINDS, "arena": ("random", "rusher", "holder", "peeker", "strafe", "holdangle", "human-proxy")}
-TRAINING_BOTS = {"fighter": BOT_KINDS, "arena": tuple(bot for bot in BOTS["arena"] if bot != "human-proxy")}
+BOTS = {"fighter": BOT_KINDS, "arena": ("random", "rusher", "holder", "peeker", "strafe", "holdangle", "human-proxy"),
+        # PUCK_BOT_KINDS in games/puck/env.ts (the sentinel x head = -1 - index)
+        "puck": ("random", "striker", "goalie", "banker", "shadow")}
+TRAINING_BOTS = {"fighter": BOT_KINDS, "arena": tuple(bot for bot in BOTS["arena"] if bot != "human-proxy"), "puck": BOTS["puck"]}
 MAX_SNAPSHOTS = 16
 PFSP_POWER = 2.0
 PFSP_FLOOR = 0.02

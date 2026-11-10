@@ -170,6 +170,14 @@ test('Pip on Stormglass follows up a hit only 35 percent of the time, so the lin
   expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and no look-ahead.')
 })
 
+test('Glasscut style lines are honest about who is hand-written and who shares a network', () => {
+  expect(styleLine('easy', 'puck')).toMatch(/Hand-written, not trained/)
+  expect(styleLine('medium', 'puck')).toMatch(/Vesper's network/)
+  expect(styleLine('hard', 'puck')).toMatch(/trained agent/)
+  expect(styleLine('champion', 'puck')).toMatch(/trained agent/)
+  for (const level of ['easy', 'medium', 'hard', 'champion'] as const) expect(bioFor(level, 'puck')).toBe(personaFor(level).bio)
+})
+
 test('Crosscurrent has a true style line for each level and its Sable is a search program, not a human-like player', () => {
   expect(styleLine('easy', 'slack')).toBe('Grabs the most discs it can and loves a corner.')
   expect(styleLine('medium', 'slack')).toBe('Knows which squares matter and looks at your reply.')

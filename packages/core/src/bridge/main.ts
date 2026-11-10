@@ -1,5 +1,5 @@
 // Env bridge entry point:
-//   bun packages/core/src/bridge/main.ts --game <id> --n <envs> --seed <s> [--level <lvl>] [--mode env|selfplay]
+//   bun packages/core/src/bridge/main.ts --game <id> --n <envs> --seed <s> [--level <lvl>] [--champion-bot-delay <frames>] [--goal-shaping <x>] [--mode env|selfplay]
 // stdout carries frames only; every log line goes to stderr.
 //
 // --mode selfplay delegates to the game's self-play owner (chess: ./chess-selfplay, others: ./selfplay-host),
@@ -46,7 +46,11 @@ async function main(): Promise<number> {
   if (!Number.isInteger(n) || n < 1 || n > 4096) throw new Error('--n must be an integer in 1..4096')
   if (!Number.isInteger(seed)) throw new Error('--seed must be an integer')
   const factory = await loadEnvFactory(args.game)
-  const host = new EnvHost(factory({ n, seed, level: args.level }))
+  const host = new EnvHost(factory({
+    n, seed, level: args.level,
+    ...(args['champion-bot-delay'] !== undefined ? { championBotDelay: Number(args['champion-bot-delay']) } : {}),
+    ...(args['goal-shaping'] !== undefined ? { goalShaping: Number(args['goal-shaping']) } : {}),
+  }))
 
   let chain = Promise.resolve()
   let exitCode: number | null = null

@@ -1,10 +1,10 @@
 # Duelwise
 
-[![Duelwise: Can you beat my agents? Nine games, four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
+[![Duelwise: Can you beat my agents? Four AI opponents, no sign-up.](apps/web/public/og/duelwise-og.png)](https://duelwise.app)
 
 **Can you beat my agents?**
 
-Nine games. Learning from you, starting with Four in a Row. Beat them if you can.
+Ten games. Learning from you, starting with Four in a Row. Beat them if you can.
 
 **[Play now at duelwise.app](https://duelwise.app)**. No sign-up and no email: a name is enough. Google or GitHub sign-in is optional.
 
@@ -12,7 +12,7 @@ Pick a game and sit down across from Pip, Marlow, Vesper or Sable. Pip is easy t
 
 ## The games
 
-Nine games, each with a built-in opponent at four levels:
+Ten games, each with a built-in opponent at four levels:
 
 | Game | What it is |
 |---|---|
@@ -25,6 +25,7 @@ Nine games, each with a built-in opponent at four levels:
 | Stormglass | Hidden fleets on a ten by ten grid. Find theirs first. |
 | Crosscurrent | Close a line of their discs between two of yours and it flips. Most discs wins. |
 | Twelve Yards | A penalty shootout. Five kicks each, nine spots to shoot at, five dives to save. You pick at the same moment. |
+| Glasscut | Air hockey. Real time, first to 7 goals. Drag to move your mallet, on a phone or with a mouse. |
 
 The four opponents are the same four characters in every game, one per level, each with its own style per game (`apps/web/src/personas/personas.json`):
 

@@ -1,10 +1,18 @@
 import { expect, test, type Page } from '@playwright/test'
+import { existsSync, readdirSync } from 'node:fs'
+import { gameCountWord } from '@duelwise/core/src/product.ts'
 
 // Twelve Yards, promotion part 3: what a match sounds like, the held end, and the report. The sound is read from the page's own cue log
 // (window.__duelwisePenaltySounds, every cue actually scheduled) and the shared audio hook (stingers), so no one has to listen for the spec to know the
 // crowd cheered a goal and groaned a miss. The end hold is timed in the page: the verdict on the status line to the result panel.
 
 const URL = '/play/twelve-yards'
+
+/** Games with a play page on disk (games/<id>/index.tsx); a game still being built has a product entry but no tile yet. */
+function playableGames(): number {
+  const dir = `${import.meta.dirname}/../src/games`
+  return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(`${dir}/${d.name}/index.tsx`)).length
+}
 
 function watchConsole(page: Page): string[] {
   const errors: string[] = []
@@ -417,7 +425,7 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     expect(errors).toEqual([])
   })
 
-  test('every place that lists the games lists Twelve Yards: the games page, the leaderboard tabs, the AI page, its own agent and board pages, and the link preview says nine', async ({ page, request }) => {
+  test('every place that lists the games lists Twelve Yards: the games page, the leaderboard tabs, the AI page, its own agent and board pages, and the link preview says the game count', async ({ page, request }) => {
     test.setTimeout(90_000)
     const errors = watchConsole(page)
     await page.goto('/play')
@@ -425,7 +433,7 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     const tile = page.locator('a[href="/play/twelve-yards"]').first()
     await expect(tile).toBeVisible()
     await expect(tile).toHaveAttribute('aria-label', 'Play Twelve Yards')
-    expect(await page.locator('a[href^="/play/"]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute('href'))).size), 'nine games on the page').toBe(9)
+    expect(await page.locator('a[href^="/play/"]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute('href'))).size), 'one tile per playable game on the page').toBe(playableGames())
     await page.goto('/leaderboard/chess')
     await expect(page.locator('a[href="/leaderboard/twelve-yards"]').first()).toContainText('Twelve Yards')
     await page.goto('/leaderboard/twelve-yards')
@@ -435,9 +443,9 @@ test.describe('Twelve Yards sound, the held end and the report', () => {
     await page.goto('/agents/twelve-yards')
     await expect(page.getByRole('heading', { name: /Twelve Yards/ }).first()).toBeVisible()
     await page.goto('/')
-    await expect(page.locator('body')).toContainText(/Nine games/)
-    expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('https://duelwise.app/og/duelwise-og.png?v=4')
-    expect(await page.locator('meta[property="og:description"], meta[name="description"]').first().getAttribute('content')).toMatch(/Nine games/)
+    await expect(page.locator('body')).toContainText(new RegExp(`${gameCountWord()} games`))
+    expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('https://duelwise.app/og/duelwise-og.png?v=5')
+    expect(await page.locator('meta[property="og:description"], meta[name="description"]').first().getAttribute('content')).toMatch(new RegExp(`${gameCountWord()} games`))
     const sitemap = await (await request.get('/sitemap.xml')).text()
     for (const section of ['play', 'agents', 'leaderboard']) expect(sitemap).toContain(`https://duelwise.app/${section}/twelve-yards`)
     expect(errors).toEqual([])
