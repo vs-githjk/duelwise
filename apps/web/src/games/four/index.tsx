@@ -14,6 +14,10 @@ import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { boardSummary, dropAnnouncement } from './announce'
 import { Board } from './Board'
 import { showPracticeBadge, useFourMatch } from './useFourMatch'
+import { FriendFour } from '../friends/FriendFour'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { FOUR_FRIEND } from './opponent'
 
 export const meta = { title: 'Four in a Row' }
 
@@ -40,6 +44,9 @@ export default function FourPage() {
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
+  // Who the next game is against. A friend game is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
   // A match opens at the top of the page, whatever the setup page was scrolled to (Start sits below the level cards), so the header and HUD do not start
   // above the screen on a laptop. Instant, so nothing is seen to move. A phone does the same: its Start button sits far down the setup page and the HUD and board would open above the screen.
   useLayoutEffect(() => {
@@ -53,6 +60,8 @@ export default function FourPage() {
     return match.start(level, s)
   }
 
+  if (friend) return <FriendFour setup={friend} onDone={() => setFriend(null)} />
+
   const measured = registry?.measured[match.level]
   const over = match.phase === 'over'
   const state = match.state
@@ -63,6 +72,7 @@ export default function FourPage() {
 
   return (
     <GameShell
+      friends={versus === 'friend'}
       game="four"
       level={match.phase === 'setup' ? undefined : match.level}
       preview={showPracticeBadge(match.phase, match.preview, levelInfo[match.level].preview)}
@@ -134,7 +144,9 @@ export default function FourPage() {
     >
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="four-setup">
-          <p className="text-muted">Drop stones into the columns. The first to line up four, across, down or diagonally, wins. Each match decides at random who drops first.</p>
+          <OpponentTabs value={versus} onChange={setVersus} disabled={match.phase === 'starting'} />
+          {versus === 'ai' ? <p className="text-muted">Drop stones into the columns. The first to line up four, across, down or diagonally, wins. Each match decides at random who drops first.</p> : null}
+          {versus === 'friend' ? <FriendSetup game={FOUR_FRIEND} onStart={setFriend} /> : <>
           <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.four.slug} disabled={match.phase === 'starting'}
             action={
@@ -155,6 +167,7 @@ export default function FourPage() {
               </>
             }
           />
+          </>}
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">

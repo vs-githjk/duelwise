@@ -18,6 +18,10 @@ import { personaFor, styleLine } from '../../personas'
 import { Board } from './Board'
 import { discCounts, finalCount, flipPreview, humanMoveCount, legalCells, liveText, parseMoves, pressPlace, statusLine, startMatch, tapCell, cellName, type SlackMatch } from './match'
 import { useSlackMatch } from './useSlackMatch'
+import { FriendSlack } from '../friends/FriendSlack'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { SLACK_FRIEND } from './opponent'
 
 export const meta = { title: 'Crosscurrent' }
 
@@ -57,6 +61,9 @@ export default function SlackPage() {
   const [focus, setFocus] = useState(0)
   const offline = useSyncExternalStore(subscribeConnection, isOffline, () => false)
   const practice = usePractice()
+  // Who the next game is against. A friend game is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
 
   // Rated needs the server to hold and check the match, so it does not start offline (Practice does). A fixed seed or a preset position was never counted.
   const ratedNeedsServer = offline && !practice && fixedSeed === undefined && preset === null
@@ -104,6 +111,8 @@ export default function SlackPage() {
     })
     return () => cancelAnimationFrame(raf)
   }, [match.seed, match.phase === 'playing'])
+  if (friend) return <FriendSlack setup={friend} onDone={() => setFriend(null)} />
+
   const turn = closing ? 'over' : m && m.state.turn !== m.human ? 'ai' : 'you'
   // Each match gives the player the dark discs (they move first) or the pale discs at random.
   const youColor = match.humanSeat === 0 ? 'dark' : 'pale'
@@ -133,6 +142,7 @@ export default function SlackPage() {
   return (
     <GameShell
       game="slack"
+      friends={versus === 'friend'}
       level={match.phase === 'setup' ? undefined : match.level}
       preview={match.phase !== 'setup' && levelInfo[match.level].preview}
       previewLabel="In training"
@@ -201,6 +211,8 @@ export default function SlackPage() {
     >
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="slack-setup">
+          <OpponentTabs value={versus} onChange={setVersus} disabled={match.phase === 'starting'} />
+          {versus === 'friend' ? <FriendSetup game={SLACK_FRIEND} onStart={setFriend} /> : <>
           <p className="text-muted">
             Place a disc so a line of {personaFor(picked).name}&apos;s discs ends against one of yours, and every closed line flips. Each match gives you the dark discs (you move first) or the pale discs (your opponent moves first) at random. The most discs when neither side can move wins.
           </p>
@@ -231,6 +243,7 @@ export default function SlackPage() {
               </>
             }
           />
+          </>}
         </section>
       ) : m ? (
         <div className="grid grid-cols-[minmax(0,1fr)] content-start sl-play">

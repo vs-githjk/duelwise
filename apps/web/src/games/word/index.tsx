@@ -17,6 +17,10 @@ import { LetterTracker } from './LetterTracker'
 import { ResultScore, RoundCard, WordLedger } from './ledger'
 import { roundAnnouncement } from './announce'
 import { useWordMatch } from './useWordMatch'
+import { FriendWord } from '../friends/FriendWord'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { WORD_FRIEND } from './opponent'
 
 export const meta = { title: 'Word Duel' }
 
@@ -41,12 +45,17 @@ export default function WordDuelPage() {
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [draft, setDraft] = useState('')
   useEffect(() => setDraft(''), [match.seed])
+  // Who the next game is against. A friend game is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
 
   const begin = (level: Level) => {
     const s = fixedSeed
     setFixedSeed(undefined)
     return match.start(level, s)
   }
+
+  if (friend) return <FriendWord setup={friend} onDone={() => setFriend(null)} />
 
   const level = match.phase === 'setup' ? undefined : match.level
   const measured = registry.measured[match.level]
@@ -56,6 +65,7 @@ export default function WordDuelPage() {
   return (
     <GameShell
       game="word"
+      friends={versus === 'friend'}
       level={level}
       preview={match.phase !== 'setup' && (match.preview || levelInfo[match.level].preview)}
       previewLabel="In training"
@@ -125,6 +135,8 @@ export default function WordDuelPage() {
     >
       {match.phase === 'setup' || match.phase === 'starting' ? (
         <section className="grid gap-4" data-testid="word-setup">
+          <OpponentTabs value={versus} onChange={setVersus} disabled={match.phase === 'starting'} />
+          {versus === 'friend' ? <FriendSetup game={WORD_FRIEND} onStart={setFriend} /> : <>
           <p className="text-muted">You and the opponent guess the same hidden five-letter word at the same time. Each round you both see how close the other got, but never their letters. First to solve it wins.</p>
           <p className="text-sm text-muted">In counted matches, the server keeps the answer and the opponent's words hidden until the match ends.</p>
           <PlayMode disabled={match.phase === 'starting'} />
@@ -147,6 +159,7 @@ export default function WordDuelPage() {
               </>
             }
           />
+          </>}
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">

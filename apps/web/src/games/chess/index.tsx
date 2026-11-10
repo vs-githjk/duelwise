@@ -15,6 +15,10 @@ import { boardSummary, moveAnnouncement } from './announce'
 import { ChessBoard } from './ChessBoard'
 import { useChessMatch } from './useChessMatch'
 import { warmChessAssets } from './warm'
+import { FriendChess } from '../friends/FriendChess'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { CHESS_FRIEND } from './opponent'
 import './chess.css'
 
 export const meta = { title: 'Chess' }
@@ -76,6 +80,9 @@ export default function ChessPage() {
   const [fixed, setFixed] = useState(() => ({ seed: seedFromUrl(), fen: fenFromUrl() }))
   const [confirming, setConfirming] = useState(false)
   const [notice, setNotice] = useState('')
+  // Who the next game is against. A friend game is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
 
   useEffect(() => {
     if (!notice) return
@@ -98,6 +105,8 @@ export default function ChessPage() {
     return match.start(level, seed, fen)
   }
 
+  if (friend) return <FriendChess setup={friend} onDone={() => setFriend(null)} />
+
   const measured = registry?.measured[match.level]
   const over = match.phase === 'over'
   const state = match.state
@@ -111,6 +120,7 @@ export default function ChessPage() {
 
   return (
     <GameShell
+      friends={versus === 'friend'}
       game="chess"
       level={setup ? undefined : match.level}
       preview={!setup && (match.preview || levelInfo[match.level].preview)}
@@ -187,7 +197,9 @@ export default function ChessPage() {
     >
       {setup ? (
         <section className="grid gap-4" data-testid="chess-setup">
-          <p className="text-muted">Each match gives you White or Black at random, and White moves first. Tap a piece and then a highlighted square, or drag it. Draws by stalemate, repetition and the fifty-move rule are detected for you.</p>
+          <OpponentTabs value={versus} onChange={setVersus} disabled={match.phase === 'starting'} />
+          {versus === 'ai' ? <p className="text-muted">Each match gives you White or Black at random, and White moves first. Tap a piece and then a highlighted square, or drag it. Draws by stalemate, repetition and the fifty-move rule are detected for you.</p> : null}
+          {versus === 'friend' ? <FriendSetup game={CHESS_FRIEND} onStart={setFriend} /> : <>
           <PlayMode disabled={match.phase === 'starting'} />
           <LevelPicker value={picked} onChange={setPicked} levels={levelInfo} statsSlug={PRODUCT.games.chess.slug} disabled={match.phase === 'starting'}
             action={
@@ -208,6 +220,7 @@ export default function ChessPage() {
               </>
             }
           />
+          </>}
         </section>
       ) : state ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3 ch-play">
