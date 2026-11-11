@@ -4,7 +4,7 @@ import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite'
 import { sql } from 'drizzle-orm'
 import { migrateDb } from '../db/migrate'
 import * as schema from '../db/schema'
-import { deleteAccount } from './account'
+import { deleteAccount, friendKeysFor } from './account'
 
 let client: PGlite
 let db: PgliteDatabase<typeof schema>
@@ -15,7 +15,7 @@ beforeAll(async () => {
 })
 afterAll(() => client.close())
 beforeEach(async () => {
-  await db.execute(sql`truncate table match, match_report, guest, profile, rating, session, account, verification, "user" cascade`)
+  await db.execute(sql`truncate table friend_result, match, match_report, guest, profile, rating, session, account, verification, "user" cascade`)
 })
 
 async function seedUser(id: string) {
@@ -76,5 +76,40 @@ describe('deleteAccount', () => {
     await seedUser('ada')
     expect(await deleteAccount(db, 'nobody')).toBe(false)
     expect(await db.select().from(schema.match)).toHaveLength(2)
+  })
+})
+
+describe('deleteAccount and head-to-head records', () => {
+  const SECRET = 'test-secret-0123456789abcdef'
+  const DEVICE = '11111111-2222-4333-8444-555555555555'
+  const row = (id: string, a: string, b: string) => ({ id, game: 'four', playerA: a, playerB: b, nameA: 'A', nameB: 'B', winner: null, finishedAt: new Date() })
+
+  test('succeeds when migration 0009 is not applied yet (no friend_result table) and removes the user', async () => {
+    await seedUser('ada')
+    await db.execute(sql`drop table friend_result`)
+    try {
+      expect(await deleteAccount(db, 'ada', undefined, ['some-key'])).toBe(true)
+      expect(await db.select().from(schema.user)).toHaveLength(0)
+    } finally {
+      // Put the table back for the tests that follow.
+      await db.execute(sql`create table friend_result (id text primary key, game text not null, player_a text not null, player_b text not null, name_a text not null, name_b text not null, winner text, finished_at timestamptz not null)`)
+    }
+  })
+
+  test('also removes the rows kept under this device key (games played signed out), and leaves other devices alone', async () => {
+    await seedUser('ada')
+    const [acct, dev] = await friendKeysFor(SECRET, 'ada', DEVICE)
+    const other = (await friendKeysFor(SECRET, 'bob', '99999999-2222-4333-8444-555555555555'))[1]!
+    expect(acct).not.toBe(dev)
+    await db.insert(schema.friendResult).values([row('r1', acct!, 'x'), row('r2', 'y', dev!), row('r3', 'x', other)])
+    expect(await deleteAccount(db, 'ada', undefined, await friendKeysFor(SECRET, 'ada', DEVICE))).toBe(true)
+    expect((await db.select().from(schema.friendResult)).map((r) => r.id)).toEqual(['r3'])
+  })
+
+  test('friendKeysFor: no secret or a short one gives no keys; a bad device id gives the account key only', async () => {
+    expect(await friendKeysFor(undefined, 'ada', DEVICE)).toEqual([])
+    expect(await friendKeysFor('short', 'ada', DEVICE)).toEqual([])
+    expect(await friendKeysFor(SECRET, 'ada', 'nope')).toHaveLength(1)
+    expect(await friendKeysFor(SECRET, 'ada', undefined)).toHaveLength(1)
   })
 })

@@ -1,8 +1,12 @@
 import { useId, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import type { Seat } from '@duelwise/core/src/types'
 import { cn } from '../../lib/cn'
+import { TWO_DEVICE_KEPT } from '../../lib/friend-copy'
 import { NAME_MAX, NAME_STORAGE_KEY } from '../../lib/display-name'
+import { CHALLENGE_GAMES } from '../../lib/challenge-games'
 import type { FriendGame } from './opponent'
+import { relayUrl } from './session'
 import type { LocalSetup } from './useLocalDuel'
 
 /** The name this device already uses on the boards, to prefill player one. Read only; a friend game writes nothing. */
@@ -73,6 +77,9 @@ function NameField({ label, value, onChange, placeholder }: { label: string; val
  * fields says so in plain words, and the page that renders this never calls the match recorder.
  */
 export function FriendSetup({ game, onStart }: { game: FriendGame; onStart: (setup: LocalSetup) => void }) {
+  // "Send a link" needs the relay (off in a build that has none) and a game the relay knows.
+  const canLink = relayUrl() !== null && (CHALLENGE_GAMES as readonly string[]).includes(game.id)
+  const [how, setHow] = useState<'device' | 'link'>('device')
   const [one, setOne] = useState(deviceName)
   const [two, setTwo] = useState('')
   const [side, setSide] = useState<SideChoice>('random')
@@ -80,12 +87,50 @@ export function FriendSetup({ game, onStart }: { game: FriendGame; onStart: (set
   const nameOne = one.trim() || 'Player 1'
   const nameTwo = two.trim() || 'Player 2'
   const sideName = useId()
+  const howName = useId()
   const start = () => {
     const seat: 'random' | Seat = side === 'random' ? 'random' : side === 'one' ? 0 : 1
     onStart({ names: [one, two], side: seat, flip: game.canFlip && flip })
   }
+  const howSwitch = canLink ? (
+    <fieldset className="grid gap-1" data-testid="friend-how" data-how={how}>
+      <legend className="sr-only">Where will your friend play?</legend>
+      <div className="grid grid-cols-2 gap-1 rounded-control bg-surface-2 p-1">
+        {(
+          [
+            ['device', 'Same device'],
+            ['link', 'Send a link'],
+          ] as const
+        ).map(([id, label]) => (
+          <label
+            key={id}
+            data-how-option={id}
+            className={cn(
+              'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-control px-2 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-action',
+              how === id ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
+            )}
+          >
+            <input type="radio" name={howName} value={id} checked={how === id} onChange={() => setHow(id)} className="sr-only" />
+            {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  ) : null
+  if (canLink && how === 'link') {
+    return (
+      <section className="grid gap-5 rounded-card border border-line bg-surface p-4 sm:p-5" data-testid="friend-setup" data-how="link">
+        {howSwitch}
+        <p className="text-sm text-muted">Each of you plays on your own phone or computer. You get one link and a QR code, your friend opens it, and the game starts. No account needed. {TWO_DEVICE_KEPT}</p>
+        <Link to="/f" search={{ game: game.id }} className="inline-flex min-h-12 items-center justify-center justify-self-start rounded-control bg-action px-6 font-semibold text-action-ink" data-testid="friend-send-link">
+          Make a link
+        </Link>
+      </section>
+    )
+  }
   return (
-    <section className="grid gap-5 rounded-card border border-line bg-surface p-4 sm:p-5" data-testid="friend-setup">
+    <section className="grid gap-5 rounded-card border border-line bg-surface p-4 sm:p-5" data-testid="friend-setup" data-how="device">
+      {howSwitch}
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <NameField label="Player one" value={one} onChange={setOne} placeholder="Your name" />
         <NameField label="Player two" value={two} onChange={setTwo} placeholder="Your friend's name" />

@@ -4,6 +4,7 @@ import { PERSONAS } from '../personas'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { TWO_DEVICE_KEPT, FRIEND_NOT_RATED, friendRatingLine, recordLine, yourRatingLine } from './friend-copy'
 import { notTrainedSentence, learnsNote, opponentLabel, pretrainingSentence, recordTrainingAllowed, recordsTrainable, showsPreviewBadge, siteEloExplainer, trainingNoticeText, visibleJobs } from './honest-copy'
 
 const reg = (game: string, levels: Record<string, Record<string, unknown>>, learns = false) =>
@@ -115,4 +116,34 @@ test('the privacy sentence lists every game whose registry has learnsFromHumans 
 
 test('learnsNote keeps "uses matches" and "has learned" apart', () => {
   expect(learnsNote({ learns: true, hasLearned: true, pretraining: null, selfPlay: false, game: 'four' })).toMatch(/A promoted version has learned from them/)
+})
+
+test('friend copy: not rated, the friend rating line, the record line; no em or en dash, no claim about people', () => {
+  expect(FRIEND_NOT_RATED).toContain('Friend games are not rated')
+  expect(friendRatingLine('Ada', 1240)).toBe("Beat Ada's score: Ada is on 1240 against the AI.")
+  expect(friendRatingLine('Ada', undefined)).toBeNull()
+  expect(yourRatingLine(1180)).toBe('Your rating against the AI is 1180.')
+  expect(yourRatingLine(undefined)).toBeNull()
+  expect(recordLine('Sam', { you: 2, them: 1, draws: 0 })).toBe('You 2, Sam 1')
+  expect(recordLine('Sam', { you: 2, them: 1, draws: 1 })).toBe('You 2, Sam 1, 1 drawn')
+  for (const s of [FRIEND_NOT_RATED, friendRatingLine('Ada', 1), yourRatingLine(1), recordLine('Sam', { you: 1, them: 1, draws: 1 })]) expect(s).not.toMatch(/[\u2013\u2014]|percent|%/)
+})
+
+test('two-device friend surfaces say the result is kept and never "not saved"; one-device play keeps that line', () => {
+  expect(TWO_DEVICE_KEPT).toBe('Not rated. Only the result is kept: who played, who won, the date.')
+  expect(TWO_DEVICE_KEPT).not.toMatch(/not saved|nothing saved|[\u2013\u2014]/i)
+  const read = (f: string) => readFileSync(join(import.meta.dir, '..', 'games', 'friends', f), 'utf8')
+  // The two-device surfaces: the waiting room, the aside RemoteKit draws, and the "send a link" half of FriendSetup.
+  const share = read('ShareRoom.tsx')
+  expect(share).toContain('TWO_DEVICE_KEPT')
+  expect(share).not.toMatch(/not saved|nothing saved/i)
+  expect(read('RemoteKit.tsx')).toMatch(/<FriendAside twoDevices /)
+  const aside = read('FriendAside.tsx')
+  expect(aside).toContain("twoDevices ? TWO_DEVICE_KEPT : 'Not rated and not saved.'")
+  const setup = read('FriendSetup.tsx')
+  const linkHalf = setup.slice(setup.indexOf('data-how="link"'), setup.indexOf('friend-send-link'))
+  expect(linkHalf).toContain('TWO_DEVICE_KEPT')
+  expect(linkHalf).not.toMatch(/not saved|nothing saved/i)
+  // One device keeps the old line.
+  expect(setup).toContain('Not rated and not saved. It stays on this device')
 })

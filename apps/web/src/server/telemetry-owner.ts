@@ -1,4 +1,4 @@
-import { gte, min, sql } from 'drizzle-orm'
+import { and, gte, min, ne, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
@@ -48,7 +48,7 @@ export async function ownerViewHandler(
   const { zone, zoneFallback } = await zoneFor(db, q.tz)
   // One extra day: a daily range opens at local midnight, which can be up to a day and an hour before now - range, and the comparison period sits before that.
   const from = new Date(now.getTime() - 2 * RANGE_MS[p.range] - 86_400_000)
-  const rows = await db.select().from(schema.telemetryEvent).where(gte(schema.telemetryEvent.at, from)).orderBy(sql`${schema.telemetryEvent.at} desc`).limit(EVENT_CAP)
+  const rows = await db.select().from(schema.telemetryEvent).where(and(gte(schema.telemetryEvent.at, from), ne(schema.telemetryEvent.kind, 'friend_match_finished'))).orderBy(sql`${schema.telemetryEvent.at} desc`).limit(EVENT_CAP)
   const events: EventRow[] = rows.map((r) => ({
     at: r.at, kind: r.kind, matchId: r.matchId, game: r.game, level: r.level, persona: r.persona, device: r.device, durationMs: r.durationMs,
     outcome: r.outcome, reason: r.reason, optedOut: r.optedOut, playerRef: r.playerRef, playerKind: r.playerKind,
@@ -56,6 +56,7 @@ export async function ownerViewHandler(
   const firstRows = await db
     .select({ ref: schema.telemetryEvent.playerRef, first: min(schema.telemetryEvent.at) })
     .from(schema.telemetryEvent)
+    .where(ne(schema.telemetryEvent.kind, 'friend_match_finished'))
     .groupBy(schema.telemetryEvent.playerRef)
   const firstSeen = new Map(firstRows.flatMap((r) => (r.first ? [[r.ref, new Date(r.first)] as const] : [])))
   const providers = new Map<string, string>()

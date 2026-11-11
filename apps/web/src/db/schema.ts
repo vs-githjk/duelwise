@@ -161,7 +161,7 @@ export const trainingRun = pgTable('training_run', {
 })
 
 /** Telemetry event kinds, one row per lifecycle step of a counted match. */
-export type TelemetryKind = 'match_started' | 'match_finished' | 'match_abandoned' | 'match_resigned'
+export type TelemetryKind = 'match_started' | 'match_finished' | 'match_abandoned' | 'match_resigned' | 'friend_match_finished'
 
 /**
  * Privacy-safe server events for the owner dashboard. No user id, email, IP address or raw browser
@@ -189,6 +189,26 @@ export const telemetryEvent = pgTable(
     playerKind: text('player_kind').notNull(),
   },
   (t) => [index('telemetry_event_at_idx').on(t.at), index('telemetry_event_match_idx').on(t.matchId), index('telemetry_event_player_idx').on(t.playerRef)],
+)
+
+/**
+ * One finished friend game, result only: the game, the two players, who won, and when. Never moves, never a rating, never read by training.
+ * `player_a` and `player_b` are keyed hashes of the account (or, signed out, of the browser), not user ids, and are stored sorted so one pair
+ * has one shape. `id` is the relay's per-game id, so a result posted twice (both phones post it) is one row. `winner` is a player key, null for a draw.
+ */
+export const friendResult = pgTable(
+  'friend_result',
+  {
+    id: text('id').primaryKey(),
+    game: text('game').notNull(),
+    playerA: text('player_a').notNull(),
+    playerB: text('player_b').notNull(),
+    nameA: text('name_a').notNull(),
+    nameB: text('name_b').notNull(),
+    winner: text('winner'),
+    finishedAt: timestamp('finished_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('friend_result_a_idx').on(t.playerA, t.finishedAt), index('friend_result_b_idx').on(t.playerB, t.finishedAt)],
 )
 
 /** Every owner action that exposes personal data (an email reveal). Append only. */

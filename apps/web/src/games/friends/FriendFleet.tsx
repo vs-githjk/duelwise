@@ -21,7 +21,7 @@ const SINK_MS = 480
 
 
 /** True at the lg breakpoint (1024 px), where the two boards sit side by side. */
-function useWide(): boolean {
+export function useWide(): boolean {
   const [wide, setWide] = useState(false)
   useEffect(() => {
     const q = window.matchMedia('(min-width: 1024px)')
@@ -37,7 +37,7 @@ function useWide(): boolean {
  * One person's turn: their target waters, their own waters as a small map, and a Fire button that becomes "Pass to ..." once the shot has landed, so the
  * shooter sees what the shot did before the device moves. Only the viewer's own observation reaches this component.
  */
-function FleetTurn({ obs, them, shotTaken, final, onFire, onPass }: { obs: FleetObs; them: string; shotTaken: boolean; final: boolean; onFire: (cell: number) => void; onPass: () => void }) {
+export function FleetTurn({ obs, them, shotTaken, final, onFire, onPass, waiting }: { obs: FleetObs; them: string; shotTaken: boolean; final: boolean; onFire: (cell: number) => void; onPass: () => void; /** Two devices: after a shot the button gives way to this line until the other person fires. */ waiting?: string }) {
   const wide = useWide()
   const [aimed, setAimed] = useState<number | null>(null)
   const [landedTheirs, setLandedTheirs] = useState<number | null>(null)
@@ -46,9 +46,9 @@ function FleetTurn({ obs, them, shotTaken, final, onFire, onPass }: { obs: Fleet
   const [sinkingOurs, setSinkingOurs] = useState<Placement | null>(null)
   const arrived = useRef(false)
 
-  // What the other person did since this seat last looked: heard and shown once, when the turn is revealed.
+  // What the other person did since this seat last looked: heard and shown once per incoming shot (once per turn on one device, where each turn is a new mount).
   useEffect(() => {
-    if (arrived.current) return
+    if (arrived.current && waiting === undefined) return
     arrived.current = true
     const inc = obs.incoming.at(-1)
     if (!inc) return
@@ -57,7 +57,7 @@ function FleetTurn({ obs, them, shotTaken, final, onFire, onPass }: { obs: Fleet
     setLandedOurs(inc.cell)
     if (inc.sunk !== null) setSinkingOurs(obs.ships.find((p) => p.id === inc.sunk) ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [obs.incoming.length])
   useEffect(() => {
     if (!sinkingOurs) return
     const t = setTimeout(() => setSinkingOurs(null), SINK_MS)
@@ -129,7 +129,13 @@ function FleetTurn({ obs, them, shotTaken, final, onFire, onPass }: { obs: Fleet
       }}
     />
   )
-  const button = shotTaken ? (
+  const button = shotTaken && waiting !== undefined ? (
+    final ? null : (
+      <p className="flex h-14 items-center justify-center rounded-control bg-surface-2 px-3 text-center font-semibold text-muted" role="status" data-testid="fleet-waiting">
+        {waiting}
+      </p>
+    )
+  ) : shotTaken ? (
     <button type="button" onClick={onPass} data-testid="friend-fleet-pass" className="flex h-14 items-center justify-center rounded-control bg-action font-semibold text-action-ink">
       {final ? 'See the result' : `Pass to ${them}`}
     </button>
@@ -200,7 +206,7 @@ function FleetTurn({ obs, them, shotTaken, final, onFire, onPass }: { obs: Fleet
 }
 
 /** Both fleets and every shot, as the game ended. Public by then: the fleets are revealed to both seats. */
-function Reveal({ views, names, large = false }: { views: [FleetObs, FleetObs]; names: [string, string]; large?: boolean }) {
+export function Reveal({ views, names, large = false }: { views: [FleetObs, FleetObs]; names: [string, string]; large?: boolean }) {
   return (
     <div className={large ? 'flex items-start justify-center gap-4' : 'flex items-start gap-2'} data-testid="friend-fleet-reveal">
       {([0, 1] as const).map((seat) => {

@@ -46,10 +46,13 @@ describe('a local duel', () => {
     const dir = new URL('.', import.meta.url).pathname
     const forbidden = /match-recorder|open-match|\/server\/|localStorage|sessionStorage|fetch\(|navigator\.sendBeacon/
     for (const f of readdirSync(dir)) {
-      if (!/\.(ts|tsx)$/.test(f) || f.endsWith('.test.ts')) continue
+      if (!/\.(ts|tsx)$/.test(f) || f.endsWith('.test.ts') || f.endsWith('.test.tsx')) continue
+      // The two-device files (links, sockets, seat tokens in local storage) are the one place a friend game talks to anything: the relay, never a match recorder. friend-record (the signed result handed to the site) and FriendsList read and write only the head-to-head result row.
+      if (/^(Challenge|session|ShareRoom|QrCode|Remote\w*|remote-logic|useRemoteDuel|friend-record|FriendsList)\./.test(f)) continue
       const src = readFileSync(dir + f, 'utf8')
       // FriendSetup may read the device's display name once, to prefill a field; that is a read of a name, never a write of a match.
-      const body = f === 'FriendSetup.tsx' ? src.replace(/localStorage\.getItem\(NAME_STORAGE_KEY\)/g, '') : src
+      // It also names the games a link can carry (a constants file next to the token code), and shows Send a link only when the relay is set.
+      const body = f === 'FriendSetup.tsx' ? src.replace(/localStorage\.getItem\(NAME_STORAGE_KEY\)/g, '').replace(/from '\.\.\/\.\.\/server\/duel-token'/, '') : src
       expect(forbidden.test(body), f).toBe(false)
     }
   })

@@ -64,6 +64,13 @@
       "when": 1794332063502,
       "tag": "0008_match_seat_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794354271541,
+      "tag": "0009_friend_result",
+      "breakpoints": true
     }
   ]
 }

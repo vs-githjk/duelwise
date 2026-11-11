@@ -31,13 +31,13 @@ import { localView, pickerOf, seatOfPlayer, tallyOf, PLAYER_ONE, PLAYER_TWO, use
 import '../penalty/penalty.css'
 import './friends.css'
 
-const SWATCH = [{ background: 'var(--action)' }, { background: 'var(--game-penalty)' }] as const
-const SLOT_WORD = { goal: 'goal', miss: 'no goal', none: 'not taken' } as const
+export const SWATCH = [{ background: 'var(--action)' }, { background: 'var(--game-penalty)' }] as const
+export const SLOT_WORD = { goal: 'goal', miss: 'no goal', none: 'not taken' } as const
 
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 /** The goal as the scene draws it. Phase, beat and the kick's own variables drive the same CSS the page against the AI uses. */
-function Stage({
+export function Stage({
   pickRole,
   lastKick,
   phase,
@@ -116,7 +116,7 @@ function Stage({
  * One person's pick, behind the curtain: the goal with nine spots (a shooter) or five dives (a keeper), the Shoot or Save bar and the drag from the ball.
  * It only receives the view of the seat that is picking and hands back one action; nothing it holds leaves this component but that action.
  */
-function PickScene({ role, onCommit }: { role: Role; onCommit: (zone: Zone) => void }) {
+export function PickScene({ role, onCommit }: { role: Role; onCommit: (zone: Zone) => void | boolean }) {
   const [selected, setSelected] = useState<Zone | null>(null)
   const [armed, setArmed] = useState(false)
   const locked = useRef(false)
@@ -125,7 +125,8 @@ function PickScene({ role, onCommit }: { role: Role; onCommit: (zone: Zone) => v
   const commit = (z: Zone) => {
     if (locked.current) return
     locked.current = true
-    onCommit(z)
+    // A pick the page could not send (two devices, socket down) frees the scene so the person can pick again.
+    if (onCommit(z) === false) locked.current = false
   }
   const onZone = (z: Zone) => {
     const r = tapZone(selected, z)
@@ -215,7 +216,7 @@ function PickScene({ role, onCommit }: { role: Role; onCommit: (zone: Zone) => v
  * The moment both picks are in: the ball and the keeper leave together, the word lands, the score follows. Public by construction (both picks are now history), so
  * it needs no curtain. A tap after a quarter second skips to the next hand-over. Times and sounds are the ones the page against the AI uses.
  */
-function RevealScene({ kick, terminal, names, onContact, onDone }: { kick: Kick; terminal: boolean; names: [string, string]; onContact: () => void; onDone: () => void }) {
+export function RevealScene({ kick, terminal, names, onContact, onDone }: { kick: Kick; terminal: boolean; names: [string, string]; onContact: () => void; onDone: () => void }) {
   const [phase, setPhase] = useState<'set' | 'go'>('set')
   const [beat, setBeat] = useState<'hit' | 'out' | null>(null)
   const [word, setWord] = useState('')

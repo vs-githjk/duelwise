@@ -118,3 +118,15 @@ describe('email reveal', () => {
     expect((await revealEmailsHandler(db, OWNER, ENV, { refs }, NOW)).status).toBe(400)
   })
 })
+
+describe('friend games are counted apart from rated matches', () => {
+  test('a friend_match_finished event never reaches the owner match numbers or the player list', async () => {
+    const get = async () => (await ownerViewHandler(db, OWNER, ENV, { range: '7d' }, () => null, NOW)).body as import('./telemetry-stats').OwnerViewBody
+    const before = JSON.stringify(await get())
+    await db.insert(schema.telemetryEvent).values({
+      id: crypto.randomUUID(), at: new Date(NOW.getTime() - 5 * 60_000), kind: 'friend_match_finished', matchId: 'ABCDEF.1.1', game: 'chess', level: 'friend', persona: 'friend',
+      device: 'unknown', trainingBasis: 'legitimate-interest', optedOut: true, playerRef: 'friend', playerKind: 'friend',
+    })
+    expect(JSON.stringify(await get())).toBe(before)
+  })
+})
