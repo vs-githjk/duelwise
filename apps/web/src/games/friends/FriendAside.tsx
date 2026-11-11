@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { TWO_DEVICE_KEPT } from '../../lib/friend-copy'
 
 export interface FriendPlayer {
   name: string
@@ -12,7 +13,7 @@ export interface FriendPlayer {
  * The card beside (or under) a friend board: who plays which side, anything the game adds (the move list), and Resign for the player to move.
  * The Resign question names the person who would resign, so the wrong person cannot give up by passing the phone at the wrong moment unnoticed.
  */
-export function FriendAside({ players, mover, playing, onResign, resignable = true, children }: { players: [FriendPlayer, FriendPlayer]; mover: 0 | 1; playing: boolean; onResign: () => void; /** False while a hand-over curtain is up: whoever holds the device must not be able to resign for the person it is being passed to. */ resignable?: boolean; children?: ReactNode }) {
+export function FriendAside({ twoDevices = false, players, mover, playing, onResign, resignable = true, resignLabel, children }: { /** Two devices: the result is kept, so the note must not say "not saved". */ twoDevices?: boolean; players: [FriendPlayer, FriendPlayer]; mover: 0 | 1; playing: boolean; onResign: () => void; /** Two devices: the confirm button says this instead of naming a player (whoever holds the device is always the one resigning). */ resignLabel?: string; /** False while a hand-over curtain is up: whoever holds the device must not be able to resign for the person it is being passed to. */ resignable?: boolean; children?: ReactNode }) {
   const [confirming, setConfirming] = useState(false)
   return (
     <div className="grid gap-4" data-testid="friend-aside">
@@ -28,7 +29,7 @@ export function FriendAside({ players, mover, playing, onResign, resignable = tr
             </li>
           ))}
         </ul>
-        <p className="text-xs text-muted">Not rated and not saved.</p>
+        <p className="text-xs text-muted">{twoDevices ? TWO_DEVICE_KEPT : 'Not rated and not saved.'}</p>
       </section>
       {children}
       {playing && resignable ? (
@@ -43,7 +44,7 @@ export function FriendAside({ players, mover, playing, onResign, resignable = tr
               className="min-h-11 rounded-control bg-bad px-4 text-sm font-semibold text-white"
               data-testid="friend-resign-yes"
             >
-              Yes, {players[mover].name} resigns
+              {resignLabel ?? `Yes, ${players[mover].name} resigns`}
             </button>
             <button type="button" onClick={() => setConfirming(false)} className="min-h-11 rounded-control border border-line bg-surface px-4 text-sm font-semibold">
               Keep playing

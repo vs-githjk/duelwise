@@ -22,3 +22,4 @@ apps/web/public/paid/
 
 # Exported human match records (players' games): never committed
 data/human/
+.wrangler/

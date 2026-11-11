@@ -19,7 +19,7 @@ const MAX_GUESSES = 6
 const SWATCH = [{ background: 'var(--token-you)' }, { background: 'var(--game-word)' }] as const
 
 /** One person's turn: their own ledger and the box to type in. It only ever receives the view of the seat behind the curtain. */
-function WordTurn({ obs, oppName, onGuess }: { obs: WordObs; oppName: string; onGuess: (word: string) => Promise<string | null> }) {
+export function WordTurn({ obs, oppName, onGuess, waiting }: { obs: WordObs; oppName: string; onGuess: (word: string) => Promise<string | null>; /** Two devices: this seat has guessed and the other has not. The box gives way to the line. */ waiting?: string }) {
   const [draft, setDraft] = useState('')
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4" data-testid="word-turn">
@@ -30,14 +30,20 @@ function WordTurn({ obs, oppName, onGuess }: { obs: WordObs; oppName: string; on
       <div className="stage">
         <WordLedger you={{ words: obs.guesses, rows: obs.feedback }} opponentName={oppName} opponent={{ rows: obs.opponent }} maxGuesses={MAX_GUESSES} draft={draft} over={false} />
       </div>
-      <GuessInput onSubmit={onGuess} onDraft={setDraft} />
+      {waiting ? (
+        <p className="min-h-14 rounded-control bg-surface-2 px-4 py-3 text-center font-semibold text-muted" data-testid="word-waiting">
+          {waiting}
+        </p>
+      ) : (
+        <GuessInput onSubmit={onGuess} onDraft={setDraft} />
+      )}
       <LetterTracker words={obs.guesses} marks={obs.feedback} />
     </div>
   )
 }
 
 /** The verdict as a sentence about two named people, from how many guesses each needed. */
-function reasonOf(winner: Seat | null, names: [string, string], rounds: [number, number], both: boolean): string {
+export function reasonOf(winner: Seat | null, names: [string, string], rounds: [number, number], both: boolean): string {
   if (both) return `Both solved it in ${rounds[0]}`
   if (winner === null) return 'Nobody solved it'
   return `${names[winner]} solved it in ${rounds[winner]}`

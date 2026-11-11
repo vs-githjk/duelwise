@@ -90,6 +90,31 @@ export async function recordEvent(db: Db, e: EventInput): Promise<void> {
   }
 }
 
+/**
+ * One count-only event for a finished two-device friend game: the game and the day, nothing about who played (the player reference is the
+ * word 'friend', not a hash), flagged opted out so nothing can read it as training data. The owner dashboard leaves this kind out of its
+ * match numbers. Never throws, like recordEvent.
+ */
+export async function recordFriendFinished(db: Db, e: { id: string; game: string }): Promise<void> {
+  try {
+    await db.insert(schema.telemetryEvent).values({
+      id: crypto.randomUUID(),
+      kind: 'friend_match_finished',
+      matchId: e.id,
+      game: e.game,
+      level: 'friend',
+      persona: 'friend',
+      device: 'unknown',
+      trainingBasis: PRODUCT.trainingDataBasis,
+      optedOut: true,
+      playerRef: 'friend',
+      playerKind: 'friend',
+    })
+  } catch (err) {
+    console.error('telemetry write failed', err instanceof Error ? err.message : err)
+  }
+}
+
 /** The OWNER_EMAILS allowlist: comma separated emails or user ids, trimmed and lower-cased. Empty when unset. */
 export function ownerEntries(env: { OWNER_EMAILS?: string | undefined }): string[] {
   return (env.OWNER_EMAILS ?? '')

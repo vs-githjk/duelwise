@@ -7,6 +7,7 @@ import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from
 import { authClient } from '../lib/auth-client'
 import { forgetPrivateData } from '../lib/pwa'
 import { deleteMyAccount } from '../server/account-fns'
+import { friendDeviceId } from '../games/friends/session'
 import { getPokerProfileSetting, savePokerProfileAllowed } from '../server/profile-fns'
 import { forgetThisDevice, getMyIdentity, saveBoardVisibility } from '../server/identity-fns'
 import { NameField } from '../components/IdentityCard'
@@ -148,7 +149,7 @@ function Page() {
     setDeleting(true)
     setDeleteError(false)
     try {
-      const r = await deleteMyAccount()
+      const r = await deleteMyAccount({ data: { deviceId: friendDeviceId() } })
       if (!r.deleted) throw new Error('not deleted')
       await authClient.signOut().catch(() => {})
       await forgetPrivateData()

@@ -1,0 +1,17 @@
+{
+  "name": "@duelwise/duel-relay",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "wrangler dev",
+    "bundle": "wrangler deploy --dry-run --outdir /tmp/duel-relay-bundle"
+  },
+  "dependencies": {
+    "@duelwise/core": "workspace:*"
+  },
+  "devDependencies": {
+    "wrangler": "4.160.0"
+  }
+}

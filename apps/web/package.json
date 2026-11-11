@@ -27,6 +27,7 @@
     "motion": "14.5.0",
     "nitro": "3.0.260903-beta",
     "onnxruntime-web": "1.30.0",
+    "qrcode-generator": "2.0.4",
     "react": "19.1.10",
     "react-dom": "19.1.10",
     "tailwindcss": "4.3.3",

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AiRouteImport } from './routes/ai'
+import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -21,6 +22,8 @@ import { Route as ApiFinishRouteImport } from './routes/api/finish'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiResignRouteImport } from './routes/api/resign'
 import { Route as DevViewRouteImport } from './routes/dev/$view'
+import { Route as FIndexRouteImport } from './routes/f/index'
+import { Route as FCodeRouteImport } from './routes/f/$code'
 import { Route as LeaderboardIndexRouteImport } from './routes/leaderboard/index'
 import { Route as LeaderboardGameRouteImport } from './routes/leaderboard/$game'
 import { Route as PlayIndexRouteImport } from './routes/play/index'
@@ -38,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const AiRoute = AiRouteImport.update({
   id: '/ai',
   path: '/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerRoute = OwnerRouteImport.update({
@@ -90,6 +98,16 @@ const DevViewRoute = DevViewRouteImport.update({
   path: '/dev/$view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FIndexRoute = FIndexRouteImport.update({
+  id: '/f/',
+  path: '/f/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FCodeRoute = FCodeRouteImport.update({
+  id: '/f/$code',
+  path: '/f/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardIndexRoute = LeaderboardIndexRouteImport.update({
   id: '/leaderboard/',
   path: '/leaderboard/',
@@ -134,6 +152,7 @@ const CGameLevelRoute = CGameLevelRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
+  '/friends': typeof FriendsRoute
   '/owner': typeof OwnerRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
@@ -144,10 +163,12 @@ export interface FileRoutesByFullPath {
   '/api/ping': typeof ApiPingRoute
   '/api/resign': typeof ApiResignRoute
   '/dev/$view': typeof DevViewRoute
+  '/f/$code': typeof FCodeRoute
   '/leaderboard/$game': typeof LeaderboardGameRoute
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/f/': typeof FIndexRoute
   '/leaderboard/': typeof LeaderboardIndexRoute
   '/play/': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -156,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
+  '/friends': typeof FriendsRoute
   '/owner': typeof OwnerRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
@@ -166,10 +188,12 @@ export interface FileRoutesByTo {
   '/api/ping': typeof ApiPingRoute
   '/api/resign': typeof ApiResignRoute
   '/dev/$view': typeof DevViewRoute
+  '/f/$code': typeof FCodeRoute
   '/leaderboard/$game': typeof LeaderboardGameRoute
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/f': typeof FIndexRoute
   '/leaderboard': typeof LeaderboardIndexRoute
   '/play': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -179,6 +203,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
+  '/friends': typeof FriendsRoute
   '/owner': typeof OwnerRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
@@ -189,10 +214,12 @@ export interface FileRoutesById {
   '/api/ping': typeof ApiPingRoute
   '/api/resign': typeof ApiResignRoute
   '/dev/$view': typeof DevViewRoute
+  '/f/$code': typeof FCodeRoute
   '/leaderboard/$game': typeof LeaderboardGameRoute
   '/play/$game': typeof PlayGameRoute
   '/report-card/$id': typeof ReportCardIdRoute
   '/report/$id': typeof ReportIdRoute
+  '/f/': typeof FIndexRoute
   '/leaderboard/': typeof LeaderboardIndexRoute
   '/play/': typeof PlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -203,6 +230,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ai'
+    | '/friends'
     | '/owner'
     | '/privacy'
     | '/settings'
@@ -213,10 +241,12 @@ export interface FileRouteTypes {
     | '/api/ping'
     | '/api/resign'
     | '/dev/$view'
+    | '/f/$code'
     | '/leaderboard/$game'
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/f/'
     | '/leaderboard/'
     | '/play/'
     | '/api/auth/$'
@@ -225,6 +255,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ai'
+    | '/friends'
     | '/owner'
     | '/privacy'
     | '/settings'
@@ -235,10 +266,12 @@ export interface FileRouteTypes {
     | '/api/ping'
     | '/api/resign'
     | '/dev/$view'
+    | '/f/$code'
     | '/leaderboard/$game'
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/f'
     | '/leaderboard'
     | '/play'
     | '/api/auth/$'
@@ -247,6 +280,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/ai'
+    | '/friends'
     | '/owner'
     | '/privacy'
     | '/settings'
@@ -257,10 +291,12 @@ export interface FileRouteTypes {
     | '/api/ping'
     | '/api/resign'
     | '/dev/$view'
+    | '/f/$code'
     | '/leaderboard/$game'
     | '/play/$game'
     | '/report-card/$id'
     | '/report/$id'
+    | '/f/'
     | '/leaderboard/'
     | '/play/'
     | '/api/auth/$'
@@ -270,6 +306,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiRoute: typeof AiRoute
+  FriendsRoute: typeof FriendsRoute
   OwnerRoute: typeof OwnerRoute
   PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
@@ -280,10 +317,12 @@ export interface RootRouteChildren {
   ApiPingRoute: typeof ApiPingRoute
   ApiResignRoute: typeof ApiResignRoute
   DevViewRoute: typeof DevViewRoute
+  FCodeRoute: typeof FCodeRoute
   LeaderboardGameRoute: typeof LeaderboardGameRoute
   PlayGameRoute: typeof PlayGameRoute
   ReportCardIdRoute: typeof ReportCardIdRoute
   ReportIdRoute: typeof ReportIdRoute
+  FIndexRoute: typeof FIndexRoute
   LeaderboardIndexRoute: typeof LeaderboardIndexRoute
   PlayIndexRoute: typeof PlayIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -304,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/ai'
       preLoaderRoute: typeof AiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/owner': {
@@ -376,6 +422,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/f/': {
+      id: '/f/'
+      path: '/f'
+      fullPath: '/f/'
+      preLoaderRoute: typeof FIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$code': {
+      id: '/f/$code'
+      path: '/f/$code'
+      fullPath: '/f/$code'
+      preLoaderRoute: typeof FCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboard/': {
       id: '/leaderboard/'
       path: '/leaderboard'
@@ -438,6 +498,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiRoute: AiRoute,
+  FriendsRoute: FriendsRoute,
   OwnerRoute: OwnerRoute,
   PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
@@ -448,10 +509,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPingRoute: ApiPingRoute,
   ApiResignRoute: ApiResignRoute,
   DevViewRoute: DevViewRoute,
+  FCodeRoute: FCodeRoute,
   LeaderboardGameRoute: LeaderboardGameRoute,
   PlayGameRoute: PlayGameRoute,
   ReportCardIdRoute: ReportCardIdRoute,
   ReportIdRoute: ReportIdRoute,
+  FIndexRoute: FIndexRoute,
   LeaderboardIndexRoute: LeaderboardIndexRoute,
   PlayIndexRoute: PlayIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

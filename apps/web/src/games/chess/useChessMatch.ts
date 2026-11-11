@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chess } from 'chess.js'
+import { checkedKing } from './check'
 import { chessCore, type ChessState } from '@duelwise/core/src/games/chess/core'
 import type { Level } from '@duelwise/core/src/product'
 import { recordTrainingAllowed } from '../../lib/honest-copy'
@@ -62,14 +63,7 @@ function reducedMotion(): boolean {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
-/** The square of the side to move's king when it is in check. */
-export function checkedKing(fen: string): string | null {
-  const c = new Chess(fen)
-  if (!c.inCheck()) return null
-  const turn = c.turn()
-  for (const row of c.board()) for (const p of row) if (p && p.type === 'k' && p.color === turn) return p.square
-  return null
-}
+export { checkedKing } from './check'
 
 interface Played {
   san: string

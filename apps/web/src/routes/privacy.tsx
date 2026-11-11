@@ -86,7 +86,7 @@ function Page() {
       <section className="grid gap-2" data-testid="privacy-deletion">
         <h2 className="font-display text-display-sm">Deleting your data</h2>
         <p className="text-muted">
-          Signed-in players can delete their account in settings. That removes the account, sign-in links, sessions, ratings and every match record tied to it, including matches this browser played as a guest before you signed in. A copy already used to train an agent cannot be pulled back out of a trained model, but no record of it remains. Guests can clear their cookie to disconnect from their matches.
+          Signed-in players can delete their account in settings. That removes the account, sign-in links, sessions, ratings and every match record tied to it, including matches this browser played as a guest before you signed in. A copy already used to train an agent cannot be pulled back out of a trained model, but no record of it remains. Guests can clear their cookie to disconnect from their matches. Games you play with a friend over a link keep only the result (who played, who won, the date), never moves; deleting your account removes those too. Results from games you played signed out are tied to the browser they were played on, so deleting your account removes them only from the browser you delete it on.
         </p>
       </section>
 
