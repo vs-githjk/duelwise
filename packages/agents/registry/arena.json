@@ -5,8 +5,8 @@
     {
       "version": "v1",
       "parent": null,
-      "createdAt": "2026-11-04T13:42:07.756Z",
-      "promotedAt": "2026-11-04T13:42:07.756Z",
+      "createdAt": "2026-11-11T01:39:34.837Z",
+      "promotedAt": "2026-11-11T01:39:34.837Z",
       "status": "measured",
       "artifacts": {
         "easy.onnx": "apps/web/public/agents/arena/v1/easy.onnx",
@@ -57,163 +57,163 @@
               },
               {
                 "bot": "rusher",
-                "wins": 758,
-                "draws": 1,
-                "losses": 41,
-                "score": 0.948125,
-                "lower": 0.930503,
+                "wins": 678,
+                "draws": 3,
+                "losses": 119,
+                "score": 0.849375,
+                "lower": 0.822923,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 375,
-                    "draws": 1,
-                    "losses": 24,
-                    "score": 0.93875,
-                    "lower": 0.91082
+                    "wins": 344,
+                    "draws": 0,
+                    "losses": 56,
+                    "score": 0.86,
+                    "lower": 0.822561
                   },
                   "1": {
                     "games": 400,
-                    "wins": 383,
-                    "draws": 0,
-                    "losses": 17,
-                    "score": 0.9575,
-                    "lower": 0.932998
+                    "wins": 334,
+                    "draws": 3,
+                    "losses": 63,
+                    "score": 0.83875,
+                    "lower": 0.799515
                   }
                 }
               },
               {
                 "bot": "holder",
-                "wins": 747,
-                "draws": 2,
-                "losses": 51,
-                "score": 0.935,
-                "lower": 0.915753,
+                "wins": 620,
+                "draws": 8,
+                "losses": 172,
+                "score": 0.78,
+                "lower": 0.749994,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 370,
-                    "draws": 1,
-                    "losses": 29,
-                    "score": 0.92625,
-                    "lower": 0.896384
+                    "wins": 305,
+                    "draws": 4,
+                    "losses": 91,
+                    "score": 0.7675,
+                    "lower": 0.723677
                   },
                   "1": {
                     "games": 400,
-                    "wins": 377,
-                    "draws": 1,
-                    "losses": 22,
-                    "score": 0.94375,
-                    "lower": 0.916664
+                    "wins": 315,
+                    "draws": 4,
+                    "losses": 81,
+                    "score": 0.7925,
+                    "lower": 0.750069
                   }
                 }
               },
               {
                 "bot": "peeker",
-                "wins": 566,
-                "draws": 3,
-                "losses": 231,
-                "score": 0.709375,
-                "lower": 0.67697,
+                "wins": 502,
+                "draws": 5,
+                "losses": 293,
+                "score": 0.630625,
+                "lower": 0.596631,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 278,
+                    "wins": 253,
                     "draws": 2,
-                    "losses": 120,
-                    "score": 0.6975,
-                    "lower": 0.650782
+                    "losses": 145,
+                    "score": 0.635,
+                    "lower": 0.586744
                   },
                   "1": {
                     "games": 400,
-                    "wins": 288,
-                    "draws": 1,
-                    "losses": 111,
-                    "score": 0.72125,
-                    "lower": 0.675363
+                    "wins": 249,
+                    "draws": 3,
+                    "losses": 148,
+                    "score": 0.62625,
+                    "lower": 0.577848
                   }
                 }
               },
               {
                 "bot": "strafe",
-                "wins": 778,
-                "draws": 0,
-                "losses": 22,
-                "score": 0.9725,
-                "lower": 0.958714,
-                "bar": 0.35,
-                "bySeat": {
-                  "0": {
-                    "games": 400,
-                    "wins": 387,
-                    "draws": 0,
-                    "losses": 13,
-                    "score": 0.9675,
-                    "lower": 0.945196
-                  },
-                  "1": {
-                    "games": 400,
-                    "wins": 391,
-                    "draws": 0,
-                    "losses": 9,
-                    "score": 0.9775,
-                    "lower": 0.957797
-                  }
-                }
-              },
-              {
-                "bot": "holdangle",
-                "wins": 760,
-                "draws": 2,
-                "losses": 38,
-                "score": 0.95125,
-                "lower": 0.934051,
+                "wins": 754,
+                "draws": 1,
+                "losses": 45,
+                "score": 0.943125,
+                "lower": 0.924857,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
                     "wins": 381,
-                    "draws": 0,
-                    "losses": 19,
-                    "score": 0.9525,
-                    "lower": 0.927008
+                    "draws": 1,
+                    "losses": 18,
+                    "score": 0.95375,
+                    "lower": 0.9285
                   },
                   "1": {
                     "games": 400,
-                    "wins": 379,
+                    "wins": 373,
+                    "draws": 0,
+                    "losses": 27,
+                    "score": 0.9325,
+                    "lower": 0.903573
+                  }
+                }
+              },
+              {
+                "bot": "holdangle",
+                "wins": 620,
+                "draws": 7,
+                "losses": 173,
+                "score": 0.779375,
+                "lower": 0.749343,
+                "bar": 0.35,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 316,
+                    "draws": 5,
+                    "losses": 79,
+                    "score": 0.79625,
+                    "lower": 0.754047
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 304,
                     "draws": 2,
-                    "losses": 19,
-                    "score": 0.95,
-                    "lower": 0.924036
+                    "losses": 94,
+                    "score": 0.7625,
+                    "lower": 0.718424
                   }
                 }
               },
               {
                 "bot": "human-proxy",
-                "wins": 539,
-                "draws": 6,
-                "losses": 255,
-                "score": 0.6775,
-                "lower": 0.644327,
+                "wins": 181,
+                "draws": 10,
+                "losses": 609,
+                "score": 0.2325,
+                "lower": 0.204548,
                 "bar": null,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 273,
-                    "draws": 3,
-                    "losses": 124,
-                    "score": 0.68625,
-                    "lower": 0.639188
+                    "wins": 95,
+                    "draws": 4,
+                    "losses": 301,
+                    "score": 0.2425,
+                    "lower": 0.203076
                   },
                   "1": {
                     "games": 400,
-                    "wins": 266,
-                    "draws": 3,
-                    "losses": 131,
-                    "score": 0.66875,
-                    "lower": 0.621213
+                    "wins": 86,
+                    "draws": 6,
+                    "losses": 308,
+                    "score": 0.2225,
+                    "lower": 0.184488
                   }
                 }
               }
@@ -252,163 +252,163 @@
               },
               {
                 "bot": "rusher",
-                "wins": 795,
-                "draws": 0,
-                "losses": 5,
-                "score": 0.99375,
-                "lower": 0.985453,
+                "wins": 696,
+                "draws": 3,
+                "losses": 101,
+                "score": 0.871875,
+                "lower": 0.846925,
                 "bar": 0.5,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 397,
-                    "draws": 0,
-                    "losses": 3,
-                    "score": 0.9925,
-                    "lower": 0.978184
-                  },
-                  "1": {
-                    "games": 400,
-                    "wins": 398,
-                    "draws": 0,
-                    "losses": 2,
-                    "score": 0.995,
-                    "lower": 0.981955
-                  }
-                }
-              },
-              {
-                "bot": "holder",
-                "wins": 783,
-                "draws": 1,
-                "losses": 16,
-                "score": 0.979375,
-                "lower": 0.966996,
-                "bar": 0.5,
-                "bySeat": {
-                  "0": {
-                    "games": 400,
-                    "wins": 389,
+                    "wins": 353,
                     "draws": 1,
-                    "losses": 10,
-                    "score": 0.97375,
-                    "lower": 0.953012
+                    "losses": 46,
+                    "score": 0.88375,
+                    "lower": 0.848626
                   },
                   "1": {
-                    "games": 400,
-                    "wins": 394,
-                    "draws": 0,
-                    "losses": 6,
-                    "score": 0.985,
-                    "lower": 0.967665
-                  }
-                }
-              },
-              {
-                "bot": "peeker",
-                "wins": 673,
-                "draws": 5,
-                "losses": 122,
-                "score": 0.844375,
-                "lower": 0.817616,
-                "bar": 0.5,
-                "bySeat": {
-                  "0": {
                     "games": 400,
                     "wins": 343,
                     "draws": 2,
                     "losses": 55,
                     "score": 0.86,
                     "lower": 0.822561
+                  }
+                }
+              },
+              {
+                "bot": "holder",
+                "wins": 714,
+                "draws": 3,
+                "losses": 83,
+                "score": 0.894375,
+                "lower": 0.871159,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 352,
+                    "draws": 2,
+                    "losses": 46,
+                    "score": 0.8825,
+                    "lower": 0.847245
                   },
                   "1": {
                     "games": 400,
-                    "wins": 330,
-                    "draws": 3,
-                    "losses": 67,
-                    "score": 0.82875,
-                    "lower": 0.788747
+                    "wins": 362,
+                    "draws": 1,
+                    "losses": 37,
+                    "score": 0.90625,
+                    "lower": 0.873696
+                  }
+                }
+              },
+              {
+                "bot": "peeker",
+                "wins": 515,
+                "draws": 2,
+                "losses": 283,
+                "score": 0.645,
+                "lower": 0.61122,
+                "bar": 0.5,
+                "bySeat": {
+                  "0": {
+                    "games": 400,
+                    "wins": 257,
+                    "draws": 1,
+                    "losses": 142,
+                    "score": 0.64375,
+                    "lower": 0.595656
+                  },
+                  "1": {
+                    "games": 400,
+                    "wins": 258,
+                    "draws": 1,
+                    "losses": 141,
+                    "score": 0.64625,
+                    "lower": 0.598205
                   }
                 }
               },
               {
                 "bot": "strafe",
-                "wins": 797,
+                "wins": 762,
                 "draws": 0,
-                "losses": 3,
-                "score": 0.99625,
-                "lower": 0.989033,
+                "losses": 38,
+                "score": 0.9525,
+                "lower": 0.935475,
                 "bar": 0.5,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 400,
+                    "wins": 383,
                     "draws": 0,
-                    "losses": 0,
-                    "score": 1,
-                    "lower": 0.990488
+                    "losses": 17,
+                    "score": 0.9575,
+                    "lower": 0.932998
                   },
                   "1": {
                     "games": 400,
-                    "wins": 397,
+                    "wins": 379,
                     "draws": 0,
-                    "losses": 3,
-                    "score": 0.9925,
-                    "lower": 0.978184
+                    "losses": 21,
+                    "score": 0.9475,
+                    "lower": 0.921078
                   }
                 }
               },
               {
                 "bot": "holdangle",
-                "wins": 790,
-                "draws": 0,
-                "losses": 10,
-                "score": 0.9875,
-                "lower": 0.977144,
+                "wins": 710,
+                "draws": 3,
+                "losses": 87,
+                "score": 0.889375,
+                "lower": 0.865751,
                 "bar": 0.5,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 394,
-                    "draws": 0,
-                    "losses": 6,
-                    "score": 0.985,
-                    "lower": 0.967665
+                    "wins": 357,
+                    "draws": 1,
+                    "losses": 42,
+                    "score": 0.89375,
+                    "lower": 0.859717
                   },
                   "1": {
                     "games": 400,
-                    "wins": 396,
-                    "draws": 0,
-                    "losses": 4,
-                    "score": 0.99,
-                    "lower": 0.974573
+                    "wins": 353,
+                    "draws": 2,
+                    "losses": 45,
+                    "score": 0.885,
+                    "lower": 0.850008
                   }
                 }
               },
               {
                 "bot": "human-proxy",
-                "wins": 719,
-                "draws": 4,
-                "losses": 77,
-                "score": 0.90125,
-                "lower": 0.87862,
+                "wins": 332,
+                "draws": 13,
+                "losses": 455,
+                "score": 0.423125,
+                "lower": 0.389337,
                 "bar": null,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 361,
-                    "draws": 1,
-                    "losses": 38,
-                    "score": 0.90375,
-                    "lower": 0.870889
+                    "wins": 167,
+                    "draws": 7,
+                    "losses": 226,
+                    "score": 0.42625,
+                    "lower": 0.378714
                   },
                   "1": {
                     "games": 400,
-                    "wins": 358,
-                    "draws": 3,
-                    "losses": 39,
-                    "score": 0.89875,
-                    "lower": 0.865292
+                    "wins": 165,
+                    "draws": 6,
+                    "losses": 229,
+                    "score": 0.42,
+                    "lower": 0.372618
                   }
                 }
               }
@@ -812,16 +812,16 @@
             {
               "lower": "easy",
               "upper": "medium",
-              "score": 0.6675,
+              "score": 0.6525,
               "n": 400,
-              "lowerBound95": 0.619931
+              "lowerBound95": 0.604585
             },
             {
               "lower": "medium",
               "upper": "hard",
-              "score": 0.875,
+              "score": 0.95875,
               "n": 400,
-              "lowerBound95": 0.838981
+              "lowerBound95": 0.934506
             },
             {
               "lower": "hard",
@@ -877,31 +877,121 @@
   "measured": {
     "easy": {
       "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
-      "value": 0.6975,
+      "value": 0.62625,
       "ci95": [
-        0.650782,
-        0.740461
+        0.577848,
+        0.67225
       ],
       "n": 400,
       "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
       "siteElo": 1000,
-      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "measuredAt": "2026-11-11T01:39:34.837Z",
       "harness": "bun",
-      "commit": "2527321"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.7125,
+            "ci95": [
+              0.6522462357163565,
+              0.7660583482045199
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.5583333333333333,
+            "ci95": [
+              0.49507883124554974,
+              0.6197498780660634
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.23125,
+            "ci95": [
+              0.18239380890817086,
+              0.28857392319189734
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.5391666666666667,
+        "ci95": [
+          0.5020773357512452,
+          0.5762559975820881
+        ],
+        "real": null,
+        "calibrated": 0.5391666666666667,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
     },
     "medium": {
       "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
-      "value": 0.82875,
+      "value": 0.64375,
       "ci95": [
-        0.788747,
-        0.862498
+        0.595656,
+        0.689109
       ],
       "n": 400,
       "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
-      "siteElo": 1121.063848,
-      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "siteElo": 1109.450283,
+      "measuredAt": "2026-11-11T01:39:34.837Z",
       "harness": "bun",
-      "commit": "2527321"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8541666666666666,
+            "ci95": [
+              0.8039381515531973,
+              0.8932361549815966
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.6604166666666667,
+            "ci95": [
+              0.5983960880388616,
+              0.7173828625680745
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.43125,
+            "ci95": [
+              0.3701624199219884,
+              0.4945037441036106
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.6727083333333334,
+        "ci95": [
+          0.6377957076384186,
+          0.7076209590282481
+        ],
+        "real": null,
+        "calibrated": 0.6727083333333334,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
     },
     "hard": {
       "metric": "score vs scripted peeker bot (weakest seat of the weakest gate bot)",
@@ -912,10 +1002,55 @@
       ],
       "n": 400,
       "opponents": "scripted rusher, holder, peeker, strafe, holdangle and random bots under the same limits and delayed view",
-      "siteElo": 1459.103064,
-      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "siteElo": 1655.962852,
+      "measuredAt": "2026-11-11T01:39:34.837Z",
       "harness": "bun",
-      "commit": "2527321"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.9875,
+            "ci95": [
+              0.9638999951073414,
+              0.9957399327111399
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.9083333333333333,
+            "ci95": [
+              0.8651157815775392,
+              0.9386851836037525
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.9754166666666666,
+        "ci95": [
+          0.9643229699953115,
+          0.9865103633380217
+        ],
+        "real": null,
+        "calibrated": 0.9754166666666666,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
     },
     "champion": {
       "metric": "score vs scripted holder bot (weakest seat of the weakest gate bot)",
@@ -926,10 +1061,55 @@
       ],
       "n": 400,
       "opponents": "scripted bots that see the live game",
-      "siteElo": 2499.492222,
-      "measuredAt": "2026-11-04T13:42:07.756Z",
+      "siteElo": 2696.352011,
+      "measuredAt": "2026-11-11T01:39:34.837Z",
       "harness": "bun",
-      "commit": "2527321"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 1,
+        "ci95": [
+          0.9951443156901348,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
     }
   },
   "unpublished": {},

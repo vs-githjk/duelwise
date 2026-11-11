@@ -2,12 +2,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { setResponseStatus } from '@tanstack/react-start/server'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { getSessionUser } from './caller'
-import { siteEloFor } from './matches'
+import { peopleFor } from './matches'
 import { getServerDb } from './server-db'
 import { ownerViewHandler, revealEmailsHandler } from './telemetry-owner'
-import { humanTargetFromSiteElo, type OwnerViewBody } from './telemetry-stats'
+import { humanTargetFromPeople, type OwnerViewBody } from './telemetry-stats'
 
-const targetFor = (game: GameId, level: Level) => humanTargetFromSiteElo(siteEloFor(game, level))
+const targetFor = (game: GameId, level: Level) => humanTargetFromPeople(peopleFor(game, level))
 
 /** The owner dashboard data, or null for anyone who is not on the OWNER_EMAILS allowlist (the route turns null into a 404). */
 export const getOwnerView = createServerFn({ method: 'GET' })

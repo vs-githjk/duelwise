@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-03T07:00:00.000Z",
-      "promotedAt": "2026-11-03T08:35:42.766Z",
+      "promotedAt": "2026-11-11T00:10:51.907Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -56,30 +56,30 @@
             "lower": "easy",
             "upper": "medium",
             "n": 800,
-            "points": 684.5,
-            "score": 0.855625,
+            "points": 726,
+            "score": 0.9075,
             "ci95": [
-              0.829569,
-              0.878282
+              0.885429,
+              0.925676
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 337,
+                "points": 360.5,
                 "ci95": [
-                  0.8035652072313031,
-                  0.8749188710478882
+                  0.8680878792562876,
+                  0.926778504421159
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 347.5,
+                "points": 365.5,
                 "ci95": [
-                  0.8321224352464427,
-                  0.8983622475723947
+                  0.8821527142024373,
+                  0.9374758621129359
                 ]
               }
             ]
@@ -88,30 +88,30 @@
             "lower": "medium",
             "upper": "hard",
             "n": 800,
-            "points": 757,
-            "score": 0.94625,
+            "points": 702,
+            "score": 0.8775,
             "ci95": [
-              0.928382,
-              0.959853
+              0.852959,
+              0.898433
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 374.5,
+                "points": 347.5,
                 "ci95": [
-                  0.9079140972360049,
-                  0.9562864258276366
+                  0.8321224352464427,
+                  0.8983622475723947
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 382.5,
+                "points": 354.5,
                 "ci95": [
-                  0.9314945503842788,
-                  0.9723254809000454
+                  0.8513918657716345,
+                  0.9137598867403001
                 ]
               }
             ]
@@ -165,9 +165,9 @@
     "medium": {
       "version": "v1",
       "config": {
-        "algorithm": "search-2-ply",
+        "algorithm": "search-3-ply",
         "kind": "search",
-        "depth": 2,
+        "depth": 3,
         "mobility": false,
         "noise": 4
       }
@@ -210,37 +210,172 @@
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "measuredAt": "2026-11-11T00:10:51.907Z",
       "harness": "bun",
-      "commit": "ea6a445"
+      "commit": "e49ea04",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.755,
+            "ci95": [
+              0.6909575639021187,
+              0.8094313194967102
+            ],
+            "n": 200
+          },
+          "average": {
+            "value": 0.175,
+            "ci95": [
+              0.1286051503455461,
+              0.23364431198927976
+            ],
+            "n": 200
+          },
+          "strong": {
+            "value": 0.045,
+            "ci95": [
+              0.02385254288504434,
+              0.08329670438371192
+            ],
+            "n": 200
+          }
+        },
+        "estimate": 0.32299999999999995,
+        "ci95": [
+          0.29073975561167575,
+          0.35526024438832415
+        ],
+        "real": null,
+        "calibrated": 0.32299999999999995,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+          "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+          "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+        }
+      }
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.855625,
+      "value": 0.9075,
       "ci95": [
-        0.829569,
-        0.878282
+        0.885429,
+        0.925676
       ],
       "n": 800,
       "opponents": "easy",
-      "siteElo": 1309.116587,
-      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "siteElo": 1396.68196,
+      "measuredAt": "2026-11-11T00:10:51.907Z",
       "harness": "bun",
-      "commit": "ea6a445"
+      "commit": "e49ea04",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.9,
+            "ci95": [
+              0.8608335372651187,
+              0.9290520855977
+            ],
+            "n": 300
+          },
+          "average": {
+            "value": 0.8116666666666666,
+            "ci95": [
+              0.7635880764619182,
+              0.8518644713520279
+            ],
+            "n": 300
+          },
+          "strong": {
+            "value": 0.16666666666666666,
+            "ci95": [
+              0.12876533093803702,
+              0.21299665000961404
+            ],
+            "n": 300
+          }
+        },
+        "estimate": 0.7091666666666666,
+        "ci95": [
+          0.6834236267893785,
+          0.7349097065439547
+        ],
+        "real": null,
+        "calibrated": 0.7091666666666666,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+          "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+          "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+        }
+      }
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.94625,
+      "value": 0.8775,
       "ci95": [
-        0.928382,
-        0.959853
+        0.852959,
+        0.898433
       ],
       "n": 800,
       "opponents": "medium",
-      "siteElo": 1807.367557,
-      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "siteElo": 1738.726375,
+      "measuredAt": "2026-11-11T00:10:51.907Z",
       "harness": "bun",
-      "commit": "ea6a445"
+      "commit": "e49ea04",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.98,
+            "ci95": [
+              0.9497129127599548,
+              0.9921955736378405
+            ],
+            "n": 200
+          },
+          "average": {
+            "value": 0.9625,
+            "ci95": [
+              0.9262855540818032,
+              0.981282518749406
+            ],
+            "n": 200
+          },
+          "strong": {
+            "value": 0.5925,
+            "ci95": [
+              0.5232799589440232,
+              0.6582336556222187
+            ],
+            "n": 200
+          }
+        },
+        "estimate": 0.89375,
+        "ci95": [
+          0.8734577821362431,
+          0.914042217863757
+        ],
+        "real": null,
+        "calibrated": 0.89375,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+          "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+          "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+        }
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -251,10 +386,55 @@
       ],
       "n": 800,
       "opponents": "hard",
-      "siteElo": 2085.137867,
-      "measuredAt": "2026-11-03T08:35:42.766Z",
+      "siteElo": 2016.496685,
+      "measuredAt": "2026-11-11T00:10:51.907Z",
       "harness": "bun",
-      "commit": "ea6a445"
+      "commit": "e49ea04",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.886486605238548,
+              1
+            ],
+            "n": 30
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.886486605238548,
+              1
+            ],
+            "n": 30
+          },
+          "strong": {
+            "value": 0.9,
+            "ci95": [
+              0.7437891726682572,
+              0.9654001115225813
+            ],
+            "n": 30
+          }
+        },
+        "estimate": 0.9800000000000001,
+        "ci95": [
+          0.9401708172394684,
+          1
+        ],
+        "real": null,
+        "calibrated": 0.9800000000000001,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+          "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+          "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+        }
+      }
     }
   },
   "unpublished": {},

@@ -1,5 +1,8 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { getCore } from '@duelwise/core/src/games/index'
+import { MAX_HEALTH as FIGHTER_MAX } from '@duelwise/core/src/games/fighter/constants'
+import { MAX_HEALTH as ARENA_MAX } from '@duelwise/core/src/games/arena/economy'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment } from './types'
 
 /** Both real-time sims run at 60 ticks a second and both call the live phase 1 and the round-end phase 2. */
@@ -211,4 +214,45 @@ export function realtimeCoaching(rec: MatchRecordV1, facts: RealtimeFacts, oppon
   const burst = facts.bursts[rec.humanSeat]
   if (!burst) return null
   return { kind: 'info', label: 'Try next', tag: 'coaching', text: `${opponent} took ${burst.lost.toLocaleString('en-US')} health in two seconds in round ${burst.round}. Try giving yourself more space after an exchange.`, publicText: `${opponent} took ${burst.lost.toLocaleString('en-US')} health in two seconds in round ${burst.round}. The player could try giving themselves more space after an exchange.` }
+}
+
+/** A lost round counts as a narrow one when the health gap at its end was at most this share of full health. */
+export const NARROW_ROUND = 0.35
+
+/**
+ * Tinderbox's and Coldstore's near miss: a match lost by exactly one round (the line the result coach calls close). It names the lost round with the smallest health gap
+ * at its end (for a knockout that is the winner's health left, for the clock the winner's health minus the player's), when that gap was narrow. Every number is read
+ * off the replayed rounds; nothing here depends on a hidden value, since both sides' health is on screen all round.
+ */
+export function realtimeNearMiss(rec: MatchRecordV1, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec) || (rec.game !== 'fighter' && rec.game !== 'arena')) return null
+  const me = rec.humanSeat
+  const ai = (1 - me) as 0 | 1
+  const mine = rec.result.score[me]!
+  const theirs = rec.result.score[ai]!
+  if (theirs - mine !== 1) return NOT_CLOSE
+  const facts = realtimeFacts(rec)
+  const max = rec.game === 'fighter' ? FIGHTER_MAX : ARENA_MAX
+  const num = (n: number): string => n.toLocaleString('en-US')
+  const gapOf = (r: RoundLog): number => r.health[ai] - r.health[me]
+  let closest: RoundLog | null = null
+  for (const r of facts.rounds) if (r.winner === ai && (closest === null || gapOf(r) < gapOf(closest))) closest = r
+  const narrow = closest !== null && gapOf(closest) <= max * NARROW_ROUND
+  const how = (r: RoundLog, owner: boolean): string => {
+    const you = owner ? 'your' : "the player's"
+    return r.reason === 2
+      ? `${opponent} won round ${r.round} on the clock, ${num(r.health[ai])} health to ${you} ${num(r.health[me])}.`
+      : `${opponent} won round ${r.round} by elimination with only ${num(r.health[ai])} of ${num(max)} health left.`
+  }
+  return nearMiss(true, {
+    turning: narrow ? how(closest!, true) : null,
+    publicTurning: narrow ? how(closest!, false) : null,
+    line: `You were one round short, ${mine} to ${theirs}.`,
+    publicLine: `The player was one round short, ${mine} to ${theirs}.`,
+    stats: [
+      { label: 'Round short', value: 1 },
+      { label: mine === 1 ? 'Round won' : 'Rounds won', value: mine },
+      ...(closest ? [{ label: 'Health gap in your closest lost round', value: gapOf(closest) }] : []),
+    ],
+  })
 }

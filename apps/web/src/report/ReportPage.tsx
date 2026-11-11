@@ -14,6 +14,8 @@ import { registryFor } from '../lib/registries'
 import { verifiedStrength } from '../lib/strength-gates'
 import { emptyReviewText, hasGameView, hasKeyMoments, headline, learningCopy, recordLine, reportTiles, shareControlsNote } from './copy'
 import { EvalChart } from './EvalChart'
+import { NearMissStrip } from '../components/NearMiss'
+import { showsNearMiss } from './near-miss'
 import { CARD_HEIGHT, CARD_WIDTH } from './share-card'
 import type { Moment } from './types'
 import { FourBoard } from './FourBoard'
@@ -125,6 +127,7 @@ export function ReportPageView({ page }: { page: Page }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="grid min-w-0 content-start gap-6">
           {view.game === 'arena' ? <Card title="Your opponent" testId="report-arena-opponent"><div className="flex items-center gap-3"><Avatar level={view.level} size={56} decorative /><p><strong>{persona.name}, {LEVEL_LABEL[view.level]}</strong><br /><span className="text-muted">{body.reason}</span></p></div></Card> : null}
+          {showsNearMiss(body.nearMiss) ? <NearMissStrip nearMiss={body.nearMiss} outcome={body.outcome} testId="report-near-miss" /> : null}
           <div className="grid grid-cols-3 gap-3 md:grid-cols-4" data-testid="report-tiles">
             {stats.map((s) => (
               <Tile key={s.label} {...s} />

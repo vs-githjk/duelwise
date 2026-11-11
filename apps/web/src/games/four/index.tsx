@@ -7,6 +7,7 @@ import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { ResultPanel } from '../../components/ResultPanel'
+import { useNearMiss } from '../../lib/use-near-miss'
 import { personaFor } from '../../personas'
 import { PlayHud } from '../../components/PlayHud'
 import { LeavingNotice } from '../../components/LeavingNotice'
@@ -41,6 +42,7 @@ function seedFromUrl(): number | undefined {
 
 export default function FourPage() {
   const match = useFourMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', sourceRegistry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
@@ -90,6 +92,7 @@ export default function FourPage() {
                 onPlayLevel={(l) => void match.start(l)}
                 levels={levelInfo}
                 moves={match.finished ? match.finished.record.actions.filter((a) => a[1] === match.finished!.record.humanSeat).length : 0}
+                nearMiss={nearMiss}
                 onChangeLevel={match.backToSetup}
               />
               {match.finished ? (

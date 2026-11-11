@@ -2,6 +2,8 @@ import { GOALS_TO_WIN, PUCK_EVENTS } from '@duelwise/core/src/games/puck/constan
 import { puckCore } from '@duelwise/core/src/games/puck/core'
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { personaFor } from '../personas'
+import { isCloseLoss } from '../lib/says'
+import { nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment } from './types'
 
 // Air hockey's report facts. Every line here is read off the replayed sim (the same events the table flashes while you
@@ -70,7 +72,7 @@ export function pickTurning(events: PuckEvent[], me: 0 | 1, winner: 0 | 1 | null
 }
 
 /** The turning point's sentence, plus the goal it names when it names one (only the "went ahead for good" rule does; a post or a save is not a goal). */
-function turningDetail(events: PuckEvent[], me: 0 | 1, winner: 0 | 1 | null, opponent: string): { text: string; goal: PuckEvent | null } | null {
+export function turningDetail(events: PuckEvent[], me: 0 | 1, winner: 0 | 1 | null, opponent: string): { text: string; goal: PuckEvent | null } | null {
   const you = (e: PuckEvent): number => e.score[me]
   const them = (e: PuckEvent): number => e.score[1 - me]
   const close = (e: PuckEvent): boolean => lateAndTight(you(e), them(e))
@@ -170,4 +172,38 @@ export function puckReportMoments(rec: MatchRecordV1, opponent: string): Moment[
   const calls = closeCallsLine(events, rec.humanSeat, opponent)
   if (calls) out.push({ kind: 'info', label: 'Close calls', tag: 'posts and near misses', text: calls, publicText: closeCallsLine(events, rec.humanSeat, opponent, true) ?? calls })
   return out
+}
+
+const publicWording = (t: string): string => t.replace(/^Your /, "The player's ").replace(/^You /, 'The player ')
+
+/**
+ * Air hockey's near miss, built from the same pieces the Glasscut result and report already use (the replayed timeline, `pickTurning`,
+ * `nearMissLine`, `closeCalls`). A loss is close when it was a near-score loss or sudden death (`nearMissLine`), or when a late close shot
+ * of the player's decided it; the "went ahead and never trailed again" sentence alone does not make a loss close. A win is close only when
+ * the opponent's late post or near miss let it live. On the result screen, a one goal loss leaves out the line the coach already says.
+ */
+export function puckNearMiss(rec: MatchRecordV1, opponent: string, surface: 'result' | 'report'): NearMiss | null {
+  const w = rec.result.winner
+  if (w === null) return null
+  const me = rec.humanSeat
+  const events = puckTimeline(rec)
+  const detail = turningDetail(events, me, w, opponent)
+  const line = nearMissLine(rec, opponent)
+  const lost = w !== me
+  // A turning sentence that names a goal ("went ahead and never trailed again") is about the lead, not about a chance: it is never a near miss on its own.
+  const chance = detail && detail.goal === null ? detail.text : null
+  if (!chance && !line) return NOT_CLOSE
+  if (!lost) return chance ? nearMiss(true, { turning: chance, publicTurning: publicWording(chance) }) : NOT_CLOSE
+  // A close score keeps whatever turning sentence the replay gives (as the Glasscut result always has); a loss with no near score needs a close shot.
+  const turning = line ? (detail?.text ?? null) : chance
+  const you = rec.result.score[me]!
+  const them = rec.result.score[1 - me]!
+  const covered = surface === 'result' && rec.result.reason !== 'sudden' && isCloseLoss({ game: 'puck', result: rec.result, humanSeat: me, humanMoves: 0 })
+  const calls = closeCalls(events, me)
+  const shown = covered ? null : line
+  const stats: NearMiss['stats'] = []
+  if (!covered && them > you) stats.push({ label: them - you === 1 ? 'Goal short' : 'Goals short', value: them - you })
+  if (calls.posts > 0) stats.push({ label: calls.posts === 1 ? 'Post' : 'Posts', value: calls.posts })
+  if (calls.nearMisses > 0) stats.push({ label: calls.nearMisses === 1 ? 'Near miss' : 'Near misses', value: calls.nearMisses })
+  return nearMiss(true, { turning, publicTurning: turning ? publicWording(turning) : null, line: shown, publicLine: shown ? publicWording(shown) : null, stats })
 }

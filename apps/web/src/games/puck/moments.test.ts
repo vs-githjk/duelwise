@@ -3,7 +3,7 @@ import { MALLET_R, NO_INPUT, PHASE, POST_L, PUCK_EVENTS, PUCK_R } from '@duelwis
 import { stepState } from '@duelwise/core/src/games/puck/core'
 import { encodePuckInput } from '@duelwise/core/src/games/puck/input'
 import { createState, type PuckState } from '@duelwise/core/src/games/puck/state'
-import { finishedLines, momentFor, nearMissSummary, pillAnchor, suddenMoment } from './moments'
+import { momentFor, pillAnchor, suddenMoment } from './moments'
 
 const IDLE: [number, number] = [NO_INPUT, NO_INPUT]
 const aim = (x: number, y: number): number => encodePuckInput({ tx: x, ty: y })
@@ -119,26 +119,6 @@ describe('momentFor', () => {
   test('no copy has an em or en dash', () => {
     const all = [after(G, 0, [6, 3]), after(G, 1, [2, 6]), after(G, 0, [6, 6]), after(PUCK_EVENTS.post, 0, [0, 0]), after(PUCK_EVENTS.post, 1, [3, 2])].map((s) => momentFor(s, 1, 'Sable')?.text ?? '')
     for (const t of all) expect(t).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013)}${String.fromCharCode(0x2014)}]`))
-  })
-})
-
-describe('nearMissSummary', () => {
-  test('uses the persona name for a 5 to 7 loss, which the coach line does not cover', () => {
-    const rec = { humanSeat: 0, result: { winner: 1, score: [5, 7], reason: 'goals' }, agent: { level: 'champion', version: 'x' } } as never
-    expect(nearMissSummary(rec)).toBe('You took Sable to 5 to 7.')
-  })
-  test('is dropped when the coach line already says it (a one goal loss reads "One goal short against ...")', () => {
-    const rec = { humanSeat: 0, result: { winner: 1, score: [6, 7], reason: 'goals' }, agent: { level: 'champion', version: 'x' } } as never
-    expect(nearMissSummary(rec)).toBeNull()
-  })
-})
-
-describe('finishedLines', () => {
-  test('replays a record once: the same record gives the same object back, so a re-render costs nothing', () => {
-    const rec = { seed: 3, options: undefined, actions: [], humanSeat: 0, result: { winner: 1, score: [4, 7], reason: 'goals' }, agent: { level: 'champion', version: 'x' } } as never
-    const a = finishedLines(rec)
-    expect(finishedLines(rec)).toBe(a)
-    expect(a.nearMiss).toBeNull() // 3 short is not a near miss
   })
 })
 

@@ -48,6 +48,7 @@ import type { LocalSetup } from '../friends/useLocalDuel'
 import { PENALTY_FRIEND } from './opponent'
 import { PenaltyTags, PenaltyWorld, PenaltyZones, aimPath, reveal, shotSpot } from './World'
 import './penalty.css'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 export const meta = { title: 'Twelve Yards' }
 
@@ -86,6 +87,7 @@ const SLOT_WORD = { goal: 'goal', miss: 'no goal', none: 'not taken' } as const
 
 export default function PenaltyPage() {
   const live = usePenaltyMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', sourceRegistry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(live.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   /** How many kicks the screen shows. It trails the match by one kick during a reveal. */
@@ -408,6 +410,7 @@ export default function PenaltyPage() {
           <ResultPanel
             result={live.result}
             humanSeat={human}
+            nearMiss={nearMiss}
             recordOk={live.finished ? live.finished.ok : true}
             upload={live.upload}
             unratedReason={live.unratedReason}

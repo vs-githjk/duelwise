@@ -1,6 +1,7 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { SHIPS, shipCells, type FleetState, type Placement } from '@duelwise/core/src/games/fleet/core'
 import { fleetLuckLine, luckScore } from '../games/fleet/luck'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment } from './types'
 import { walk } from './walk'
 
@@ -107,4 +108,35 @@ export function fleetMoments(rec: MatchRecordV1, sentence: string, opponent: str
     })
   }
   return [...out, end]
+}
+
+/** The most unhit cells that still count as close: a ship's worth, no more. */
+export const CLOSE_CELLS = 3
+
+/**
+ * Stormglass's near miss: a lost game in which the player was within three hits of sinking the whole fleet. Counts only, from the replayed shots: no
+ * coordinate and no ship position, so a shared report still shows no one's setup.
+ */
+export function fleetNearMiss(rec: MatchRecordV1, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const f = factsOf(rec)
+  if (!f.over || f.myLeft !== 0 || f.theirLeft === 0) return null
+  const unhit = f.enemy.flatMap((p) => shipCells(p).filter((c) => !f.myShots.includes(c)))
+  const cellsLeft = unhit.length
+  if (cellsLeft > CLOSE_CELLS) return NOT_CLOSE
+  const hits = `${cellsLeft} ${cellsLeft === 1 ? 'hit' : 'hits'}`
+  const target = f.theirLeft === 1 ? 'the last ship' : `the last ${f.theirLeft} ships`
+  const sunk = SHIPS.length - f.theirLeft
+  const shots = f.myShots.length
+  return nearMiss(true, {
+    turning: `You were ${hits} from sinking ${target}.`,
+    publicTurning: `The player was ${hits} from sinking ${target}.`,
+    line: `${opponent} sank your last ship on shot ${f.theirShots.length}; you had fired ${shots}.`,
+    publicLine: `${opponent} sank the player's last ship on shot ${f.theirShots.length}; the player had fired ${shots}.`,
+    stats: [
+      { label: cellsLeft === 1 ? 'Hit short' : 'Hits short', value: cellsLeft },
+      { label: sunk === 1 ? 'Ship sunk' : 'Ships sunk', value: sunk },
+      { label: shots === 1 ? 'Shot fired' : 'Shots fired', value: shots },
+    ],
+  })
 }

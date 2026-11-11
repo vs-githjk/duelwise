@@ -1,5 +1,6 @@
 import type { Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
+import { notYetMeasuredText, peopleGatedSentence } from '../../lib/people-line'
 
 // What the fighter page says about an agent's strength (R30). It used to print "site Elo 2768", a number with no
 // unit a player can read, anchored to levels that are not published. Now it says what was measured, in plain words,
@@ -77,9 +78,11 @@ export function strengthLine(reg: Registry | null, level: Level): string {
   if (!reg?.levels[level] || !m) return PRACTICE_COPY
   const atLeast = Math.max(0, Math.min(10, Math.floor(m.ci95[0] * 10 + 1e-9)))
   const weakest = weakestBotWords(m.metric)
-  const close = weakest ? ` Its closest call was ${weakest}.` : ''
+  // A people-gated level is set by the people test, so it may lose to its weakest bot: say that, not "closest call".
+  const gated = peopleGatedSentence(reg, level, BOT_WORDS)
+  const close = gated || (weakest ? ` Its closest call was ${weakest}.` : '')
   const vsHard = level === 'champion' && championBeatsHard(reg) ? ' It also beats Hard head to head.' : ''
-  return `Beats our test bots in at least ${atLeast} of 10 games, including loop tricks; not yet measured against people.${close}${vsHard}`
+  return `Beats our test bots in at least ${atLeast} of 10 games, including loop tricks; ${notYetMeasuredText(reg, level)}.${close}${vsHard}`
 }
 
 /**

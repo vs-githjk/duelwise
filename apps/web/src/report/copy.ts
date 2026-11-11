@@ -1,6 +1,7 @@
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { personaFor } from '../personas'
 import type { Learning, ReportView } from '../server/report'
+import { publicNearMiss } from './near-miss'
 import type { ReportBody } from './types'
 import type { GameId } from '@duelwise/core/src/product'
 
@@ -59,6 +60,7 @@ export function publicBody(body: ReportBody): ReportBody {
     reason: body.publicReason,
     moments: body.moments.map(({ publicText, ...m }) => ({ ...m, text: publicText ?? m.text })),
     series: body.series ? { ...body.series, label: body.series.publicLabel } : null,
+    ...(body.nearMiss ? { nearMiss: publicNearMiss(body.nearMiss) } : {}),
   }
 }
 

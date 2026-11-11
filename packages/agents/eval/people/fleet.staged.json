@@ -1,0 +1,36 @@
+{
+  "easy": {
+    "fromRun": "f1",
+    "override": {
+      "hunt": "checkerboard",
+      "followRate": 0.6
+    },
+    "config": {
+      "algorithm": "random-with-follow",
+      "hunt": "checkerboard",
+      "target": "follow",
+      "followRate": 0.6
+    },
+    "verdict": "in-band",
+    "calibrated": 0.4908333333333333,
+    "panel": 0.4908333333333333,
+    "perSeat": 300
+  },
+  "medium": {
+    "fromRun": "f1",
+    "override": {
+      "hunt": "map",
+      "followRate": 0.5
+    },
+    "config": {
+      "algorithm": "checkerboard-with-neighbours",
+      "hunt": "map",
+      "target": "neighbours",
+      "followRate": 0.5
+    },
+    "verdict": "in-band",
+    "calibrated": 0.6731666666666667,
+    "panel": 0.6731666666666667,
+    "perSeat": 300
+  }
+}

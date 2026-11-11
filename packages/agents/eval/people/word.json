@@ -1,0 +1,500 @@
+{
+  "game": "word",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T21:08:26.943Z",
+      "override": null,
+      "perSeat": {
+        "easy": 150,
+        "medium": 150,
+        "hard": 150,
+        "champion": 150
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "random-consistent",
+            "ignoreOneConstraintChance": 0.45
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.5916666666666667,
+                "ci95": [
+                  0.5352279852561677,
+                  0.6457874699832282
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.3416666666666667,
+                "ci95": [
+                  0.29030370865424493,
+                  0.3970332322958894
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.25333333333333335,
+                "ci95": [
+                  0.2074497498699208,
+                  0.3054541160313411
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 133,
+                "draws": 89,
+                "losses": 78,
+                "bySeat": {
+                  "0": 0.5666666666666667,
+                  "1": 0.6166666666666667
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 64,
+                "draws": 77,
+                "losses": 159,
+                "bySeat": {
+                  "0": 0.33666666666666667,
+                  "1": 0.3466666666666667
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 42,
+                "draws": 68,
+                "losses": 190,
+                "bySeat": {
+                  "0": 0.22666666666666666,
+                  "1": 0.28
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.5916666666666667,
+                "ci95": [
+                  0.5352279852561677,
+                  0.6457874699832282
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.3416666666666667,
+                "ci95": [
+                  0.29030370865424493,
+                  0.3970332322958894
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.25333333333333335,
+                "ci95": [
+                  0.2074497498699208,
+                  0.3054541160313411
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.399,
+            "ci95": [
+              0.3660906623990191,
+              0.43190933760098094
+            ],
+            "real": null,
+            "calibrated": 0.399,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+              "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+              "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "most-common-consistent",
+            "opener": "seeded-among-6-most-common"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.7033333333333334,
+                "ci95": [
+                  0.6493365817983081,
+                  0.7521886098236248
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.45166666666666666,
+                "ci95": [
+                  0.3963172139178941,
+                  0.5082382733195152
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.3616666666666667,
+                "ci95": [
+                  0.3093613387278152,
+                  0.4174698833654601
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 176,
+                "draws": 70,
+                "losses": 54,
+                "bySeat": {
+                  "0": 0.7,
+                  "1": 0.7066666666666667
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 71,
+                "draws": 129,
+                "losses": 100,
+                "bySeat": {
+                  "0": 0.4033333333333333,
+                  "1": 0.5
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 63,
+                "draws": 91,
+                "losses": 146,
+                "bySeat": {
+                  "0": 0.38,
+                  "1": 0.3433333333333333
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.7033333333333334,
+                "ci95": [
+                  0.6493365817983081,
+                  0.7521886098236248
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.45166666666666666,
+                "ci95": [
+                  0.3963172139178941,
+                  0.5082382733195152
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.3616666666666667,
+                "ci95": [
+                  0.3093613387278152,
+                  0.4174698833654601
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.5091666666666667,
+            "ci95": [
+              0.47543556917657254,
+              0.5428977641567607
+            ],
+            "real": null,
+            "calibrated": 0.5091666666666667,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+              "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+              "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "algorithm": "entropy-over-candidates",
+            "guessPool": "candidates",
+            "opener": "seeded-near-equal-entropy",
+            "tieBreak": "seed"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8366666666666667,
+                "ci95": [
+                  0.7906268321747829,
+                  0.8741935670680894
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.6033333333333334,
+                "ci95": [
+                  0.5470046174408554,
+                  0.6570491684653729
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.5083333333333333,
+                "ci95": [
+                  0.45201520114212795,
+                  0.5644407493341806
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 227,
+                "draws": 48,
+                "losses": 25,
+                "bySeat": {
+                  "0": 0.8266666666666667,
+                  "1": 0.8466666666666667
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 136,
+                "draws": 90,
+                "losses": 74,
+                "bySeat": {
+                  "0": 0.6066666666666667,
+                  "1": 0.6
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 90,
+                "draws": 125,
+                "losses": 85,
+                "bySeat": {
+                  "0": 0.4533333333333333,
+                  "1": 0.5633333333333334
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8366666666666667,
+                "ci95": [
+                  0.7906268321747829,
+                  0.8741935670680894
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.6033333333333334,
+                "ci95": [
+                  0.5470046174408554,
+                  0.6570491684653729
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.5083333333333333,
+                "ci95": [
+                  0.45201520114212795,
+                  0.5644407493341806
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.6543333333333333,
+            "ci95": [
+              0.6220783457954975,
+              0.6865883208711692
+            ],
+            "real": null,
+            "calibrated": 0.6543333333333333,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+              "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+              "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "algorithm": "entropy-with-two-step-lookahead",
+            "guessPool": "all-allowed",
+            "lookaheadTop": 20,
+            "opener": "seeded-near-equal-lookahead",
+            "tieBreak": "seed"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8383333333333334,
+                "ci95": [
+                  0.7924408180662857,
+                  0.8756707712718484
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.6233333333333333,
+                "ci95": [
+                  0.5672684317190376,
+                  0.6762796353303314
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.5433333333333333,
+                "ci95": [
+                  0.4867738446108542,
+                  0.5987970978659511
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 224,
+                "draws": 55,
+                "losses": 21,
+                "bySeat": {
+                  "0": 0.8166666666666667,
+                  "1": 0.86
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 141,
+                "draws": 92,
+                "losses": 67,
+                "bySeat": {
+                  "0": 0.6266666666666667,
+                  "1": 0.62
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 108,
+                "draws": 110,
+                "losses": 82,
+                "bySeat": {
+                  "0": 0.49666666666666665,
+                  "1": 0.59
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8383333333333334,
+                "ci95": [
+                  0.7924408180662857,
+                  0.8756707712718484
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.6233333333333333,
+                "ci95": [
+                  0.5672684317190376,
+                  0.6762796353303314
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.5433333333333333,
+                "ci95": [
+                  0.4867738446108542,
+                  0.5987970978659511
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.6718333333333333,
+            "ci95": [
+              0.6398322424966759,
+              0.7038344241699906
+            ],
+            "real": null,
+            "calibrated": 0.6718333333333333,
+            "verdict": "ceiling",
+            "proxies": {
+              "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+              "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+              "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+            },
+            "ceiling": {
+              "value": 0.65475,
+              "ci95": [
+                0.6336340855843953,
+                0.6752725882727147
+              ],
+              "by": "2000 games of the champion settings against the average test player"
+            }
+          },
+          "runtime": "bun"
+        }
+      },
+      "ceilings": {
+        "champion": {
+          "value": 0.65475,
+          "ci95": [
+            0.6336340855843953,
+            0.6752725882727147
+          ],
+          "n": 2000,
+          "by": "champion settings (the strongest the code has) against the average test player"
+        }
+      }
+    }
+  ],
+  "a6Notes": "A6 notes: the average proxy targets 4.0 guesses, the typical Wordle average from plan line 64: REPORTED, not fetched or measured by A6, an assumption. Real rows (easy 14/20 = 70%, medium 7.5/11, hard 11/15, champion 4.5/6) sit well above the panel for easy (39.9%) and medium (50.9%): the panel is contradicted or at best unproven, so no change staged. Hard cannot reach 80% since Champion's strongest settings score 65.5% against the average proxy: ceiling."
+}

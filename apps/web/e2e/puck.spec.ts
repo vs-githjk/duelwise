@@ -38,18 +38,20 @@ for (const sz of SIZES) {
   test.describe(sz.name, () => {
     test.use(sz.touch ? { ...phone(devices['iPhone 13']), viewport: { width: sz.w, height: sz.h } } : { viewport: { width: sz.w, height: sz.h } })
 
-    test('setup says In training and the limits; Start opens the table with the score, the clock and no page scroll', async ({ page }) => {
+    test('setup shows the measured line and the limits for Marlow (published by A9); Start opens the table with the score, the clock and no page scroll', async ({ page }) => {
       const errors = watch(page)
       await page.goto('/play/glasscut?level=medium')
       await expect(page.getByTestId('agent-card')).not.toContainText("Vesper's network")
-      await expect(page.getByTestId('strength-line')).toContainText('In training')
+      await expect(page.getByTestId('strength-line')).toContainText('Beats our test bots')
+      await expect(page.getByTestId('strength-line')).not.toContainText('In training')
       await expect(page.getByTestId('strength-line')).toContainText('ms before reacting')
       if (SHOTS) await page.screenshot({ path: `${SHOTS}/setup-${sz.name}.png` })
       await page.getByTestId('puck-start').click()
       await page.waitForFunction(() => window.__puck?.ready === true)
       await expect(page.getByTestId('puck-score')).toBeVisible()
       await expect(page.getByTestId('puck-clock')).toHaveText('6:00')
-      await expect(page.getByTestId('puck-tag')).toHaveText('Practice, in training')
+      // Marlow is published (A9), so the tag drops "in training"; Glasscut matches stay Practice.
+      await expect(page.getByTestId('puck-tag')).toHaveText('Practice')
       await page.waitForTimeout(500)
       const info = await page.evaluate(() => ({ vw: innerWidth, vh: innerHeight, sx: document.documentElement.scrollWidth, sy: document.documentElement.scrollHeight, scrollY, ov: getComputedStyle(document.documentElement).overflow }))
       expect(info.ov).toBe('hidden')

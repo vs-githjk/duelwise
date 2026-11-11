@@ -1,6 +1,7 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { ANSWERS } from '@duelwise/core/src/games/word/lists'
 import { feedback } from '@duelwise/core/src/games/word/feedback'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment, WordRow } from './types'
 import { walk } from './walk'
 
@@ -63,4 +64,37 @@ export function wordReport(rec: MatchRecordV1, answer: string, reason: string, o
   }
   moments.push({ kind: 'end', label: `Round ${steps.length}`, tag: 'result', text: `${reason} The word was ${answer.toUpperCase()}.` })
   return { rows, moments }
+}
+
+/** Letters in the right place, in the round the other side solved it, at which the player was one letter from a tie. */
+export const CLOSE_GREENS = 4
+
+/**
+ * Word Duel's near miss: the other side solved it first, and in that same round the player's guess had four of five letters in the right place, so one more
+ * would have tied the round. Read from the replayed guesses and the answer the match reveals at the end.
+ */
+export function wordNearMiss(rec: MatchRecordV1, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const steps = walk<{ answer: string }, string>(rec)
+  const lastStep = steps.at(-1)
+  if (!lastStep) return null
+  const answer = lastStep.after.answer
+  const mine = steps.map((st) => st.moves.find((m) => m.seat === rec.humanSeat)?.action).filter((g): g is string => typeof g === 'string')
+  const final = mine.at(-1)
+  if (!final || final === answer) return null
+  const row = Array.from(feedback(final, answer))
+  const greens = row.filter((m) => m === 2).length
+  if (greens < CLOSE_GREENS) return NOT_CLOSE
+  const wrongSpot = row.filter((m) => m === 1).length
+  const fit = mine.reduce((words, g) => words.filter((w) => feedback(g, w).join('') === feedback(g, answer).join('')), [...ANSWERS]).length
+  const round = steps.length
+  return nearMiss(true, {
+    turning: `Guess ${round}: ${final.toUpperCase()} had ${greens} of 5 letters in the right place. One more would have tied the round.`,
+    line: `${opponent} solved it on guess ${round}.`,
+    stats: [
+      { label: 'Letters in the right place', value: greens },
+      ...(wrongSpot > 0 ? [{ label: wrongSpot === 1 ? 'Letter in the wrong place' : 'Letters in the wrong place', value: wrongSpot }] : []),
+      { label: fit === 1 ? 'Word fits your clues' : 'Words fit your clues', value: fit },
+    ],
+  })
 }

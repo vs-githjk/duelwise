@@ -6,7 +6,7 @@
       "version": "v1",
       "parent": null,
       "createdAt": "2026-11-02T04:00:00.000Z",
-      "promotedAt": "2026-11-02T14:28:06.791Z",
+      "promotedAt": "2026-11-11T00:11:04.286Z",
       "status": "measured",
       "artifacts": {},
       "sha256": {},
@@ -22,30 +22,30 @@
         "baseline": {
           "label": "random",
           "n": 800,
-          "points": 782,
-          "score": 0.9775,
+          "points": 800,
+          "score": 1,
           "ci95": [
-            0.964715,
-            0.985721
+            0.995221,
+            1
           ],
           "passed": true,
           "bySeat": [
             {
               "seat": 0,
               "n": 400,
-              "points": 390,
+              "points": 400,
               "ci95": [
-                0.9545984119236168,
-                0.9863649083175973
+                0.9904877055170674,
+                1
               ]
             },
             {
               "seat": 1,
               "n": 400,
-              "points": 392,
+              "points": 400,
               "ci95": [
-                0.9610365840355962,
-                0.9898316132607885
+                0.9904877055170674,
+                1
               ]
             }
           ]
@@ -55,30 +55,30 @@
             "lower": "easy",
             "upper": "medium",
             "n": 800,
-            "points": 706,
-            "score": 0.8825,
+            "points": 578,
+            "score": 0.7225,
             "ci95": [
-              0.858336,
-              0.903008
+              0.690465,
+              0.752409
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 355,
+                "points": 290,
                 "ci95": [
-                  0.8527764303733716,
-                  0.9148515414023556
+                  0.6792581918856598,
+                  0.7664612755970205
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 351,
+                "points": 288,
                 "ci95": [
-                  0.8417313726716424,
-                  0.9060868449937434
+                  0.6740660135139507,
+                  0.761748576913559
                 ]
               }
             ]
@@ -87,30 +87,30 @@
             "lower": "medium",
             "upper": "hard",
             "n": 800,
-            "points": 583,
-            "score": 0.72875,
+            "points": 490,
+            "score": 0.6125,
             "ci95": [
-              0.696902,
-              0.758412
+              0.57828,
+              0.645645
             ],
             "passed": true,
             "bySeat": [
               {
                 "seat": 0,
                 "n": 400,
-                "points": 291,
+                "points": 253,
                 "ci95": [
-                  0.6818568082481709,
-                  0.7688150977620949
+                  0.5842006801342122,
+                  0.6782785618278105
                 ]
               },
               {
                 "seat": 1,
                 "n": 400,
-                "points": 292,
+                "points": 237,
                 "ci95": [
-                  0.6844571283551331,
-                  0.771167216182718
+                  0.5436883044007635,
+                  0.639551921119894
                 ]
               }
             ]
@@ -155,19 +155,19 @@
     "easy": {
       "version": "v1",
       "config": {
-        "algorithm": "random-with-follow",
-        "hunt": "random",
+        "algorithm": "checkerboard-with-follow",
+        "hunt": "checkerboard",
         "target": "follow",
-        "followRate": 0.35
+        "followRate": 0.6
       }
     },
     "medium": {
       "version": "v1",
       "config": {
-        "algorithm": "checkerboard-with-neighbours",
-        "hunt": "checkerboard",
+        "algorithm": "map-hunt-with-half-neighbours",
+        "hunt": "map",
         "target": "neighbours",
-        "followRate": 1
+        "followRate": 0.5
       }
     },
     "hard": {
@@ -192,61 +192,151 @@
   "measured": {
     "easy": {
       "metric": "score vs random",
-      "value": 0.9775,
+      "value": 1,
       "ci95": [
-        0.964715,
-        0.985721
+        0.995221,
+        1
       ],
       "n": 800,
       "opponents": "random",
       "siteElo": 1000,
-      "measuredAt": "2026-11-02T14:28:06.791Z",
+      "measuredAt": "2026-11-11T00:11:04.286Z",
       "harness": "bun",
-      "commit": "89081b9",
+      "commit": "dfab622",
       "meanShots": {
-        "mean": 71.657,
+        "mean": 58.226,
         "ci95": [
-          71.174976,
-          72.139024
+          57.874988,
+          58.577012
         ],
         "n": 2000
+      },
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.6816666666666666,
+            "ci95": [
+              0.6433382911461865,
+              0.7176836241159366
+            ],
+            "n": 600
+          },
+          "average": {
+            "value": 0.4666666666666667,
+            "ci95": [
+              0.4270867431532148,
+              0.5066707035876801
+            ],
+            "n": 600
+          },
+          "strong": {
+            "value": 0.265,
+            "ci95": [
+              0.23126241032155964,
+              0.30172758920174914
+            ],
+            "n": 600
+          }
+        },
+        "estimate": 0.4908333333333333,
+        "ci95": [
+          0.46696145701889274,
+          0.5147052096477738
+        ],
+        "real": null,
+        "calibrated": 0.4908333333333333,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+          "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+          "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+        }
       }
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.8825,
+      "value": 0.7225,
       "ci95": [
-        0.858336,
-        0.903008
+        0.690465,
+        0.752409
       ],
       "n": 800,
       "opponents": "easy",
-      "siteElo": 1350.270739,
-      "measuredAt": "2026-11-02T14:28:06.791Z",
+      "siteElo": 1166.229946,
+      "measuredAt": "2026-11-11T00:11:04.286Z",
       "harness": "bun",
-      "commit": "89081b9",
+      "commit": "dfab622",
       "meanShots": {
-        "mean": 55.4305,
+        "mean": 52.023,
         "ci95": [
-          55.053323,
-          55.807677
+          51.68007,
+          52.36593
         ],
         "n": 2000
+      },
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8116666666666666,
+            "ci95": [
+              0.7784364471293352,
+              0.8409314258432978
+            ],
+            "n": 600
+          },
+          "average": {
+            "value": 0.6866666666666666,
+            "ci95": [
+              0.6484634020001495,
+              0.7224948962508392
+            ],
+            "n": 600
+          },
+          "strong": {
+            "value": 0.43166666666666664,
+            "ci95": [
+              0.392593046489794,
+              0.4716097193290404
+            ],
+            "n": 600
+          }
+        },
+        "estimate": 0.6731666666666667,
+        "ci95": [
+          0.650966346108665,
+          0.6953669872246684
+        ],
+        "real": null,
+        "calibrated": 0.6731666666666667,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+          "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+          "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+        }
       }
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.72875,
+      "value": 0.6125,
       "ci95": [
-        0.696902,
-        0.758412
+        0.57828,
+        0.645645
       ],
       "n": 800,
       "opponents": "medium",
-      "siteElo": 1521.954267,
-      "measuredAt": "2026-11-02T14:28:06.791Z",
+      "siteElo": 1245.7637,
+      "measuredAt": "2026-11-11T00:11:04.286Z",
       "harness": "bun",
-      "commit": "89081b9",
+      "commit": "dfab622",
       "meanShots": {
         "mean": 49.2425,
         "ci95": [
@@ -254,6 +344,51 @@
           49.619258
         ],
         "n": 2000
+      },
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8416666666666667,
+            "ci95": [
+              0.8102953203737803,
+              0.8686908505320475
+            ],
+            "n": 600
+          },
+          "average": {
+            "value": 0.73,
+            "ci95": [
+              0.6930962639102406,
+              0.7639773535775849
+            ],
+            "n": 600
+          },
+          "strong": {
+            "value": 0.525,
+            "ci95": [
+              0.4850103849218549,
+              0.564671530022474
+            ],
+            "n": 600
+          }
+        },
+        "estimate": 0.7224999999999999,
+        "ci95": [
+          0.7011881983722688,
+          0.7438118016277311
+        ],
+        "real": null,
+        "calibrated": 0.7224999999999999,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+          "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+          "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+        }
       }
     },
     "champion": {
@@ -265,10 +400,10 @@
       ],
       "n": 800,
       "opponents": "hard",
-      "siteElo": 1637.180275,
-      "measuredAt": "2026-11-02T14:28:06.791Z",
+      "siteElo": 1360.989707,
+      "measuredAt": "2026-11-11T00:11:04.286Z",
       "harness": "bun",
-      "commit": "89081b9",
+      "commit": "dfab622",
       "meanShots": {
         "mean": 44.8525,
         "ci95": [
@@ -276,6 +411,59 @@
           45.256427
         ],
         "n": 2000
+      },
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.905,
+            "ci95": [
+              0.8788951122820243,
+              0.9259519098161032
+            ],
+            "n": 600
+          },
+          "average": {
+            "value": 0.8066666666666666,
+            "ci95": [
+              0.7731570896529217,
+              0.8362744003308455
+            ],
+            "n": 600
+          },
+          "strong": {
+            "value": 0.6716666666666666,
+            "ci95": [
+              0.6331026899042825,
+              0.7080464593801088
+            ],
+            "n": 600
+          }
+        },
+        "estimate": 0.8091666666666667,
+        "ci95": [
+          0.7903258713835057,
+          0.8280074619498277
+        ],
+        "real": null,
+        "calibrated": 0.8091666666666667,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.8275,
+          "ci95": [
+            0.8103179924132441,
+            0.8434263415977642
+          ],
+          "by": "2000 games of the champion settings against the average test player"
+        },
+        "proxies": {
+          "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+          "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+          "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+        }
       }
     }
   },

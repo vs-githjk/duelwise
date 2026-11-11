@@ -204,12 +204,15 @@ class Trainer:
         threads: int | None = None, log=None, close_steps: int = 0, warm_start: int = 0,
         gate_every: int = 2_000_000, gate_games: int = 48, gate_enabled: bool = True, gate_stage_a: bool = False,
         self_play_floor: float = 0.0, train_champion_bot_delay: int = 0, goal_shaping: float = 0.0,
+        people_bots: tuple[str, ...] = (),
     ):
         self.game, self.cfg, self.paths = game, cfg, paths
         # Training-only options (never reach the gate, whose envs are built by eval_bots with none of them):
         # a fraction of games forced against this run's own snapshots, a reaction delay (frames) for the scripted bots at
         # Champion, and the goal-direction shaping reward per decision.
         self.self_play_floor = self_play_floor
+        # Scripted bots on people's hands (league.people_bots) join the opponent pool for these profiles; the gate never uses them.
+        self.people_profiles = tuple(people_bots)
         self.env_opts = {"champion_bot_delay": train_champion_bot_delay, "goal_shaping": goal_shaping}
         # Arena stage A only: the close-range curriculum (env level "<level>@close") until this many total steps.
         self.close_steps = close_steps if cfg.stage == "A" else 0
@@ -258,7 +261,7 @@ class Trainer:
             self.log(f"behaviour-cloning warm start done on {self.warm_start:,} decisions, loss {loss:.4f}")
         frozen = self._frozen_entries()
         own_max = L.MAX_SNAPSHOTS - len(frozen)
-        self.league = L.League(rng=self.rng, max_own=own_max, frozen=frozen, bots=L.TRAINING_BOTS[self.game])
+        self.league = L.League(rng=self.rng, max_own=own_max, frozen=frozen, bots=(*L.TRAINING_BOTS[self.game], *L.people_bots(self.people_profiles, self.game)))
         for e in L.load_snapshots(self.paths.league, latest=own_max):
             self.league.add_snapshot(e.name, e.state, e.step)
         self._nets: dict[str, Agent] = {}
@@ -717,6 +720,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--self-play-floor", type=float, default=0.0, help="training only: fraction of games forced against this run's own league snapshots (0 = plain PFSP)")
     ap.add_argument("--train-champion-bot-delay", type=int, default=0, help="training only: frames of reaction delay for the scripted bots at Champion; the gate always uses 0")
     ap.add_argument("--goal-shaping", type=float, default=0.0, help="training only: reward per decision while the learner touched last and the puck heads for the far goal (puck)")
+    ap.add_argument("--people-bots", default="", help="training only: comma list of people profiles (beginner,average,strong) whose scripted bots, playing with a person's hands, join the opponent pool")
     ap.add_argument("--max-seconds", type=float)
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
@@ -755,7 +759,7 @@ def main(argv: list[str] | None = None) -> int:
     Trainer(a.game, cfg, paths, procs=a.procs, envs_per_proc=a.envs, seed=a.seed, snapshot_every=a.snapshot_every,
             close_steps=a.close_steps, warm_start=a.warm_start, gate_every=a.gate_every, gate_games=a.gate_games,
             gate_stage_a=a.gate_stage_a, self_play_floor=a.self_play_floor, train_champion_bot_delay=a.train_champion_bot_delay,
-            goal_shaping=a.goal_shaping).run(
+            goal_shaping=a.goal_shaping, people_bots=tuple(x for x in a.people_bots.split(",") if x)).run(
         a.steps, resume=a.resume, max_seconds=a.max_seconds)
     return 0
 

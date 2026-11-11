@@ -61,7 +61,7 @@ test.describe('personas', () => {
       for (const [i, level] of LEVELS.entries()) {
         const measured = reg?.measured?.[level]
         if (measured && reg.levels?.[level]) {
-          const realtime = game === 'fighter' || game === 'arena'
+          const realtime = game === 'fighter' || game === 'arena' || game === 'puck'
           if (realtime) await expect(cells.nth(i).getByTestId('cast-strength')).not.toContainText('site Elo')
           else await expect(cells.nth(i).getByTestId('cast-strength')).toHaveText(`site Elo ${Math.round(measured.siteElo)}`)
         } else {

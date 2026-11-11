@@ -1,0 +1,53 @@
+{
+  "easy": {
+    "limits": {
+      "delayFrames": 24,
+      "apmCap": 50,
+      "minHoldFrames": 10,
+      "aimRateDegPerSec": 100,
+      "aimNoiseDeg": 10,
+      "buttonBits": true
+    },
+    "panel": 0.5391666666666667,
+    "ci95": [
+      0.5020773357512452,
+      0.5762559975820881
+    ],
+    "calibrated": 0.5391666666666667,
+    "verdict": "in-band"
+  },
+  "medium": {
+    "limits": {
+      "delayFrames": 24,
+      "apmCap": 70,
+      "minHoldFrames": 7,
+      "aimRateDegPerSec": 150,
+      "aimNoiseDeg": 7,
+      "buttonBits": true
+    },
+    "panel": 0.6727083333333334,
+    "ci95": [
+      0.6377957076384186,
+      0.7076209590282481
+    ],
+    "calibrated": 0.6727083333333334,
+    "verdict": "in-band"
+  },
+  "champion": {
+    "limits": {
+      "delayFrames": 3,
+      "apmCap": null,
+      "minHoldFrames": 1,
+      "aimRateDegPerSec": null,
+      "aimNoiseDeg": 0,
+      "buttonBits": true
+    },
+    "panel": 1,
+    "ci95": [
+      0.9951443156901348,
+      1
+    ],
+    "calibrated": 1,
+    "verdict": "in-band"
+  }
+}

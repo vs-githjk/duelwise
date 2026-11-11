@@ -121,3 +121,28 @@ test('the reaction line reads as a handicap on the AI, with the true numbers, ne
     }
   }
 })
+
+describe('a level with a people line does not claim it is unmeasured against people, and a people-gated level names the bot it loses to', () => {
+  const people = { band: { low: 0.42, high: 0.58 }, calibrated: 0.49, verdict: 'in-band' }
+  const gated = (ci95: [number, number], peopleGated: boolean, withPeople: boolean): Registry =>
+    ({
+      ...reg({}),
+      versions: [{ gate: { levels: { easy: peopleGated ? { peopleGated: true } : {} } } }],
+      levels: { easy: { version: 'v1', config: {} } },
+      measured: { easy: { ...reg({}).measured.hard!, metric: 'score vs scripted turtle bot (weakest seat of the weakest gate bot)', ci95, ...(withPeople ? { people } : {}) } },
+    }) as unknown as Registry
+
+  test('a level whose card carries a people line ends with real players; one without keeps the old wording', () => {
+    expect(strengthLine(gated([0.7, 0.8], false, true), 'easy')).toContain('including loop tricks; not yet measured against real players.')
+    expect(strengthLine(gated([0.7, 0.8], false, false), 'easy')).toContain('including loop tricks; not yet measured against people.')
+  })
+  test('a people-gated level says it loses to its weakest bot and is set by the people test, not "closest call"', () => {
+    const line = strengthLine(gated([0.23, 0.32], true, true), 'easy')
+    expect(line).toContain('It loses to the turtle bot in most games; this level is set by the people test.')
+    expect(line).not.toContain('closest call')
+  })
+  test('the loses-to claim is made only when the whole interval is under one half; a level not people-gated keeps its closest call', () => {
+    expect(strengthLine(gated([0.4, 0.6], true, true), 'easy')).toContain('closest call was the turtle bot')
+    expect(strengthLine(gated([0.23, 0.32], false, true), 'easy')).toContain('closest call was the turtle bot')
+  })
+})

@@ -1,4 +1,5 @@
 import type { GameId, Level } from '@duelwise/core/src/product'
+import type { NearMiss } from './near-miss'
 
 /** One row of "Key moments": a label, one honest sentence, and an optional signed number. */
 export interface Moment {
@@ -109,6 +110,8 @@ export interface ReportBody {
   slackView?: SlackView | null
   /** Twelve Yards: the kick map data. */
   penaltyView?: PenaltyView | null
+  /** After a close loss: where it turned and how near it got, replayed from the record. Absent on reports built before it existed and for any match that was not close. */
+  nearMiss?: NearMiss | null
   /** A persona line built from the moments, or null when the match gave it nothing true to say. */
   reaction: string | null
   /** Honest caveat shown under the moments (for example "from the first stone the solver checks"). */

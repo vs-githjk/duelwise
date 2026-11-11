@@ -1,0 +1,562 @@
+{
+  "game": "arena",
+  "note": "A8 final measurements per level; each file is the measure script output, recomputable from its own parts. A9: Hard is the A4 measurement of the shipped Hard limits (the A8 trial that eased Hard missed its holder-bot bar, see plan/retune/a9).",
+  "levels": {
+    "easy": {
+      "game": "arena",
+      "level": "easy",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/arena-league-b4/gated/easy/snap-easy-0008028160.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 0.7125,
+            "ci95": [
+              0.6522462357163565,
+              0.7660583482045199
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.5583333333333333,
+            "ci95": [
+              0.49507883124554974,
+              0.6197498780660634
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.23125,
+            "ci95": [
+              0.18239380890817086,
+              0.28857392319189734
+            ],
+            "n": 240
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 240,
+            "wins": 168,
+            "draws": 6,
+            "losses": 66,
+            "bySeat": {
+              "0": 0.7416666666666667,
+              "1": 0.6833333333333333
+            },
+            "byBot": {
+              "rusher@beginner": 0.75,
+              "holder@beginner": 0.7395833333333334,
+              "peeker@beginner": 0.5729166666666666,
+              "strafe@beginner": 0.8541666666666666,
+              "holdangle@beginner": 0.6458333333333334
+            }
+          },
+          "average": {
+            "games": 240,
+            "wins": 133,
+            "draws": 2,
+            "losses": 105,
+            "bySeat": {
+              "0": 0.525,
+              "1": 0.5916666666666667
+            },
+            "byBot": {
+              "rusher@average": 0.7083333333333334,
+              "holder@average": 0.5729166666666666,
+              "peeker@average": 0.20833333333333334,
+              "strafe@average": 0.6875,
+              "holdangle@average": 0.6145833333333334
+            }
+          },
+          "strong": {
+            "games": 240,
+            "wins": 55,
+            "draws": 1,
+            "losses": 184,
+            "bySeat": {
+              "0": 0.2375,
+              "1": 0.225
+            },
+            "byBot": {
+              "rusher@strong": 0.2916666666666667,
+              "holder@strong": 0.09375,
+              "peeker@strong": 0.125,
+              "strafe@strong": 0.4166666666666667,
+              "holdangle@strong": 0.22916666666666666
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.78125,
+        "ci95": [
+          0.7247428021912965,
+          0.828895617703981
+        ],
+        "n": 240
+      },
+      "estimate": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.7125,
+            "ci95": [
+              0.6522462357163565,
+              0.7660583482045199
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.5583333333333333,
+            "ci95": [
+              0.49507883124554974,
+              0.6197498780660634
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.23125,
+            "ci95": [
+              0.18239380890817086,
+              0.28857392319189734
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.5391666666666667,
+        "ci95": [
+          0.5020773357512452,
+          0.5762559975820881
+        ],
+        "real": null,
+        "calibrated": 0.5391666666666667,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "medium": {
+      "game": "arena",
+      "level": "medium",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/arena-league-b4/gated/easy/snap-easy-0008028160.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 0.8541666666666666,
+            "ci95": [
+              0.8039381515531973,
+              0.8932361549815966
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.6604166666666667,
+            "ci95": [
+              0.5983960880388616,
+              0.7173828625680745
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.43125,
+            "ci95": [
+              0.3701624199219884,
+              0.4945037441036106
+            ],
+            "n": 240
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 240,
+            "wins": 205,
+            "draws": 0,
+            "losses": 35,
+            "bySeat": {
+              "0": 0.875,
+              "1": 0.8333333333333334
+            },
+            "byBot": {
+              "rusher@beginner": 0.9375,
+              "holder@beginner": 0.8958333333333334,
+              "peeker@beginner": 0.6458333333333334,
+              "strafe@beginner": 0.9166666666666666,
+              "holdangle@beginner": 0.875
+            }
+          },
+          "average": {
+            "games": 240,
+            "wins": 157,
+            "draws": 3,
+            "losses": 80,
+            "bySeat": {
+              "0": 0.7375,
+              "1": 0.5833333333333334
+            },
+            "byBot": {
+              "rusher@average": 0.6875,
+              "holder@average": 0.6145833333333334,
+              "peeker@average": 0.5208333333333334,
+              "strafe@average": 0.8958333333333334,
+              "holdangle@average": 0.5833333333333334
+            }
+          },
+          "strong": {
+            "games": 240,
+            "wins": 103,
+            "draws": 1,
+            "losses": 136,
+            "bySeat": {
+              "0": 0.44166666666666665,
+              "1": 0.42083333333333334
+            },
+            "byBot": {
+              "rusher@strong": 0.4583333333333333,
+              "holder@strong": 0.46875,
+              "peeker@strong": 0.14583333333333334,
+              "strafe@strong": 0.75,
+              "holdangle@strong": 0.3333333333333333
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.8541666666666666,
+        "ci95": [
+          0.8039381515531973,
+          0.8932361549815966
+        ],
+        "n": 240
+      },
+      "estimate": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8541666666666666,
+            "ci95": [
+              0.8039381515531973,
+              0.8932361549815966
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.6604166666666667,
+            "ci95": [
+              0.5983960880388616,
+              0.7173828625680745
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.43125,
+            "ci95": [
+              0.3701624199219884,
+              0.4945037441036106
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.6727083333333334,
+        "ci95": [
+          0.6377957076384186,
+          0.7076209590282481
+        ],
+        "real": null,
+        "calibrated": 0.6727083333333334,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "hard": {
+      "game": "arena",
+      "level": "hard",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/arena-league-b5/gated/hard/snap-hard-0036003840.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.9875,
+            "ci95": [
+              0.9638999951073414,
+              0.9957399327111399
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.9083333333333333,
+            "ci95": [
+              0.8651157815775392,
+              0.9386851836037525
+            ],
+            "n": 240
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 240,
+            "wins": 240,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rusher@beginner": 1,
+              "holder@beginner": 1,
+              "peeker@beginner": 1,
+              "strafe@beginner": 1,
+              "holdangle@beginner": 1
+            }
+          },
+          "average": {
+            "games": 240,
+            "wins": 237,
+            "draws": 0,
+            "losses": 3,
+            "bySeat": {
+              "0": 1,
+              "1": 0.975
+            },
+            "byBot": {
+              "rusher@average": 0.9791666666666666,
+              "holder@average": 0.9791666666666666,
+              "peeker@average": 1,
+              "strafe@average": 0.9791666666666666,
+              "holdangle@average": 1
+            }
+          },
+          "strong": {
+            "games": 240,
+            "wins": 218,
+            "draws": 0,
+            "losses": 22,
+            "bySeat": {
+              "0": 0.875,
+              "1": 0.9416666666666667
+            },
+            "byBot": {
+              "rusher@strong": 1,
+              "holder@strong": 0.875,
+              "peeker@strong": 0.8333333333333334,
+              "strafe@strong": 0.9166666666666666,
+              "holdangle@strong": 0.9166666666666666
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.8145833333333333,
+        "ci95": [
+          0.7605969003193384,
+          0.858657924896861
+        ],
+        "n": 240
+      },
+      "estimate": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 0.9875,
+            "ci95": [
+              0.9638999951073414,
+              0.9957399327111399
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 0.9083333333333333,
+            "ci95": [
+              0.8651157815775392,
+              0.9386851836037525
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 0.9754166666666666,
+        "ci95": [
+          0.9643229699953115,
+          0.9865103633380217
+        ],
+        "real": null,
+        "calibrated": 0.9754166666666666,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "champion": {
+      "game": "arena",
+      "level": "champion",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/arena-league-b4/gated/champion/snap-champion-0012025856.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 240,
+            "wins": 240,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rusher@beginner": 1,
+              "holder@beginner": 1,
+              "peeker@beginner": 1,
+              "strafe@beginner": 1,
+              "holdangle@beginner": 1
+            }
+          },
+          "average": {
+            "games": 240,
+            "wins": 240,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rusher@average": 1,
+              "holder@average": 1,
+              "peeker@average": 1,
+              "strafe@average": 1,
+              "holdangle@average": 1
+            }
+          },
+          "strong": {
+            "games": 240,
+            "wins": 240,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rusher@strong": 1,
+              "holder@strong": 1,
+              "peeker@strong": 1,
+              "strafe@strong": 1,
+              "holdangle@strong": 1
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.9854166666666667,
+        "ci95": [
+          0.9608912365855078,
+          0.9946476659004159
+        ],
+        "n": 240
+      },
+      "estimate": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9842460798138267,
+              1
+            ],
+            "n": 240
+          }
+        },
+        "estimate": 1,
+        "ci95": [
+          0.9951443156901348,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, turn at most 220 degrees a second with 4 degrees of aim noise, and slip into a random input 10% of the time",
+          "average": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, turn at most 400 degrees a second with 1.5 degrees of aim noise, and slip into a random input 5% of the time",
+          "strong": "scripted rusher, holder, peeker, strafe, holdangle players, one match in five each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, turn at most 540 degrees a second with 0 degrees of aim noise, and slip into a random input 2% of the time"
+        }
+      }
+    }
+  }
+}

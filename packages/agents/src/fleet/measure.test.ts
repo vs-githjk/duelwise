@@ -56,9 +56,9 @@ describe('the published registry', () => {
     }
   })
 
-  test('the levels land where an independent probe at n=1000 put them (71.1, 55.6, 49.5, 44.8)', () => {
+  test('the levels land where an independent probe at n=1000 put them after the A9 retune (58.9, 51.9, 49.8, 45.2)', () => {
     const reg = parseRegistry(fleetRegistry)
-    const probe = { easy: 71.1, medium: 55.6, hard: 49.5, champion: 44.8 } as const
+    const probe = { easy: 58.9, medium: 51.9, hard: 49.8, champion: 45.2 } as const
     for (const level of LEVELS) expect(Math.abs(reg.measured[level]!.meanShots!.mean - probe[level])).toBeLessThan(1.5)
   })
 

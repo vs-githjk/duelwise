@@ -4,6 +4,7 @@ import { solve } from '@duelwise/core/src/games/four/solver'
 import type { FourView, Moment } from './types'
 import { coachFour, type Coaching } from './four-coach'
 import { walk } from './walk'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 
 /** The solver is only asked once this many stones are down; earlier positions can take minutes. */
 export const SOLVER_FROM_STONES = 14
@@ -21,6 +22,13 @@ export interface FourReport {
   /** How many positions the perfect solver actually checked. */
   solved: number
   facts: { decisiveTurn: string | null }
+  /** What the near-miss strip is built from: the player's drop that made the position lost, the cheap fallback, and how long the solver could vouch for the player. */
+  slip: { index: number; played: number; from: Verdict; to: Verdict; best: number[] } | null
+  coach: Coaching | null
+  /** The player's drops that the solver checked and found still winning or drawing for them. */
+  held: number
+  /** Drops in the whole game, by both sides. */
+  drops: number
 }
 
 /**
@@ -99,7 +107,9 @@ export function fourReport(rec: MatchRecordV1, reason: string, now: () => number
   if (a) moments.push({ kind: 'turning', label: a.label, tag: `${opponent} slipped`, text: 'This drop let a better result back to you than the position had given it.', publicText: 'This drop let a better result back to the player than the position had given it.' })
   moments.sort((x, y) => Number(x.label.match(/\d+/)![0]) - Number(y.label.match(/\d+/)![0]))
   moments.push({ kind: 'end', label: `Drop ${steps.length}`, tag: 'last drop', text: reason })
-  return { moments, capped, solved, facts: { decisiveTurn: decisive } }
+  const held = steps.filter((st, k) => st.moves[0]!.seat === rec.humanSeat && (verdict[k]?.v ?? -1) >= 0).length
+  const slip = h ? { index: h.k, played: steps[h.k]!.moves[0]!.action, from: h.from, to: h.to, best: h.best } : null
+  return { moments, capped, solved, facts: { decisiveTurn: decisive }, slip, coach, held, drops: steps.length }
 }
 
 function coachColumns(c: Coaching): string {
@@ -137,4 +147,42 @@ export function solverNote(solved: number, capped: boolean): string {
   if (capped) return `The solver ran out of time after ${positions(solved)}, so only the first part of the game, from disc ${SOLVER_FROM_STONES + 1} on, was checked.`
   if (solved === 0) return `The game ended before the perfect solver's starting point (disc ${SOLVER_FROM_STONES + 1}), so it did not run.`
   return `The perfect solver checked ${positions(solved)}, from disc ${SOLVER_FROM_STONES + 1} on.`
+}
+
+/** A fallback (no solver verdict) claim of a near miss needs a game at least this long: a missed block in the first few drops is a quick loss, not a close one. */
+export const COACH_NEAR_MISS_DROPS = 20
+
+/**
+ * The near miss of a lost game, from the same solver pass the report runs. Close when the perfect solver said the player could still win
+ * or draw right before the drop that made the position lost; or, where the solver did not reach, when a long game was lost to one drop the
+ * cheap check can name (a missed win or block). Every claim is a solver or board fact, never a guess about who played well.
+ */
+export function fourNearMiss(rec: MatchRecordV1, r: FourReport, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const s = r.slip
+  if (s && s.to === -1 && s.from >= 0) {
+    const kept = s.best.length === 1 ? `Column ${s.best[0]! + 1} kept it.` : `Columns ${s.best.map((c) => c + 1).join(', ')} kept it.`
+    const could = s.from === 1 ? 'win' : 'draw'
+    return nearMiss(true, {
+      turning: `Drop ${s.index + 1}, column ${s.played + 1}, was where it turned: after it the solver says ${opponent} wins. ${kept}`,
+      line: `Before drop ${s.index + 1} you could still ${could}.`,
+      publicLine: `Before drop ${s.index + 1} the player could still ${could}.`,
+      stats: [
+        { label: 'Drops that still held a win or draw', value: r.held },
+        { label: 'Drops after it turned', value: r.drops - s.index - 1 },
+      ],
+    })
+  }
+  const c = r.coach
+  if (!s && c && r.drops >= COACH_NEAR_MISS_DROPS) {
+    const cols = c.better.slice(0, 3).map((x) => x + 1)
+    const which = cols.length === 1 ? `column ${cols[0]}` : `column ${cols.slice(0, -1).join(', ')} or ${cols.at(-1)}`
+    const why = coachReason(c, opponent)
+    return nearMiss(true, {
+      turning: `At drop ${c.index + 1} you could have played ${which}. ${why}`,
+      publicTurning: `At drop ${c.index + 1} the player could have played ${which}. ${why}`,
+      stats: [{ label: 'Drops after it', value: r.drops - c.index - 1 }],
+    })
+  }
+  return NOT_CLOSE
 }

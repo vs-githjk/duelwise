@@ -120,7 +120,10 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
                     ) : null}
                   </>
                 ) : (
-                  (openInPractice && info.inTraining ? `Still training, so only playable as practice. ${info.inTraining}` : undefined) ?? descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])
+                  <>
+                    {(openInPractice && info.inTraining ? `Still training, so only playable as practice. ${info.inTraining}` : undefined) ?? descriptions?.[level] ?? (practice ? "Early version, not yet strength tested." : game ? styleLine(level, game) : BLURB[level])}
+                    {info.people && !practice ? <span className="mt-0.5 block text-xs" data-testid={`people-line-${level}`}>{info.people}</span> : null}
+                  </>
                 )}
               </span>
             </span>

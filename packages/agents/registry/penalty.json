@@ -204,7 +204,52 @@
       "siteElo": 1000,
       "measuredAt": "2026-11-04T09:47:34.235Z",
       "harness": "bun",
-      "commit": "1c91fcc"
+      "commit": "1c91fcc",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.4985,
+            "ci95": [
+              0.46757547891735723,
+              0.5294360013582798
+            ],
+            "n": 1000
+          },
+          "average": {
+            "value": 0.433,
+            "ci95": [
+              0.4026038716441762,
+              0.4639089140009467
+            ],
+            "n": 1000
+          },
+          "strong": {
+            "value": 0.47,
+            "ci95": [
+              0.4392399143613455,
+              0.5009896911513959
+            ],
+            "n": 1000
+          }
+        },
+        "estimate": 0.46004999999999996,
+        "ci95": [
+          0.4410993823765823,
+          0.4790006176234176
+        ],
+        "real": null,
+        "calibrated": 0.46004999999999996,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+          "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+          "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+        }
+      }
     },
     "medium": {
       "metric": "score vs easy",
@@ -218,7 +263,52 @@
       "siteElo": 1062.330004,
       "measuredAt": "2026-11-04T09:47:34.235Z",
       "harness": "bun",
-      "commit": "1c91fcc"
+      "commit": "1c91fcc",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.732,
+            "ci95": [
+              0.7036985751915577,
+              0.7585258088432403
+            ],
+            "n": 1000
+          },
+          "average": {
+            "value": 0.415,
+            "ci95": [
+              0.38484336001196967,
+              0.4458071889407982
+            ],
+            "n": 1000
+          },
+          "strong": {
+            "value": 0.498,
+            "ci95": [
+              0.46707750013942995,
+              0.5289378068947528
+            ],
+            "n": 1000
+          }
+        },
+        "estimate": 0.5267,
+        "ci95": [
+          0.5083100753741279,
+          0.545089924625872
+        ],
+        "real": null,
+        "calibrated": 0.5267,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+          "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+          "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+        }
+      }
     },
     "hard": {
       "metric": "score vs medium",
@@ -232,7 +322,60 @@
       "siteElo": 1105.987791,
       "measuredAt": "2026-11-04T09:47:34.235Z",
       "harness": "bun",
-      "commit": "1c91fcc"
+      "commit": "1c91fcc",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.6815,
+            "ci95": [
+              0.6519764646965777,
+              0.7096344219513353
+            ],
+            "n": 1000
+          },
+          "average": {
+            "value": 0.637,
+            "ci95": [
+              0.6067244305777956,
+              0.6662270375806842
+            ],
+            "n": 1000
+          },
+          "strong": {
+            "value": 0.509,
+            "ci95": [
+              0.47804015125093074,
+              0.5398909670952469
+            ],
+            "n": 1000
+          }
+        },
+        "estimate": 0.62475,
+        "ci95": [
+          0.6064650293957675,
+          0.6430349706042325
+        ],
+        "real": null,
+        "calibrated": 0.62475,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.637,
+          "ci95": [
+            0.6067244305777956,
+            0.6662270375806842
+          ],
+          "by": "1000 games of the best settings we measured (current, hard) against the average test player"
+        },
+        "proxies": {
+          "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+          "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+          "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+        }
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -246,7 +389,52 @@
       "siteElo": 1150.88146,
       "measuredAt": "2026-11-04T09:47:34.235Z",
       "harness": "bun",
-      "commit": "1c91fcc"
+      "commit": "1c91fcc",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.623,
+            "ci95": [
+              0.5925457105711255,
+              0.6525129068266338
+            ],
+            "n": 1000
+          },
+          "average": {
+            "value": 0.566,
+            "ci95": [
+              0.5350866435708425,
+              0.5964082243011258
+            ],
+            "n": 1000
+          },
+          "strong": {
+            "value": 0.501,
+            "ci95": [
+              0.47006583499065185,
+              0.5319265114922567
+            ],
+            "n": 1000
+          }
+        },
+        "estimate": 0.5701,
+        "ci95": [
+          0.5512798006512165,
+          0.5889201993487836
+        ],
+        "real": null,
+        "calibrated": 0.5701,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+          "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+          "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+        }
+      }
     }
   },
   "unpublished": {},

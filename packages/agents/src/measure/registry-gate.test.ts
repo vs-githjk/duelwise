@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { ARENA_BARS, buildArenaRegistry, gateArenaLevel, relativeSource } from './arena'
-import { BARS, buildFighterRegistry, GATE_MATCHES, readFailedLevels, type BotRow, type PublishInput } from './fighter'
+import { BARS, buildFighterRegistry, gateLevel, GATE_MATCHES, readFailedLevels, type BotRow, type PublishInput } from './fighter'
 
 const FIXTURE = join(import.meta.dir, '../../test-fixtures/arena-v2-hard-b2.onnx')
 /** Rows that clear every bar of a level by a wide margin. */
@@ -135,5 +135,53 @@ describe('relativeSource', () => {
   })
   test('throws on an absolute path outside the common root rather than publishing a machine path', () => {
     expect(() => relativeSource('/elsewhere/s.pt', '/home/a/proj')).toThrow(/outside/)
+  })
+})
+
+// A9, ruling Nov 10 18:52: Easy and Medium are decided by their people test and the ladder; the scripted-bot bars still bind Hard and Champion.
+describe('people-gated Easy and Medium (the bars do not hold them back, nothing else loosens)', () => {
+  /** Rows that lose to the turtle bot on both seats: below Easy's and Medium's old bar. */
+  const weakRows = (level: 'easy' | 'medium' | 'hard'): BotRow[] =>
+    Object.keys(BARS[level]).map((bot) => {
+      const turtle = bot === 'turtle'
+      const wins = turtle ? 90 : GATE_MATCHES * 2
+      return { bot, games: GATE_MATCHES * 2, wins, draws: 0, losses: GATE_MATCHES * 2 - wins, score: wins / (GATE_MATCHES * 2), ci95: [0.99, 1] as [number, number], bySeat: { '0': seatRow(GATE_MATCHES, turtle ? 45 : GATE_MATCHES), '1': seatRow(GATE_MATCHES, turtle ? 45 : GATE_MATCHES) } }
+    })
+  const publish = (level: 'easy' | 'medium' | 'hard', peopleGated: boolean) =>
+    buildFighterRegistry(base({ rows: { [level]: weakRows(level) }, models: { [level]: model(`runs/x/gated/${level}/s.pt`) }, gatedSnapshot: { [level]: true }, elo: { [level]: 1000 }, ...(peopleGated ? { peopleGated: { [level]: true as const } } : {}) }))
+
+  test('without the people gate a level that loses to the turtle bot is not published (the old rule, unchanged)', () => {
+    expect(gateLevel('easy', weakRows('easy'), BARS, true, GATE_MATCHES).passed).toBe(false)
+    expect(publish('easy', false).levels.easy).toBeUndefined()
+    expect(publish('medium', false).levels.medium).toBeUndefined()
+  })
+  test('with it, Easy and Medium publish, and the registry says the bars were recorded and not applied', () => {
+    for (const level of ['easy', 'medium'] as const) {
+      const reg = publish(level, true)
+      expect(reg.levels[level]).toBeDefined()
+      expect(reg.unpublished?.[level]).toBeUndefined()
+      expect(reg.measured[level]?.opponents).toContain('not a publish bar')
+      const detail = (reg.versions[0]!.gate as { levels: Record<string, { peopleGated?: boolean; bots: Array<{ bot: string; bar: number | null; lower: number }> }> }).levels[level]!
+      expect(detail.peopleGated).toBe(true)
+      const turtle = detail.bots.find((b) => b.bot === 'turtle')!
+      expect(turtle.lower).toBeLessThan(turtle.bar!)
+    }
+  })
+  test('a level that clears its bars carries no people-gate flag even when the exemption was available', () => {
+    const rows = Object.keys(BARS.easy).map((bot) => ({ bot, games: GATE_MATCHES * 2, wins: GATE_MATCHES * 2, draws: 0, losses: 0, score: 1, ci95: [0.99, 1] as [number, number], bySeat: { '0': seatRow(GATE_MATCHES, GATE_MATCHES), '1': seatRow(GATE_MATCHES, GATE_MATCHES) } }))
+    const reg = buildFighterRegistry(base({ rows: { easy: rows }, models: { easy: model('runs/x/gated/easy/s.pt') }, gatedSnapshot: { easy: true }, elo: { easy: 1000 }, peopleGated: { easy: true } }))
+    expect(reg.levels.easy).toBeDefined()
+    expect((reg.versions[0]!.gate as { levels: Record<string, { peopleGated?: boolean }> }).levels.easy!.peopleGated).toBeUndefined()
+    expect(reg.measured.easy?.opponents).not.toContain('not a publish bar')
+  })
+  test('Hard never gets the exemption, even when asked for', () => {
+    const reg = publish('hard', true)
+    expect(reg.levels.hard).toBeUndefined()
+    expect(reg.unpublished?.hard).toContain('turtle')
+  })
+  test('the Levels rule still holds an exempt level: a level that fails its ladder pair stays in training', () => {
+    const reg = buildFighterRegistry(base({ rows: { easy: weakRows('easy') }, models: { easy: model('runs/x/gated/easy/s.pt') }, gatedSnapshot: { easy: true }, elo: { easy: 1000 }, peopleGated: { easy: true }, levelFailures: { easy: 'easy does not beat random' } }))
+    expect(reg.levels.easy).toBeUndefined()
+    expect(reg.unpublished?.easy).toBe('easy does not beat random')
   })
 })

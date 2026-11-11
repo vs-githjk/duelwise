@@ -1,20 +1,22 @@
 import { hashState } from '../../hash'
 import type { BridgeEnv, EnvFactory } from '../../bridge/env-host'
 import { nextSeed } from '../../bridge/env-host'
-import type { DelayedStates } from '../../limiter'
-import { LEVEL_LIMITS } from '../../limiter'
+import { DelayedStates, LEVEL_LIMITS } from '../../limiter'
 import type { Level } from '../../product'
-import { ALL_BOT_KINDS, type PuckBotKind } from './bots'
-import { END, LEVEL_MALLET, NO_INPUT, PHASE, type MalletLimits } from './constants'
+import { ALL_BOT_KINDS, createBot, type PuckBot, type PuckBotKind } from './bots'
+import { DEFAULT_ACCEL, END, LEVEL_MALLET, NO_INPUT, PHASE, RULE_MALLET_SPEED, type MalletLimits } from './constants'
 import { observe, stepState } from './core'
 import { BIN_X, BIN_Y, FRAME_SKIP, OBS_FEATURES, OWN_FEATURES, VIEW_FEATURES, binX, binY, writeOwn, writeSeatView } from './encode'
-import { SeatHands, botDelayFor, botHistory } from './seat-hands'
-import { createState, type PuckState } from './state'
+import { PEOPLE_BOT_KINDS, PEOPLE_PROFILES, SeatHands, botDelayFor, botHistory, peopleHands, type PeopleProfile } from './seat-hands'
+import { blankState, copyState, createState, type PuckState } from './state'
 
 // Air hockey training env for the bridge (P3).
 //
 // Decisions: one every FRAME_SKIP (2) sim frames, 30 a second; the chosen target is held for those frames.
 // Actions: Int32 [seat][x bin 0..10, y bin 0..8] over the seat's own half (nvec 11, 9). A seat whose x head is
+// People bots (Nov 10 retune): a sentinel of -1 - (16 * (profile + 1) + kind) plays PEOPLE_BOT_KINDS[kind] with a person's hands
+// (seat-hands.ts PEOPLE_PROFILES: the rule mallet, that profile's reaction delay, hand noise and hold) instead of the level's.
+// The seat takes them at its first decision of the episode. Plain sentinels (below 16) are untouched.
 // -1 - index plays that scripted bot for the decision (PUCK_BOT_KINDS order, then pip); its y head is ignored.
 // Observations: Float32 [2 seats][OBS_FEATURES], each seat in its own view (it defends y = 0). With a level,
 // the puck, the other mallet and the match numbers are exactly the level's delayFrames late and the seat's own
@@ -55,6 +57,8 @@ class Env implements PuckEnv {
   private readonly seeds: number[] = []
   private readonly seats: SeatHands[][] = []
   private readonly history: Array<DelayedStates<PuckState> | undefined> = []
+  /** Seats a people sentinel has taken over this episode, by env * 2 + seat: the bot, its view history and its reaction delay. */
+  private readonly people: Array<{ bot: PuckBot; hist: DelayedStates<PuckState>; delay: number } | undefined> = []
   private readonly delay: number
   /** Frames a bot's view lags: the level's delay below Champion, 0 at Champion and with no level unless the option says otherwise. */
   private readonly botDelay: number
@@ -83,6 +87,7 @@ class Env implements PuckEnv {
     this.states[i] = s
     this.seats[i] = [new SeatHands(seed, 0, this.level), new SeatHands(seed, 1, this.level)]
     this.history[i] = botHistory(this.botDelay)
+    this.people[i * 2] = this.people[i * 2 + 1] = undefined
     this.capture(i, true)
     this.onFrame?.(i, s)
   }
@@ -98,6 +103,10 @@ class Env implements PuckEnv {
       }
     }
     if (force || (s.frame + this.botDelay) % FRAME_SKIP === 0) this.history[i]?.record(s.frame, s)
+    for (const k of [0, 1] as const) {
+      const p = this.people[i * 2 + k]
+      if (p && (force || (s.frame + p.delay) % FRAME_SKIP === 0)) p.hist.record(s.frame, s)
+    }
   }
 
   private writeObs(i: number, out: Float32Array): void {
@@ -120,12 +129,44 @@ class Env implements PuckEnv {
     return obs
   }
 
+  /** Hands the seat to a scripted bot on a people profile: the rule mallet, the profile's noise and hold, its own delayed view. */
+  private takeOver(i: number, k: 0 | 1, profile: PeopleProfile, kind: (typeof PEOPLE_BOT_KINDS)[number], s: PuckState) {
+    const hands = peopleHands(profile)
+    const seed = this.seeds[i]!
+    const seat = this.seats[i]![k]!
+    seat.usePeopleHands(profile, seed)
+    if (this.level) {
+      writeSeatView(s, k, this.tmp, 0)
+      seat.limiter.record(this.tmp, s.frame)
+    }
+    s.m[k]!.speed = RULE_MALLET_SPEED
+    s.m[k]!.accel = DEFAULT_ACCEL
+    const hist = new DelayedStates<PuckState>(hands.delayFrames, blankState, copyState)
+    hist.record(s.frame, s)
+    const p = { bot: createBot(kind, seat.botSeed + 31), hist, delay: hands.delayFrames }
+    this.people[i * 2 + k] = p
+    return p
+  }
+
   /** The target a seat proposes this decision, in its own half (0..1 each axis), from an action or a bot. */
   private propose(i: number, k: 0 | 1, ax: number, ay: number, s: PuckState): [number, number] {
     const seat = this.seats[i]![k]!
     let ux: number
     let uy: number
-    if (Number.isInteger(ax) && ax < 0) {
+    if (Number.isInteger(ax) && ax < 0 && -1 - ax >= 16) {
+      const code = -1 - ax
+      const profile = PEOPLE_PROFILES[(code >> 4) - 1]
+      const kind = PEOPLE_BOT_KINDS[code & 15]
+      if (profile === undefined || kind === undefined) throw new RangeError(`puck env: bad people sentinel ${ax} for env ${i} seat ${k}`)
+      const p = this.people[i * 2 + k] ?? this.takeOver(i, k, profile, kind, s)
+      const seen = p.hist.view(s.frame)
+      const view = observe(seen.state, k)
+      view.me = observe(s, k).me
+      this.botViewFrame[i * 2 + k] = seen.frame
+      const t = p.bot.act(view)
+      ux = t[0]
+      uy = t[1]
+    } else if (Number.isInteger(ax) && ax < 0) {
       const kind = -1 - ax
       if (kind >= ALL_BOT_KINDS.length) throw new RangeError(`puck env: bad bot sentinel ${ax} for env ${i} seat ${k}`)
       const bot = seat.botAt(kind)

@@ -9,11 +9,14 @@ import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import { writeRegistry, parseRegistry, type Registry } from '../registry'
 import { buildPuckRegistry, type ChampionBots, type LevelInput } from './puck-publish'
 import type { PuckBotKind } from '@duelwise/core/src/games/puck/bots'
+import { measurePanel, panelEstimate } from './puck-people'
+import { PEOPLE_PROFILES, peopleHands, type PeopleProfile } from '@duelwise/core/src/games/puck/seat-hands'
 import { botSpec, LEVELS_ORDER, measureBots, measurePair, netSpec, pipSpec, PUCK_BARS, PUCK_BOTS, SEAT_GAMES, type BotRow, type LevelMeasure, type PairResult, type SeatSpec } from './puck'
 
 // CLI for the puck measurement (P11). Run it niced; every command takes absolute paths.
 //
-//   bun puck-run.ts gate  --level L --model <onnx|pip> --out F.json [--lag 1] [--bots live|human] [--games 400] [--procs 2] [--md FILE] [--label NAME]
+//   bun puck-run.ts gate  --level L --model <onnx|pip> --out F.json [--lag 1] [--bots live|human|human-hands] [--hands beginner|average|strong] [--games 400] [--procs 2] [--md FILE] [--label NAME]
+//   bun puck-run.ts people --level L --model <onnx|pip> --out F.json [--games 100] [--lag 1] [--procs 2] [--md FILE] [--label NAME]   the agent against the beginner, average and strong test players (games per seat), with the weighted estimate
 //   bun puck-run.ts sweep --level L --model <onnx|pip> --delays 9,12,15,18 --out F.json [--lag 1] [--matches 50] [--procs 2] [--md FILE] [--label NAME]   a net against the mouse bot on human hands, per reaction delay
 //   bun puck-run.ts pair  --lower-level L --lower-model <onnx|pip> --upper-level L --upper-model <onnx> --out F.json [--lag 1] [--games 400] [--procs 2] [--md FILE]
 //   bun puck-run.ts parity --onnx F.onnx --ckpt SNAP.pt          ORT against torch on real observations (the P9 parity test), one published model
@@ -49,6 +52,13 @@ function specOf(level: Level, model: string, lag: number): SeatSpec {
   return model === 'pip' ? pipSpec() : netSpec(level, abs(model), lag, argv.includes('--mask-score'))
 }
 
+/** --hands names the people profile the bots play on under --bots human-hands; without it, 'human' (the strong profile, delay 12). */
+function handsFlag(): 'human' | PeopleProfile {
+  const h = flag('hands') ?? 'human'
+  if (h !== 'human' && !PEOPLE_PROFILES.includes(h as PeopleProfile)) throw new Error(`unknown --hands ${h}`)
+  return h as 'human' | PeopleProfile
+}
+
 async function gate(): Promise<void> {
   const level = need('level') as Level
   const lag = Number(flag('lag') ?? 1)
@@ -58,7 +68,7 @@ async function gate(): Promise<void> {
   const md = flag('md')
   const botLimits = (flag('bots') ?? (level === 'champion' ? 'live' : 'human')) as 'live' | 'human' | 'human-hands'
   if (!['live', 'human', 'human-hands'].includes(botLimits)) throw new Error(`unknown --bots ${botLimits}`)
-  const botDelay = botLimits === 'live' ? 0 : botLimits === 'human-hands' ? Number(flag('bot-delay') ?? 12) : LEVEL_LIMITS.puck[level].delayFrames
+  const botDelay = botLimits === 'live' ? 0 : botLimits === 'human-hands' ? Number(flag('bot-delay') ?? peopleHands(handsFlag() === 'human' ? 'strong' : (handsFlag() as PeopleProfile)).delayFrames) : LEVEL_LIMITS.puck[level].delayFrames
   const bots = flag('names') ? flag('names')!.split(',') : Object.keys(PUCK_BARS[level])
   for (const b of bots) if (!PUCK_BOTS.includes(b as never) && b !== 'mouse') throw new Error(`unknown bot ${b}`)
   const agent = specOf(level, need('model'), lag)
@@ -66,7 +76,7 @@ async function gate(): Promise<void> {
   const result = await measureBots(agent, bots, {
     games,
     botDelay,
-    botHands: botLimits === 'human-hands' ? 'human' : 'level',
+    botHands: botLimits === 'human-hands' ? handsFlag() : 'level',
     procs,
     onRow: (row: BotRow) => {
       for (const seat of ['0', '1'] as const) {
@@ -100,6 +110,26 @@ async function sweep(): Promise<void> {
     mdLine(md, `| ${label} | ${delay} frames (${p.ms} ms) | ${p.matches} | ${p.wins}-${p.draws}-${p.losses} | ${(p.score * 100).toFixed(1)}% | ${p.ci95[0].toFixed(3)} to ${p.ci95[1].toFixed(3)} | ${p.goalsFor}-${p.goalsAgainst} |`)
   }
   writeFileSync(abs(need('out')), JSON.stringify({ label, level, lag, points }, null, 1) + '\n')
+}
+
+/** The agent against each panel test player (beginner, average, strong), `games` per seat, and the weighted estimate against the level's band. */
+async function people(): Promise<void> {
+  const level = need('level') as Level
+  const lag = Number(flag('lag') ?? 1)
+  const games = Number(flag('games') ?? 100)
+  const procs = Number(flag('procs') ?? 2)
+  const label = flag('label') ?? level
+  const agent = specOf(level, need('model'), lag)
+  const t0 = Date.now()
+  const result = await measurePanel(agent, { games, procs })
+  const est = panelEstimate(agent, result)
+  for (const proxy of PEOPLE_PROFILES) {
+    const t = result.tallies[proxy]
+    mdLine(flag('md'), `| ${stamp()} | ${label} people ${proxy} | ${t.games} | ${t.wins}-${t.draws}-${t.losses} | ${(result.panel[proxy].value * 100).toFixed(1)}% | seat0 ${(t.bySeat['0'] * 100).toFixed(1)}% seat1 ${(t.bySeat['1'] * 100).toFixed(1)}% |`)
+  }
+  mdLine(flag('md'), `| ${stamp()} | ${label} weighted estimate | ${(est.estimate * 100).toFixed(1)}% (${(est.ci95[0] * 100).toFixed(1)} to ${(est.ci95[1] * 100).toFixed(1)}) | band ${(est.band.low * 100).toFixed(0)} to ${(est.band.high * 100).toFixed(0)} | ${est.verdict} |`)
+  writeFileSync(abs(need('out')), JSON.stringify({ label, level, lag, gamesPerSeat: games, ...result, estimate: est, seconds: Math.round((Date.now() - t0) / 1000) }, null, 1) + '\n')
+  console.log(`done ${label} people in ${Math.round((Date.now() - t0) / 1000)} s: estimate ${est.estimate.toFixed(3)} (${est.verdict})`)
 }
 
 async function pair(): Promise<void> {
@@ -214,10 +244,11 @@ if (import.meta.main) {
   const cmd = argv[0]
   if (cmd === 'gate') await gate()
   else if (cmd === 'pair') await pair()
+  else if (cmd === 'people') await people()
   else if (cmd === 'sweep') await sweep()
   else if (cmd === 'parity') await parity()
   else if (cmd === 'publish') await publish()
   else if (cmd === 'source') await source()
-  else throw new Error('usage: puck-run.ts gate|pair|parity|publish|source')
+  else throw new Error('usage: puck-run.ts gate|people|pair|parity|publish|source')
 }
 

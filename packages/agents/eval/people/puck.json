@@ -1,0 +1,446 @@
+{
+  "game": "puck",
+  "note": "A8 final measurements per level; each file is the measure script output, recomputable from its own parts. Hard and Champion (Vesper, Sable) added by A9: measured with puck-run.ts people, 400 games per seat per test player, no settings changed.",
+  "levels": {
+    "easy": {
+      "label": "pip-final",
+      "level": "easy",
+      "lag": 1,
+      "gamesPerSeat": 400,
+      "panel": {
+        "beginner": {
+          "value": 0.63375,
+          "ci95": [
+            0.5997995959894343,
+            0.6664220546054769
+          ],
+          "n": 800
+        },
+        "average": {
+          "value": 0.54625,
+          "ci95": [
+            0.5116117486363245,
+            0.5804462053077102
+          ],
+          "n": 800
+        },
+        "strong": {
+          "value": 0.215,
+          "ci95": [
+            0.18792943090792597,
+            0.24479452857207648
+          ],
+          "n": 800
+        }
+      },
+      "tallies": {
+        "beginner": {
+          "games": 800,
+          "wins": 507,
+          "draws": 0,
+          "losses": 293,
+          "bySeat": {
+            "0": 0.6475,
+            "1": 0.62
+          }
+        },
+        "average": {
+          "games": 800,
+          "wins": 437,
+          "draws": 0,
+          "losses": 363,
+          "bySeat": {
+            "0": 0.545,
+            "1": 0.5475
+          }
+        },
+        "strong": {
+          "games": 800,
+          "wins": 172,
+          "draws": 0,
+          "losses": 628,
+          "bySeat": {
+            "0": 0.2025,
+            "1": 0.2275
+          }
+        }
+      },
+      "estimate": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.63375,
+            "ci95": [
+              0.5997995959894343,
+              0.6664220546054769
+            ],
+            "n": 800
+          },
+          "average": {
+            "value": 0.54625,
+            "ci95": [
+              0.5116117486363245,
+              0.5804462053077102
+            ],
+            "n": 800
+          },
+          "strong": {
+            "value": 0.215,
+            "ci95": [
+              0.18792943090792597,
+              0.24479452857207648
+            ],
+            "n": 800
+          }
+        },
+        "estimate": 0.5062500000000001,
+        "ci95": [
+          0.48555361831811233,
+          0.5269463816818879
+        ],
+        "real": null,
+        "calibrated": 0.5062500000000001,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted mouse player on the rule mallet (speed 6); reacts 18 frames (300 ms) late, aims with 0.035 table-widths of noise, holds a target at least 6 frames",
+          "average": "scripted mouse player on the rule mallet (speed 6); reacts 15 frames (250 ms) late, aims with 0.018 table-widths of noise, holds a target at least 4 frames",
+          "strong": "scripted mouse player on the rule mallet (speed 6); reacts 12 frames (200 ms) late, aims with 0.008 table-widths of noise, holds a target at least 2 frames"
+        }
+      },
+      "seconds": 8
+    },
+    "medium": {
+      "label": "m0040009728-400",
+      "level": "medium",
+      "lag": 1,
+      "gamesPerSeat": 400,
+      "panel": {
+        "beginner": {
+          "value": 0.83625,
+          "ci95": [
+            0.8090114423085465,
+            0.8602747633926787
+          ],
+          "n": 800
+        },
+        "average": {
+          "value": 0.765,
+          "ci95": [
+            0.7343954612065365,
+            0.7930717343646893
+          ],
+          "n": 800
+        },
+        "strong": {
+          "value": 0.4725,
+          "ci95": [
+            0.43811877915278785,
+            0.5071440590426508
+          ],
+          "n": 800
+        }
+      },
+      "tallies": {
+        "beginner": {
+          "games": 800,
+          "wins": 669,
+          "draws": 0,
+          "losses": 131,
+          "bySeat": {
+            "0": 0.8225,
+            "1": 0.85
+          }
+        },
+        "average": {
+          "games": 800,
+          "wins": 612,
+          "draws": 0,
+          "losses": 188,
+          "bySeat": {
+            "0": 0.765,
+            "1": 0.765
+          }
+        },
+        "strong": {
+          "games": 800,
+          "wins": 378,
+          "draws": 0,
+          "losses": 422,
+          "bySeat": {
+            "0": 0.48,
+            "1": 0.465
+          }
+        }
+      },
+      "estimate": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.83625,
+            "ci95": [
+              0.8090114423085465,
+              0.8602747633926787
+            ],
+            "n": 800
+          },
+          "average": {
+            "value": 0.765,
+            "ci95": [
+              0.7343954612065365,
+              0.7930717343646893
+            ],
+            "n": 800
+          },
+          "strong": {
+            "value": 0.4725,
+            "ci95": [
+              0.43811877915278785,
+              0.5071440590426508
+            ],
+            "n": 800
+          }
+        },
+        "estimate": 0.727875,
+        "ci95": [
+          0.7099318999580673,
+          0.7458181000419328
+        ],
+        "real": null,
+        "calibrated": 0.727875,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted mouse player on the rule mallet (speed 6); reacts 18 frames (300 ms) late, aims with 0.035 table-widths of noise, holds a target at least 6 frames",
+          "average": "scripted mouse player on the rule mallet (speed 6); reacts 15 frames (250 ms) late, aims with 0.018 table-widths of noise, holds a target at least 4 frames",
+          "strong": "scripted mouse player on the rule mallet (speed 6); reacts 12 frames (200 ms) late, aims with 0.008 table-widths of noise, holds a target at least 2 frames"
+        }
+      },
+      "seconds": 103
+    },
+    "hard": {
+      "label": "vesper-a9",
+      "level": "hard",
+      "lag": 1,
+      "gamesPerSeat": 400,
+      "panel": {
+        "beginner": {
+          "value": 0.99,
+          "ci95": [
+            0.9803923890903268,
+            0.9949243121545812
+          ],
+          "n": 800
+        },
+        "average": {
+          "value": 0.99,
+          "ci95": [
+            0.9803923890903268,
+            0.9949243121545812
+          ],
+          "n": 800
+        },
+        "strong": {
+          "value": 0.88625,
+          "ci95": [
+            0.8623775812970202,
+            0.9064307367761342
+          ],
+          "n": 800
+        }
+      },
+      "tallies": {
+        "beginner": {
+          "games": 800,
+          "wins": 792,
+          "draws": 0,
+          "losses": 8,
+          "bySeat": {
+            "0": 0.985,
+            "1": 0.995
+          }
+        },
+        "average": {
+          "games": 800,
+          "wins": 792,
+          "draws": 0,
+          "losses": 8,
+          "bySeat": {
+            "0": 0.9875,
+            "1": 0.9925
+          }
+        },
+        "strong": {
+          "games": 800,
+          "wins": 709,
+          "draws": 0,
+          "losses": 91,
+          "bySeat": {
+            "0": 0.9,
+            "1": 0.8725
+          }
+        }
+      },
+      "estimate": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.99,
+            "ci95": [
+              0.9803923890903268,
+              0.9949243121545812
+            ],
+            "n": 800
+          },
+          "average": {
+            "value": 0.99,
+            "ci95": [
+              0.9803923890903268,
+              0.9949243121545812
+            ],
+            "n": 800
+          },
+          "strong": {
+            "value": 0.88625,
+            "ci95": [
+              0.8623775812970202,
+              0.9064307367761342
+            ],
+            "n": 800
+          }
+        },
+        "estimate": 0.9692500000000001,
+        "ci95": [
+          0.9631379764355797,
+          0.9753620235644204
+        ],
+        "real": null,
+        "calibrated": 0.9692500000000001,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "scripted mouse player on the rule mallet (speed 6); reacts 18 frames (300 ms) late, aims with 0.035 table-widths of noise, holds a target at least 6 frames",
+          "average": "scripted mouse player on the rule mallet (speed 6); reacts 15 frames (250 ms) late, aims with 0.018 table-widths of noise, holds a target at least 4 frames",
+          "strong": "scripted mouse player on the rule mallet (speed 6); reacts 12 frames (200 ms) late, aims with 0.008 table-widths of noise, holds a target at least 2 frames"
+        }
+      },
+      "seconds": 74
+    },
+    "champion": {
+      "label": "sable-a9",
+      "level": "champion",
+      "lag": 1,
+      "gamesPerSeat": 400,
+      "panel": {
+        "beginner": {
+          "value": 0.99625,
+          "ci95": [
+            0.9890331057081746,
+            0.9987238595832244
+          ],
+          "n": 800
+        },
+        "average": {
+          "value": 0.99,
+          "ci95": [
+            0.9803923890903268,
+            0.9949243121545812
+          ],
+          "n": 800
+        },
+        "strong": {
+          "value": 0.94125,
+          "ci95": [
+            0.9227489165292666,
+            0.9555337251530103
+          ],
+          "n": 800
+        }
+      },
+      "tallies": {
+        "beginner": {
+          "games": 800,
+          "wins": 797,
+          "draws": 0,
+          "losses": 3,
+          "bySeat": {
+            "0": 0.9975,
+            "1": 0.995
+          }
+        },
+        "average": {
+          "games": 800,
+          "wins": 792,
+          "draws": 0,
+          "losses": 8,
+          "bySeat": {
+            "0": 0.985,
+            "1": 0.995
+          }
+        },
+        "strong": {
+          "games": 800,
+          "wins": 753,
+          "draws": 0,
+          "losses": 47,
+          "bySeat": {
+            "0": 0.945,
+            "1": 0.9375
+          }
+        }
+      },
+      "estimate": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.99625,
+            "ci95": [
+              0.9890331057081746,
+              0.9987238595832244
+            ],
+            "n": 800
+          },
+          "average": {
+            "value": 0.99,
+            "ci95": [
+              0.9803923890903268,
+              0.9949243121545812
+            ],
+            "n": 800
+          },
+          "strong": {
+            "value": 0.94125,
+            "ci95": [
+              0.9227489165292666,
+              0.9555337251530103
+            ],
+            "n": 800
+          }
+        },
+        "estimate": 0.982125,
+        "ci95": [
+          0.9770201026453468,
+          0.9872298973546533
+        ],
+        "real": null,
+        "calibrated": 0.982125,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted mouse player on the rule mallet (speed 6); reacts 18 frames (300 ms) late, aims with 0.035 table-widths of noise, holds a target at least 6 frames",
+          "average": "scripted mouse player on the rule mallet (speed 6); reacts 15 frames (250 ms) late, aims with 0.018 table-widths of noise, holds a target at least 4 frames",
+          "strong": "scripted mouse player on the rule mallet (speed 6); reacts 12 frames (200 ms) late, aims with 0.008 table-widths of noise, holds a target at least 2 frames"
+        }
+      },
+      "seconds": 57
+    }
+  }
+}

@@ -268,6 +268,26 @@ class HoldAngleBot implements ArenaBot {
   }
 }
 
+/**
+ * A bot that slips (people hands, A4): with probability `rate` per decision its answer is replaced by a uniformly random input over the
+ * policy's heads (the random bot). Default off: a rate of 0 returns the bot itself, so every published measurement stays byte-identical.
+ * Two draws per decision, always, so the slip stream does not depend on what the bot did.
+ */
+export function withMistakes(bot: ArenaBot, rate: number, seed: number): ArenaBot {
+  if (!(rate > 0)) return bot
+  const coin = makeRng(seed >>> 0)
+  const random = new RandomBot(makeRng((seed + 977) >>> 0))
+  return {
+    kind: bot.kind,
+    act(obs) {
+      const slip = coin.float() < rate
+      const wrong = random.act()
+      const a = bot.act(obs)
+      return slip ? wrong : a
+    },
+  }
+}
+
 export function createBot(kind: BotKind, seed: number): ArenaBot {
   const rng = makeRng(seed >>> 0)
   switch (kind) {

@@ -15,7 +15,9 @@ describe('buildPuckRegistry', () => {
     expect(elo.every((e, i) => i === 0 || e > elo[i - 1]!)).toBe(true)
     expect(reg.unpublished).toEqual({})
     expect(reg.levels.easy!.config).toMatchObject({ scripted: true, kind: 'pip' })
-    expect(reg.levels.medium!.config).toMatchObject({ kind: 'marlow', network: 'vesper', model: 'hard.onnx', delayMs: 250, replyLagTicks: 1 })
+    expect(reg.levels.medium!.config).toMatchObject({ kind: 'marlow', model: 'hard.onnx', delayMs: 250, replyLagTicks: 1 })
+    // A9: a level that ships its own network no longer carries the hint that it borrows Vesper's.
+    expect(reg.levels.medium!.config).not.toHaveProperty('network')
     expect(Object.keys(reg.versions[0]!.sha256)).toEqual(['hard.onnx', 'champion.onnx'])
   })
 

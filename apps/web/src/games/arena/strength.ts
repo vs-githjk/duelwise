@@ -1,6 +1,7 @@
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter.ts'
 import type { Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
+import { notYetMeasuredText, peopleGatedSentence } from '../../lib/people-line'
 import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fighter/strength'
 
 // What the Coldstore page says about an agent's strength (R30). It used to print "site Elo 1091", a number with no unit
@@ -8,6 +9,16 @@ import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fi
 // for a level the registry publishes. The shared parts (published?, the version a record carries) are the fighter's.
 
 export { PRACTICE_COPY, agentVersionFor, isPublished }
+
+/** Plain words for the gate bots, used to name the one a people-gated level loses to. */
+const BOT_WORDS: Record<string, string> = {
+  rusher: 'the rusher bot',
+  holder: 'the bot that holds a spot',
+  random: 'the random bot',
+  peeker: 'the peeking bot',
+  strafe: 'the strafing bot',
+  holdangle: 'the bot that holds an angle',
+}
 
 const LEVEL_NAMES: Partial<Record<Level, string>> = { easy: 'Pip', medium: 'Marlow', hard: 'Vesper' }
 
@@ -36,7 +47,7 @@ export function strengthLine(reg: Registry | null, level: Level): string {
     return PRACTICE_COPY
   }
   const atLeast = Math.max(0, Math.min(10, Math.floor(m.ci95[0] * 10 + 1e-9)))
-  return `Beats our test bots in at least ${atLeast} of 10 games, including ones that peek, strafe and hold an angle; not yet measured against people.${aboveLevelBelow(reg, level)}`
+  return `Beats our test bots in at least ${atLeast} of 10 games, including ones that peek, strafe and hold an angle; ${notYetMeasuredText(reg, level)}.${peopleGatedSentence(reg, level, BOT_WORDS)}${aboveLevelBelow(reg, level)}`
 }
 
 /** Shown under the level picker whenever a Practice level is listed: the ladder above Easy is not measured. */

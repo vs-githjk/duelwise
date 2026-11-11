@@ -2,6 +2,7 @@ import { rank7, handCategory } from '@duelwise/core/src/games/holdem/evaluator'
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import type { HandSummary, HoldemState } from '@duelwise/core/src/games/holdem/match'
 import { fullHandName } from '../games/holdem/strength'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment } from './types'
 import { walk } from './walk'
 
@@ -70,4 +71,43 @@ export function holdemMoments(rec: MatchRecordV1, opponent: string): Moment[] {
   })
   const picks = [best && make(best, 'best'), worst && make(worst, 'worst')].filter((m): m is { at: number; moment: Moment } => m !== null)
   return picks.sort((a, b) => a.at - b.at).map((p) => p.moment)
+}
+
+/** The most chips a close loss can be behind by: five big blinds. */
+export const CLOSE_CHIPS = 10
+
+/**
+ * Hold'em's near miss: a match played to its last hand and lost by ten chips or fewer. It names the hand that cost the most, worded by the same sentence the
+ * key moments use (a showdown names both hands because the table showed them; a fold names no cards), and counts the hands from the replay.
+ */
+export function holdemNearMiss(rec: MatchRecordV1, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec) || rec.options?.leftAfter !== undefined) return null
+  const steps = walk<HoldemState>(rec)
+  const end = steps.at(-1)?.after
+  if (!end?.over || end.over.reason === 'conceded') return null
+  // A match under the strict bust rule that ended on a bust (a whole stack gone in one hand) is the opposite of close.
+  if (!end.over.reason.startsWith('ahead by')) return NOT_CLOSE
+  const hands = playedHands(rec)
+  const gap = -end.net[rec.humanSeat]
+  if (gap <= 0) return null
+  if (gap > CLOSE_CHIPS) return NOT_CLOSE
+  let worst: (typeof hands)[number] | null = null
+  for (const h of hands) if (h.human < 0 && (worst === null || h.human < worst.human)) worst = h
+  const lost = hands.filter((h) => h.human < 0).length
+  const won = hands.filter((h) => h.human > 0).length
+  const cost = worst ? Math.abs(worst.human) : 0
+  const decisive = worst && cost > gap ? ' That one hand cost more than the whole gap.' : ''
+  const turn = (third: boolean): string | null => (worst ? `Hand ${worst.hand.hand + 1}: ${sentence(worst.hand, worst.human, rec.humanSeat, opponent, third)}${decisive}` : null)
+  return nearMiss(true, {
+    turning: turn(false),
+    publicTurning: turn(true),
+    line: `You finished ${chips(gap)} behind after ${hands.length} hands.`,
+    publicLine: `The player finished ${chips(gap)} behind after ${hands.length} hands.`,
+    stats: [
+      { label: gap === 1 ? 'Chip short' : 'Chips short', value: gap },
+      { label: won === 1 ? 'Hand won' : 'Hands won', value: won },
+      { label: lost === 1 ? 'Hand lost' : 'Hands lost', value: lost },
+      ...(worst ? [{ label: 'Biggest lost pot', value: cost }] : []),
+    ],
+  })
 }

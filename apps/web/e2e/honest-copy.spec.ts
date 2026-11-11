@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { visibleRegistry } from '../src/lib/strength-gates'
+import { publishedLevels } from './published-levels'
 import { wordCore } from '@duelwise/core/src/games/word/core.ts'
 
 // JB1: one opponent name, honest copy, no internals.
@@ -105,7 +106,9 @@ test.describe('training copy and site Elo', () => {
     await expect(prematch).not.toContainText('may use it to train')
     await expect(prematch).toContainText(/not (from|used)|does not learn|Practice/)
     await expect(page.getByRole('switch')).toHaveCount(0)
-    await expect(page.getByTestId('practice-note')).toContainText('Levels in training have not passed our strength test')
+    // The note under the level cards appears only while a Glasscut level is in training; A9 published Pip and Marlow, so it follows the registry.
+    if (publishedLevels('puck').length < 4) await expect(page.getByTestId('practice-note')).toContainText('Levels in training have not passed our strength test')
+    else await expect(page.getByTestId('practice-note')).toHaveCount(0)
   })
 
   test("Hold'em says its matches are not used for training and offers no switch", async ({ page }) => {

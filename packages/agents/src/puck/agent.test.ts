@@ -316,7 +316,13 @@ describe('routing', () => {
     for (const level of LEVELS) {
       expect(isPublished(level)).toBe(Object.prototype.hasOwnProperty.call(puckRegistry.measured, level))
       if (level === 'easy') expect(modelPath(level)).toBeNull()
-      else if (isPublished(level)) expect(modelPath(level)).toBe(`agents/puck/v1/${(puckRegistry.levels as unknown as Record<string, { config: { model: string } }>)[level]!.config.model}`)
+      else if (isPublished(level)) {
+        // The registry names the folder: Marlow's A9 network ships in v2, Vesper's and Sable's in v1.
+        const name = (puckRegistry.levels as unknown as Record<string, { config: { model: string } }>)[level]!.config.model
+        const shipped = (puckRegistry.versions as unknown as Array<{ artifacts: Record<string, string> }>).map((v) => v.artifacts[name]).find((a) => a !== undefined)!
+        expect(modelPath(level)).toBe(shipped.replace('apps/web/public/', ''))
+        expect(modelPath(level)).toBe(`agents/puck/${level === 'medium' ? 'v2' : 'v1'}/${name}`)
+      }
       else expect(modelPath(level)).toBe(level === 'medium' ? 'agents/puck/v1/hard.onnx' : PREVIEW_MODEL)
     }
   })

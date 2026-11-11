@@ -43,7 +43,9 @@ describe('Coldstore strength copy', () => {
   test('the limits sentence names only the limits a level has (Champion has no cap and no aim limit)', () => {
     expect(limitsSentence('champion')).toBe('It sees the match 50 ms late. It has no action cap and no aim limit. It sees only what its line of sight allows.')
     expect(limitsSentence('easy')).toBe('Easy reacts slower and has limited aim and actions. It sees only what its line of sight allows.')
-    expect(LEVEL_LIMITS.arena.easy.delayFrames).toBeGreaterThan(LEVEL_LIMITS.arena.medium.delayFrames)
+    // A8 retune: Easy and Medium share a reaction time (24 frames) and differ in action cap, aim speed and aim noise.
+    expect(LEVEL_LIMITS.arena.easy.delayFrames).toBeGreaterThanOrEqual(LEVEL_LIMITS.arena.medium.delayFrames)
+    expect(LEVEL_LIMITS.arena.easy.apmCap!).toBeLessThan(LEVEL_LIMITS.arena.medium.apmCap!)
     expect(LEVEL_LIMITS.arena.easy.aimRateDegPerSec!).toBeLessThan(LEVEL_LIMITS.arena.medium.aimRateDegPerSec!)
     expect(LEVEL_LIMITS.arena.easy.aimNoiseDeg!).toBeGreaterThan(0)
     for (const l of ['medium', 'hard', 'champion'] as const) {
@@ -74,5 +76,24 @@ describe('Coldstore strength copy', () => {
       expect(c.delayFrames).toBeLessThanOrEqual(easy.delayFrames)
       expect(c.apmCap == null || c.apmCap >= (easy.apmCap ?? 0)).toBe(true)
     }
+  })
+})
+
+describe('Coldstore strength line against the people line', () => {
+  const people = { band: { low: 0.42, high: 0.58 }, calibrated: 0.54, verdict: 'in-band' }
+  const mk = (peopleGated: boolean, withPeople: boolean, ci95: [number, number] = [0.3, 0.4]): Registry =>
+    ({
+      ...reg,
+      versions: [{ gate: { levels: { easy: peopleGated ? { peopleGated: true } : {} } } }],
+      levels: { easy: reg.levels.hard },
+      measured: { easy: { ...reg.measured.hard!, metric: 'score vs scripted peeker bot (weakest seat of the weakest gate bot)', ci95, ...(withPeople ? { people } : {}) } },
+    }) as unknown as Registry
+  test('a level with a people line ends with real players; without one it keeps "people"', () => {
+    expect(strengthLine(mk(false, true, [0.62, 0.8]), 'easy')).toContain('hold an angle; not yet measured against real players.')
+    expect(strengthLine(mk(false, false, [0.62, 0.8]), 'easy')).toContain('hold an angle; not yet measured against people.')
+  })
+  test('a people-gated level names the bot it loses to', () => {
+    expect(strengthLine(mk(true, true), 'easy')).toContain('It loses to the peeking bot in most games; this level is set by the people test.')
+    expect(strengthLine(mk(false, true), 'easy')).not.toContain('loses to')
   })
 })

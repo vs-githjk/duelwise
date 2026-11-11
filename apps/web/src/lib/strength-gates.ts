@@ -56,6 +56,12 @@ export function verifiedStrength(reg: Registry | null, level: Level): boolean {
   if (reg.game === 'fighter' || reg.game === 'arena' || reg.game === 'puck') {
     const rows = obj(obj(gate.levels)?.[level])?.bots
     if (!Array.isArray(rows)) return false
+    // A9 (ruling Nov 10 18:52): Easy and Medium are decided by their people test and the ladder. The publisher records the scripted-bot rows but does not
+    // hold the level to their bars, and says so in the gate (peopleGated); this second check accepts that only for those two levels and only while the
+    // registry's own people block is in band. The ladder must still pass. Hard and Champion never take this path.
+    if ((level === 'easy' || level === 'medium') && obj(obj(gate.levels)?.[level])?.peopleGated === true) {
+      return reg.measured[level]?.people?.verdict === 'in-band' && ladderPairsPass(obj(gate.ladder)?.pairs, level)
+    }
     const expected = reg.game === 'puck'
       ? (level === 'hard' ? ['random', 'striker', 'goalie', 'banker', 'shadow'] : level === 'champion' ? ['striker', 'goalie', 'banker', 'shadow'] : ['random', 'striker', 'goalie'])
       : reg.game === 'fighter'

@@ -1,0 +1,136 @@
+{
+  "game": "fighter",
+  "level": "champion",
+  "ckpt": "/Users/vidyutsriram/projects/beatme/runs/fighter-league-b6/gated/champion/snap-champion-0196034560.pt",
+  "panel": {
+    "panel": {
+      "beginner": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      },
+      "average": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      },
+      "strong": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      }
+    },
+    "tallies": {
+      "beginner": {
+        "games": 256,
+        "wins": 256,
+        "draws": 0,
+        "losses": 0,
+        "bySeat": {
+          "0": 1,
+          "1": 1
+        },
+        "byBot": {
+          "rushdown@beginner": 1,
+          "turtle@beginner": 1,
+          "zoner@beginner": 1,
+          "fireball@beginner": 1
+        }
+      },
+      "average": {
+        "games": 256,
+        "wins": 256,
+        "draws": 0,
+        "losses": 0,
+        "bySeat": {
+          "0": 1,
+          "1": 1
+        },
+        "byBot": {
+          "rushdown@average": 1,
+          "turtle@average": 1,
+          "zoner@average": 1,
+          "fireball@average": 1
+        }
+      },
+      "strong": {
+        "games": 256,
+        "wins": 256,
+        "draws": 0,
+        "losses": 0,
+        "bySeat": {
+          "0": 1,
+          "1": 1
+        },
+        "byBot": {
+          "rushdown@strong": 1,
+          "turtle@strong": 1,
+          "zoner@strong": 1,
+          "fireball@strong": 1
+        }
+      }
+    }
+  },
+  "gateStyle": {
+    "value": 1,
+    "ci95": [
+      0.9852161433443503,
+      1
+    ],
+    "n": 256
+  },
+  "estimate": {
+    "band": {
+      "low": 0.93,
+      "high": 1
+    },
+    "panel": {
+      "beginner": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      },
+      "average": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      },
+      "strong": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      }
+    },
+    "estimate": 1,
+    "ci95": [
+      0.9954433093507014,
+      1
+    ],
+    "real": null,
+    "calibrated": 1,
+    "verdict": "in-band",
+    "proxies": {
+      "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+      "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+      "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+    }
+  }
+}

@@ -37,32 +37,32 @@
             {
               "level": "easy",
               "n": 1000,
-              "optimal": 0.419,
+              "optimal": 0.533,
               "optimalCi95": [
-                0.388787,
-                0.449833
+                0.50201,
+                0.563737
               ],
-              "hold": 0.729,
+              "hold": 0.803,
               "holdCi95": [
-                0.700614,
-                0.755633
+                0.777209,
+                0.826472
               ],
-              "sims": 0
+              "sims": 6
             },
             {
               "level": "medium",
               "n": 1000,
-              "optimal": 0.848,
+              "optimal": 0.798,
               "optimalCi95": [
-                0.824419,
-                0.868917
+                0.771997,
+                0.821722
               ],
-              "hold": 0.944,
+              "hold": 0.908,
               "holdCi95": [
-                0.927977,
-                0.956625
+                0.888491,
+                0.924386
               ],
-              "sims": 24
+              "sims": 0
             },
             {
               "level": "hard",
@@ -82,15 +82,15 @@
             {
               "level": "champion",
               "n": 1000,
-              "optimal": 0.9,
+              "optimal": 0.898,
               "optimalCi95": [
-                0.879848,
-                0.917091
+                0.877693,
+                0.915261
               ],
-              "hold": 0.999,
+              "hold": 0.997,
               "holdCi95": [
-                0.994357,
-                0.999823
+                0.991217,
+                0.998979
               ],
               "sims": 800
             }
@@ -99,30 +99,30 @@
         "timing": {
           "sims": 800,
           "uncapped": {
-            "positions": 40,
-            "medianMs": 201,
-            "p95Ms": 1268,
-            "maxMs": 1516
+            "positions": 43,
+            "medianMs": 246,
+            "p95Ms": 1201,
+            "maxMs": 1300
           },
           "shippedTimeCapMs": 1400,
           "shipped": {
-            "positions": 40,
-            "medianMs": 181,
-            "p95Ms": 1079,
-            "maxMs": 1193
+            "positions": 43,
+            "medianMs": 247,
+            "p95Ms": 1141,
+            "maxMs": 1165
           },
           "shippedCapHitShare": 0,
-          "loadAverage1m": 4.606934,
-          "at": "2026-10-23T14:20:04.284Z"
+          "loadAverage1m": 4.149902,
+          "at": "2026-11-11T00:21:48.132Z"
         },
         "siteSeat": {
           "rule": "Champion as seat 1 against Hard as seat 0 from the empty board, the only way the site plays; 95% Wilson lower bound above 50%",
           "games": 60,
-          "points": 54.5,
-          "score": 0.908333,
+          "points": 54,
+          "score": 0.9,
           "ci95": [
-            0.808838,
-            0.958689
+            0.798505,
+            0.953357
           ],
           "passed": true
         },
@@ -145,11 +145,11 @@
             "lower": "easy",
             "upper": "medium",
             "n": 100,
-            "points": 91,
-            "score": 0.91,
+            "points": 72.5,
+            "score": 0.725,
             "ci95": [
-              0.837738,
-              0.951927
+              0.630393,
+              0.80296
             ],
             "stoppedEarly": true,
             "passed": true
@@ -158,11 +158,11 @@
             "lower": "medium",
             "upper": "hard",
             "n": 100,
-            "points": 75,
-            "score": 0.75,
+            "points": 88,
+            "score": 0.88,
             "ci95": [
-              0.656955,
-              0.824548
+              0.801879,
+              0.930006
             ],
             "stoppedEarly": true,
             "passed": true
@@ -184,11 +184,11 @@
         "baseline": {
           "label": "random legal moves",
           "n": 100,
-          "points": 93.5,
-          "score": 0.935,
+          "points": 97,
+          "score": 0.97,
           "ci95": [
-            0.868836,
-            0.96898
+            0.915481,
+            0.989745
           ]
         }
       }
@@ -229,7 +229,7 @@
       "version": "v1",
       "config": {
         "model": "easy.onnx",
-        "sims": 0,
+        "sims": 6,
         "temperature": 0.15,
         "snapshot": "snap-00001024",
         "selfPlayGames": 1024
@@ -239,8 +239,8 @@
       "version": "v1",
       "config": {
         "model": "medium.onnx",
-        "sims": 24,
-        "temperature": 0.3,
+        "sims": 0,
+        "temperature": 0.55,
         "tactics": true,
         "snapshot": "snap-00003072",
         "selfPlayGames": 3072
@@ -306,45 +306,180 @@
   "measured": {
     "easy": {
       "metric": "score vs random legal moves",
-      "value": 0.935,
+      "value": 0.97,
       "ci95": [
-        0.868836,
-        0.96898
+        0.915481,
+        0.989745
       ],
       "n": 100,
       "opponents": "random legal moves",
       "siteElo": 1000,
-      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "measuredAt": "2026-11-11T00:53:12.288Z",
       "harness": "bun",
-      "commit": "fc839f9"
+      "commit": "dfab622",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.6325,
+            "ci95": [
+              0.5842006801342122,
+              0.6782785618278105
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 0.345,
+            "ci95": [
+              0.30008782765308767,
+              0.3928609836366215
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 0.405,
+            "ci95": [
+              0.3580179521637985,
+              0.45378938378795886
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.44325,
+        "ci95": [
+          0.41446128864226534,
+          0.4720387113577346
+        ],
+        "real": null,
+        "calibrated": 0.4826482793522267,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+          "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+          "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+        }
+      }
     },
     "medium": {
       "metric": "score vs easy",
-      "value": 0.91,
+      "value": 0.725,
       "ci95": [
-        0.837738,
-        0.951927
+        0.630393,
+        0.80296
       ],
       "n": 100,
       "opponents": "easy",
-      "siteElo": 1401.919553,
-      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "siteElo": 1168.402125,
+      "measuredAt": "2026-11-11T00:53:12.288Z",
       "harness": "bun",
-      "commit": "fc839f9"
+      "commit": "dfab622",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.835,
+            "ci95": [
+              0.7954717948278421,
+              0.8681549678685929
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 0.61125,
+            "ci95": [
+              0.5626369047914324,
+              0.6577466096861151
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 0.49375,
+            "ci95": [
+              0.4450477293396546,
+              0.5425711743413822
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.654875,
+        "ci95": [
+          0.6269583704927374,
+          0.6827916295072626
+        ],
+        "real": null,
+        "calibrated": 0.6942732793522267,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+          "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+          "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+        }
+      }
     },
     "hard": {
       "metric": "score vs medium",
-      "value": 0.75,
+      "value": 0.88,
       "ci95": [
-        0.656955,
-        0.824548
+        0.801879,
+        0.930006
       ],
       "n": 100,
       "opponents": "medium",
-      "siteElo": 1592.768055,
-      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "siteElo": 1514.522696,
+      "measuredAt": "2026-11-11T00:53:12.288Z",
       "harness": "bun",
-      "commit": "fc839f9"
+      "commit": "dfab622",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.98375,
+            "ci95": [
+              0.9659864590682062,
+              0.9923103960195565
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 0.9275,
+            "ci95": [
+              0.8978175064777341,
+              0.9490494817393585
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 0.795,
+            "ci95": [
+              0.7527205841667667,
+              0.8316671620883032
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.917875,
+        "ci95": [
+          0.9023198820478721,
+          0.9334301179521279
+        ],
+        "real": null,
+        "calibrated": 0.9572732793522267,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+          "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+          "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+        }
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -355,10 +490,55 @@
       ],
       "n": 100,
       "opponents": "hard",
-      "siteElo": 1930.807271,
-      "measuredAt": "2026-10-23T14:47:00.901Z",
+      "siteElo": 1852.561912,
+      "measuredAt": "2026-11-11T00:53:12.288Z",
       "harness": "bun",
-      "commit": "fc839f9"
+      "commit": "dfab622",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.8388748398148704,
+              1
+            ],
+            "n": 20
+          },
+          "average": {
+            "value": 0.975,
+            "ci95": [
+              0.7995466529273008,
+              0.9973844448968262
+            ],
+            "n": 20
+          },
+          "strong": {
+            "value": 0.95,
+            "ci95": [
+              0.7638688045357189,
+              0.9911185512976646
+            ],
+            "n": 20
+          }
+        },
+        "estimate": 0.9775,
+        "ci95": [
+          0.9179450580744961,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+          "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+          "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+        }
+      }
     }
   },
   "unpublished": {},

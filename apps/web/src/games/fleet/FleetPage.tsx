@@ -30,7 +30,8 @@ import { playCue } from './sounds'
 import { strengthSentence } from './strength'
 import { fleetLuckLine, luckScoreSliced, type LuckInput } from './luck'
 import { useFleetMatch } from './useFleetMatch'
-import { coord, describeShotIn, leftMatchLine, moveShip, resultMoves, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
+import { coord, coordLabel, describeShotIn, leftMatchLine, moveShip, resultMoves, rotateShip, shipAt, shotKindIn, unhitCells, viewWon } from './fleet-match'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 // Stormglass (internal id fleet), the dev page. Served at /dev/fleet on a dev server, and since promotion (F7) in the games list at /play/stormglass.
 // Design: plan/designs/new-games.md section 2. Phone first: their waters large, your waters a small map that never moves the page.
@@ -199,6 +200,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
   const hold = useMemo(holdMs, [])
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(() => (typeof window === 'undefined' ? undefined : seedFromUrl()))
   const game = useFleetMatch({ hold })
+  const nearMiss = useNearMiss(game.finished?.record)
   // Once a match is starting or running, every label names the match's own level (game.level), never the picker's.
   const shownLevel: Level = game.phase === 'setup' ? level : game.level
   const opponent = FLEET_LEVELS[shownLevel].name
@@ -488,6 +490,7 @@ export default function FleetPage({ forceUnrated = false }: { forceUnrated?: boo
       <ResultPanel
         result={result}
         humanSeat={0}
+        nearMiss={nearMiss}
         recordOk={game.finished ? game.finished.ok : true}
         upload={game.upload}
         unratedReason={game.unratedReason}

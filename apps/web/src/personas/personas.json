@@ -13,12 +13,12 @@
       "bio": "The club's newest member. Misses things, forgets to look again, and is delighted when you punish it.",
       "style": {
         "chess": "Picks moves like Lichess players in the lowest rating band, never from the unlikely long tail, so its slips are ordinary ones.",
-        "four": "Plays its learned policy with a little randomness and no look-ahead.",
+        "four": "Plays its learned policy with a little randomness and a very short look-ahead.",
         "holdem": "Calls often and raises cautiously.",
         "word": "Guesses any word that fits what it knows, and sometimes overlooks a clue.",
         "fighter": "Short strings, blocks late, never punishes.",
         "arena": "Walks open lanes and aims after you do.",
-        "fleet": "Fires at random and usually forgets to follow up a hit.",
+        "fleet": "Hunts every other square, but follows up a hit only some of the time.",
         "slack": "Grabs the most discs it can and loves a corner.",
         "penalty": "Has a favourite corner and sticks to it, mostly.",
         "puck": "Hand-written, not trained. Chases the puck and hits it back."
@@ -31,15 +31,15 @@
       "bio": "A regular who punishes the obvious and lets the subtle go. Steady, polite, never in a hurry.",
       "style": {
         "chess": "Picks moves like Lichess players in the middle rating band, drawing from the full spread of what they play, but skipping moves that hang material.",
-        "four": "Looks ahead with a short search before each move.",
+        "four": "Plays its learned policy with some randomness, and always takes a win or blocks a threat it can see coming.",
         "holdem": "Calls often and avoids going all in with weaker starting hands.",
         "word": "Guesses the most common word that fits every clue.",
         "fighter": "Anti-airs on reaction, drops long combos.",
         "arena": "Plays like Pip, but reacts faster and turns quicker.",
-        "fleet": "Hunts every other square, then works around a hit.",
-        "slack": "Knows which squares matter and looks at your reply.",
+        "fleet": "Hunts where ships fit best, but follows up a hit only about half the time.",
+        "slack": "Knows which squares matter and looks ahead a short way.",
         "penalty": "Dives where you last shot and shoots away from where you dive.",
-        "puck": "Plays Vesper's network with slower hands, so it sees the same table and reacts a little later and less sharply."
+        "puck": "A trained agent with its own network and slower hands: it reacts a little later and less sharply than Vesper."
       }
     },
     "hard": {

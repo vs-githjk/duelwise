@@ -27,6 +27,7 @@ export function LevelTable({ levels, realtime }: { levels: LevelSummary[]; realt
                     {measuredText(l.metric!, l.value!)} <span className="text-muted">({measuredText(l.metric!, l.ci95![0])} to {measuredText(l.metric!, l.ci95![1])}, {l.n} {/guess/i.test(l.metric!) ? 'words' : 'games'})</span>
                     <span className="block font-sans text-xs text-muted">{playerMetric(l.metric!)}</span>
                     {l.plain ? <span className="block font-sans text-xs text-ink" data-testid={`plain-${l.level}`}>{l.plain}</span> : null}
+                    {l.people ? <span className="block font-sans text-xs text-ink" data-testid={`people-${l.level}`}>{l.people}</span> : null}
                   </td>
                   {realtime ? null : <td className="block py-1 font-mono tabular sm:table-cell sm:py-2.5 sm:pr-3 sm:text-right" data-testid={`site-elo-${l.level}`}>{Math.round(l.siteElo!)}</td>}
                 </>

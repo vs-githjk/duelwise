@@ -1,0 +1,43 @@
+{
+  "name": "puck-league-b-medium",
+  "cmd": [
+    "scripts/py",
+    "-m",
+    "trainer.ppo.train_realtime",
+    "--game",
+    "puck",
+    "--stage",
+    "B",
+    "--level",
+    "medium",
+    "--steps",
+    "1000000000",
+    "--max-seconds",
+    "10500",
+    "--procs",
+    "2",
+    "--envs",
+    "128",
+    "--snapshot-every",
+    "2000000",
+    "--gate-every",
+    "10000000",
+    "--gate-games",
+    "64",
+    "--init",
+    "runs/puck-league-b-medium/init/vesper-hard-0112001024.pt",
+    "--frozen-dir",
+    "runs/puck-league-a/league/A",
+    "--people-bots",
+    "average,strong"
+  ],
+  "cpuSlots": 2,
+  "mps": false,
+  "maxHours": 3.0,
+  "after": [],
+  "resumeArg": "--resume",
+  "checkpointDir": "runs/puck-league-b-medium/ckpt/medium",
+  "milestones": {
+    "gatedLevels": "runs/puck-league-b-medium/levels/gated.json"
+  }
+}

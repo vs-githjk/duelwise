@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { LevelTable } from './LevelTable'
 import { summariseRegistry } from '../../server/stats'
 import type { Registry } from '@duelwise/agents/src/registry'
+import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 
 test('every unmeasured Coldstore level is labelled In training and keeps its own strength copy', () => {
   const registry = { game: 'arena', levels: {}, measured: {}, unpublished: {}, versions: [] } as unknown as Registry
@@ -19,6 +20,8 @@ test('level rows stack on narrow screens and show reactions in milliseconds', ()
   const registry = { game: 'arena', levels: {}, measured: {}, unpublished: {}, versions: [] } as unknown as Registry
   const html = renderToStaticMarkup(<LevelTable levels={summariseRegistry(registry).levels} realtime />)
   expect(html).toContain('sm:table-row')
-  expect(html).toContain('350 ms (21 frames)')
+  // A8 retune: Coldstore's Easy and Medium react after 24 frames; the table reads each level's limits from LEVEL_LIMITS.
+  const easy = LEVEL_LIMITS.arena.easy.delayFrames
+  expect(html).toContain(`${Math.round((easy * 1000) / 60)} ms (${easy} frames)`)
   expect(html).not.toContain('min-w-[22rem]')
 })

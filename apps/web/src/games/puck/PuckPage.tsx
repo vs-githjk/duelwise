@@ -9,6 +9,7 @@ import { HowToPlay } from '../../components/HowToPlay'
 import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { ResultPanel } from '../../components/ResultPanel'
+import { useNearMiss } from '../../lib/use-near-miss'
 import { playTrainingBullet, resultTrainingNote } from '../../lib/honest-copy'
 import { LEVELS, LEVEL_LABEL } from '../../lib/level-info'
 import { setPractice } from '../../lib/practice'
@@ -18,7 +19,7 @@ import { Avatar } from '../../personas/Avatar'
 import { personaFor } from '../../personas'
 import { MomentBanner, PuckHud, ServeBanner, ThumbStrip } from './hud'
 import { GoalPips } from './GoalPips'
-import { finishedLines, finishedPips, pillAnchor } from './moments'
+import { finishedPips, pillAnchor } from './moments'
 import { summaryLine } from './summary'
 import { PRACTICE_PICKER_NOTE, agentCard, agentVersionFor, isPublished, limitsText, resultReason } from './strength'
 import { usePuckMatch } from './usePuckMatch'
@@ -92,7 +93,7 @@ export default function PuckPage() {
   const training = match.preview || !published(match.level)
   const card = agentCard(registry, picked)
   const cardNow = agentCard(registry, match.level)
-  const { turning, nearMiss } = match.finished ? finishedLines(match.finished.record) : { turning: null, nearMiss: null }
+  const nearMiss = useNearMiss(match.finished?.record)
   const touch = match.pointer === 'touch'
   const goals = match.finished ? finishedPips(match.finished.record) : null
 
@@ -213,10 +214,9 @@ export default function PuckPage() {
                 onRematch={() => void begin(match.level)}
                 onChangeLevel={match.quit}
                 onPlayLevel={(l) => { setPicked(l); void begin(l) }}
+                nearMiss={nearMiss}
                 extra={
                   <>
-                    {nearMiss ? <p className="text-sm font-semibold text-ink" data-testid="puck-nearmiss">{nearMiss}</p> : null}
-                    {turning ? <p className="text-sm font-semibold text-ink" data-testid="puck-turning">{turning}</p> : null}
                     {goals && goals.label ? <GoalPips pips={goals.pips} label={goals.label} opponent={name} level={match.level} /> : null}
                     {match.summary ? (
                       <section aria-label="Match stats" data-testid="match-stats" className="grid gap-1 text-sm">

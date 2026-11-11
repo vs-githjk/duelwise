@@ -7,7 +7,7 @@ import { decodeRecord } from '@duelwise/core/src/match-record'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
 import * as schema from '../db/schema'
-import { inTrainingCopy } from '../lib/level-info'
+import { inTrainingCopy, peopleLine } from '../lib/level-info'
 import { strengthLine as fighterStrengthLine } from '../games/fighter/strength'
 import { strengthLine as arenaStrengthLine } from '../games/arena/strength'
 import { strengthLine as puckStrengthLine } from '../games/puck/strength'
@@ -224,6 +224,8 @@ export interface LevelSummary {
   siteElo?: number
   /** Realtime levels only: the plain measured sentence, shown instead of a chained site Elo. */
   plain?: string
+  /** D10: "Tuned to win about 7 in 10 against an average player in our tests." Only where the people block shows the band was hit, or a luck ceiling. */
+  people?: string
   metric?: string
   value?: number
   ci95?: [number, number]
@@ -332,6 +334,7 @@ export function summariseRegistry(reg: Registry | null): RegistrySummary {
       level,
       state: 'measured',
       ...(realtime ? { plain: reg.game === 'arena' ? arenaStrengthLine(reg, level) : reg.game === 'puck' ? puckStrengthLine(reg, level) : fighterStrengthLine(reg, level) } : { siteElo: m.siteElo }),
+      ...(peopleLine(m.people, reg.game) ? { people: peopleLine(m.people, reg.game) } : {}),
       metric: m.metric,
       value: m.value,
       ci95: m.ci95,

@@ -121,7 +121,7 @@ export function DriftPanel({ v }: { v: OwnerView }) {
           </li>
         ))}
       </ul>
-      <p className="text-sm text-muted">The bar is the 95 percent interval, the dark mark is this period, the grey tick is the target from the measured site Elo.</p>
+      <p className="text-sm text-muted">The bar is the 95 percent interval, the dark mark is this period, the grey tick is the target: the middle of the level's band (Pip 42 to 58 percent, Marlow 65 to 75, Vesper 80 to 90, Sable 93 and up), or the measured ceiling where luck caps a level.</p>
       {v.alerts.map((a) => (
         <DriftAlertBox key={a.level} a={a} />
       ))}

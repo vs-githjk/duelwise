@@ -1,4 +1,3 @@
-import { expected } from '@duelwise/core/src/elo'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import { personaFor } from '../personas'
 import type { TelemetryKind } from '../db/schema'
@@ -14,8 +13,6 @@ export const WHO_PLAYED_LIMIT = 20
 export const MIN_DRIFT_N = 20
 const LEVELS: readonly Level[] = ['easy', 'medium', 'hard', 'champion']
 const GAMES = Object.keys(PRODUCT.games) as GameId[]
-/** The rating a brand-new player starts with (apps/web/src/server/ratings.ts START_ELO). */
-const NEW_PLAYER_ELO = 1000
 const Z95 = 1.959964
 const BIN_MS = 120_000
 const BINS = 8
@@ -46,12 +43,22 @@ export function wilsonInterval(points: number, n: number, z = Z95): [number, num
   return [Math.max(0, (centre - margin) / denom), Math.min(1, (centre + margin) / denom)]
 }
 
+/** The part of a registry `people` block the drift panel reads. */
+export interface PeopleTarget {
+  band: { low: number; high: number }
+  calibrated: number
+  verdict: 'in-band' | 'below' | 'above' | 'ceiling'
+}
+
 /**
- * The score the AI should take against a typical new player, from the level's measured site Elo in
- * the registry (Elo expected score against a fresh 1000 rating). Null while the level is unmeasured.
+ * The score the AI should take against an ordinary player: the centre of the level's band (A9, D1: Pip 42 to 58, Marlow 65 to 75, Vesper 80 to 90, Sable 93 and up),
+ * so a level that is off its band shows as drift. A level whose honest ceiling sits below its band (luck caps what any play can win) is held to what was measured.
+ * Null while the level has no people block, so the panel says no target instead of inventing one.
  */
-export function humanTargetFromSiteElo(siteElo: number | null): number | null {
-  return siteElo === null ? null : expected(siteElo, NEW_PLAYER_ELO)
+export function humanTargetFromPeople(people: PeopleTarget | null | undefined): number | null {
+  if (!people) return null
+  if (people.verdict === 'ceiling') return people.calibrated
+  return (people.band.low + people.band.high) / 2
 }
 
 export interface OwnerViewInput {

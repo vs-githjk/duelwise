@@ -295,8 +295,9 @@ const mk = (delayFrames: number, apmCap: number | null, minHoldFrames: number, a
 export const UNLIMITED: LimiterConfig = { delayFrames: 0, apmCap: null, minHoldFrames: 0 }
 
 /**
- * Easy 300 ms (18 frames) 100 APM, Medium 250 ms (15) 160, Hard 200 ms (12) 240, Champion the
- * product's minimum delay and no cap. Aim limits are the arena's (T10 applies them). minHoldFrames is
+ * Baseline for the fighter's Champion and the arena's Champion (Easy 300 ms (18 frames) 100 APM, Medium 250 ms (15) 160,
+ * Hard 200 ms (12) 240 were the first ladder; the Nov 10 retune (A8) eased Tinderbox's and Coldstore's Easy and Medium
+ * below that, see LEVEL_LIMITS; both Hards stay on the first ladder because the eased trials broke their gates), Champion the product's minimum delay and no cap. Aim limits are the arena's (T10 applies them). minHoldFrames is
  * a builder choice (not in the plan): about 130, 100, 65 and 17 ms.
  */
 function levels(bits: boolean): Record<Level, LimiterConfig> {
@@ -321,7 +322,9 @@ const puckLevels = (): Record<Level, LimiterConfig> => ({
 })
 
 export const LEVEL_LIMITS: Record<'fighter' | 'arena' | 'puck', Record<Level, LimiterConfig>> = {
-  fighter: levels(false),
+  // Tinderbox's Hard keeps its published limits: the A8 trial that eased it (15 frames, 125 presses a minute) fell to the judge's throw loop (13 percent) and the other exploit bars Hard must clear, so A9 put it back.
+  fighter: { ...levels(false), easy: mk(18, 75, 8, 180, 6), medium: mk(18, 95, 7, 300, 3) },
   puck: puckLevels(),
-  arena: { ...levels(true), easy: mk(21, 100, 8, 165, 6, true), medium: mk(18, 160, 6, 220, 4, true) },
+  // Coldstore's Hard keeps its published limits too: with the A8 trial (120 presses a minute, aim 420 degrees a second, noise 2.5) it missed its 60 percent bar against the holder bot on seat 1 (lower bound 0.5931), so A9 put it back.
+  arena: { ...levels(true), easy: mk(24, 50, 10, 100, 10, true), medium: mk(24, 70, 7, 150, 7, true) },
 }

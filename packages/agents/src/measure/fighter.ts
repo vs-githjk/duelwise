@@ -1,3 +1,4 @@
+import { peopleGatedFor } from './a9-apply'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { ladderToElo } from '@duelwise/core/src/elo'
@@ -309,7 +310,15 @@ export interface PublishInput {
   trainedSteps: number
   /** Recorded into the gate block when given: the adjacent-level ladder pairs and anything a reader needs to interpret the Elo. */
   ladder?: unknown
+  /**
+   * Easy and Medium levels whose people test is in band: the ruling of Nov 10 18:52 has the people panel and the ladder decide them, so the scripted-bot
+   * bars do not publish or hold back the level (the rows are still measured and recorded, and the Levels rule still applies). Hard and Champion never get this.
+   */
+  peopleGated?: Partial<Record<Level, true>>
 }
+
+/** Only Easy and Medium may be gated by their people test instead of the scripted-bot bars (ruling Nov 10 18:52). */
+export const PEOPLE_GATED_LEVELS: readonly Level[] = ['easy', 'medium']
 
 /** What differs between the games' registries (the fighter's and the arena's share this builder). */
 export interface GameGate {
@@ -342,25 +351,28 @@ export function buildGameRegistry(g: GameGate, input: PublishInput): Registry {
     const rows = input.rows[level]
     const model = input.models[level]
     const verdict = rows ? (g.verdict ? g.verdict(level, rows) : gateLevel(level, rows, g.bars, g.perSeat === true, g.seatGames)) : null
+    // Only a level that misses its bars takes the exemption; one that clears them is published on them and carries no flag.
+    const exempt = verdict !== null && !verdict.passed && input.peopleGated?.[level] === true && PEOPLE_GATED_LEVELS.includes(level)
+    const passes = Boolean(verdict?.passed) || exempt
     const detail = rows?.map((r) => ({ bot: r.bot, wins: r.wins, draws: r.draws, losses: r.losses, score: round6(r.score), lower: round6(wilson(r.wins + 0.5 * r.draws, r.games)[0]), bar: g.bars[level][r.bot] ?? null, ...(r.bySeat ? { bySeat: { '0': seatDetail(r.bySeat['0']), '1': seatDetail(r.bySeat['1']) } } : {}) }))
-    ;(gate.levels as Record<string, unknown>)[level] = { bots: detail ?? null, source: model?.source ?? null, step: model?.step ?? null }
-    if (verdict?.passed && model && input.levelFailures?.[level]) {
+    ;(gate.levels as Record<string, unknown>)[level] = { bots: detail ?? null, source: model?.source ?? null, step: model?.step ?? null, ...(exempt ? { peopleGated: true } : {}) }
+    if (passes && model && input.levelFailures?.[level]) {
       unpublished[level] = input.levelFailures[level]!
-    } else if (verdict?.passed && model && input.gatedSnapshot[level]) {
+    } else if (passes && model && input.gatedSnapshot[level]) {
       const siteElo = input.elo[level]
       if (siteElo === undefined) throw new Error(`${level} passed the gate and is a gated snapshot but has no site Elo: it was not laddered by the Levels rule`)
       const name = model.artifact.split('/').pop()!
       artifacts[name] = model.artifact
       hashes[name] = sha256(model.absolute)
       levels[level] = { version: 'v1', config: { model: name, observation: model.obsFeatures === g.v2Features ? 'v2' : 'v1', obsFeatures: model.obsFeatures, sampling: 'policy samples' } }
-      const w = verdict.weakest
+      const w = verdict!.weakest
       const [lo, hi] = wilson(w.wins + 0.5 * w.draws, w.games)
       measured[level] = {
         metric: g.perSeat ? `score vs scripted ${w.bot} bot (weakest seat of the weakest gate bot)` : `score vs scripted ${w.bot} bot (weakest of the gate bots)`,
         value: round6(w.score),
         ci95: [round6(lo), round6(hi)],
         n: w.games,
-        opponents: level === 'champion' ? 'scripted bots that see the live game' : `scripted ${g.botNames} bots under the same limits and delayed view`,
+        opponents: level === 'champion' ? 'scripted bots that see the live game' : `scripted ${g.botNames} bots under the same limits and delayed view${exempt ? ' (recorded, not a publish bar: this level is gated by its people test and the ladder)' : ''}`,
         siteElo: round6(siteElo),
         measuredAt: input.now,
         harness: harnessRuntime(),
@@ -540,6 +552,7 @@ async function publishMain(argv: string[]): Promise<void> {
     levelFailures: fighterLevelFailures(trail, pairs),
     elo,
     gatedSnapshot: { easy: true, medium: true, hard: true, champion: true },
+    peopleGated: peopleGatedFor('fighter'),
     commit: execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(),
     now: new Date().toISOString(),
     trainedSteps: [...new Map(Object.values(meta).map((m) => [m.source, m.step])).values()].reduce((n, step) => n + step, 0),

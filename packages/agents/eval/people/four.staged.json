@@ -1,0 +1,38 @@
+{
+  "easy": {
+    "fromRun": "t4",
+    "override": {
+      "sims": 6
+    },
+    "config": {
+      "model": "easy.onnx",
+      "sims": 6,
+      "temperature": 0.15,
+      "snapshot": "snap-00001024",
+      "selfPlayGames": 1024
+    },
+    "verdict": "in-band",
+    "calibrated": 0.4826482793522267,
+    "panel": 0.44325,
+    "perSeat": 200
+  },
+  "medium": {
+    "fromRun": "t4",
+    "override": {
+      "sims": 0,
+      "temperature": 0.55
+    },
+    "config": {
+      "model": "medium.onnx",
+      "sims": 0,
+      "temperature": 0.55,
+      "tactics": true,
+      "snapshot": "snap-00003072",
+      "selfPlayGames": 3072
+    },
+    "verdict": "in-band",
+    "calibrated": 0.6942732793522267,
+    "panel": 0.654875,
+    "perSeat": 200
+  }
+}

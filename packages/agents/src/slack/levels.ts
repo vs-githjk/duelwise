@@ -41,7 +41,7 @@ const OPENING_NOISE = 30
 
 export const SLACK_LEVELS: Record<Level, SlackLevelConfig> = {
   easy: { kind: 'greedy', cornerBonus: 20, randomPercent: 20 },
-  medium: { kind: 'search', depth: 2, mobility: false, noise: 4 },
+  medium: { kind: 'search', depth: 3, mobility: false, noise: 4 },
   hard: { kind: 'search', depth: 4, mobility: true, noise: 2 },
   champion: { kind: 'search', depth: 6, mobility: true, noise: 1, openingNoise: { above: 50, noise: OPENING_NOISE }, exactEmpties: 8, nodeCap: 120_000 },
 }

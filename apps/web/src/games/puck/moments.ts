@@ -1,8 +1,7 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { GOALS_TO_WIN, PUCK_EVENTS } from '@duelwise/core/src/games/puck/constants'
-import { goalPips, goalTimelineLine, nearMissLine, puckTimeline, turningPointFor, type GoalPip } from '../../report/puck'
+import { goalPips, goalTimelineLine, puckTimeline, type GoalPip } from '../../report/puck'
 import { personaFor } from '../../personas'
-import { isCloseLoss } from '../../lib/says'
 import type { Layout } from './input'
 import type { PuckState } from '@duelwise/core/src/games/puck/state'
 
@@ -63,22 +62,6 @@ export function momentFor(s: PuckState, nextId: number, opponent = 'They'): Mome
   }
 }
 
-/** The line on the result that names where the match turned, replayed from the record only. Null when nothing is worth saying. */
-export function turningPointLine(record: MatchRecordV1): string | null {
-  return turningPointFor(record)
-}
-
-/**
- * For a loss that was near: "You took Sable to 5 to 7." Dropped for a one goal loss, because the coach line under the score already says
- * "One goal short against Sable" (lib/says.ts isCloseLoss); a sudden death line adds the extra fact, so it stays.
- */
-export function nearMissSummary(record: MatchRecordV1): string | null {
-  const covered = record.result.reason !== 'sudden' && isCloseLoss({ game: 'puck', result: record.result, humanSeat: record.humanSeat, humanMoves: 0 })
-  if (covered) return null
-  return nearMissLine(record, personaFor(record.agent.level).name)
-}
-
-const cache = new WeakMap<MatchRecordV1, { turning: string | null; nearMiss: string | null }>()
 const pipCache = new WeakMap<MatchRecordV1, { pips: GoalPip[]; label: string | null }>()
 
 /** The goal pips for the result screen and the sentence that labels them, replayed from the record once. Empty when no goal was counted. */
@@ -89,16 +72,6 @@ export function finishedPips(record: MatchRecordV1): { pips: GoalPip[]; label: s
     const events = puckTimeline(record)
     hit = { pips: goalPips(events, record.humanSeat, record.result.winner, opponent), label: goalTimelineLine(events, record.humanSeat, opponent) }
     pipCache.set(record, hit)
-  }
-  return hit
-}
-
-/** Both result lines for a finished record, computed once per record (the turning point replays the whole match, about 40 ms for a long one). */
-export function finishedLines(record: MatchRecordV1): { turning: string | null; nearMiss: string | null } {
-  let hit = cache.get(record)
-  if (!hit) {
-    hit = { turning: turningPointLine(record), nearMiss: nearMissSummary(record) }
-    cache.set(record, hit)
   }
   return hit
 }

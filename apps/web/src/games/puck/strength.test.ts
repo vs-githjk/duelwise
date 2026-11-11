@@ -124,3 +124,21 @@ describe('cards under the human-hands registry (Nov 10)', () => {
     expect(agentCard(reg, 'easy').why).toBeNull()
   })
 })
+
+describe('Glasscut strength line against the people line', () => {
+  const people = { band: { low: 0.42, high: 0.58 }, calibrated: 0.5, verdict: 'in-band' }
+  const mk = (peopleGated: boolean, withPeople: boolean, ci95: [number, number]): Registry =>
+    reg({
+      versions: [{ gate: { levels: { easy: peopleGated ? { peopleGated: true } : {} } } }] as never,
+      levels: { easy: { version: 'v1', config: {} } } as never,
+      measured: { easy: { ...measured, metric: 'score vs scripted striker bot (weakest seat of the weakest gate bot)', ci95, ...(withPeople ? { people } : {}) } } as never,
+    })
+  test('a level with a people line ends with real players; without one it keeps "people"', () => {
+    expect(strengthLine(mk(false, true, [0.62, 0.8]), 'easy')).toContain('rush bot; not yet measured against real players.')
+    expect(strengthLine(mk(false, false, [0.62, 0.8]), 'easy')).toContain('rush bot; not yet measured against people.')
+  })
+  test('a people-gated level names the bot it loses to', () => {
+    expect(strengthLine(mk(true, true, [0.3, 0.4]), 'easy')).toContain('It loses to the rush bot in most games; this level is set by the people test.')
+    expect(strengthLine(mk(false, true, [0.3, 0.4]), 'easy')).not.toContain('loses to')
+  })
+})

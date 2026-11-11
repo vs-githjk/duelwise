@@ -67,8 +67,8 @@ const CHAMPION_VARIETY = {
 
 /** Level configs: the same values are written into packages/agents/registry/four.json. */
 export const FOUR_LEVELS: Record<Level, FourLevelConfig> = {
-  easy: { model: 'easy.onnx', sims: 0, temperature: EASY_TEMPERATURE },
-  medium: { model: 'medium.onnx', sims: 24, temperature: 0.3, tactics: true },
+  easy: { model: 'easy.onnx', sims: 6, temperature: EASY_TEMPERATURE },
+  medium: { model: 'medium.onnx', sims: 0, temperature: 0.55, tactics: true },
   hard: { model: 'hard.onnx', sims: 120, temperature: 0.1, variety: VARIETY },
   // The site allows the Champion 1.5 s a move; 800 simulations fit that on an M2, and the cap is a safety net on slower devices.
   champion: { model: 'champion.onnx', base: '/agents/four/v2', sims: 800, temperature: 0, timeCapMs: 1400, variety: CHAMPION_VARIETY },
@@ -79,6 +79,8 @@ export interface FourAgentOpts extends AgentOpts {
   search?: { sims?: number; timeCapMs?: number | undefined }
   /** Model bytes given directly (tests); otherwise fetched or read from /agents/four/v1. */
   modelBytes?: Uint8Array
+  /** Replace parts of the level's config (the people-panel tuning tries settings this way; the shipped page never passes it). */
+  config?: Partial<FourLevelConfig>
 }
 
 /** Rebuilds the position from an observation (cells from the observer's view). Used only when the caller sends no state. */
@@ -117,7 +119,7 @@ function sample(priors: ArrayLike<number>, rng: Rng): number {
 const SOLVER_RESERVE_MS = 400
 
 export async function createGameAgent(level: Level, opts: FourAgentOpts = {}): Promise<PreviewAgent> {
-  const config = FOUR_LEVELS[level]
+  const config = { ...FOUR_LEVELS[level], ...opts.config }
   let bytes: Uint8Array
   try {
     bytes = opts.modelBytes ?? (await loadFourModel(config.model, config.base ?? MODEL_BASE))

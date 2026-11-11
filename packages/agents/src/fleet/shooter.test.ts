@@ -73,8 +73,8 @@ describe('fleet shooter', () => {
     }
   })
 
-  test('mean shots over 300 solo games sit near the simulated 71, 55, 49, 45 (within 3)', () => {
-    const want: Record<Level, number> = { easy: 71, medium: 55, hard: 49, champion: 45 }
+  test('mean shots over 300 solo games sit near 59, 52, 49, 44 (A9 retune, within 3)', () => {
+    const want: Record<Level, number> = { easy: 59, medium: 52, hard: 49, champion: 44 }
     for (const level of LEVELS) {
       let total = 0
       for (let g = 0; g < 300; g++) total += solo(level, randomFleet(makeRng(10000 + g)), 20000 + g)

@@ -1,0 +1,550 @@
+{
+  "game": "fighter",
+  "note": "A8 final measurements per level; each file is the measure script output, recomputable from its own parts. A9: Hard is the A4 measurement of the shipped Hard limits (the A8 trial that eased Hard lost to the exploit loops, see plan/retune/a9).",
+  "levels": {
+    "easy": {
+      "game": "fighter",
+      "level": "easy",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 0.62109375,
+            "ci95": [
+              0.560291797226888,
+              0.6783152374893218
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.46875,
+            "ci95": [
+              0.40853465012899953,
+              0.5298893409119787
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.32421875,
+            "ci95": [
+              0.2698445826497339,
+              0.38379036695576807
+            ],
+            "n": 256
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 256,
+            "wins": 159,
+            "draws": 0,
+            "losses": 97,
+            "bySeat": {
+              "0": 0.59375,
+              "1": 0.6484375
+            },
+            "byBot": {
+              "rushdown@beginner": 0.90625,
+              "turtle@beginner": 0.625,
+              "zoner@beginner": 0.34375,
+              "fireball@beginner": 0.609375
+            }
+          },
+          "average": {
+            "games": 256,
+            "wins": 120,
+            "draws": 0,
+            "losses": 136,
+            "bySeat": {
+              "0": 0.4609375,
+              "1": 0.4765625
+            },
+            "byBot": {
+              "rushdown@average": 0.6875,
+              "turtle@average": 0.4375,
+              "zoner@average": 0.21875,
+              "fireball@average": 0.53125
+            }
+          },
+          "strong": {
+            "games": 256,
+            "wins": 83,
+            "draws": 0,
+            "losses": 173,
+            "bySeat": {
+              "0": 0.328125,
+              "1": 0.3203125
+            },
+            "byBot": {
+              "rushdown@strong": 0.671875,
+              "turtle@strong": 0.1875,
+              "zoner@strong": 0.078125,
+              "fireball@strong": 0.359375
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.48828125,
+        "ci95": [
+          0.42767650949905883,
+          0.5492324871413081
+        ],
+        "n": 256
+      },
+      "estimate": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.62109375,
+            "ci95": [
+              0.560291797226888,
+              0.6783152374893218
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.46875,
+            "ci95": [
+              0.40853465012899953,
+              0.5298893409119787
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.32421875,
+            "ci95": [
+              0.2698445826497339,
+              0.38379036695576807
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.48554687499999993,
+        "ci95": [
+          0.44861875619187813,
+          0.5224749938081217
+        ],
+        "real": null,
+        "calibrated": 0.48554687499999993,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "medium": {
+      "game": "fighter",
+      "level": "medium",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 0.85546875,
+            "ci95": [
+              0.8071377776567531,
+              0.8932893242521209
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.71875,
+            "ci95": [
+              0.6607529774210059,
+              0.7702790852921473
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.5546875,
+            "ci95": [
+              0.4934438904946746,
+              0.6143141251836137
+            ],
+            "n": 256
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 256,
+            "wins": 219,
+            "draws": 0,
+            "losses": 37,
+            "bySeat": {
+              "0": 0.875,
+              "1": 0.8359375
+            },
+            "byBot": {
+              "rushdown@beginner": 0.984375,
+              "turtle@beginner": 0.90625,
+              "zoner@beginner": 0.734375,
+              "fireball@beginner": 0.796875
+            }
+          },
+          "average": {
+            "games": 256,
+            "wins": 184,
+            "draws": 0,
+            "losses": 72,
+            "bySeat": {
+              "0": 0.765625,
+              "1": 0.671875
+            },
+            "byBot": {
+              "rushdown@average": 0.859375,
+              "turtle@average": 0.703125,
+              "zoner@average": 0.5,
+              "fireball@average": 0.8125
+            }
+          },
+          "strong": {
+            "games": 256,
+            "wins": 142,
+            "draws": 0,
+            "losses": 114,
+            "bySeat": {
+              "0": 0.578125,
+              "1": 0.53125
+            },
+            "byBot": {
+              "rushdown@strong": 0.8125,
+              "turtle@strong": 0.390625,
+              "zoner@strong": 0.265625,
+              "fireball@strong": 0.75
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.5390625,
+        "ci95": [
+          0.4778736263981916,
+          0.5990963848005858
+        ],
+        "n": 256
+      },
+      "estimate": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.85546875,
+            "ci95": [
+              0.8071377776567531,
+              0.8932893242521209
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.71875,
+            "ci95": [
+              0.6607529774210059,
+              0.7702790852921473
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.5546875,
+            "ci95": [
+              0.4934438904946746,
+              0.6143141251836137
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.726953125,
+        "ci95": [
+          0.6943518802769444,
+          0.7595543697230556
+        ],
+        "real": null,
+        "calibrated": 0.726953125,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "hard": {
+      "game": "fighter",
+      "level": "hard",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.9921875,
+            "ci95": [
+              0.9719672314529922,
+              0.9978549096516027
+            ],
+            "n": 256
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 256,
+            "wins": 256,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rushdown@beginner": 1,
+              "turtle@beginner": 1,
+              "zoner@beginner": 1,
+              "fireball@beginner": 1
+            }
+          },
+          "average": {
+            "games": 256,
+            "wins": 256,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rushdown@average": 1,
+              "turtle@average": 1,
+              "zoner@average": 1,
+              "fireball@average": 1
+            }
+          },
+          "strong": {
+            "games": 256,
+            "wins": 254,
+            "draws": 0,
+            "losses": 2,
+            "bySeat": {
+              "0": 1,
+              "1": 0.984375
+            },
+            "byBot": {
+              "rushdown@strong": 0.96875,
+              "turtle@strong": 1,
+              "zoner@strong": 1,
+              "fireball@strong": 1
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 0.98828125,
+        "ci95": [
+          0.9661184270766886,
+          0.9960067129080287
+        ],
+        "n": 256
+      },
+      "estimate": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.9921875,
+            "ci95": [
+              0.9719672314529922,
+              0.9978549096516027
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.9984375000000001,
+        "ci95": [
+          0.9934096252678288,
+          1
+        ],
+        "real": null,
+        "calibrated": 0.9984375000000001,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
+    },
+    "champion": {
+      "game": "fighter",
+      "level": "champion",
+      "ckpt": "/Users/vidyutsriram/projects/beatme/runs/fighter-league-b6/gated/champion/snap-champion-0196034560.pt",
+      "panel": {
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          }
+        },
+        "tallies": {
+          "beginner": {
+            "games": 256,
+            "wins": 256,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rushdown@beginner": 1,
+              "turtle@beginner": 1,
+              "zoner@beginner": 1,
+              "fireball@beginner": 1
+            }
+          },
+          "average": {
+            "games": 256,
+            "wins": 256,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rushdown@average": 1,
+              "turtle@average": 1,
+              "zoner@average": 1,
+              "fireball@average": 1
+            }
+          },
+          "strong": {
+            "games": 256,
+            "wins": 256,
+            "draws": 0,
+            "losses": 0,
+            "bySeat": {
+              "0": 1,
+              "1": 1
+            },
+            "byBot": {
+              "rushdown@strong": 1,
+              "turtle@strong": 1,
+              "zoner@strong": 1,
+              "fireball@strong": 1
+            }
+          }
+        }
+      },
+      "gateStyle": {
+        "value": 1,
+        "ci95": [
+          0.9852161433443503,
+          1
+        ],
+        "n": 256
+      },
+      "estimate": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 1,
+        "ci95": [
+          0.9954433093507014,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
+    }
+  }
+}

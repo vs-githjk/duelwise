@@ -5,6 +5,7 @@ import type { PuckBotKind } from '@duelwise/core/src/games/puck/bots'
 import { observe, stepState } from '@duelwise/core/src/games/puck/core'
 import { HARD_CAP_FRAMES, LEVEL_MALLET, MALLET_R, NO_INPUT, PHASE, PUCK_EVENTS, RULE_MALLET_SPEED } from '@duelwise/core/src/games/puck/constants'
 import { zoneYHi, zoneYLo } from '@duelwise/core/src/games/puck/physics'
+import { peopleHands, peopleHandsLevel, type PeopleProfile } from '@duelwise/core/src/games/puck/seat-hands'
 import { createState } from '@duelwise/core/src/games/puck/state'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import type { Level } from '@duelwise/core/src/product'
@@ -42,12 +43,20 @@ export type SeatSpec =
  * 'human' is what the person in the browser gets: the rule mallet (speed 6, default acceleration, seat limits null), with the cleanest
  * hands of any level (Champion's target noise and minimum hold), so the bot is no clumsier than a good person at a mouse.
  */
-export type BotHands = 'level' | 'human'
+export type BotHands = 'level' | 'human' | PeopleProfile
 
-/** A scripted bot at a level's hands (or on human hands); `delay` frames behind the live game (0 sees it live). */
-export const botSpec = (kind: PuckBotKind, level: Level, delay?: number, hands?: BotHands): SeatSpec => ({ type: 'bot', kind, level, delay: delay ?? LEVEL_LIMITS.puck[level].delayFrames, ...(hands === 'human' ? { hands } : {}) })
+/** The people profile a hands mode stands for ('human' is the strong profile, today's human-hands mode), or null for the level's own hands. */
+export const profileOf = (hands: BotHands | undefined): PeopleProfile | null => (hands === undefined || hands === 'level' ? null : hands === 'human' ? 'strong' : hands)
+/**
+ * A scripted bot at a level's hands, or on people's hands (human = strong, or a beginner, average or strong profile: rule mallet, that profile's
+ * noise and hold); `delay` frames behind the live game (0 sees it live; on a profile it defaults to the profile's own reaction time).
+ */
+export const botSpec = (kind: PuckBotKind, level: Level, delay?: number, hands?: BotHands): SeatSpec => {
+  const profile = profileOf(hands)
+  return { type: 'bot', kind, level, delay: delay ?? (profile ? peopleHands(profile).delayFrames : LEVEL_LIMITS.puck[level].delayFrames), ...(profile ? { hands } : {}) } as SeatSpec
+}
 /** The mallet limits a seat plays under in the sim: null is the rule mallet. */
-const malletOf = (spec: SeatSpec) => (spec.type === 'bot' && spec.hands === 'human' ? null : LEVEL_MALLET[spec.level])
+const malletOf = (spec: SeatSpec) => (spec.type === 'bot' && profileOf(spec.hands) ? null : LEVEL_MALLET[spec.level])
 /** Pip, the scripted Easy opponent: a bot with its own level hands. */
 export const pipSpec = (): SeatSpec => botSpec('pip', 'easy')
 /** `maskScore` hides the score from the network (its two score features read 0 to 0): the twin used as claim C2's control. */
@@ -137,7 +146,7 @@ async function makeAgent(spec: SeatSpec, seat: 0 | 1, rec: SeatRecord): Promise<
     return { agent, lag: new ReplyLag(spec.lag), isNet: true, maskScore: spec.maskScore === true }
   }
   const delay = spec.delay
-  const agent = await createBotAgent(spec.kind, spec.hands === 'human' ? 'champion' : spec.level, {
+  const agent = await createBotAgent(spec.kind, profileOf(spec.hands) ? peopleHandsLevel(profileOf(spec.hands)!) : spec.level, {
     seat,
     delayFrames: spec.delay,
     onView: (frame, viewFrame) => {

@@ -21,6 +21,7 @@ import {
 } from './input'
 import { useArenaMatch } from './useArenaMatch'
 import { PRACTICE_PICKER_NOTE, agentVersionFor, count, isPublished, limitsSentence, limitsText, strengthLine } from './strength'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 // Eager glob: a missing registry file is an empty object, not a build error; every level is then a preview.
 const found = import.meta.glob('../../../../../packages/agents/registry/arena.json', { eager: true, import: 'default' })
@@ -209,6 +210,7 @@ function SettingsPanel({ settings, onChange, onClose }: { settings: ArenaSetting
 
 export default function ArenaPage() {
   const match = useArenaMatch((level) => agentVersionFor(sourceRegistry, level), registry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [screen, setScreen] = useState<'prematch' | 'match'>('prematch')
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [panel, setPanel] = useState<'controls' | 'settings' | null>(null)
@@ -461,6 +463,7 @@ export default function ArenaPage() {
                   }
                   upload={match.upload}
                   unratedReason={match.unratedReason}
+                  nearMiss={nearMiss}
                   recordOk={match.finished?.ok}
                   note={resultTrainingNote('arena', registry, PRODUCT.trainingDataBasis === 'legitimate-interest')}
                 />

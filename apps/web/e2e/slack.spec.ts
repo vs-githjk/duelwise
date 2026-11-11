@@ -206,7 +206,9 @@ async function startAt(page: Page, vw: number, vh: number, opts: { level?: RegEx
   await page.goto(`${URL}?seed=3${opts.query ?? ''}`)
   await expect(page.getByTestId('slack-setup')).toBeVisible()
   if (opts.practice) await page.locator('[data-mode-option="practice"]').click()
-  await page.getByTestId('level-picker').getByRole('radio', { name: opts.level ?? /Pip/ }).check({ force: true })
+  // The level cards carry a line about what the people tests show (A9), so on a short laptop the second card can sit below the fold. The radio is a
+  // 1 px screen-reader input that Playwright cannot scroll to, so the card itself is clicked (it scrolls into view first).
+  await page.getByTestId('level-picker').locator('label[data-persona]', { hasText: opts.level ?? /Pip/ }).click()
   await page.getByTestId('slack-start').click()
   await expect(page.getByTestId('slack-board')).toBeVisible()
 }

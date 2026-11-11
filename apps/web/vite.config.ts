@@ -11,6 +11,7 @@ import { webPort } from './port.ts'
 import { PRODUCT } from '@duelwise/core/src/product'
 import { randomBytes } from 'node:crypto'
 import { writeServiceWorker } from './scripts/sw-precache.ts'
+import { trimRegistryPeople } from './registry-trim.ts'
 
 // /agents/<game>/<version> for every folder under public/agents. Nitro allows one wildcard per pattern, so a
 // '/agents/*/*/**' rule is impossible, and '/agents/**' would also cache the SSR pages /agents/<slug>.
@@ -61,6 +62,20 @@ function serviceWorker(): Plugin {
   }
 }
 
+// A registry file's `people` block (A9) carries the test players' numbers and descriptions: about 6 KB gzip across the ten games, and the landing page
+// bundles every registry. Pages only need the band, the calibrated score and the verdict to word a level card, so the browser's copy of each registry
+// file keeps just those (registry-trim.ts; the server build and the tests read the file whole). The landing JS budget is 200 KB gzip.
+function trimRegistryPeopleForBrowser(): Plugin {
+  return {
+    name: 'duelwise-trim-registry-people',
+    enforce: 'pre',
+    transform(code, id, options) {
+      if (options?.ssr || !/packages[\\/]agents[\\/]registry[\\/][^\\/]+\.json$/.test(id.split('?')[0]!)) return null
+      return { code: trimRegistryPeople(code), map: null }
+    },
+  }
+}
+
 // Headers every response carries: no framing (clickjacking), no MIME sniffing, no full referrer sent off-site.
 const SECURITY_HEADERS = {
   'x-frame-options': 'DENY',
@@ -77,7 +92,7 @@ export default defineConfig({
   preview: { port: webPort(), strictPort: true },
   worker: { format: 'es' },
   // Order follows the TanStack Start hosting guide: start, then nitro, then react.
-  plugins: [devModelFiles(join(import.meta.dirname, 'public')), serviceWorker(), tailwindcss(), tanstackStart(), nitro({
+  plugins: [devModelFiles(join(import.meta.dirname, 'public')), trimRegistryPeopleForBrowser(), serviceWorker(), tailwindcss(), tanstackStart(), nitro({
       // The PNG share card loads resvg's wasm from here when the server bundle has no node_modules (report-card.ts).
       publicAssets: [{ dir: resvgPublicDir(), baseURL: '/_resvg', maxAge: 604800 }],
       // Only the model folders (/agents/<game>/<version>/...) are static; the SSR pages /agents/<slug> carry the viewer's name and must not be cached.
