@@ -715,7 +715,52 @@
       "siteElo": 1000,
       "measuredAt": "2026-10-30T03:59:56.800Z",
       "harness": "bun",
-      "commit": "61fe89c"
+      "commit": "61fe89c",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.7175,
+            "ci95": [
+              0.6714724239395247,
+              0.7593897279603997
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 0.705,
+            "ci95": [
+              0.6585289506163026,
+              0.747571008645695
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 0.6975,
+            "ci95": [
+              0.6507820074415556,
+              0.7404606362376861
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.7072499999999999,
+        "ci95": [
+          0.6798663233193363,
+          0.7346336766806636
+        ],
+        "real": null,
+        "calibrated": 0.7072499999999999,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+          "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+          "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+        }
+      }
     },
     "medium": {
       "metric": "score vs easy",
@@ -729,7 +774,52 @@
       "siteElo": 1787.612797,
       "measuredAt": "2026-10-30T03:59:56.800Z",
       "harness": "bun",
-      "commit": "61fe89c"
+      "commit": "61fe89c",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.98875,
+            "ci95": [
+              0.9728126483446538,
+              0.9953890837982797
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 0.99125,
+            "ci95": [
+              0.9763623693263211,
+              0.9967918013441976
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 0.99375,
+            "ci95": [
+              0.9800455737968814,
+              0.9980610354012228
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.9909999999999999,
+        "ci95": [
+          0.9846126044662706,
+          0.9973873955337291
+        ],
+        "real": null,
+        "calibrated": 0.9909999999999999,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+          "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+          "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+        }
+      }
     },
     "hard": {
       "metric": "score vs medium",
@@ -743,7 +833,52 @@
       "siteElo": 2225.616036,
       "measuredAt": "2026-10-30T03:59:56.800Z",
       "harness": "bun",
-      "commit": "61fe89c"
+      "commit": "61fe89c",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.995,
+            "ci95": [
+              0.981955081404273,
+              0.9986277470576238
+            ],
+            "n": 400
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9904877055170674,
+              1
+            ],
+            "n": 400
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9904877055170674,
+              1
+            ],
+            "n": 400
+          }
+        },
+        "estimate": 0.9984999999999999,
+        "ci95": [
+          0.9949202553640424,
+          1
+        ],
+        "real": null,
+        "calibrated": 0.9984999999999999,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+          "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+          "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+        }
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -757,7 +892,52 @@
       "siteElo": 2436.134841,
       "measuredAt": "2026-10-30T03:59:56.800Z",
       "harness": "bun",
-      "commit": "61fe89c"
+      "commit": "61fe89c",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.8388748398148704,
+              1
+            ],
+            "n": 20
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.8388748398148704,
+              1
+            ],
+            "n": 20
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.8388748398148704,
+              1
+            ],
+            "n": 20
+          }
+        },
+        "estimate": 1,
+        "ci95": [
+          0.9503378903162084,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+          "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+          "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+        }
+      }
     }
   },
   "unpublished": {},

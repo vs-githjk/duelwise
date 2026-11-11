@@ -12,6 +12,8 @@ import { calledFor, keepCall, noteCleared, readPath, usePath } from '../lib/prog
 import { sayLine } from '../lib/says'
 import { marginOf, type ShareFacts } from '../lib/share'
 import { Ladder, ShareBlock, SaysBox } from './ResultExtras'
+import { NearMissStrip } from './NearMiss'
+import { showsNearMiss, type NearMiss } from '../report/near-miss'
 import { cancelSpeech, readVoicePref, speakLine, speechSupported, voiceActive, writeVoicePref } from '../lib/speech'
 import { isMuted } from '../lib/audio'
 import { PRACTICE_RESULT } from '../lib/practice'
@@ -62,6 +64,8 @@ export interface ResultPanelProps {
   note?: ReactNode
   /** A game's own reveal at the end (Word Duel's hidden word), shown right under the outcome. */
   reveal?: ReactNode
+  /** After a close loss (or a narrow win): where it turned and how near it got, from the replayed record (useNearMiss). Drawn under the verdict, above the actions. */
+  nearMiss?: NearMiss | null
   /** Extra content between the note and the actions (a game's replay highlights). */
   extra?: ReactNode
   /** Starts a match at another level (the next stop on the path). Without it the panel offers "Change level" instead. */
@@ -87,7 +91,7 @@ export interface ResultPanelProps {
  * End-of-match panel: outcome in the display face, the game's own reason, an optional rating change,
  * and rematch and change-level actions. A dialog-like region that takes focus when it appears.
  */
-export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, keepPlace = false, className }: ResultPanelProps) {
+export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: eloProp, provisional: provProp, upload, unratedReason, recordOk = true, note, reveal, extra, nearMiss, onPlayLevel, levels, moves = 0, shortBy, leaderboard = true, leftAfter = null, buyIns = 0, keepPlace = false, className }: ResultPanelProps) {
   const left = leftAfter !== null
   const outcome = outcomeFor(result, humanSeat)
   const { level, game, practice = false } = useOpponent()
@@ -277,6 +281,7 @@ export function ResultPanel({ result, humanSeat, onRematch, onChangeLevel, elo: 
         </h2>
         {level && persona ? <span className="sr-only" data-testid="result-persona">{`You played ${persona.name} (${LEVEL_LABEL[level]}).`}</span> : null}
         <div className="grid gap-1.5">{resultFacts}</div>
+        {!left && showsNearMiss(nearMiss) ? <NearMissStrip nearMiss={nearMiss} outcome={outcome} /> : null}
       </div>
       <div className="result-main grid content-start gap-3">
         <div className="flex flex-wrap items-center gap-2" data-testid="result-actions">

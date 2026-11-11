@@ -4,19 +4,28 @@ import { PRODUCT } from './product'
 import { makeRng } from './rng'
 
 describe('LEVEL_LIMITS', () => {
-  test('fighter and arena values equal the plan constants', () => {
+  test('fighter and arena values are the Nov 10 retune (A8) limits, eased by the people panel; Champion stays uncapped', () => {
+    const F = LEVEL_LIMITS.fighter
+    expect([F.easy.delayFrames, F.easy.apmCap, F.easy.minHoldFrames]).toEqual([18, 75, 8])
+    expect([F.medium.delayFrames, F.medium.apmCap, F.medium.minHoldFrames]).toEqual([18, 95, 7])
+    // Tinderbox's Hard is the first-ladder value again (A9): the eased trial lost to the judge's throw loop.
+    expect([F.hard.delayFrames, F.hard.apmCap, F.hard.minHoldFrames]).toEqual([12, 240, 4])
+    const A = LEVEL_LIMITS.arena
+    expect([A.easy.delayFrames, A.easy.apmCap, A.easy.minHoldFrames, A.easy.aimRateDegPerSec, A.easy.aimNoiseDeg]).toEqual([24, 50, 10, 100, 10])
+    expect([A.medium.delayFrames, A.medium.apmCap, A.medium.minHoldFrames, A.medium.aimRateDegPerSec, A.medium.aimNoiseDeg]).toEqual([24, 70, 7, 150, 7])
+    // Coldstore's Hard is the first-ladder value again (A9): the eased trial missed its bar against the holder bot.
+    expect([A.hard.delayFrames, A.hard.apmCap, A.hard.minHoldFrames, A.hard.aimRateDegPerSec, A.hard.aimNoiseDeg]).toEqual([12, 240, 4, 540, 1.5])
     for (const game of ['fighter', 'arena'] as const) {
       const L = LEVEL_LIMITS[game]
-      expect([L.easy.delayFrames, L.easy.apmCap]).toEqual([game === 'arena' ? 21 : 18, 100])
-      expect([L.medium.delayFrames, L.medium.apmCap]).toEqual([game === 'arena' ? 18 : 15, 160])
-      expect([L.hard.delayFrames, L.hard.apmCap]).toEqual([12, 240])
       expect(L.champion.apmCap).toBeNull()
+      // The ladder stays ordered: each level up reacts no slower, presses no slower and holds no longer than the one below.
+      for (const [lo, hi] of [['easy', 'medium'], ['medium', 'hard']] as const) {
+        expect(L[hi].delayFrames).toBeLessThanOrEqual(L[lo].delayFrames)
+        expect(L[hi].apmCap!).toBeGreaterThan(L[lo].apmCap!)
+        expect(L[hi].minHoldFrames).toBeLessThanOrEqual(L[lo].minHoldFrames)
+      }
     }
-    const A = LEVEL_LIMITS.arena
-    expect([A.easy.aimRateDegPerSec, A.easy.aimNoiseDeg]).toEqual([165, 6])
-    expect([A.medium.aimRateDegPerSec, A.medium.aimNoiseDeg]).toEqual([220, 4])
-    expect([A.hard.aimRateDegPerSec, A.hard.aimNoiseDeg]).toEqual([540, 1.5])
-    expect(A.champion.aimRateDegPerSec).toBeNull()
+    expect(LEVEL_LIMITS.arena.champion.aimRateDegPerSec).toBeNull()
   })
 
   test('Champion delay equals PRODUCT.championMinDelayFrames, inside the locked range', () => {
@@ -137,15 +146,16 @@ describe('HumanLimiter.aim', () => {
   })
 
   test('a turn is clamped to the level rate: per frame, rate / 60 degrees (8192 units per turn)', () => {
-    // Easy 165 deg/s = 2.75 deg/frame = 63 units; noise is on, so check the bound with the noise bound added.
-    const noiseUnits = (6 * 8192) / 360
+    // Easy 100 deg/s = 1.67 deg/frame = 37 units; noise is on, so check the bound with the noise bound added.
+    const cap = Math.floor((LEVEL_LIMITS.arena.easy.aimRateDegPerSec! / 60) * (8192 / 360))
+    const noiseUnits = (LEVEL_LIMITS.arena.easy.aimNoiseDeg! * 8192) / 360
     const l = lim('easy')
     for (let i = 0; i < 200; i++) {
       const [y, p] = l.aim(255, -127, 4)
-      expect(y).toBeLessThanOrEqual(63 + Math.ceil(noiseUnits / 4) + 1)
-      expect(y).toBeGreaterThanOrEqual(63 - Math.ceil(noiseUnits / 4) - 1)
-      expect(p).toBeLessThan(0)
-      expect(Math.abs(p)).toBeLessThanOrEqual(63 + Math.ceil(noiseUnits / 4) + 1)
+      expect(y).toBeLessThanOrEqual(cap + Math.ceil(noiseUnits / 4) + 1)
+      expect(y).toBeGreaterThanOrEqual(cap - Math.ceil(noiseUnits / 4) - 1)
+      expect(p).toBeLessThanOrEqual(-cap + Math.ceil(noiseUnits / 4) + 1)
+      expect(Math.abs(p)).toBeLessThanOrEqual(cap + Math.ceil(noiseUnits / 4) + 1)
     }
     // Small turns below the cap keep their size apart from noise scaled by the fraction of the cap.
     const small = new HumanLimiter({ delayFrames: 0, apmCap: null, minHoldFrames: 0, aimRateDegPerSec: 180, aimNoiseDeg: 0 }, makeRng(1))
@@ -158,13 +168,13 @@ describe('HumanLimiter.aim', () => {
     for (let i = 0; i < 50; i++) expect(l.aim(0, 0, 4)).toEqual([0, 0])
     const run = (seed: number) => {
       const x = lim('easy', seed)
-      return Array.from({ length: 50 }, () => x.aim(40, 0, 4)[0])
+      return Array.from({ length: 50 }, () => x.aim(20, 0, 4)[0])
     }
     expect(run(3)).toEqual(run(3))
     expect(run(3)).not.toEqual(run(4))
     const v = run(5)
     const mean = v.reduce((a, b) => a + b, 0) / v.length
-    expect(Math.abs(mean - 40)).toBeLessThan(3)
+    expect(Math.abs(mean - 20)).toBeLessThan(3)
   })
 
   test('faster levels allow faster turns', () => {

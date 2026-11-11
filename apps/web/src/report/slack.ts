@@ -2,6 +2,7 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { CELLS, PASS, SIZE, flipsFor, slackCore, type SlackState } from '@duelwise/core/src/games/slack/core'
 import type { Moment, Series, SlackView } from './types'
 import { walk } from './walk'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 
 // Crosscurrent report. Built only from the stored record: every placement is replayed through the core, so each number below
 // (flips, corners, passes, the disc lead after each move) comes from the board, never from a guess about who played well.
@@ -176,4 +177,75 @@ export function slackReport(rec: MatchRecordV1, sentence: string, opponent: stri
     view,
     note: 'The chart counts discs only. Until the last moves a side with fewer discs can still be better placed, because corners and edges matter more than the count.',
   }
+}
+
+/** A lost Crosscurrent is called close when the final count was within this many discs. */
+export const CLOSE_MARGIN = 6
+/** With no corner given away, the opponent's biggest single turn is only named when it flipped at least this many discs. */
+export const SWING_FLIPS = 6
+
+/**
+ * The near miss of a lost game, replayed placement by placement. The turning point is, in order: the player's placement after which the
+ * opponent could newly reach a corner and took it next (the latest such, the biggest flip first), else the opponent's biggest single turn
+ * when it flipped at least SWING_FLIPS discs. Close means the final count was within CLOSE_MARGIN discs.
+ */
+export function slackNearMiss(rec: MatchRecordV1, opponent: string): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const steps = walk<SlackState, number>(rec)
+  if (steps.length === 0 || !slackCore.terminal(steps.at(-1)!.after)) return null
+  const me = rec.humanSeat
+  const mineValue = (me + 1) as 1 | 2
+  const theirValue = (2 - me) as 1 | 2
+  const count = (cells: number[], v: number): number => cells.filter((c) => c === v).length
+  const last = steps.at(-1)!.after.cells
+  const youDiscs = count(last, mineValue)
+  const themDiscs = count(last, theirValue)
+  const short = themDiscs - youDiscs
+  if (short <= 0 || short > CLOSE_MARGIN) return NOT_CLOSE
+
+  let bestLead = 0
+  let corners = 0
+  let gift: { cell: number; corner: number; n: number; flips: number } | null = null
+  let swing: { cell: number; flips: number } | null = null
+  let n = 0
+  steps.forEach((st, i) => {
+    const { seat, action } = st.moves[0]!
+    if (action === PASS) return
+    n++
+    const lead = count(st.after.cells, mineValue) - count(st.after.cells, theirValue)
+    if (lead > bestLead) bestLead = lead
+    if (seat === me && CORNER_CELLS.includes(action as (typeof CORNER_CELLS)[number])) corners++
+    if (seat === me) {
+      // A corner the opponent could not reach before this placement and can now, and takes on the very next move.
+      const reply = steps[i + 1]?.moves[0]
+      if (reply && reply.seat !== me && reply.action !== PASS && CORNER_CELLS.includes(reply.action as (typeof CORNER_CELLS)[number])) {
+        const reachedBefore = flipsFor(st.before.cells, theirValue, reply.action).length > 0
+        const flips = flipsFor(st.after.cells, theirValue, reply.action).length
+        if (!reachedBefore && flips > 0 && (!gift || flips >= gift.flips)) gift = { cell: action, corner: reply.action, n, flips }
+      }
+    } else {
+      const flips = flipsFor(st.before.cells, theirValue, action).length
+      if (flips >= SWING_FLIPS && (!swing || flips > swing.flips)) swing = { cell: action, flips }
+    }
+  })
+  const g = gift as null | { cell: number; corner: number; n: number; flips: number }
+  const w = swing as null | { cell: number; flips: number }
+  const turning = g
+    ? `Placing at ${cellName(g.cell)} let ${opponent} take the ${cellName(g.corner)} corner on the next move.`
+    : w
+      ? `${opponent} flipped ${w.flips} of your discs by placing at ${cellName(w.cell)}.`
+      : null
+  const publicTurning = g ? turning : w ? `${opponent} flipped ${w.flips} of the player's discs by placing at ${cellName(w.cell)}.` : null
+  const discs = (k: number): string => plural(k, 'disc', 'discs')
+  return nearMiss(true, {
+    turning,
+    publicTurning,
+    line: `You finished ${discs(short)} short.`,
+    publicLine: `The player finished ${discs(short)} short.`,
+    stats: [
+      { label: short === 1 ? 'Disc short' : 'Discs short', value: short },
+      { label: corners === 1 ? 'Corner taken' : 'Corners taken', value: corners },
+      ...(bestLead > 0 ? [{ label: 'Best disc lead', value: bestLead }] : []),
+    ],
+  })
 }

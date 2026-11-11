@@ -8,7 +8,8 @@ import { agentInputLagFor, MAX_HEALTH } from './constants'
 import { buildObs, fighterEncoder, fillObs, FIGHTER_FEATURES, type FighterObs } from './encode'
 import { N_BUTTONS, N_DIRS, mirrorDir } from './input'
 import { stepPacked } from './core'
-import { createBot, FIGHTER_BOT_KINDS, type FighterBot } from './bots'
+import { createBot, FIGHTER_BOT_KINDS, withMistakes, type FighterBot } from './bots'
+import { decodePeopleSentinel, FIGHTER_PEOPLE_LIMITS, PEOPLE_DELAY_FRAMES, PEOPLE_MISTAKE_RATE, type PeopleProfile } from '../../people-hands'
 import { PHASE, copyState, createState, type FighterState } from './state'
 
 // Fighter training env for the bridge (T7).
@@ -27,6 +28,9 @@ import { PHASE, copyState, createState, type FighterState } from './state'
 // mix bots into its opponent pool per env without a second bridge process. With a level below
 // Champion, bots read the same delayFrames-late state an agent gets (R15, fair bots) and the level's
 // APM cap and minimum hold filter what they press; at Champion (and with no level) they see the live game.
+// People bots (Nov 10 retune, A4): a sentinel of -1 - (16 * (profile + 1) + kind) plays that scripted bot with a person's hands (people-hands.ts:
+// the profile's reaction delay on its own delayed view at every level, its input cap and hold, and a wrong-input rate) instead of the level's.
+// The seat takes them at its first decision of the episode. Plain sentinels (below 16) are untouched.
 // With a level, both seats get that level's HumanLimiter: delayed observations (exactly
 // delayFrames late), and the APM cap and minimum hold on the input.
 // Observation v2 (R15): after the delayed view the seat's OWN input state is appended, undelayed,
@@ -82,6 +86,8 @@ interface Seat {
   prevPacked: number
   bots: Array<FighterBot | undefined>
   botSeed: number
+  /** Set once a people sentinel takes the seat over this episode: the bot, its own delayed view and its reaction delay. */
+  people?: { bot: FighterBot; hist: DelayedStates<FighterState>; delay: number }
 }
 
 class FighterEnv implements BridgeEnv {
@@ -132,6 +138,8 @@ class FighterEnv implements BridgeEnv {
    */
   private anchorViews(i: number): void {
     this.anchors[i] = this.states[i]!.frame
+    for (const seat of this.seats[i]!) seat.people?.hist.clear()
+    this.capturePeople(i, true)
     if (!this.level) return
     for (const seat of this.seats[i]!) seat.limiter.clearViews()
     this.history[i]?.clear()
@@ -140,6 +148,7 @@ class FighterEnv implements BridgeEnv {
 
   /** Records the views the limiters will be asked for later. Only frames congruent to -delay mod FRAME_SKIP are needed. */
   private capture(i: number, force: boolean): void {
+    this.capturePeople(i, force)
     if (!this.level) return
     const s = this.states[i]!
     if (!force && (s.frame - this.anchors[i]! + this.delay) % FRAME_SKIP !== 0) return
@@ -148,6 +157,27 @@ class FighterEnv implements BridgeEnv {
       this.seats[i]![k]!.limiter.record(this.tmp, s.frame)
     }
     this.history[i]?.record(s.frame, s)
+  }
+
+  /** Records the states a people bot will read later: its own delay, so its own grid of frames. */
+  private capturePeople(i: number, force: boolean): void {
+    const s = this.states[i]!
+    for (const seat of this.seats[i]!) {
+      const p = seat.people
+      if (p && (force || (s.frame - this.anchors[i]! + p.delay) % FRAME_SKIP === 0)) p.hist.record(s.frame, s)
+    }
+  }
+
+  /** Hands the seat to a scripted bot on a people profile: the profile's input cap and hold, its own delayed view, its slips. */
+  private takeOver(i: number, seat: Seat, profile: PeopleProfile, kind: number, s: FighterState) {
+    const delay = PEOPLE_DELAY_FRAMES[profile]
+    const k = this.seats[i]!.indexOf(seat)
+    seat.limiter = new HumanLimiter({ ...FIGHTER_PEOPLE_LIMITS[profile], delayFrames: this.delay }, makeRng((this.seeds[i]! + 7919 * (k + 1)) >>> 0))
+    const hist = new DelayedStates<FighterState>(delay, () => createState(0), copyState)
+    hist.record(s.frame, s)
+    const bot = withMistakes(createBot(FIGHTER_BOT_KINDS[kind]!, seat.botSeed + kind), PEOPLE_MISTAKE_RATE[profile], makeRng((seat.botSeed + 4242) >>> 0))
+    seat.people = { bot, hist, delay }
+    return seat.people
   }
 
   /** Steps neutral through intro and round-end frames. Returns how many frames it stepped. */
@@ -197,7 +227,19 @@ class FighterEnv implements BridgeEnv {
         let btn = actions[(i * 2 + k) * 2 + 1]!
         const seat = this.seats[i]![k]!
         let isBot = false
-        if (Number.isInteger(dir) && dir < 0 && dir >= -FIGHTER_BOT_KINDS.length) {
+        if (Number.isInteger(dir) && dir < 0 && -1 - dir >= 16) {
+          isBot = true
+          const dec = decodePeopleSentinel(-1 - dir, FIGHTER_BOT_KINDS.length)
+          if (!dec) throw new RangeError(`fighter env: bad people sentinel ${dir} for env ${i} seat ${k}`)
+          const p = seat.people ?? this.takeOver(i, seat, dec.profile, dec.kind, s)
+          const seen = p.hist.view(s.frame)
+          const view = buildObs(seen.state, k)
+          this.botViewFrame[i * 2 + k] = seen.frame
+          const a = p.bot.act(view)
+          dir = a % N_DIRS
+          btn = (a - dir) / N_DIRS
+          seat.mirrored = view.mirrored
+        } else if (Number.isInteger(dir) && dir < 0 && dir >= -FIGHTER_BOT_KINDS.length) {
           isBot = true
           const kind = -1 - dir
           const bot = (seat.bots[kind] ??= createBot(FIGHTER_BOT_KINDS[kind]!, seat.botSeed + kind))

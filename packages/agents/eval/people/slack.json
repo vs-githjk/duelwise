@@ -1,0 +1,882 @@
+{
+  "game": "slack",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T21:07:15.762Z",
+      "override": null,
+      "perSeat": {
+        "easy": 100,
+        "medium": 100,
+        "hard": 100,
+        "champion": 15
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "greedy-flips-with-corner-pull",
+            "kind": "greedy",
+            "cornerBonus": 20,
+            "randomPercent": 20
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.755,
+                "ci95": [
+                  0.6909575639021187,
+                  0.8094313194967102
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.175,
+                "ci95": [
+                  0.1286051503455461,
+                  0.23364431198927976
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.045,
+                "ci95": [
+                  0.02385254288504434,
+                  0.08329670438371192
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 148,
+                "draws": 6,
+                "losses": 46,
+                "bySeat": {
+                  "0": 0.75,
+                  "1": 0.76
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 30,
+                "draws": 10,
+                "losses": 160,
+                "bySeat": {
+                  "0": 0.16,
+                  "1": 0.19
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 6,
+                "draws": 6,
+                "losses": 188,
+                "bySeat": {
+                  "0": 0.03,
+                  "1": 0.06
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.755,
+                "ci95": [
+                  0.6909575639021187,
+                  0.8094313194967102
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.175,
+                "ci95": [
+                  0.1286051503455461,
+                  0.23364431198927976
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.045,
+                "ci95": [
+                  0.02385254288504434,
+                  0.08329670438371192
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.32299999999999995,
+            "ci95": [
+              0.29073975561167575,
+              0.35526024438832415
+            ],
+            "real": null,
+            "calibrated": 0.32299999999999995,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "search-2-ply",
+            "kind": "search",
+            "depth": 2,
+            "mobility": false,
+            "noise": 4
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.87,
+                "ci95": [
+                  0.8163364808001793,
+                  0.9097179774647881
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.67,
+                "ci95": [
+                  0.6021668471867698,
+                  0.7314257417457829
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.13,
+                "ci95": [
+                  0.09028202253521182,
+                  0.18366351919982074
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 171,
+                "draws": 6,
+                "losses": 23,
+                "bySeat": {
+                  "0": 0.85,
+                  "1": 0.89
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 131,
+                "draws": 6,
+                "losses": 63,
+                "bySeat": {
+                  "0": 0.63,
+                  "1": 0.71
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 26,
+                "draws": 0,
+                "losses": 174,
+                "bySeat": {
+                  "0": 0.14,
+                  "1": 0.12
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.87,
+                "ci95": [
+                  0.8163364808001793,
+                  0.9097179774647881
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.67,
+                "ci95": [
+                  0.6021668471867698,
+                  0.7314257417457829
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.13,
+                "ci95": [
+                  0.09028202253521182,
+                  0.18366351919982074
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.6220000000000001,
+            "ci95": [
+              0.5855631403481091,
+              0.6584368596518911
+            ],
+            "real": null,
+            "calibrated": 0.6220000000000001,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "algorithm": "search-4-ply-mobility",
+            "kind": "search",
+            "depth": 4,
+            "mobility": true,
+            "noise": 2
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.98,
+                "ci95": [
+                  0.9497129127599548,
+                  0.9921955736378405
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.9625,
+                "ci95": [
+                  0.9262855540818032,
+                  0.981282518749406
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.5925,
+                "ci95": [
+                  0.5232799589440232,
+                  0.6582336556222187
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 196,
+                "draws": 0,
+                "losses": 4,
+                "bySeat": {
+                  "0": 0.97,
+                  "1": 0.99
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 192,
+                "draws": 1,
+                "losses": 7,
+                "bySeat": {
+                  "0": 0.975,
+                  "1": 0.95
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 115,
+                "draws": 7,
+                "losses": 78,
+                "bySeat": {
+                  "0": 0.585,
+                  "1": 0.6
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.98,
+                "ci95": [
+                  0.9497129127599548,
+                  0.9921955736378405
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.9625,
+                "ci95": [
+                  0.9262855540818032,
+                  0.981282518749406
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.5925,
+                "ci95": [
+                  0.5232799589440232,
+                  0.6582336556222187
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.89375,
+            "ci95": [
+              0.8734577821362431,
+              0.914042217863757
+            ],
+            "real": null,
+            "calibrated": 0.89375,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "algorithm": "search-6-ply-mobility-exact-endgame",
+            "kind": "search",
+            "depth": 6,
+            "mobility": true,
+            "noise": 1,
+            "openingNoise": {
+              "above": 50,
+              "noise": 30
+            },
+            "exactEmpties": 8,
+            "nodeCap": 120000
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.886486605238548,
+                  1
+                ],
+                "n": 30
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.886486605238548,
+                  1
+                ],
+                "n": 30
+              },
+              "strong": {
+                "value": 0.9,
+                "ci95": [
+                  0.7437891726682572,
+                  0.9654001115225813
+                ],
+                "n": 30
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 30,
+                "wins": 30,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "average": {
+                "games": 30,
+                "wins": 30,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "strong": {
+                "games": 30,
+                "wins": 27,
+                "draws": 0,
+                "losses": 3,
+                "bySeat": {
+                  "0": 0.8666666666666667,
+                  "1": 0.9333333333333333
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.886486605238548,
+                  1
+                ],
+                "n": 30
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.886486605238548,
+                  1
+                ],
+                "n": 30
+              },
+              "strong": {
+                "value": 0.9,
+                "ci95": [
+                  0.7437891726682572,
+                  0.9654001115225813
+                ],
+                "n": 30
+              }
+            },
+            "estimate": 0.9800000000000001,
+            "ci95": [
+              0.9401708172394684,
+              1
+            ],
+            "real": null,
+            "calibrated": 0.9800000000000001,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "s1",
+      "at": "2026-11-10T21:08:48.405Z",
+      "override": {
+        "medium": {
+          "noise": 2
+        }
+      },
+      "perSeat": {
+        "medium": 150
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "search-2-ply",
+            "kind": "search",
+            "depth": 2,
+            "mobility": false,
+            "noise": 2
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8633333333333333,
+                "ci95": [
+                  0.8198445866235518,
+                  0.8976348541435084
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.645,
+                "ci95": [
+                  0.5893310457197094,
+                  0.6970024925680625
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.16166666666666665,
+                "ci95": [
+                  0.1243292287281516,
+                  0.20755918193371423
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 253,
+                "draws": 12,
+                "losses": 35,
+                "bySeat": {
+                  "0": 0.82,
+                  "1": 0.9066666666666666
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 190,
+                "draws": 7,
+                "losses": 103,
+                "bySeat": {
+                  "0": 0.6433333333333333,
+                  "1": 0.6466666666666666
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 46,
+                "draws": 5,
+                "losses": 249,
+                "bySeat": {
+                  "0": 0.14333333333333334,
+                  "1": 0.18
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8633333333333333,
+                "ci95": [
+                  0.8198445866235518,
+                  0.8976348541435084
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.645,
+                "ci95": [
+                  0.5893310457197094,
+                  0.6970024925680625
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.16166666666666665,
+                "ci95": [
+                  0.1243292287281516,
+                  0.20755918193371423
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.6138333333333332,
+            "ci95": [
+              0.5833374588750445,
+              0.644329207791622
+            ],
+            "real": null,
+            "calibrated": 0.6138333333333332,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "current-m",
+      "at": "2026-11-10T21:09:05.788Z",
+      "override": null,
+      "perSeat": {
+        "medium": 150
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "search-2-ply",
+            "kind": "search",
+            "depth": 2,
+            "mobility": false,
+            "noise": 4
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.855,
+                "ci95": [
+                  0.8106675885647977,
+                  0.8903559017259538
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.665,
+                "ci95": [
+                  0.6098018608838144,
+                  0.7160259585470984
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.12833333333333333,
+                "ci95": [
+                  0.09513280201747909,
+                  0.17093180673915187
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 252,
+                "draws": 9,
+                "losses": 39,
+                "bySeat": {
+                  "0": 0.8366666666666667,
+                  "1": 0.8733333333333333
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 196,
+                "draws": 7,
+                "losses": 97,
+                "bySeat": {
+                  "0": 0.6466666666666666,
+                  "1": 0.6833333333333333
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 37,
+                "draws": 3,
+                "losses": 260,
+                "bySeat": {
+                  "0": 0.10666666666666667,
+                  "1": 0.15
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.855,
+                "ci95": [
+                  0.8106675885647977,
+                  0.8903559017259538
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.665,
+                "ci95": [
+                  0.6098018608838144,
+                  0.7160259585470984
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.12833333333333333,
+                "ci95": [
+                  0.09513280201747909,
+                  0.17093180673915187
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.6146666666666666,
+            "ci95": [
+              0.5845741852607202,
+              0.6447591480726129
+            ],
+            "real": null,
+            "calibrated": 0.6146666666666666,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "s2",
+      "at": "2026-11-10T21:09:24.351Z",
+      "override": {
+        "medium": {
+          "depth": 3
+        }
+      },
+      "perSeat": {
+        "medium": 150
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "search-2-ply",
+            "kind": "search",
+            "depth": 3,
+            "mobility": false,
+            "noise": 4
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.9,
+                "ci95": [
+                  0.8608335372651187,
+                  0.9290520855977
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.8116666666666666,
+                "ci95": [
+                  0.7635880764619182,
+                  0.8518644713520279
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.16666666666666666,
+                "ci95": [
+                  0.12876533093803702,
+                  0.21299665000961404
+                ],
+                "n": 300
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 300,
+                "wins": 267,
+                "draws": 6,
+                "losses": 27,
+                "bySeat": {
+                  "0": 0.8833333333333333,
+                  "1": 0.9166666666666666
+                }
+              },
+              "average": {
+                "games": 300,
+                "wins": 241,
+                "draws": 5,
+                "losses": 54,
+                "bySeat": {
+                  "0": 0.84,
+                  "1": 0.7833333333333333
+                }
+              },
+              "strong": {
+                "games": 300,
+                "wins": 49,
+                "draws": 2,
+                "losses": 249,
+                "bySeat": {
+                  "0": 0.16333333333333333,
+                  "1": 0.17
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.9,
+                "ci95": [
+                  0.8608335372651187,
+                  0.9290520855977
+                ],
+                "n": 300
+              },
+              "average": {
+                "value": 0.8116666666666666,
+                "ci95": [
+                  0.7635880764619182,
+                  0.8518644713520279
+                ],
+                "n": 300
+              },
+              "strong": {
+                "value": 0.16666666666666666,
+                "ci95": [
+                  0.12876533093803702,
+                  0.21299665000961404
+                ],
+                "n": 300
+              }
+            },
+            "estimate": 0.7091666666666666,
+            "ci95": [
+              0.6834236267893785,
+              0.7349097065439547
+            ],
+            "real": null,
+            "calibrated": 0.7091666666666666,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "flips the most discs every move (no sense of corners), 35% of the time any legal move",
+              "average": "looks two moves ahead with corner and edge weights and a wide wobble, 10% of the time any legal move",
+              "strong": "looks four moves ahead with mobility and a small wobble, 5% of the time any legal move"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    }
+  ],
+  "a6Notes": "A6 notes: Pip (easy) panel 32.3% contradicts real 5/7 = 71% (n=7, Wilson 36 to 92): no change staged. Marlow (medium) staged depth 3 (panel 61.5 -> 70.9, real n=2 says nothing). Vesper and Sable in band, real 9/10 and 11/11 agree."
+}

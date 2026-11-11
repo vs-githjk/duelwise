@@ -1,3 +1,4 @@
+import { peopleGatedFor } from './a9-apply'
 import { readFileSync } from 'node:fs'
 import { isAbsolute, relative, sep } from 'node:path'
 import { ACTION_NVEC_V2, badHead } from '@duelwise/core/src/games/arena/actions'
@@ -325,9 +326,11 @@ async function publishMain(argv: string[]): Promise<void> {
     if (!['easy', 'medium', 'hard', 'champion'].includes(level ?? '') || reason.length === 0) throw new Error('usage: --hold <level>=<reason>')
     held[level as Level] = `in training: ${reason.join('=')}`
   })
+  // Easy and Medium whose people test is in band are decided by it and the ladder, not by the scripted-bot bars (ruling Nov 10 18:52).
+  const peopleGated = peopleGatedFor('arena')
   const candidates = (['easy', 'medium', 'hard', 'champion'] as const).filter((l) => {
     const m = meta[l]
-    return Boolean(m && plans[l] && rows[l] && gateArenaLevel(l, rows[l]!).passed && isGated(m.source) && !held[l])
+    return Boolean(m && plans[l] && rows[l] && (gateArenaLevel(l, rows[l]!).passed || peopleGated[l] === true) && isGated(m.source) && !held[l])
   })
   const games = Number(arg('games') ?? GATE_MATCHES)
   const ruled = await applyLevelsRule(candidates, (lower, upper, g) => playArenaPairPoints(plans[lower]!, plans[upper]!, g), games)
@@ -346,6 +349,7 @@ async function publishMain(argv: string[]): Promise<void> {
     models,
     elo,
     gatedSnapshot,
+    peopleGated,
     levelFailures: { ...ruled.failures, ...held },
     commit: execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(),
     now: new Date().toISOString(),

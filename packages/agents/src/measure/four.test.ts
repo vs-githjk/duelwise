@@ -113,7 +113,9 @@ describe('Four in a Row levels and measurement helpers', () => {
   test('Easy temperature matches the one the checkpoint picker uses', () => {
     const py = readFileSync(join(REPO, 'training', 'trainer', 'four', 'pick_levels.py'), 'utf8')
     expect(py).toContain(`EASY_TEMPERATURE = ${EASY_TEMPERATURE}\n`)
-    expect(FOUR_LEVELS.easy.sims).toBe(0)
+    // A9 retune: Pip looks six simulations ahead (it was 0), Marlow none (it was 24), each tuned to its band against the people panel.
+    expect(FOUR_LEVELS.easy.sims).toBe(6)
+    expect(FOUR_LEVELS.medium.sims).toBe(0)
     expect(FOUR_LEVELS.champion.sims).toBe(800)
   })
 

@@ -147,7 +147,7 @@ test.describe('fighter play page', () => {
     await page.goto(`/play/${SLUG}`)
     const picker = page.getByTestId('level-picker')
     await expect(picker).toBeVisible()
-    await expect(picker.getByText('Waits 300 ms before reacting, like an average person, at most 100 actions a minute')).toBeVisible()
+    await expect(picker.getByText('Waits 300 ms before reacting, like an average person, at most 75 actions a minute')).toBeVisible()
     await expect(picker.getByText('Waits 200 ms before reacting, like a sharp human, at most 240 actions a minute')).toBeVisible()
     await expect(picker.getByText('Waits 50 ms before reacting, faster than a person can react, no action cap')).toBeVisible()
     await expect(page.getByText(PRODUCT.games.fighter.displayName, { exact: false }).first()).toBeVisible()

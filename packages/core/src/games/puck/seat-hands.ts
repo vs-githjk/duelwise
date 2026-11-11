@@ -1,4 +1,4 @@
-import { DelayedStates, HumanLimiter, LEVEL_LIMITS, UNLIMITED } from '../../limiter'
+import { DelayedStates, HumanLimiter, LEVEL_LIMITS, UNLIMITED, type LimiterConfig } from '../../limiter'
 import type { Level } from '../../product'
 import { makeRng } from '../../rng'
 import type { Rng } from '../../types'
@@ -23,19 +23,63 @@ export function botHistory(delay: number): DelayedStates<PuckState> | undefined 
   return delay > 0 ? new DelayedStates<PuckState>(delay, blankState, copyState) : undefined
 }
 
+/**
+ * People profiles (Nov 10 retune, A3): how a beginner, an average and a strong person play air hockey in the browser. All three move the
+ * rule mallet (speed 6, default acceleration); they differ in reaction delay, hand noise and how long a target is held. The noise and the
+ * hold are the Medium, Hard and Champion levels' own numbers, so there is one table of hands, not a second one to drift.
+ */
+export const PEOPLE_PROFILES = ['beginner', 'average', 'strong'] as const
+export type PeopleProfile = (typeof PEOPLE_PROFILES)[number]
+const PEOPLE_HANDS_LEVEL = { beginner: 'medium', average: 'hard', strong: 'champion' } as const
+const PEOPLE_DELAY_FRAMES = { beginner: 18, average: 15, strong: 12 } as const
+
+export interface PeopleHands {
+  delayFrames: number
+  noiseSd: number
+  minHoldFrames: number
+}
+
+export function peopleHands(profile: PeopleProfile): PeopleHands {
+  const lv = PEOPLE_HANDS_LEVEL[profile]
+  return { delayFrames: PEOPLE_DELAY_FRAMES[profile], noiseSd: LEVEL_MALLET[lv].targetNoise, minHoldFrames: LEVEL_LIMITS.puck[lv].minHoldFrames }
+}
+
+/** The level whose noise and hold a profile uses (the measurement's bot agents take a level for these). */
+export const peopleHandsLevel = (profile: PeopleProfile): Level => PEOPLE_HANDS_LEVEL[profile]
+
+/** Scripted bots a people profile can drive, in sentinel order. The mouse is the stand-in for a person; the rest are the league's bots. */
+export const PEOPLE_BOT_KINDS = ['mouse', 'striker', 'goalie', 'banker', 'shadow'] as const
+export type PeopleBotKind = (typeof PEOPLE_BOT_KINDS)[number]
+/** The env's action sentinel (first head) for a scripted bot on a people profile: -1 - (16 * (profile index + 1) + kind index). Plain bots keep -1 - index (< 16). */
+export function peopleSentinel(kind: PeopleBotKind, profile: PeopleProfile): number {
+  return -1 - (16 * (PEOPLE_PROFILES.indexOf(profile) + 1) + PEOPLE_BOT_KINDS.indexOf(kind))
+}
+
 export class SeatHands {
-  readonly limiter: HumanLimiter
+  limiter: HumanLimiter
   readonly noise: Rng
   readonly botSeed: number
-  readonly noiseSd: number
+  noiseSd: number
+  private readonly cfg: LimiterConfig
   private readonly bots: Array<PuckBot | undefined> = []
 
   /** `k` is the seat (0 or 1); each seat gets its own streams so two seats never share a draw. */
   constructor(seed: number, readonly k: 0 | 1, level: Level | undefined) {
-    this.limiter = new HumanLimiter(level ? LEVEL_LIMITS.puck[level] : UNLIMITED, makeRng((seed + 7919 * (k + 1)) >>> 0))
+    this.cfg = level ? LEVEL_LIMITS.puck[level] : UNLIMITED
+    this.limiter = new HumanLimiter(this.cfg, makeRng((seed + 7919 * (k + 1)) >>> 0))
     this.noise = makeRng((seed + 15485863 * (k + 1)) >>> 0)
     this.botSeed = (seed + 104729 * (k + 1)) >>> 0
     this.noiseSd = level ? LEVEL_MALLET[level].targetNoise : 0
+  }
+
+  /**
+   * Gives the seat a person's hands (people profile): the profile's noise and hold, with the level's own view delay kept so the seat's
+   * recorded views stay readable. Training env only, before the seat's first input.
+   */
+  usePeopleHands(profile: PeopleProfile, seed: number): void {
+    const h = peopleHands(profile)
+    this.noiseSd = h.noiseSd
+    this.limiter = new HumanLimiter({ ...this.cfg, minHoldFrames: h.minHoldFrames }, makeRng((seed + 7919 * (this.k + 1)) >>> 0))
   }
 
   /** The seat's scripted bot at an ALL_BOT_KINDS index, created once. */

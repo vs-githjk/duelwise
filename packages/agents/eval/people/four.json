@@ -1,0 +1,1554 @@
+{
+  "game": "four",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0.03939827935222673,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T19:11:32.859Z",
+      "override": null,
+      "perSeat": {
+        "easy": 200,
+        "medium": 200,
+        "hard": 200,
+        "champion": 10
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "model": "easy.onnx",
+            "sims": 0,
+            "temperature": 0.15,
+            "snapshot": "snap-00001024",
+            "selfPlayGames": 1024
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.49375,
+                "ci95": [
+                  0.4450477293396546,
+                  0.5425711743413822
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.25625,
+                "ci95": [
+                  0.215927261943016,
+                  0.30120998161741364
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.28875,
+                "ci95": [
+                  0.24651457877498878,
+                  0.33500436564405034
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 195,
+                "draws": 5,
+                "losses": 200,
+                "bySeat": {
+                  "0": 0.5375,
+                  "1": 0.45
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 95,
+                "draws": 15,
+                "losses": 290,
+                "bySeat": {
+                  "0": 0.265,
+                  "1": 0.2475
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 112,
+                "draws": 7,
+                "losses": 281,
+                "bySeat": {
+                  "0": 0.2925,
+                  "1": 0.285
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.49375,
+                "ci95": [
+                  0.4450477293396546,
+                  0.5425711743413822
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.25625,
+                "ci95": [
+                  0.215927261943016,
+                  0.30120998161741364
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.28875,
+                "ci95": [
+                  0.24651457877498878,
+                  0.33500436564405034
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.334,
+            "ci95": [
+              0.30667109006372006,
+              0.36132890993628
+            ],
+            "real": {
+              "n": 42,
+              "players": 26,
+              "value": 0.35714285714285715,
+              "ci95": [
+                0.2298918823156361,
+                0.5083363439920527
+              ],
+              "asOf": "2026-11-10"
+            },
+            "calibrated": 0.37339827935222675,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "model": "medium.onnx",
+            "sims": 24,
+            "temperature": 0.3,
+            "tactics": true,
+            "snapshot": "snap-00003072",
+            "selfPlayGames": 3072
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.97375,
+                "ci95": [
+                  0.9530123690173071,
+                  0.9854747319601143
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.8525,
+                "ci95": [
+                  0.8143999055263192,
+                  0.8838939268632133
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.74875,
+                "ci95": [
+                  0.7040153808566442,
+                  0.7887522526380969
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 388,
+                "draws": 3,
+                "losses": 9,
+                "bySeat": {
+                  "0": 0.99,
+                  "1": 0.9575
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 321,
+                "draws": 40,
+                "losses": 39,
+                "bySeat": {
+                  "0": 0.865,
+                  "1": 0.84
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 284,
+                "draws": 31,
+                "losses": 85,
+                "bySeat": {
+                  "0": 0.7575,
+                  "1": 0.74
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.97375,
+                "ci95": [
+                  0.9530123690173071,
+                  0.9854747319601143
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.8525,
+                "ci95": [
+                  0.8143999055263192,
+                  0.8838939268632133
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.74875,
+                "ci95": [
+                  0.7040153808566442,
+                  0.7887522526380969
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.868125,
+            "ci95": [
+              0.8481912930023655,
+              0.8880587069976346
+            ],
+            "real": {
+              "n": 165,
+              "players": 23,
+              "value": 0.9212121212121213,
+              "ci95": [
+                0.8698773567384894,
+                0.9533801590457346
+              ],
+              "asOf": "2026-11-10"
+            },
+            "calibrated": 0.9212121212121213,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "model": "hard.onnx",
+            "sims": 120,
+            "temperature": 0.1,
+            "variety": {
+              "plies": 24,
+              "keepShare": 0.05,
+              "valueMargin": 0.15,
+              "temperature": 1,
+              "dirichlet": {
+                "alpha": 1,
+                "eps": 0.4
+              }
+            },
+            "snapshot": "snap-00006144",
+            "selfPlayGames": 6144
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.98375,
+                "ci95": [
+                  0.9659864590682062,
+                  0.9923103960195565
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.9275,
+                "ci95": [
+                  0.8978175064777341,
+                  0.9490494817393585
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.795,
+                "ci95": [
+                  0.7527205841667667,
+                  0.8316671620883032
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 393,
+                "draws": 1,
+                "losses": 6,
+                "bySeat": {
+                  "0": 0.99,
+                  "1": 0.9775
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 363,
+                "draws": 16,
+                "losses": 21,
+                "bySeat": {
+                  "0": 0.945,
+                  "1": 0.91
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 312,
+                "draws": 12,
+                "losses": 76,
+                "bySeat": {
+                  "0": 0.8475,
+                  "1": 0.7425
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.98375,
+                "ci95": [
+                  0.9659864590682062,
+                  0.9923103960195565
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.9275,
+                "ci95": [
+                  0.8978175064777341,
+                  0.9490494817393585
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.795,
+                "ci95": [
+                  0.7527205841667667,
+                  0.8316671620883032
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.917875,
+            "ci95": [
+              0.9023198820478721,
+              0.9334301179521279
+            ],
+            "real": null,
+            "calibrated": 0.9572732793522267,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "model": "champion.onnx",
+            "base": "/agents/four/v2",
+            "sims": 800,
+            "temperature": 0,
+            "timeCapMs": 1400,
+            "variety": {
+              "plies": 24,
+              "keepShare": 0.05,
+              "valueMargin": 0.15,
+              "temperature": 1,
+              "dirichlet": {
+                "alpha": 1,
+                "eps": 0.4
+              },
+              "opening": {
+                "from": 3,
+                "plies": 12,
+                "keepShare": 0.05,
+                "valueMargin": 0.1,
+                "temperature": 1.5
+              },
+              "solverFrom": 12,
+              "lostPick": {
+                "keepShare": 0.002,
+                "valueMargin": 0.3,
+                "temperature": 3
+              }
+            },
+            "snapshot": "retrain-v2",
+            "selfPlayGames": 2816,
+            "retrainOf": "v1"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "average": {
+                "value": 0.975,
+                "ci95": [
+                  0.7995466529273008,
+                  0.9973844448968262
+                ],
+                "n": 20
+              },
+              "strong": {
+                "value": 0.95,
+                "ci95": [
+                  0.7638688045357189,
+                  0.9911185512976646
+                ],
+                "n": 20
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 20,
+                "wins": 20,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "average": {
+                "games": 20,
+                "wins": 19,
+                "draws": 1,
+                "losses": 0,
+                "bySeat": {
+                  "0": 0.95,
+                  "1": 1
+                }
+              },
+              "strong": {
+                "games": 20,
+                "wins": 19,
+                "draws": 0,
+                "losses": 1,
+                "bySeat": {
+                  "0": 1,
+                  "1": 0.9
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "average": {
+                "value": 0.975,
+                "ci95": [
+                  0.7995466529273008,
+                  0.9973844448968262
+                ],
+                "n": 20
+              },
+              "strong": {
+                "value": 0.95,
+                "ci95": [
+                  0.7638688045357189,
+                  0.9911185512976646
+                ],
+                "n": 20
+              }
+            },
+            "estimate": 0.9775,
+            "ci95": [
+              0.9179450580744961,
+              1
+            ],
+            "real": null,
+            "calibrated": 1,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "t1",
+      "at": "2026-11-10T19:58:02.788Z",
+      "override": {
+        "easy": {
+          "tactics": true
+        },
+        "medium": {
+          "sims": 8
+        }
+      },
+      "perSeat": {
+        "easy": 100,
+        "medium": 100
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "model": "easy.onnx",
+            "sims": 0,
+            "temperature": 0.15,
+            "snapshot": "snap-00001024",
+            "selfPlayGames": 1024,
+            "tactics": true
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.885,
+                "ci95": [
+                  0.8333528305500862,
+                  0.9221362679148122
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.5575,
+                "ci95": [
+                  0.48822402971205797,
+                  0.6246087577210113
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.53,
+                "ci95": [
+                  0.4609168286109567,
+                  0.5979524517889057
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 177,
+                "draws": 0,
+                "losses": 23,
+                "bySeat": {
+                  "0": 0.95,
+                  "1": 0.82
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 104,
+                "draws": 15,
+                "losses": 81,
+                "bySeat": {
+                  "0": 0.59,
+                  "1": 0.525
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 104,
+                "draws": 4,
+                "losses": 92,
+                "bySeat": {
+                  "0": 0.555,
+                  "1": 0.505
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.885,
+                "ci95": [
+                  0.8333528305500862,
+                  0.9221362679148122
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.5575,
+                "ci95": [
+                  0.48822402971205797,
+                  0.6246087577210113
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.53,
+                "ci95": [
+                  0.4609168286109567,
+                  0.5979524517889057
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.65025,
+            "ci95": [
+              0.6111642804951845,
+              0.6893357195048155
+            ],
+            "real": null,
+            "calibrated": 0.6896482793522267,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "model": "medium.onnx",
+            "sims": 8,
+            "temperature": 0.3,
+            "tactics": true,
+            "snapshot": "snap-00003072",
+            "selfPlayGames": 3072
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.97,
+                "ci95": [
+                  0.9361057071903662,
+                  0.9861796857408085
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.79,
+                "ci95": [
+                  0.7283538308774716,
+                  0.84071587965453
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.6625,
+                "ci95": [
+                  0.5944524411577004,
+                  0.7244228276748866
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 192,
+                "draws": 4,
+                "losses": 4,
+                "bySeat": {
+                  "0": 0.99,
+                  "1": 0.95
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 139,
+                "draws": 38,
+                "losses": 23,
+                "bySeat": {
+                  "0": 0.84,
+                  "1": 0.74
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 125,
+                "draws": 15,
+                "losses": 60,
+                "bySeat": {
+                  "0": 0.675,
+                  "1": 0.65
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.97,
+                "ci95": [
+                  0.9361057071903662,
+                  0.9861796857408085
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.79,
+                "ci95": [
+                  0.7283538308774716,
+                  0.84071587965453
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.6625,
+                "ci95": [
+                  0.5944524411577004,
+                  0.7244228276748866
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.8185,
+            "ci95": [
+              0.7866500947579514,
+              0.8503499052420486
+            ],
+            "real": null,
+            "calibrated": 0.8578982793522267,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "t2",
+      "at": "2026-11-10T20:34:05.206Z",
+      "override": {
+        "easy": {
+          "sims": 4
+        },
+        "medium": {
+          "sims": 0,
+          "temperature": 0.5
+        }
+      },
+      "perSeat": {
+        "easy": 100,
+        "medium": 100
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "model": "easy.onnx",
+            "sims": 4,
+            "temperature": 0.15,
+            "snapshot": "snap-00001024",
+            "selfPlayGames": 1024
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.555,
+                "ci95": [
+                  0.4857330235838182,
+                  0.6221939904825959
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.355,
+                "ci95": [
+                  0.2919862749369033,
+                  0.4234788697970958
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.3575,
+                "ci95": [
+                  0.2943381702460029,
+                  0.42603274785465145
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 109,
+                "draws": 4,
+                "losses": 87,
+                "bySeat": {
+                  "0": 0.645,
+                  "1": 0.465
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 66,
+                "draws": 10,
+                "losses": 124,
+                "bySeat": {
+                  "0": 0.39,
+                  "1": 0.32
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 69,
+                "draws": 5,
+                "losses": 126,
+                "bySeat": {
+                  "0": 0.325,
+                  "1": 0.39
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.555,
+                "ci95": [
+                  0.4857330235838182,
+                  0.6221939904825959
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.355,
+                "ci95": [
+                  0.2919862749369033,
+                  0.4234788697970958
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.3575,
+                "ci95": [
+                  0.2943381702460029,
+                  0.42603274785465145
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.4155,
+            "ci95": [
+              0.37459688981735945,
+              0.4564031101826405
+            ],
+            "real": null,
+            "calibrated": 0.4548982793522267,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "model": "medium.onnx",
+            "sims": 0,
+            "temperature": 0.5,
+            "tactics": true,
+            "snapshot": "snap-00003072",
+            "selfPlayGames": 3072
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.865,
+                "ci95": [
+                  0.8107086158113436,
+                  0.9055342957203134
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.6525,
+                "ci95": [
+                  0.5841942956327758,
+                  0.7150578797331903
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.48,
+                "ci95": [
+                  0.4117916632582544,
+                  0.548962149808504
+                ],
+                "n": 200
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 200,
+                "wins": 170,
+                "draws": 6,
+                "losses": 24,
+                "bySeat": {
+                  "0": 0.925,
+                  "1": 0.805
+                }
+              },
+              "average": {
+                "games": 200,
+                "wins": 118,
+                "draws": 25,
+                "losses": 57,
+                "bySeat": {
+                  "0": 0.69,
+                  "1": 0.615
+                }
+              },
+              "strong": {
+                "games": 200,
+                "wins": 91,
+                "draws": 10,
+                "losses": 99,
+                "bySeat": {
+                  "0": 0.475,
+                  "1": 0.485
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.865,
+                "ci95": [
+                  0.8107086158113436,
+                  0.9055342957203134
+                ],
+                "n": 200
+              },
+              "average": {
+                "value": 0.6525,
+                "ci95": [
+                  0.5841942956327758,
+                  0.7150578797331903
+                ],
+                "n": 200
+              },
+              "strong": {
+                "value": 0.48,
+                "ci95": [
+                  0.4117916632582544,
+                  0.548962149808504
+                ],
+                "n": 200
+              }
+            },
+            "estimate": 0.68175,
+            "ci95": [
+              0.643529518032092,
+              0.7199704819679079
+            ],
+            "real": null,
+            "calibrated": 0.7211482793522267,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "t3",
+      "at": "2026-11-10T20:36:38.581Z",
+      "override": {
+        "easy": {
+          "sims": 8
+        },
+        "medium": {
+          "sims": 0,
+          "temperature": 0.6
+        }
+      },
+      "perSeat": {
+        "easy": 200,
+        "medium": 200
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "model": "easy.onnx",
+            "sims": 8,
+            "temperature": 0.15,
+            "snapshot": "snap-00001024",
+            "selfPlayGames": 1024
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.7225,
+                "ci95": [
+                  0.6766612649590905,
+                  0.7641057639960045
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.51375,
+                "ci95": [
+                  0.46487197721279955,
+                  0.5623664346889199
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.48,
+                "ci95": [
+                  0.4314634062995672,
+                  0.5289170854797501
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 287,
+                "draws": 4,
+                "losses": 109,
+                "bySeat": {
+                  "0": 0.7475,
+                  "1": 0.6975
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 192,
+                "draws": 27,
+                "losses": 181,
+                "bySeat": {
+                  "0": 0.5125,
+                  "1": 0.515
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 189,
+                "draws": 6,
+                "losses": 205,
+                "bySeat": {
+                  "0": 0.51,
+                  "1": 0.45
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.7225,
+                "ci95": [
+                  0.6766612649590905,
+                  0.7641057639960045
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.51375,
+                "ci95": [
+                  0.46487197721279955,
+                  0.5623664346889199
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.48,
+                "ci95": [
+                  0.4314634062995672,
+                  0.5289170854797501
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.569625,
+            "ci95": [
+              0.5402806234938684,
+              0.5989693765061317
+            ],
+            "real": null,
+            "calibrated": 0.6090232793522268,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "model": "medium.onnx",
+            "sims": 0,
+            "temperature": 0.6,
+            "tactics": true,
+            "snapshot": "snap-00003072",
+            "selfPlayGames": 3072
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.82125,
+                "ci95": [
+                  0.7807011356281357,
+                  0.8556872151665803
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.5725,
+                "ci95": [
+                  0.5235553047379993,
+                  0.6200654125619756
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.4725,
+                "ci95": [
+                  0.4240692028993238,
+                  0.5214539732972375
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 322,
+                "draws": 13,
+                "losses": 65,
+                "bySeat": {
+                  "0": 0.8625,
+                  "1": 0.78
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 200,
+                "draws": 58,
+                "losses": 142,
+                "bySeat": {
+                  "0": 0.6175,
+                  "1": 0.5275
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 179,
+                "draws": 20,
+                "losses": 201,
+                "bySeat": {
+                  "0": 0.5225,
+                  "1": 0.4225
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.82125,
+                "ci95": [
+                  0.7807011356281357,
+                  0.8556872151665803
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.5725,
+                "ci95": [
+                  0.5235553047379993,
+                  0.6200654125619756
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.4725,
+                "ci95": [
+                  0.4240692028993238,
+                  0.5214539732972375
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.627125,
+            "ci95": [
+              0.5987790829241838,
+              0.6554709170758163
+            ],
+            "real": null,
+            "calibrated": 0.6665232793522268,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "t4",
+      "at": "2026-11-10T20:39:33.989Z",
+      "override": {
+        "easy": {
+          "sims": 6
+        },
+        "medium": {
+          "sims": 0,
+          "temperature": 0.55
+        }
+      },
+      "perSeat": {
+        "easy": 200,
+        "medium": 200
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "model": "easy.onnx",
+            "sims": 6,
+            "temperature": 0.15,
+            "snapshot": "snap-00001024",
+            "selfPlayGames": 1024
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.6325,
+                "ci95": [
+                  0.5842006801342122,
+                  0.6782785618278105
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.345,
+                "ci95": [
+                  0.30008782765308767,
+                  0.3928609836366215
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.405,
+                "ci95": [
+                  0.3580179521637985,
+                  0.45378938378795886
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 251,
+                "draws": 4,
+                "losses": 145,
+                "bySeat": {
+                  "0": 0.675,
+                  "1": 0.59
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 125,
+                "draws": 26,
+                "losses": 249,
+                "bySeat": {
+                  "0": 0.395,
+                  "1": 0.295
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 156,
+                "draws": 12,
+                "losses": 232,
+                "bySeat": {
+                  "0": 0.46,
+                  "1": 0.35
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.6325,
+                "ci95": [
+                  0.5842006801342122,
+                  0.6782785618278105
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.345,
+                "ci95": [
+                  0.30008782765308767,
+                  0.3928609836366215
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.405,
+                "ci95": [
+                  0.3580179521637985,
+                  0.45378938378795886
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.44325,
+            "ci95": [
+              0.41446128864226534,
+              0.4720387113577346
+            ],
+            "real": null,
+            "calibrated": 0.4826482793522267,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "model": "medium.onnx",
+            "sims": 0,
+            "temperature": 0.55,
+            "tactics": true,
+            "snapshot": "snap-00003072",
+            "selfPlayGames": 3072
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.835,
+                "ci95": [
+                  0.7954717948278421,
+                  0.8681549678685929
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.61125,
+                "ci95": [
+                  0.5626369047914324,
+                  0.6577466096861151
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.49375,
+                "ci95": [
+                  0.4450477293396546,
+                  0.5425711743413822
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 329,
+                "draws": 10,
+                "losses": 61,
+                "bySeat": {
+                  "0": 0.875,
+                  "1": 0.795
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 213,
+                "draws": 63,
+                "losses": 124,
+                "bySeat": {
+                  "0": 0.65,
+                  "1": 0.5725
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 185,
+                "draws": 25,
+                "losses": 190,
+                "bySeat": {
+                  "0": 0.535,
+                  "1": 0.4525
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.835,
+                "ci95": [
+                  0.7954717948278421,
+                  0.8681549678685929
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.61125,
+                "ci95": [
+                  0.5626369047914324,
+                  0.6577466096861151
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.49375,
+                "ci95": [
+                  0.4450477293396546,
+                  0.5425711743413822
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.654875,
+            "ci95": [
+              0.6269583704927374,
+              0.6827916295072626
+            ],
+            "real": null,
+            "calibrated": 0.6942732793522267,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "takes a win in one every time, blocks a one-move threat 60% of the time, otherwise drops by centre-weighted dice",
+              "average": "always wins and blocks, never hands over a win in one, otherwise centre-weighted dice among the safe columns",
+              "strong": "plays a column the perfect solver proves keeps the result (from 10 stones, else like the average player), 15% of the time a random legal column"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    }
+  ]
+}

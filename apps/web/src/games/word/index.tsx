@@ -21,6 +21,7 @@ import { FriendWord } from '../friends/FriendWord'
 import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
 import type { LocalSetup } from '../friends/useLocalDuel'
 import { WORD_FRIEND } from './opponent'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 export const meta = { title: 'Word Duel' }
 
@@ -41,6 +42,7 @@ function seedFromUrl(): number | undefined {
 
 export default function WordDuelPage() {
   const match = useWordMatch((level) => sourceRegistry.levels[level]?.version ?? 'preview', undefined, sourceRegistry.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [draft, setDraft] = useState('')
@@ -76,6 +78,7 @@ export default function WordDuelPage() {
               <ResultPanel
                 result={match.finished.record.result}
                 humanSeat={0}
+                nearMiss={nearMiss}
                 recordOk={match.finished.ok}
                 upload={match.upload}
                 unratedReason={match.unratedReason}

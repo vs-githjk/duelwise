@@ -8,6 +8,7 @@ import { PlayMode } from '../../components/PlayModeToggle'
 import { StrengthLine } from '../../components/SiteElo'
 import { personaFor } from '../../personas'
 import { ResultPanel } from '../../components/ResultPanel'
+import { useNearMiss } from '../../lib/use-near-miss'
 import { LeavingNotice } from '../../components/LeavingNotice'
 import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { PlayHud } from '../../components/PlayHud'
@@ -74,6 +75,7 @@ function MoveList({ sans }: { sans: string[] }) {
 
 export default function ChessPage() {
   const match = useChessMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', sourceRegistry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   // Fetch the model while the player is still choosing, so Start finds it in the HTTP cache.
   useEffect(() => warmChessAssets(picked), [picked])
@@ -139,6 +141,7 @@ export default function ChessPage() {
                 onPlayLevel={(l) => void match.start(l)}
                 levels={levelInfo}
                 moves={match.finished ? match.finished.record.actions.filter((a) => a[1] === match.finished!.record.humanSeat).length : 0}
+                nearMiss={nearMiss}
                 onChangeLevel={match.backToSetup}
               />
               {match.finished ? (

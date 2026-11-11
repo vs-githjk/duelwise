@@ -2,112 +2,84 @@
  {
   "bot": "random",
   "games": 800,
-  "wins": 726,
+  "wins": 745,
   "draws": 0,
-  "losses": 74,
-  "score": 0.9075,
+  "losses": 55,
+  "score": 0.93125,
   "ci95": [
-   0.8854292599904071,
-   0.9256759558408173
+   0.911576405209033,
+   0.946801813998858
   ],
   "bySeat": {
    "0": {
     "games": 400,
-    "wins": 365,
+    "wins": 373,
     "draws": 0,
-    "losses": 35,
-    "score": 0.9125
+    "losses": 27,
+    "score": 0.9325
    },
    "1": {
     "games": 400,
-    "wins": 361,
+    "wins": 372,
     "draws": 0,
-    "losses": 39,
-    "score": 0.9025
+    "losses": 28,
+    "score": 0.93
    }
   }
  },
  {
   "bot": "striker",
   "games": 800,
-  "wins": 175,
+  "wins": 624,
   "draws": 0,
-  "losses": 625,
-  "score": 0.21875,
+  "losses": 176,
+  "score": 0.78,
   "ci95": [
-   0.1914844629440401,
-   0.24870365496385705
+   0.7499940643174583,
+   0.8073297649653463
   ],
   "bySeat": {
    "0": {
     "games": 400,
-    "wins": 86,
+    "wins": 311,
     "draws": 0,
-    "losses": 314,
-    "score": 0.215
+    "losses": 89,
+    "score": 0.7775
    },
    "1": {
     "games": 400,
-    "wins": 89,
+    "wins": 313,
     "draws": 0,
-    "losses": 311,
-    "score": 0.2225
+    "losses": 87,
+    "score": 0.7825
    }
   }
  },
  {
   "bot": "goalie",
   "games": 800,
-  "wins": 40,
+  "wins": 596,
   "draws": 0,
-  "losses": 760,
-  "score": 0.05,
+  "losses": 204,
+  "score": 0.745,
   "ci95": [
-   0.036931386297886386,
-   0.06736960235474909
+   0.7136756041814425,
+   0.7739827464410115
   ],
   "bySeat": {
    "0": {
     "games": 400,
-    "wins": 15,
+    "wins": 288,
     "draws": 0,
-    "losses": 385,
-    "score": 0.0375
+    "losses": 112,
+    "score": 0.72
    },
    "1": {
     "games": 400,
-    "wins": 25,
+    "wins": 308,
     "draws": 0,
-    "losses": 375,
-    "score": 0.0625
-   }
-  }
- },
- {
-  "bot": "mouse",
-  "games": 800,
-  "wins": 207,
-  "draws": 0,
-  "losses": 593,
-  "score": 0.25875,
-  "ci95": [
-   0.22960587119233516,
-   0.29019993661310545
-  ],
-  "bySeat": {
-   "0": {
-    "games": 400,
-    "wins": 102,
-    "draws": 0,
-    "losses": 298,
-    "score": 0.255
-   },
-   "1": {
-    "games": 400,
-    "wins": 105,
-    "draws": 0,
-    "losses": 295,
-    "score": 0.2625
+    "losses": 92,
+    "score": 0.77
    }
   }
  }

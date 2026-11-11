@@ -970,7 +970,52 @@
       "siteElo": 1000,
       "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "8f9cc4e"
+      "commit": "8f9cc4e",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.59575,
+            "ci95": [
+              0.5740787738941172,
+              0.6170541115457425
+            ],
+            "n": 2000
+          },
+          "average": {
+            "value": 0.53775,
+            "ci95": [
+              0.515847946335018,
+              0.5595073165929684
+            ],
+            "n": 2000
+          },
+          "strong": {
+            "value": 0.512,
+            "ci95": [
+              0.4900912397391929,
+              0.5338627511253327
+            ],
+            "n": 2000
+          }
+        },
+        "estimate": 0.55,
+        "ci95": [
+          0.5365892568312222,
+          0.5634107431687779
+        ],
+        "real": null,
+        "calibrated": 0.55,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+          "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+          "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+        }
+      }
     },
     "medium": {
       "metric": "score vs easy",
@@ -984,7 +1029,60 @@
       "siteElo": 1133.344577,
       "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "8f9cc4e"
+      "commit": "8f9cc4e",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.5995,
+            "ci95": [
+              0.5778542085972657,
+              0.6207642989877583
+            ],
+            "n": 2000
+          },
+          "average": {
+            "value": 0.5665,
+            "ci95": [
+              0.5446745805656436,
+              0.5880704521419352
+            ],
+            "n": 2000
+          },
+          "strong": {
+            "value": 0.5415,
+            "ci95": [
+              0.5196037855397457,
+              0.563237099533405
+            ],
+            "n": 2000
+          }
+        },
+        "estimate": 0.5714,
+        "ci95": [
+          0.558052061130758,
+          0.584747938869242
+        ],
+        "real": null,
+        "calibrated": 0.5714,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.60075,
+          "ci95": [
+            0.5791129766932503,
+            0.6220007382734949
+          ],
+          "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+        },
+        "proxies": {
+          "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+          "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+          "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+        }
+      }
     },
     "hard": {
       "metric": "score vs medium",
@@ -998,7 +1096,60 @@
       "siteElo": 1252.455312,
       "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "8f9cc4e"
+      "commit": "8f9cc4e",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.621,
+            "ci95": [
+              0.599525435154146,
+              0.642010639396486
+            ],
+            "n": 2000
+          },
+          "average": {
+            "value": 0.57175,
+            "ci95": [
+              0.5499465415819634,
+              0.5932783621288452
+            ],
+            "n": 2000
+          },
+          "strong": {
+            "value": 0.5355,
+            "ci95": [
+              0.5135950379769215,
+              0.5572688516639663
+            ],
+            "n": 2000
+          }
+        },
+        "estimate": 0.579275,
+        "ci95": [
+          0.565969389527235,
+          0.592580610472765
+        ],
+        "real": null,
+        "calibrated": 0.579275,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.60075,
+          "ci95": [
+            0.5791129766932503,
+            0.6220007382734949
+          ],
+          "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+        },
+        "proxies": {
+          "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+          "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+          "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+        }
+      }
     },
     "champion": {
       "metric": "score vs hard",
@@ -1012,7 +1163,60 @@
       "siteElo": 1337.867314,
       "measuredAt": "2026-11-04T12:09:36.039Z",
       "harness": "bun",
-      "commit": "8f9cc4e"
+      "commit": "8f9cc4e",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.61325,
+            "ci95": [
+              0.5917086886014657,
+              0.6343571001824935
+            ],
+            "n": 2000
+          },
+          "average": {
+            "value": 0.60075,
+            "ci95": [
+              0.5791129766932503,
+              0.6220007382734949
+            ],
+            "n": 2000
+          },
+          "strong": {
+            "value": 0.56375,
+            "ci95": [
+              0.5419140653037743,
+              0.5853415111640173
+            ],
+            "n": 2000
+          }
+        },
+        "estimate": 0.5971,
+        "ci95": [
+          0.5838809079695939,
+          0.610319092030406
+        ],
+        "real": null,
+        "calibrated": 0.5971,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.60075,
+          "ci95": [
+            0.5791129766932503,
+            0.6220007382734949
+          ],
+          "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+        },
+        "proxies": {
+          "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+          "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+          "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+        }
+      }
     }
   },
   "unpublished": {},

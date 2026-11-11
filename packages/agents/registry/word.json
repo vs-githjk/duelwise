@@ -201,7 +201,52 @@
       "siteElo": 1000,
       "measuredAt": "2026-10-23T15:44:32.133Z",
       "harness": "bun",
-      "commit": "71ac2e2"
+      "commit": "71ac2e2",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.5916666666666667,
+            "ci95": [
+              0.5352279852561677,
+              0.6457874699832282
+            ],
+            "n": 300
+          },
+          "average": {
+            "value": 0.3416666666666667,
+            "ci95": [
+              0.29030370865424493,
+              0.3970332322958894
+            ],
+            "n": 300
+          },
+          "strong": {
+            "value": 0.25333333333333335,
+            "ci95": [
+              0.2074497498699208,
+              0.3054541160313411
+            ],
+            "n": 300
+          }
+        },
+        "estimate": 0.399,
+        "ci95": [
+          0.3660906623990191,
+          0.43190933760098094
+        ],
+        "real": null,
+        "calibrated": 0.399,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+          "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+          "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+        }
+      }
     },
     "medium": {
       "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
@@ -215,7 +260,52 @@
       "siteElo": 1093.387745,
       "measuredAt": "2026-10-23T15:44:32.133Z",
       "harness": "bun",
-      "commit": "71ac2e2"
+      "commit": "71ac2e2",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.7033333333333334,
+            "ci95": [
+              0.6493365817983081,
+              0.7521886098236248
+            ],
+            "n": 300
+          },
+          "average": {
+            "value": 0.45166666666666666,
+            "ci95": [
+              0.3963172139178941,
+              0.5082382733195152
+            ],
+            "n": 300
+          },
+          "strong": {
+            "value": 0.3616666666666667,
+            "ci95": [
+              0.3093613387278152,
+              0.4174698833654601
+            ],
+            "n": 300
+          }
+        },
+        "estimate": 0.5091666666666667,
+        "ci95": [
+          0.47543556917657254,
+          0.5428977641567607
+        ],
+        "real": null,
+        "calibrated": 0.5091666666666667,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+          "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+          "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+        }
+      }
     },
     "hard": {
       "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
@@ -229,7 +319,52 @@
       "siteElo": 1191.456616,
       "measuredAt": "2026-10-23T15:44:32.133Z",
       "harness": "bun",
-      "commit": "71ac2e2"
+      "commit": "71ac2e2",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8366666666666667,
+            "ci95": [
+              0.7906268321747829,
+              0.8741935670680894
+            ],
+            "n": 300
+          },
+          "average": {
+            "value": 0.6033333333333334,
+            "ci95": [
+              0.5470046174408554,
+              0.6570491684653729
+            ],
+            "n": 300
+          },
+          "strong": {
+            "value": 0.5083333333333333,
+            "ci95": [
+              0.45201520114212795,
+              0.5644407493341806
+            ],
+            "n": 300
+          }
+        },
+        "estimate": 0.6543333333333333,
+        "ci95": [
+          0.6220783457954975,
+          0.6865883208711692
+        ],
+        "real": null,
+        "calibrated": 0.6543333333333333,
+        "verdict": "below",
+        "proxies": {
+          "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+          "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+          "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+        }
+      }
     },
     "champion": {
       "metric": "average guesses over every answer word (a word not solved in 6 counts 7)",
@@ -243,7 +378,60 @@
       "siteElo": 1211.456223,
       "measuredAt": "2026-10-23T15:44:32.133Z",
       "harness": "bun",
-      "commit": "71ac2e2"
+      "commit": "71ac2e2",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.8383333333333334,
+            "ci95": [
+              0.7924408180662857,
+              0.8756707712718484
+            ],
+            "n": 300
+          },
+          "average": {
+            "value": 0.6233333333333333,
+            "ci95": [
+              0.5672684317190376,
+              0.6762796353303314
+            ],
+            "n": 300
+          },
+          "strong": {
+            "value": 0.5433333333333333,
+            "ci95": [
+              0.4867738446108542,
+              0.5987970978659511
+            ],
+            "n": 300
+          }
+        },
+        "estimate": 0.6718333333333333,
+        "ci95": [
+          0.6398322424966759,
+          0.7038344241699906
+        ],
+        "real": null,
+        "calibrated": 0.6718333333333333,
+        "verdict": "ceiling",
+        "ceiling": {
+          "value": 0.65475,
+          "ci95": [
+            0.6336340855843953,
+            0.6752725882727147
+          ],
+          "by": "2000 games of the champion settings against the average test player"
+        },
+        "proxies": {
+          "beginner": "plays any word that fits the clues, but misses one clue 70% of the time",
+          "average": "opens from six familiar words, then the most common word that fits, 25% of the time a random fitting word (target 4 guesses, an assumption)",
+          "strong": "plays the guess that splits the fitting words best (the Hard solver), 15% of the time a random fitting word"
+        }
+      }
     }
   },
   "unpublished": {},

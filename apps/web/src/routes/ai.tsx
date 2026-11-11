@@ -42,6 +42,7 @@ function Cell({ cell, label }: { cell: CastCell; label: string }) {
   return (
     <td className={CELL} data-label={label} data-state="measured">
       <span className={cn(cell.strength.startsWith('site Elo') && 'font-mono tabular')} data-testid="cast-strength">{cell.strength}</span>
+      {cell.people ? <span className="block text-xs text-muted" data-testid="cast-people">{cell.people}</span> : null}
       {cell.reaction ? (
         <span className="block font-mono text-xs tabular text-muted" data-testid="cast-reaction">
           {`${cell.reaction.ms} ms (${cell.reaction.frames} frames)${cell.reaction.apm === null ? ', no action cap' : `, ${cell.reaction.apm} actions per minute`}`}
@@ -89,6 +90,7 @@ function TheAI() {
       <section className="grid gap-3" aria-labelledby="cast-table-title">
         <h2 id="cast-table-title" className="font-display text-display-md">How strong, measured</h2>
         <p className="max-w-prose text-sm text-muted">These numbers come from tests of each opponent. A level that has not passed its checks says so instead of showing a guess.</p>
+        <p className="max-w-prose text-sm text-muted" data-testid="cast-people-note">Where a level says it is tuned to win a share of matches against an average player, that comes from test players built to play like ordinary people, with a person's hands, reaction time and mistakes. It is not yet a record against real players: we will quote one only once a level has 100 real matches.</p>
         <EloExplainer />
         <ScrollCue>
           <table className="w-full table-fixed text-left text-sm sm:min-w-[40rem] max-sm:block" data-testid="cast-table">

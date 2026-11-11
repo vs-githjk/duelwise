@@ -3,18 +3,19 @@ import { getCore } from '@duelwise/core/src/games/index'
 import { PRODUCT } from '@duelwise/core/src/product'
 import { resultSentence } from '../lib/copy'
 import { personaFor } from '../personas'
-import { analyseChess, chessReport, MATERIAL, type ChessEvaluator } from './chess'
-import { fourReport, fourView, solverNote } from './four'
+import { analyseChess, chessNearMiss, chessReport, MATERIAL, type ChessEvaluator } from './chess'
+import { fourNearMiss, fourReport, fourView, solverNote } from './four'
 import { chessReaction } from './reaction'
 import type { Moment, ReportBody } from './types'
-import { wordReport } from './word'
+import { wordNearMiss, wordReport } from './word'
 import { walk, humanActionCount } from './walk'
-import { holdemMoments } from './holdem'
-import { fleetMoments } from './fleet'
-import { slackReport } from './slack'
-import { penaltyReport } from './penalty'
-import { puckReportMoments } from './puck'
-import { realtimeFacts, realtimeMoments, realtimeCoaching } from './realtime'
+import { holdemMoments, holdemNearMiss } from './holdem'
+import { fleetMoments, fleetNearMiss } from './fleet'
+import { slackNearMiss, slackReport } from './slack'
+import { penaltyNearMiss, penaltyReport } from './penalty'
+import { puckNearMiss, puckReportMoments } from './puck'
+import { isHumanLoss } from './near-miss'
+import { realtimeFacts, realtimeMoments, realtimeCoaching, realtimeNearMiss } from './realtime'
 
 export interface BuildOptions {
   /** The chess evaluator: the value net on the server when it loads, else material (the default). */
@@ -75,6 +76,7 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
       moves: r.humanMoves,
       blunders: r.blunders,
       evaluator: ev.kind,
+      nearMiss: isHumanLoss(rec) ? chessNearMiss(rec, a) : null,
       moments: r.moments,
       series: r.series,
       reaction: chessReaction(outcome, r.facts, ev.kind),
@@ -88,6 +90,7 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
       ...base,
       moves: n,
       evaluator: 'solver',
+      nearMiss: isHumanLoss(rec) ? fourNearMiss(rec, r, opponent) : null,
       fourView: fourView(rec),
       moments: r.moments,
       note: solverNote(r.solved, r.capped),
@@ -97,24 +100,27 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     const steps = walk<{ answer: string }, string>(rec)
     const answer = steps[steps.length - 1]?.after.answer ?? ''
     const r = wordReport(rec, answer, sentence, opponent)
-    return { ...base, moves: steps.length, moments: r.moments, wordRows: r.rows }
+    return { ...base, moves: steps.length, nearMiss: wordNearMiss(rec, opponent), moments: r.moments, wordRows: r.rows }
   }
   const end: Moment = { kind: 'end', label: kind === 'realtime' ? 'Final score' : 'Result', tag: 'result', text: sentence }
   // Fleet has its own report and must never fall to the Hold'em path below.
-  if (rec.game === 'fleet') return { ...base, moments: fleetMoments(rec, sentence, opponent) }
+  if (rec.game === 'fleet') return { ...base, nearMiss: fleetNearMiss(rec, opponent), moments: fleetMoments(rec, sentence, opponent) }
   // Crosscurrent has its own report and must never fall to the Hold'em path below.
   if (rec.game === 'slack') {
     const r = slackReport(rec, sentence, opponent)
-    return { ...base, moments: r.moments, series: r.series, slackView: r.view, note: r.note }
+    return { ...base, moments: r.moments, series: r.series, slackView: r.view, note: r.note, nearMiss: slackNearMiss(rec, opponent) }
   }
   // Twelve Yards has its own report and must never fall to the Hold'em path below.
   if (rec.game === 'penalty') {
     const r = penaltyReport(rec, sentence, opponent)
-    return { ...base, moves: r.yourKicks, moments: r.moments, penaltyView: r.view, note: r.note }
+    return { ...base, moves: r.yourKicks, nearMiss: penaltyNearMiss(rec), moments: r.moments, penaltyView: r.view, note: r.note }
   }
   // Air hockey has its own facts: goals, saves, posts and near misses read off the replay (the fighter's health swings do not apply).
   if (rec.game === 'puck') {
-    return { ...base, moves: humanActionCount(rec), moments: [...puckReportMoments(rec, opponent), end] }
+    const nearMiss = puckNearMiss(rec, opponent, 'report')
+    // The strip carries the turning point and the near-miss line, so the key moments do not say them twice.
+    const said = new Set([nearMiss?.turning, nearMiss?.line])
+    return { ...base, moves: humanActionCount(rec), nearMiss, moments: [...puckReportMoments(rec, opponent).filter((m) => !said.has(m.text)), end] }
   }
   if (kind === 'realtime') {
     const facts = realtimeFacts(rec)
@@ -123,9 +129,10 @@ function buildBody(rec: MatchRecordV1, opts: BuildOptions): ReportBody {
     return {
       ...base,
       moves: humanActionCount(rec),
+      nearMiss: realtimeNearMiss(rec, opponent),
       moments: [...realtimeMoments(rec, facts, opponent), ...(coaching ? [coaching] : []), end],
     }
   }
   // Hold'em: the player's real action count and the hands that moved the most chips.
-  return { ...base, moves: humanActionCount(rec), moments: [...holdemMoments(rec, opponent), end] }
+  return { ...base, moves: humanActionCount(rec), nearMiss: holdemNearMiss(rec, opponent), moments: [...holdemMoments(rec, opponent), end] }
 }

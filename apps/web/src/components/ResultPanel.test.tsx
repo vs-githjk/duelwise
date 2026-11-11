@@ -4,6 +4,7 @@ import type { Result } from '@duelwise/core/src/types'
 import { OpponentContext } from '../personas/context'
 import { mayClear, progressCounts, ResultPanel, toggleSpeaksNow } from './ResultPanel'
 import type { Upload } from '../lib/match-recorder'
+import { nearMiss, NOT_CLOSE } from '../report/near-miss'
 
 const won: Result = { winner: 0, score: [1, 0], reason: 'ahead by 300 chips after 4 hands' }
 const renderWith = (upload: Upload) =>
@@ -157,4 +158,35 @@ test('a resignation before the first shot says it does not count, with or withou
   )
   expect(html).toContain('No shot was fired, so this match does not count.')
   expect(html).not.toContain('Sign in to get a rating')
+})
+
+const lostResult: Result = { winner: 1, score: [0, 1], reason: 'four in a row' }
+const withNear = (nm: Parameters<typeof ResultPanel>[0]['nearMiss'], result: Result = lostResult, leftAfter: number | null = null) =>
+  renderToStaticMarkup(
+    <OpponentContext.Provider value={{ game: 'four', level: 'hard' }}>
+      <ResultPanel result={result} humanSeat={0} onRematch={() => {}} onChangeLevel={() => {}} nearMiss={nm} leftAfter={leftAfter} />
+    </OpponentContext.Provider>,
+  )
+const close = nearMiss(true, { line: 'Before drop 21 you could still draw.', turning: 'Drop 21, column 4, was where it turned.', stats: [{ label: 'Drops after it turned', value: 7 }] })
+
+test('after a close loss the strip sits under the verdict and above the actions, with the sentence and the counts', () => {
+  const html = withNear(close)
+  expect(html).toContain('data-testid="near-miss"')
+  expect(html).toContain('Before drop 21 you could still draw.')
+  expect(html).toContain('Drop 21, column 4, was where it turned.')
+  expect(html).toContain('Drops after it turned')
+  expect(html.indexOf('result-reason')).toBeLessThan(html.indexOf('near-miss'))
+  expect(html.indexOf('near-miss')).toBeLessThan(html.indexOf('result-actions'))
+})
+
+test('a loss that was not close, an empty strip, and no strip at all draw nothing', () => {
+  for (const nm of [NOT_CLOSE, nearMiss(true, {}), null, undefined]) expect(withNear(nm)).not.toContain('near-miss')
+})
+
+test('a narrow win gets the quiet strip (one sentence, no counts); leaving early gets none', () => {
+  const html = withNear(nearMiss(true, { turning: "Sable's shot at 6 to 6 hit the post.", stats: [{ label: 'Posts', value: 1 }] }), won)
+  expect(html).toContain('data-outcome="win"')
+  expect(html).toContain('hit the post')
+  expect(html).not.toContain('near-miss-stats')
+  expect(withNear(close, lostResult, 3)).not.toContain('near-miss')
 })

@@ -21,6 +21,7 @@ import { MatchLength } from './MatchLength'
 import { progressNumbers } from './progress'
 import { HoldemStyles, Table, type TableTurn } from './Table'
 import { HUMAN, useHoldemMatch } from './useHoldemMatch'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 export const meta = { title: "Heads-Up Hold'em" }
 
@@ -48,6 +49,7 @@ const nameOf = (level: Level) => personaFor(level).name
 
 export default function HoldemPage() {
   const match = useHoldemMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', nameOf, sourceRegistry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [confirming, setConfirming] = useState(false)
@@ -123,6 +125,7 @@ export default function HoldemPage() {
                 leftAfter={match.leftAfter}
                 buyIns={match.practice ? match.buyIns : 0}
                 humanSeat={HUMAN}
+                nearMiss={nearMiss}
                 recordOk={match.finished ? match.finished.ok : true}
                 upload={match.upload}
                 unratedReason={match.unratedReason}

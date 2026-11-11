@@ -107,3 +107,24 @@ export function playRealtime(game: 'fighter' | 'arena', seed: number, humanSeat:
   }
   return record(game, seed, humanSeat, level, actions, core.result(s), core.hash(s))
 }
+
+/** Plays a whole Hold'em match of `hands` hands where both seats pick random legal actions, folding and conceding only rarely (the plain random player concedes at once); `passive` leaves out every bet and raise, so pots stay small; `untilBust` is the strict bust rule every counted match uses (tests only). */
+export function playHoldemTo(seed: number, humanSeat: Seat = 0, hands = 5, level: MatchRecordV1['agent']['level'] = 'medium', passive = false, untilBust = false): MatchRecordV1 {
+  const core = getCore('holdem')
+  const rng = makeRng(seed ^ 0x51ed)
+  let s = core.init(seed, { hands, ...(untilBust ? { untilBust } : {}) })
+  const actions: MatchRecordV1['actions'] = []
+  for (let tick = 0; !core.terminal(s); tick++) {
+    const step: [unknown, unknown] = [null, null]
+    for (const seat of core.toAct(s)) {
+      const all = core.legal(s, seat).filter((a) => !passive || ['check', 'call', 'fold'].includes((a as { type: string }).type))
+      const plain = all.filter((a) => (a as { type: string }).type !== 'concede' && (a as { type: string }).type !== 'fold')
+      const pool = plain.length > 0 && rng.int(4) !== 0 ? plain : all.filter((a) => (a as { type: string }).type !== 'concede')
+      const a = pool[rng.int(pool.length)]!
+      actions.push([tick, seat, core.encodeAction(a)])
+      step[seat] = a
+    }
+    s = core.step(s, step as never)
+  }
+  return { ...record('holdem', seed, humanSeat, level, actions, core.result(s)!, core.hash(s)), options: { hands, ...(untilBust ? { untilBust } : {}) } }
+}

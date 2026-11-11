@@ -8,7 +8,7 @@ const PUBLIC = 'apps/web/public/'
 
 /**
  * The network a level plays, read from the registry and nothing else. A published level plays its own model. A level in training
- * plays the network its measurement used when the registry names one (Marlow is Vesper's network under Medium limits) and that file
+ * plays the network its measurement used when the registry names one (before A9, Marlow was Vesper's network under Medium limits) and that file
  * is shipped; otherwise it plays the preview network. `measured` is true only when the played network is the one the registry's
  * numbers describe, so a card can quote a test result only for a level that really plays what was tested. Pip (Easy) is a script.
  */

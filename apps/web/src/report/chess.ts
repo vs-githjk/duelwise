@@ -2,6 +2,7 @@ import { Chess } from 'chess.js'
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import type { Seat } from '@duelwise/core/src/types'
 import type { Moment, Series } from './types'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import { walk } from './walk'
 
 /** Evaluation of a position in the unit of its evaluator, from White's side. */
@@ -183,4 +184,48 @@ export function chessReport(rec: MatchRecordV1, a: ChessAnalysis, reason: string
       lastMoveNumber: last ? Math.floor(last.ply / 2) + 1 : 0,
     },
   }
+}
+
+/** A chess loss is only called close when it was lost after at least this many of the player's own moves: nothing is "almost" in the opening. */
+export const NEAR_MISS_MIN_MOVES = 8
+
+/**
+ * The near miss of a lost game, from the position scores the report already charts. The turning point is the player's move with the
+ * biggest drop in position score (at least a blunder by the evaluator's own measure), and the game is close only when the position was
+ * still level or better for the player right before that move and it came after the opening. Otherwise the loss is not close.
+ */
+export function chessNearMiss(rec: MatchRecordV1, a: ChessAnalysis): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const ev = a.evaluator
+  const sign = rec.humanSeat === 0 ? 1 : -1
+  const mine = a.plies.filter((p) => p.seat === rec.humanSeat)
+  // A move only counts as a slip if it still cost a blunder after the player's own next move: a trade (the capture and then the recapture)
+  // looks like a loss until the recapture, and must not be named. `held` is the drop measured over those three half-moves.
+  const settled = (p: ChessPly): number => {
+    const next = a.plies[p.ply + 2]
+    return next ? (next.after - p.before) * (p.seat === 0 ? 1 : -1) : p.delta
+  }
+  const slip = mine.reduce<ChessPly | null>((b, p) => (p.delta <= -ev.blunder && settled(p) <= -ev.blunder && (!b || settled(p) < settled(b)) ? p : b), null)
+  if (!slip) return NOT_CLOSE
+  const level = ev.blunder / 2
+  const before = slip.before * sign
+  const myMovesBefore = mine.filter((p) => p.ply < slip.ply).length
+  if (myMovesBefore < NEAR_MISS_MIN_MOVES || before < -level) return NOT_CLOSE
+  const after = before + settled(slip)
+  const label = moveLabel(slip.ply, slip.san)
+  const n = Math.floor(slip.ply / 2) + 1
+  const alt = betterMove(slip, ev)
+  const kept = alt ? ` ${alt} held more.` : ''
+  const held = a.plies.filter((p) => p.ply < slip.ply && p.seat === rec.humanSeat && a.humanSide[p.ply]! >= -level).length
+  const state = before >= level ? 'ahead' : 'level'
+  return nearMiss(true, {
+    turning: `${label} was where it turned: your position score went from ${fmt(before)} to ${fmt(after)}.${kept}`,
+    publicTurning: `${label} was where it turned: the player's position score went from ${fmt(before)} to ${fmt(after)}.${kept}`,
+    line: `Right before move ${n} you were ${state}.`,
+    publicLine: `Right before move ${n} the player was ${state}.`,
+    stats: [
+      { label: 'Moves level or ahead', value: held },
+      { label: 'Moves played after the slip', value: mine.filter((p) => p.ply > slip.ply).length },
+    ],
+  })
 }

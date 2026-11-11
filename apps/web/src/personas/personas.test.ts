@@ -5,7 +5,7 @@ import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { LEVEL_LIMITS } from '@duelwise/core/src/limiter'
 import { CHESS_LEVELS } from '@duelwise/agents/src/chess/agent'
-import { LEVELS } from '../lib/level-info'
+import { LEVELS, peopleLine } from '../lib/level-info'
 import { bioFor, PERSONAS, personaFor, reactionLimit, styleLine } from './index'
 import { buildCast } from './cast'
 import { AVATAR_SVG } from './avatar-svg'
@@ -106,8 +106,10 @@ test('chess and holdem levels show measured only where the registry measured the
     for (const level of LEVELS) {
       const measured = regs[game].measured[level]
       const cell = row.cells[level as Level]
-      if (measured) expect([game, level, cell]).toEqual([game, level, { state: 'measured', strength: `site Elo ${Math.round(measured.siteElo)}`, reaction: null }])
-      else expect([game, level, cell.state]).toEqual([game, level, 'in-training'])
+      if (measured) {
+        expect([game, level, cell]).toEqual([game, level, { state: 'measured', strength: `site Elo ${Math.round(measured.siteElo)}`, reaction: null, ...(peopleLine(measured.people, game) ? { people: peopleLine(measured.people, game) } : {}) }])
+        if (game === 'chess') expect(cell, `chess ${level} must show no people line (ruling 303)`).not.toHaveProperty('people')
+      } else expect([game, level, cell.state]).toEqual([game, level, 'in-training'])
     }
   }
   // Hold'em Champion passes every seat at 1000 deals per seat (Nov 4 publish), so it is measured like the other three levels.
@@ -165,14 +167,21 @@ test('Stormglass tells the truth about Sable: a scripted solver, not human-like 
   expect(personaFor('champion').bio).toBe('The house champion. Human-like play with a carefully recorded reaction limit.')
 })
 
-test('Pip on Stormglass follows up a hit only 35 percent of the time, so the line says he usually forgets; the other games keep their lines', () => {
-  expect(styleLine('easy', 'fleet')).toBe('Fires at random and usually forgets to follow up a hit.')
-  expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and no look-ahead.')
+test('A9 retune: the style lines describe the settings the levels now play (Stormglass hunt and follow-up, Four look-ahead, Crosscurrent depth)', () => {
+  // Pip hunts every other square and follows a hit 60 percent of the time; Marlow hunts by where ships fit and follows a hit half the time.
+  expect(styleLine('easy', 'fleet')).toBe('Hunts every other square, but follows up a hit only some of the time.')
+  expect(styleLine('medium', 'fleet')).toBe('Hunts where ships fit best, but follows up a hit only about half the time.')
+  // Four: Pip searches 6 simulated lines, Marlow none (it takes a win or blocks one); Hard and Champion keep their searches.
+  expect(styleLine('easy', 'four')).toBe('Plays its learned policy with a little randomness and a very short look-ahead.')
+  expect(styleLine('medium', 'four')).toBe('Plays its learned policy with some randomness, and always takes a win or blocks a threat it can see coming.')
+  expect(styleLine('hard', 'four')).toBe('Looks further ahead than Marlow before each move.')
+  // Crosscurrent: Marlow searches a little deeper than before (three moves, it was two); the line stays number free like every persona string.
+  expect(styleLine('medium', 'slack')).toBe('Knows which squares matter and looks ahead a short way.')
 })
 
-test('Glasscut style lines are honest about who is hand-written and who shares a network', () => {
+test('Glasscut style lines are honest about who is hand-written and who has their own network', () => {
   expect(styleLine('easy', 'puck')).toMatch(/Hand-written, not trained/)
-  expect(styleLine('medium', 'puck')).toMatch(/Vesper's network/)
+  expect(styleLine('medium', 'puck')).toMatch(/its own network/)
   expect(styleLine('hard', 'puck')).toMatch(/trained agent/)
   expect(styleLine('champion', 'puck')).toMatch(/trained agent/)
   for (const level of ['easy', 'medium', 'hard', 'champion'] as const) expect(bioFor(level, 'puck')).toBe(personaFor(level).bio)
@@ -180,7 +189,7 @@ test('Glasscut style lines are honest about who is hand-written and who shares a
 
 test('Crosscurrent has a true style line for each level and its Sable is a search program, not a human-like player', () => {
   expect(styleLine('easy', 'slack')).toBe('Grabs the most discs it can and loves a corner.')
-  expect(styleLine('medium', 'slack')).toBe('Knows which squares matter and looks at your reply.')
+  expect(styleLine('medium', 'slack')).toBe('Knows which squares matter and looks ahead a short way.')
   expect(styleLine('hard', 'slack')).toBe('Looks a few moves ahead and limits your options.')
   expect(styleLine('champion', 'slack')).toMatch(/endgame/)
   expect(styleLine('easy', 'penalty')).toMatch(/favourite corner/)

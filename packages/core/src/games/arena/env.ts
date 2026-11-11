@@ -5,7 +5,8 @@ import { DelayedStates, HumanLimiter, LEVEL_LIMITS, UNLIMITED } from '../../limi
 import { makeRng } from '../../rng'
 import type { Level } from '../../product'
 import { ACTION_DIMS, ARENA_BOT_SENTINEL_BASE, KEEP_MOVE, badHead, headsFromInput, inputFromHeads } from './actions'
-import { ARENA_BOT_KINDS, HUMAN_PROXY_LIMITS, createBot, type ArenaBot } from './bots'
+import { ARENA_BOT_KINDS, HUMAN_PROXY_LIMITS, createBot, withMistakes, type ArenaBot } from './bots'
+import { ARENA_PEOPLE_LIMITS, decodePeopleSentinel, PEOPLE_DELAY_FRAMES, PEOPLE_MISTAKE_RATE, type PeopleProfile } from '../../people-hands'
 import { stepPacked, createState } from './core'
 import { MAX_HEALTH } from './economy'
 import { ARENA_FEATURES, buildObs, encodeState, type ArenaObs } from './encode'
@@ -157,6 +158,8 @@ interface Seat {
   proxyLimiter: HumanLimiter
   bots: Array<ArenaBot | undefined>
   botSeed: number
+  /** Set once a people sentinel takes the seat over this episode (A4): the bot, its own limiter, delayed view and reaction delay. */
+  people?: { bot: ArenaBot; limiter: HumanLimiter; hist: DelayedStates<ArenaState>; delay: number }
 }
 
 /** Writes the own-input extras for a seat into out[offset..]. */
@@ -238,6 +241,10 @@ export class ArenaEnv implements BridgeEnv {
   private anchorViews(i: number): void {
     this.anchors[i] = this.states[i]!.frame
     this.proxyHistory[i]!.clear()
+    for (const seat of this.seats[i]!) {
+      seat.people?.hist.clear()
+      seat.people?.limiter.clearViews()
+    }
     for (const seat of this.seats[i]!) seat.limiter.clearViews()
     this.history[i]?.clear()
     this.capture(i, true)
@@ -247,6 +254,10 @@ export class ArenaEnv implements BridgeEnv {
   private capture(i: number, force: boolean): void {
     const s = this.states[i]!
     if (force || (s.frame - this.anchors[i]! + HUMAN_PROXY_LIMITS.delayFrames) % FRAME_SKIP === 0) this.proxyHistory[i]!.record(s.frame, s)
+    for (const seat of this.seats[i]!) {
+      const p = seat.people
+      if (p && (force || (s.frame - this.anchors[i]! + p.delay) % FRAME_SKIP === 0)) p.hist.record(s.frame, s)
+    }
     if (!this.level) return
     if (!force && (s.frame - this.anchors[i]! + this.delay) % FRAME_SKIP !== 0) return
     for (const k of [0, 1] as const) {
@@ -292,6 +303,18 @@ export class ArenaEnv implements BridgeEnv {
     return obs
   }
 
+  /** Hands the seat to a scripted bot on a people profile: the profile's limiter (cap, hold, turn rate, noise), its own delayed view, its slips. */
+  private takeOver(i: number, k: 0 | 1, profile: PeopleProfile, kind: number, s: ArenaState) {
+    const seat = this.seats[i]![k]!
+    const delay = PEOPLE_DELAY_FRAMES[profile]
+    const limiter = new HumanLimiter(ARENA_PEOPLE_LIMITS[profile], makeRng((this.seeds[i]! + 7919 * (k + 1)) >>> 0))
+    const hist = new DelayedStates<ArenaState>(delay, blankState, copyState)
+    hist.record(s.frame, s)
+    const bot = withMistakes(createBot(ARENA_BOT_KINDS[kind]!, seat.botSeed + kind), PEOPLE_MISTAKE_RATE[profile], seat.botSeed + 4242)
+    seat.people = { bot, limiter, hist, delay }
+    return seat.people
+  }
+
   /** The input a seat plays this decision: a bot's or the policy's, then filtered by the level's limiter. */
   private seatInput(i: number, k: 0 | 1, actions: Int32Array): ArenaInput {
     const s = this.states[i]!
@@ -300,7 +323,21 @@ export class ArenaEnv implements BridgeEnv {
     let inp: ArenaInput
     const head = actions[base]!
     const isProxy = head === ARENA_BOT_SENTINEL_BASE - ARENA_BOT_KINDS.indexOf('human-proxy')
-    if (Number.isInteger(head) && head < 0 && head >= ARENA_BOT_SENTINEL_BASE - (ARENA_BOT_KINDS.length - 1)) {
+    let people: NonNullable<Seat['people']> | undefined
+    if (Number.isInteger(head) && head < 0 && ARENA_BOT_SENTINEL_BASE - head >= 16) {
+      const dec = decodePeopleSentinel(ARENA_BOT_SENTINEL_BASE - head, ARENA_BOT_KINDS.length)
+      if (!dec) throw new RangeError(`arena env: bad people sentinel ${head} for env ${i} seat ${k}`)
+      people = seat.people ?? this.takeOver(i, k, dec.profile, dec.kind, s)
+      const seen = people.hist.view(s.frame)
+      this.botViewFrame[i * 2 + k] = seen.frame
+      const view = buildObs(s, k)
+      view.opp = buildObs(seen.state, k).opp
+      this.botObsSeen[i * 2 + k] = view
+      inp = people.bot.act(view)
+      const bad = this.badInput(inp)
+      if (bad) throw new RangeError(`arena env: people bot gave ${bad} for env ${i} seat ${k}`)
+      headsFromInput(inp, this.botHeads, base, this.teachRand)
+    } else if (Number.isInteger(head) && head < 0 && head >= ARENA_BOT_SENTINEL_BASE - (ARENA_BOT_KINDS.length - 1)) {
       const kind = ARENA_BOT_SENTINEL_BASE - head
       const bot = (seat.bots[kind] ??= createBot(ARENA_BOT_KINDS[kind]!, seat.botSeed + kind))
       const seen = isProxy ? this.proxyHistory[i]!.view(s.frame) : this.history[i]?.view(s.frame)
@@ -326,7 +363,7 @@ export class ArenaEnv implements BridgeEnv {
         inp = inputFromHeads(actions, base)
       }
     }
-    const lim = isProxy ? seat.proxyLimiter : seat.limiter
+    const lim = people ? people.limiter : isProxy ? seat.proxyLimiter : seat.limiter
     const held = lim.act([inp.move, FLAG_BITS(inp)], s.frame)
     let f = held[1]!
     // A semi-automatic weapon presses the trigger again on every decision (heldInput), so each decision that

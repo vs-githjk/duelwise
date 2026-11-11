@@ -1,0 +1,486 @@
+{
+  "game": "chess",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T19:59:23.268Z",
+      "override": null,
+      "perSeat": {
+        "easy": 200,
+        "medium": 200,
+        "hard": 200,
+        "champion": 10
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "net": "policy-b1100.onnx",
+            "band": "b1100",
+            "temperature": 1,
+            "topP": 0.9,
+            "guard": "mate"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.7175,
+                "ci95": [
+                  0.6714724239395247,
+                  0.7593897279603997
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.705,
+                "ci95": [
+                  0.6585289506163026,
+                  0.747571008645695
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.6975,
+                "ci95": [
+                  0.6507820074415556,
+                  0.7404606362376861
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 219,
+                "draws": 136,
+                "losses": 45,
+                "bySeat": {
+                  "0": 0.7275,
+                  "1": 0.7075
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 219,
+                "draws": 126,
+                "losses": 55,
+                "bySeat": {
+                  "0": 0.745,
+                  "1": 0.665
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 210,
+                "draws": 138,
+                "losses": 52,
+                "bySeat": {
+                  "0": 0.72,
+                  "1": 0.675
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.7175,
+                "ci95": [
+                  0.6714724239395247,
+                  0.7593897279603997
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.705,
+                "ci95": [
+                  0.6585289506163026,
+                  0.747571008645695
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.6975,
+                "ci95": [
+                  0.6507820074415556,
+                  0.7404606362376861
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.7072499999999999,
+            "ci95": [
+              0.6798663233193363,
+              0.7346336766806636
+            ],
+            "real": null,
+            "calibrated": 0.7072499999999999,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+              "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+              "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "net": "policy-b1500.onnx",
+            "band": "b1500",
+            "temperature": 1,
+            "guard": "material",
+            "guardMargin": 2
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.98875,
+                "ci95": [
+                  0.9728126483446538,
+                  0.9953890837982797
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.99125,
+                "ci95": [
+                  0.9763623693263211,
+                  0.9967918013441976
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.99375,
+                "ci95": [
+                  0.9800455737968814,
+                  0.9980610354012228
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 394,
+                "draws": 3,
+                "losses": 3,
+                "bySeat": {
+                  "0": 0.99,
+                  "1": 0.9875
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 395,
+                "draws": 3,
+                "losses": 2,
+                "bySeat": {
+                  "0": 0.9875,
+                  "1": 0.995
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 395,
+                "draws": 5,
+                "losses": 0,
+                "bySeat": {
+                  "0": 0.995,
+                  "1": 0.9925
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.98875,
+                "ci95": [
+                  0.9728126483446538,
+                  0.9953890837982797
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 0.99125,
+                "ci95": [
+                  0.9763623693263211,
+                  0.9967918013441976
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 0.99375,
+                "ci95": [
+                  0.9800455737968814,
+                  0.9980610354012228
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.9909999999999999,
+            "ci95": [
+              0.9846126044662706,
+              0.9973873955337291
+            ],
+            "real": null,
+            "calibrated": 0.9909999999999999,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+              "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+              "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "net": "policy-b1900.onnx",
+            "band": "b1900",
+            "temperature": 0,
+            "logitMargin": 0.5,
+            "guard": "material",
+            "guardMargin": 1
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.995,
+                "ci95": [
+                  0.981955081404273,
+                  0.9986277470576238
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.9904877055170674,
+                  1
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 1,
+                "ci95": [
+                  0.9904877055170674,
+                  1
+                ],
+                "n": 400
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 400,
+                "wins": 398,
+                "draws": 0,
+                "losses": 2,
+                "bySeat": {
+                  "0": 0.99,
+                  "1": 1
+                }
+              },
+              "average": {
+                "games": 400,
+                "wins": 400,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "strong": {
+                "games": 400,
+                "wins": 400,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.995,
+                "ci95": [
+                  0.981955081404273,
+                  0.9986277470576238
+                ],
+                "n": 400
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.9904877055170674,
+                  1
+                ],
+                "n": 400
+              },
+              "strong": {
+                "value": 1,
+                "ci95": [
+                  0.9904877055170674,
+                  1
+                ],
+                "n": 400
+              }
+            },
+            "estimate": 0.9984999999999999,
+            "ci95": [
+              0.9949202553640424,
+              1
+            ],
+            "real": null,
+            "calibrated": 0.9984999999999999,
+            "verdict": "above",
+            "proxies": {
+              "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+              "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+              "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "search": "iterative-deepening PVS, transposition table, quiescence, MVV-LVA",
+            "eval": "value.bin (TS evaluator)",
+            "measuredNodeBudget": 129500
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "strong": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 20,
+                "wins": 20,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "average": {
+                "games": 20,
+                "wins": 20,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              },
+              "strong": {
+                "games": 20,
+                "wins": 20,
+                "draws": 0,
+                "losses": 0,
+                "bySeat": {
+                  "0": 1,
+                  "1": 1
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "average": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              },
+              "strong": {
+                "value": 1,
+                "ci95": [
+                  0.8388748398148704,
+                  1
+                ],
+                "n": 20
+              }
+            },
+            "estimate": 1,
+            "ci95": [
+              0.9503378903162084,
+              1
+            ],
+            "real": null,
+            "calibrated": 1,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "the human-imitation net for players rated about 1100, sampled at temperature 1 (no search, no safety net)",
+              "average": "the human-imitation net for players rated about 1500, sampled at temperature 1 (no search, no safety net)",
+              "strong": "the human-imitation net for players rated about 1900, sampled at temperature 1 (no search, no safety net)"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    }
+  ]
+}

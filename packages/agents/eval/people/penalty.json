@@ -1,0 +1,992 @@
+{
+  "game": "penalty",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T21:25:40.307Z",
+      "override": null,
+      "perSeat": {
+        "easy": 500,
+        "medium": 500,
+        "hard": 500,
+        "champion": 500
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "favourite-corner-blend",
+            "kind": "pip"
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.4985,
+                "ci95": [
+                  0.46757547891735723,
+                  0.5294360013582798
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.433,
+                "ci95": [
+                  0.4026038716441762,
+                  0.4639089140009467
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.47,
+                "ci95": [
+                  0.4392399143613455,
+                  0.5009896911513959
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 498,
+                "draws": 1,
+                "losses": 501,
+                "bySeat": {
+                  "0": 0.502,
+                  "1": 0.495
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 433,
+                "draws": 0,
+                "losses": 567,
+                "bySeat": {
+                  "0": 0.41,
+                  "1": 0.456
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 470,
+                "draws": 0,
+                "losses": 530,
+                "bySeat": {
+                  "0": 0.518,
+                  "1": 0.422
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.4985,
+                "ci95": [
+                  0.46757547891735723,
+                  0.5294360013582798
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.433,
+                "ci95": [
+                  0.4026038716441762,
+                  0.4639089140009467
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.47,
+                "ci95": [
+                  0.4392399143613455,
+                  0.5009896911513959
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.46004999999999996,
+            "ci95": [
+              0.4410993823765823,
+              0.4790006176234176
+            ],
+            "real": null,
+            "calibrated": 0.46004999999999996,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "echo-last-kick",
+            "kind": "marlow",
+            "read": 0.5,
+            "kickRead": 0.38
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.732,
+                "ci95": [
+                  0.7036985751915577,
+                  0.7585258088432403
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.415,
+                "ci95": [
+                  0.38484336001196967,
+                  0.4458071889407982
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.498,
+                "ci95": [
+                  0.46707750013942995,
+                  0.5289378068947528
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 732,
+                "draws": 0,
+                "losses": 268,
+                "bySeat": {
+                  "0": 0.708,
+                  "1": 0.756
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 414,
+                "draws": 2,
+                "losses": 584,
+                "bySeat": {
+                  "0": 0.426,
+                  "1": 0.404
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 498,
+                "draws": 0,
+                "losses": 502,
+                "bySeat": {
+                  "0": 0.546,
+                  "1": 0.45
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.732,
+                "ci95": [
+                  0.7036985751915577,
+                  0.7585258088432403
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.415,
+                "ci95": [
+                  0.38484336001196967,
+                  0.4458071889407982
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.498,
+                "ci95": [
+                  0.46707750013942995,
+                  0.5289378068947528
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.5267,
+            "ci95": [
+              0.5083100753741279,
+              0.545089924625872
+            ],
+            "real": null,
+            "calibrated": 0.5267,
+            "verdict": "ceiling",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            },
+            "ceiling": {
+              "value": 0.55425,
+              "ci95": [
+                0.5388018521958282,
+                0.5695940482055986
+              ],
+              "by": "4000 games of the champion settings against the average test player"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "algorithm": "pattern-reader",
+            "kind": "vesper",
+            "read": 1,
+            "kickRead": 0.52,
+            "reader": 0.2,
+            "readerGrowth": 0.7,
+            "prior": 0.4
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.6815,
+                "ci95": [
+                  0.6519764646965777,
+                  0.7096344219513353
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.637,
+                "ci95": [
+                  0.6067244305777956,
+                  0.6662270375806842
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.509,
+                "ci95": [
+                  0.47804015125093074,
+                  0.5398909670952469
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 681,
+                "draws": 1,
+                "losses": 318,
+                "bySeat": {
+                  "0": 0.676,
+                  "1": 0.687
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 637,
+                "draws": 0,
+                "losses": 363,
+                "bySeat": {
+                  "0": 0.63,
+                  "1": 0.644
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 509,
+                "draws": 0,
+                "losses": 491,
+                "bySeat": {
+                  "0": 0.542,
+                  "1": 0.476
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.6815,
+                "ci95": [
+                  0.6519764646965777,
+                  0.7096344219513353
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.637,
+                "ci95": [
+                  0.6067244305777956,
+                  0.6662270375806842
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.509,
+                "ci95": [
+                  0.47804015125093074,
+                  0.5398909670952469
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.62475,
+            "ci95": [
+              0.6064650293957675,
+              0.6430349706042325
+            ],
+            "real": null,
+            "calibrated": 0.62475,
+            "verdict": "ceiling",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            },
+            "ceiling": {
+              "value": 0.55425,
+              "ci95": [
+                0.5388018521958282,
+                0.5695940482055986
+              ],
+              "by": "4000 games of the champion settings against the average test player"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "algorithm": "habit-reader-bayes",
+            "kind": "sable",
+            "weight": 1.1,
+            "cap": 0.8
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.623,
+                "ci95": [
+                  0.5925457105711255,
+                  0.6525129068266338
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.566,
+                "ci95": [
+                  0.5350866435708425,
+                  0.5964082243011258
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.501,
+                "ci95": [
+                  0.47006583499065185,
+                  0.5319265114922567
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 623,
+                "draws": 0,
+                "losses": 377,
+                "bySeat": {
+                  "0": 0.606,
+                  "1": 0.64
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 566,
+                "draws": 0,
+                "losses": 434,
+                "bySeat": {
+                  "0": 0.532,
+                  "1": 0.6
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 501,
+                "draws": 0,
+                "losses": 499,
+                "bySeat": {
+                  "0": 0.546,
+                  "1": 0.456
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.623,
+                "ci95": [
+                  0.5925457105711255,
+                  0.6525129068266338
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.566,
+                "ci95": [
+                  0.5350866435708425,
+                  0.5964082243011258
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.501,
+                "ci95": [
+                  0.47006583499065185,
+                  0.5319265114922567
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.5701,
+            "ci95": [
+              0.5512798006512165,
+              0.5889201993487836
+            ],
+            "real": null,
+            "calibrated": 0.5701,
+            "verdict": "ceiling",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            },
+            "ceiling": {
+              "value": 0.55425,
+              "ci95": [
+                0.5388018521958282,
+                0.5695940482055986
+              ],
+              "by": "4000 games of the champion settings against the average test player"
+            }
+          },
+          "runtime": "bun"
+        }
+      },
+      "ceilings": {
+        "champion": {
+          "value": 0.55425,
+          "ci95": [
+            0.5388018521958282,
+            0.5695940482055986
+          ],
+          "n": 4000,
+          "by": "champion settings (the strongest the code has) against the average test player"
+        }
+      },
+      "realCheck": {
+        "rows": [
+          {
+            "level": "easy",
+            "n": 8,
+            "players": 5,
+            "value": 0.625,
+            "ci95": [
+              0.305742392653771,
+              0.8631557152608772
+            ],
+            "panel": 0.46004999999999996,
+            "panelCi95": [
+              0.4410993823765823,
+              0.4790006176234176
+            ],
+            "overlaps": true
+          },
+          {
+            "level": "medium",
+            "n": 10,
+            "players": 3,
+            "value": 0.7,
+            "ci95": [
+              0.39677814534597083,
+              0.892208733443606
+            ],
+            "panel": 0.5267,
+            "panelCi95": [
+              0.5083100753741279,
+              0.545089924625872
+            ],
+            "overlaps": true
+          },
+          {
+            "level": "hard",
+            "n": 5,
+            "players": 3,
+            "value": 0.6,
+            "ci95": [
+              0.23072427940911852,
+              0.8823792268590027
+            ],
+            "panel": 0.62475,
+            "panelCi95": [
+              0.6064650293957675,
+              0.6430349706042325
+            ],
+            "overlaps": true
+          },
+          {
+            "level": "champion",
+            "n": 8,
+            "players": 2,
+            "value": 0.875,
+            "ci95": [
+              0.5291118149439162,
+              0.9775825088000282
+            ],
+            "panel": 0.5701,
+            "panelCi95": [
+              0.5512798006512165,
+              0.5889201993487836
+            ],
+            "overlaps": true
+          }
+        ],
+        "pooled": {
+          "n": 31,
+          "points": 22,
+          "expected": 16.63195,
+          "z": 1.945535947456232
+        },
+        "note": "real rows are under the 40 match, 10 player minimum, so they cannot calibrate; they can only contradict the panel"
+      }
+    },
+    {
+      "label": "sable-weight2-cap95",
+      "at": "2026-11-10T21:25:44.280Z",
+      "override": {
+        "champion": {
+          "weight": 2,
+          "cap": 0.95
+        }
+      },
+      "perSeat": {
+        "champion": 500
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "champion": {
+          "level": "champion",
+          "config": {
+            "algorithm": "habit-reader-bayes",
+            "kind": "sable",
+            "weight": 2,
+            "cap": 0.95
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.657,
+                "ci95": [
+                  0.6270270211378157,
+                  0.6857713766788364
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.575,
+                "ci95": [
+                  0.5441311930875008,
+                  0.605294793130645
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.513,
+                "ci95": [
+                  0.48203026848627484,
+                  0.5438702357915371
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 657,
+                "draws": 0,
+                "losses": 343,
+                "bySeat": {
+                  "0": 0.642,
+                  "1": 0.672
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 575,
+                "draws": 0,
+                "losses": 425,
+                "bySeat": {
+                  "0": 0.544,
+                  "1": 0.606
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 513,
+                "draws": 0,
+                "losses": 487,
+                "bySeat": {
+                  "0": 0.556,
+                  "1": 0.47
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.657,
+                "ci95": [
+                  0.6270270211378157,
+                  0.6857713766788364
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.575,
+                "ci95": [
+                  0.5441311930875008,
+                  0.605294793130645
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.513,
+                "ci95": [
+                  0.48203026848627484,
+                  0.5438702357915371
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.5871999999999999,
+            "ci95": [
+              0.5684997680995277,
+              0.6059002319004722
+            ],
+            "real": null,
+            "calibrated": 0.5871999999999999,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "marlow-read08-kick06",
+      "at": "2026-11-10T21:25:44.963Z",
+      "override": {
+        "medium": {
+          "read": 0.8,
+          "kickRead": 0.6
+        }
+      },
+      "perSeat": {
+        "medium": 500
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "echo-last-kick",
+            "kind": "marlow",
+            "read": 0.8,
+            "kickRead": 0.6
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.795,
+                "ci95": [
+                  0.7688722987548496,
+                  0.818869913703191
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.2905,
+                "ci95": [
+                  0.2632058880852964,
+                  0.3193975237453493
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.4855,
+                "ci95": [
+                  0.45463804730021773,
+                  0.5164729286976072
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 795,
+                "draws": 0,
+                "losses": 205,
+                "bySeat": {
+                  "0": 0.788,
+                  "1": 0.802
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 290,
+                "draws": 1,
+                "losses": 709,
+                "bySeat": {
+                  "0": 0.304,
+                  "1": 0.277
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 485,
+                "draws": 1,
+                "losses": 514,
+                "bySeat": {
+                  "0": 0.539,
+                  "1": 0.432
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.795,
+                "ci95": [
+                  0.7688722987548496,
+                  0.818869913703191
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.2905,
+                "ci95": [
+                  0.2632058880852964,
+                  0.3193975237453493
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.4855,
+                "ci95": [
+                  0.45463804730021773,
+                  0.5164729286976072
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.48085,
+            "ci95": [
+              0.4637671458994535,
+              0.4979328541005465
+            ],
+            "real": null,
+            "calibrated": 0.48085,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "vesper-reader04",
+      "at": "2026-11-10T21:25:45.285Z",
+      "override": {
+        "hard": {
+          "read": 1,
+          "reader": 0.4,
+          "readerGrowth": 0.9,
+          "kickRead": 0.7
+        }
+      },
+      "perSeat": {
+        "hard": 500
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "hard": {
+          "level": "hard",
+          "config": {
+            "algorithm": "pattern-reader",
+            "kind": "vesper",
+            "read": 1,
+            "kickRead": 0.7,
+            "reader": 0.4,
+            "readerGrowth": 0.9,
+            "prior": 0.4
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.681,
+                "ci95": [
+                  0.6514663970374243,
+                  0.7091483163690345
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.625,
+                "ci95": [
+                  0.5945696043686609,
+                  0.6544737059949155
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.489,
+                "ci95": [
+                  0.4581191518809496,
+                  0.5199650368070555
+                ],
+                "n": 1000
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 1000,
+                "wins": 681,
+                "draws": 0,
+                "losses": 319,
+                "bySeat": {
+                  "0": 0.684,
+                  "1": 0.678
+                }
+              },
+              "average": {
+                "games": 1000,
+                "wins": 625,
+                "draws": 0,
+                "losses": 375,
+                "bySeat": {
+                  "0": 0.616,
+                  "1": 0.634
+                }
+              },
+              "strong": {
+                "games": 1000,
+                "wins": 489,
+                "draws": 0,
+                "losses": 511,
+                "bySeat": {
+                  "0": 0.514,
+                  "1": 0.464
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.681,
+                "ci95": [
+                  0.6514663970374243,
+                  0.7091483163690345
+                ],
+                "n": 1000
+              },
+              "average": {
+                "value": 0.625,
+                "ci95": [
+                  0.5945696043686609,
+                  0.6544737059949155
+                ],
+                "n": 1000
+              },
+              "strong": {
+                "value": 0.489,
+                "ci95": [
+                  0.4581191518809496,
+                  0.5199650368070555
+                ],
+                "n": 1000
+              }
+            },
+            "estimate": 0.6146,
+            "ci95": [
+              0.596231751370885,
+              0.632968248629115
+            ],
+            "real": null,
+            "calibrated": 0.6146,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "kicks at a favourite bottom corner first, then repeats a zone that scored and flips to the mirror zone after a miss (70% of kicks, otherwise any zone); dives to a favourite low side half the time and anywhere otherwise",
+              "average": "alternates the side it kicks to (low row 60%, 80% of kicks, otherwise any zone); dives to cover where the kicker last shot 45% of the time and anywhere otherwise",
+              "strong": "a well-mixed player: kicks and dives at the game's equilibrium mix, with 6% of picks at random; it cannot be read, so it sets the ceiling"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    }
+  ]
+}

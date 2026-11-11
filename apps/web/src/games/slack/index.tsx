@@ -7,6 +7,7 @@ import { LevelPicker } from '../../components/LevelPicker'
 import { PlayHud } from '../../components/PlayHud'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { ResultPanel } from '../../components/ResultPanel'
+import { useNearMiss } from '../../lib/use-near-miss'
 import { StrengthLine } from '../../components/SiteElo'
 import { chipText, OfflinePill } from '../../components/OfflineChip'
 import { isOffline, subscribeConnection } from '../../lib/connection'
@@ -53,6 +54,7 @@ function presetFromUrl(): SlackMatch | null {
 
 export default function SlackPage() {
   const match = useSlackMatch((level) => sourceRegistry?.levels[level]?.version ?? 'preview', sourceRegistry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [picked, setPicked] = useState<Level>(firstSelectable)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [preset, setPreset] = useState<SlackMatch | null>(presetFromUrl)
@@ -160,6 +162,7 @@ export default function SlackPage() {
             levels={levelInfo}
             moves={m ? humanMoveCount(m.log, m.human) : 0}
             reveal={!match.resigned && m ? <p className="text-sm text-ink" data-testid="slack-final-count">{finalCount(m, name)}</p> : null}
+            nearMiss={nearMiss}
             onChangeLevel={match.backToSetup}
           />
           {match.finished ? (

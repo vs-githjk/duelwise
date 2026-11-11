@@ -1,0 +1,2421 @@
+{
+  "game": "holdem",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/holdem-people-run.ts only. A panel score is the level's points against a test player over duplicate deals (each deal twice, seats swapped), strict bust rule. One 30 hand match per seed; the 5, 10 and 15 hand results are read off the same hands.",
+  "calibration": 0,
+  "calibrationNote": "no real row reaches the minimum of 40 matches and 10 players, so no calibration is applied: the estimate is the panel alone, labelled so",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T21:24:56.434Z",
+      "override": null,
+      "deals": {
+        "easy": 1000,
+        "medium": 1000,
+        "hard": 1000,
+        "champion": 1000
+      },
+      "seedBase": 12000000,
+      "byLength": {
+        "5": {
+          "easy": {
+            "config": {
+              "table": "easy.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": true,
+              "shoveFloor": 0,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1034,
+                "draws": 76,
+                "losses": 890,
+                "bySeat": {
+                  "0": 0.521,
+                  "1": 0.551
+                },
+                "score": 0.536,
+                "ci95": [
+                  0.5140956457353255,
+                  0.557766326858251
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 59.56856890405533,
+                  "aggressionPercent": 15.081956682333544,
+                  "hands": 32821,
+                  "decisions": 93403
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1000,
+                "draws": 37,
+                "losses": 963,
+                "bySeat": {
+                  "0": 0.4995,
+                  "1": 0.519
+                },
+                "score": 0.50925,
+                "ci95": [
+                  0.48734395730572233,
+                  0.5311205773190161
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 53.25033263638092,
+                  "aggressionPercent": 30.70710948998528,
+                  "hands": 31566,
+                  "decisions": 78135
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 956,
+                "draws": 25,
+                "losses": 1019,
+                "bySeat": {
+                  "0": 0.477,
+                  "1": 0.4915
+                },
+                "score": 0.48425,
+                "ci95": [
+                  0.46239898713083627,
+                  0.506161399859474
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 46.73067313869655,
+                  "aggressionPercent": 46.386091803387465,
+                  "hands": 28018,
+                  "decisions": 60281
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.42,
+                "high": 0.58
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.536,
+                  "ci95": [
+                    0.5140956457353255,
+                    0.557766326858251
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.50925,
+                  "ci95": [
+                    0.48734395730572233,
+                    0.5311205773190161
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.48425,
+                  "ci95": [
+                    0.46239898713083627,
+                    0.506161399859474
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.512275,
+              "ci95": [
+                0.49879032702716747,
+                0.5257596729728327
+              ],
+              "real": null,
+              "calibrated": 0.512275,
+              "verdict": "in-band",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              }
+            }
+          },
+          "medium": {
+            "config": {
+              "table": "medium.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1094,
+                "draws": 30,
+                "losses": 876,
+                "bySeat": {
+                  "0": 0.5365,
+                  "1": 0.5725
+                },
+                "score": 0.5545,
+                "ci95": [
+                  0.5326336590076073,
+                  0.5761573828354459
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 67.46779580152672,
+                  "aggressionPercent": 15.31677102268902,
+                  "hands": 16768,
+                  "decisions": 44559
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 995,
+                "draws": 25,
+                "losses": 980,
+                "bySeat": {
+                  "0": 0.504,
+                  "1": 0.5035
+                },
+                "score": 0.50375,
+                "ci95": [
+                  0.48185137619356355,
+                  0.5256342459516007
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 58.47042868093638,
+                  "aggressionPercent": 30.930355307386726,
+                  "hands": 16959,
+                  "decisions": 35997
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 981,
+                "draws": 15,
+                "losses": 1004,
+                "bySeat": {
+                  "0": 0.4765,
+                  "1": 0.512
+                },
+                "score": 0.49425,
+                "ci95": [
+                  0.47237041848516853,
+                  0.5161516275589131
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 48.900169204737736,
+                  "aggressionPercent": 46.47918593894542,
+                  "hands": 15957,
+                  "decisions": 27025
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.65,
+                "high": 0.75
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.5545,
+                  "ci95": [
+                    0.5326336590076073,
+                    0.5761573828354459
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.50375,
+                  "ci95": [
+                    0.48185137619356355,
+                    0.5256342459516007
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.49425,
+                  "ci95": [
+                    0.47237041848516853,
+                    0.5161516275589131
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.5170750000000001,
+              "ci95": [
+                0.503599141956758,
+                0.5305508580432421
+              ],
+              "real": null,
+              "calibrated": 0.5170750000000001,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.525,
+                "ci95": [
+                  0.5030873540566317,
+                  0.5468167935777964
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 5 hands"
+              }
+            }
+          },
+          "hard": {
+            "config": {
+              "table": "hard.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1155,
+                "draws": 6,
+                "losses": 839,
+                "bySeat": {
+                  "0": 0.584,
+                  "1": 0.574
+                },
+                "score": 0.579,
+                "ci95": [
+                  0.5572309569181425,
+                  0.6004661496066502
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 86.29478590154383,
+                  "aggressionPercent": 15.296803652968036,
+                  "hands": 6866,
+                  "decisions": 14016
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1007,
+                "draws": 14,
+                "losses": 979,
+                "bySeat": {
+                  "0": 0.5155,
+                  "1": 0.4985
+                },
+                "score": 0.507,
+                "ci95": [
+                  0.48509667266034173,
+                  0.5288764886772982
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 70.4103949569021,
+                  "aggressionPercent": 31.974547623782065,
+                  "hands": 7773,
+                  "decisions": 10058
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 972,
+                "draws": 12,
+                "losses": 1016,
+                "bySeat": {
+                  "0": 0.499,
+                  "1": 0.479
+                },
+                "score": 0.489,
+                "ci95": [
+                  0.4671343264576672,
+                  0.5109078485831844
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 56.27535056205818,
+                  "aggressionPercent": 45.94174208144796,
+                  "hands": 8629,
+                  "decisions": 7072
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.8,
+                "high": 0.9
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.579,
+                  "ci95": [
+                    0.5572309569181425,
+                    0.6004661496066502
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.507,
+                  "ci95": [
+                    0.48509667266034173,
+                    0.5288764886772982
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.489,
+                  "ci95": [
+                    0.4671343264576672,
+                    0.5109078485831844
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.525,
+              "ci95": [
+                0.5115459272708626,
+                0.5384540727291375
+              ],
+              "real": null,
+              "calibrated": 0.525,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.525,
+                "ci95": [
+                  0.5030873540566317,
+                  0.5468167935777964
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 5 hands"
+              }
+            }
+          },
+          "champion": {
+            "config": {
+              "table": "champion.bin.gz",
+              "snapshot": "holdem-fine final.dwht",
+              "abstraction": "fine",
+              "iterations": 5000000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1128,
+                "draws": 17,
+                "losses": 855,
+                "bySeat": {
+                  "0": 0.5425,
+                  "1": 0.594
+                },
+                "score": 0.56825,
+                "ci95": [
+                  0.5464316254605078,
+                  0.589806697581481
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 79.75209792901686,
+                  "aggressionPercent": 14.972987655811426,
+                  "hands": 12989,
+                  "decisions": 33133
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1037,
+                "draws": 26,
+                "losses": 937,
+                "bySeat": {
+                  "0": 0.524,
+                  "1": 0.526
+                },
+                "score": 0.525,
+                "ci95": [
+                  0.5030873540566317,
+                  0.5468167935777964
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 65.57088554132056,
+                  "aggressionPercent": 30.950028813698857,
+                  "hands": 14206,
+                  "decisions": 24294
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 987,
+                "draws": 17,
+                "losses": 996,
+                "bySeat": {
+                  "0": 0.5005,
+                  "1": 0.495
+                },
+                "score": 0.49775,
+                "ci95": [
+                  0.4758624851684606,
+                  0.519646141544441
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 54.071532268707934,
+                  "aggressionPercent": 46.547008547008545,
+                  "hands": 15154,
+                  "decisions": 17550
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.93,
+                "high": 1
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.56825,
+                  "ci95": [
+                    0.5464316254605078,
+                    0.589806697581481
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.525,
+                  "ci95": [
+                    0.5030873540566317,
+                    0.5468167935777964
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.49775,
+                  "ci95": [
+                    0.4758624851684606,
+                    0.519646141544441
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.532525,
+              "ci95": [
+                0.5190707067059455,
+                0.5459792932940546
+              ],
+              "real": null,
+              "calibrated": 0.532525,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.525,
+                "ci95": [
+                  0.5030873540566317,
+                  0.5468167935777964
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 5 hands"
+              }
+            }
+          }
+        },
+        "10": {
+          "easy": {
+            "config": {
+              "table": "easy.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": true,
+              "shoveFloor": 0,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1174,
+                "draws": 35,
+                "losses": 791,
+                "bySeat": {
+                  "0": 0.589,
+                  "1": 0.6025
+                },
+                "score": 0.59575,
+                "ci95": [
+                  0.5740787738941172,
+                  0.6170541115457425
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 59.56856890405533,
+                  "aggressionPercent": 15.081956682333544,
+                  "hands": 32821,
+                  "decisions": 93403
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1066,
+                "draws": 19,
+                "losses": 915,
+                "bySeat": {
+                  "0": 0.5245,
+                  "1": 0.551
+                },
+                "score": 0.53775,
+                "ci95": [
+                  0.515847946335018,
+                  0.5595073165929684
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 53.25033263638092,
+                  "aggressionPercent": 30.70710948998528,
+                  "hands": 31566,
+                  "decisions": 78135
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1021,
+                "draws": 6,
+                "losses": 973,
+                "bySeat": {
+                  "0": 0.5095,
+                  "1": 0.5145
+                },
+                "score": 0.512,
+                "ci95": [
+                  0.4900912397391929,
+                  0.5338627511253327
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 46.73067313869655,
+                  "aggressionPercent": 46.386091803387465,
+                  "hands": 28018,
+                  "decisions": 60281
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.42,
+                "high": 0.58
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.59575,
+                  "ci95": [
+                    0.5740787738941172,
+                    0.6170541115457425
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.53775,
+                  "ci95": [
+                    0.515847946335018,
+                    0.5595073165929684
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.512,
+                  "ci95": [
+                    0.4900912397391929,
+                    0.5338627511253327
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.55,
+              "ci95": [
+                0.5365892568312222,
+                0.5634107431687779
+              ],
+              "real": null,
+              "calibrated": 0.55,
+              "verdict": "in-band",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              }
+            }
+          },
+          "medium": {
+            "config": {
+              "table": "medium.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1193,
+                "draws": 12,
+                "losses": 795,
+                "bySeat": {
+                  "0": 0.5905,
+                  "1": 0.6085
+                },
+                "score": 0.5995,
+                "ci95": [
+                  0.5778542085972657,
+                  0.6207642989877583
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 67.46779580152672,
+                  "aggressionPercent": 15.31677102268902,
+                  "hands": 16768,
+                  "decisions": 44559
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1130,
+                "draws": 6,
+                "losses": 864,
+                "bySeat": {
+                  "0": 0.5635,
+                  "1": 0.5695
+                },
+                "score": 0.5665,
+                "ci95": [
+                  0.5446745805656436,
+                  0.5880704521419352
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 58.47042868093638,
+                  "aggressionPercent": 30.930355307386726,
+                  "hands": 16959,
+                  "decisions": 35997
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1081,
+                "draws": 4,
+                "losses": 915,
+                "bySeat": {
+                  "0": 0.537,
+                  "1": 0.546
+                },
+                "score": 0.5415,
+                "ci95": [
+                  0.5196037855397457,
+                  0.563237099533405
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 48.900169204737736,
+                  "aggressionPercent": 46.47918593894542,
+                  "hands": 15957,
+                  "decisions": 27025
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.65,
+                "high": 0.75
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.5995,
+                  "ci95": [
+                    0.5778542085972657,
+                    0.6207642989877583
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.5665,
+                  "ci95": [
+                    0.5446745805656436,
+                    0.5880704521419352
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5415,
+                  "ci95": [
+                    0.5196037855397457,
+                    0.563237099533405
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.5714,
+              "ci95": [
+                0.558052061130758,
+                0.584747938869242
+              ],
+              "real": null,
+              "calibrated": 0.5714,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.60075,
+                "ci95": [
+                  0.5791129766932503,
+                  0.6220007382734949
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+              }
+            }
+          },
+          "hard": {
+            "config": {
+              "table": "hard.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1241,
+                "draws": 2,
+                "losses": 757,
+                "bySeat": {
+                  "0": 0.621,
+                  "1": 0.621
+                },
+                "score": 0.621,
+                "ci95": [
+                  0.599525435154146,
+                  0.642010639396486
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 86.29478590154383,
+                  "aggressionPercent": 15.296803652968036,
+                  "hands": 6866,
+                  "decisions": 14016
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1142,
+                "draws": 3,
+                "losses": 855,
+                "bySeat": {
+                  "0": 0.5755,
+                  "1": 0.568
+                },
+                "score": 0.57175,
+                "ci95": [
+                  0.5499465415819634,
+                  0.5932783621288452
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 70.4103949569021,
+                  "aggressionPercent": 31.974547623782065,
+                  "hands": 7773,
+                  "decisions": 10058
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1068,
+                "draws": 6,
+                "losses": 926,
+                "bySeat": {
+                  "0": 0.5325,
+                  "1": 0.5385
+                },
+                "score": 0.5355,
+                "ci95": [
+                  0.5135950379769215,
+                  0.5572688516639663
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 56.27535056205818,
+                  "aggressionPercent": 45.94174208144796,
+                  "hands": 8629,
+                  "decisions": 7072
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.8,
+                "high": 0.9
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.621,
+                  "ci95": [
+                    0.599525435154146,
+                    0.642010639396486
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.57175,
+                  "ci95": [
+                    0.5499465415819634,
+                    0.5932783621288452
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5355,
+                  "ci95": [
+                    0.5135950379769215,
+                    0.5572688516639663
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.579275,
+              "ci95": [
+                0.565969389527235,
+                0.592580610472765
+              ],
+              "real": null,
+              "calibrated": 0.579275,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.60075,
+                "ci95": [
+                  0.5791129766932503,
+                  0.6220007382734949
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+              }
+            }
+          },
+          "champion": {
+            "config": {
+              "table": "champion.bin.gz",
+              "snapshot": "holdem-fine final.dwht",
+              "abstraction": "fine",
+              "iterations": 5000000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1224,
+                "draws": 5,
+                "losses": 771,
+                "bySeat": {
+                  "0": 0.593,
+                  "1": 0.6335
+                },
+                "score": 0.61325,
+                "ci95": [
+                  0.5917086886014657,
+                  0.6343571001824935
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 79.75209792901686,
+                  "aggressionPercent": 14.972987655811426,
+                  "hands": 12989,
+                  "decisions": 33133
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1199,
+                "draws": 5,
+                "losses": 796,
+                "bySeat": {
+                  "0": 0.606,
+                  "1": 0.5955
+                },
+                "score": 0.60075,
+                "ci95": [
+                  0.5791129766932503,
+                  0.6220007382734949
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 65.57088554132056,
+                  "aggressionPercent": 30.950028813698857,
+                  "hands": 14206,
+                  "decisions": 24294
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1125,
+                "draws": 5,
+                "losses": 870,
+                "bySeat": {
+                  "0": 0.557,
+                  "1": 0.5705
+                },
+                "score": 0.56375,
+                "ci95": [
+                  0.5419140653037743,
+                  0.5853415111640173
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 54.071532268707934,
+                  "aggressionPercent": 46.547008547008545,
+                  "hands": 15154,
+                  "decisions": 17550
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.93,
+                "high": 1
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.61325,
+                  "ci95": [
+                    0.5917086886014657,
+                    0.6343571001824935
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.60075,
+                  "ci95": [
+                    0.5791129766932503,
+                    0.6220007382734949
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.56375,
+                  "ci95": [
+                    0.5419140653037743,
+                    0.5853415111640173
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.5971,
+              "ci95": [
+                0.5838809079695939,
+                0.610319092030406
+              ],
+              "real": null,
+              "calibrated": 0.5971,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.60075,
+                "ci95": [
+                  0.5791129766932503,
+                  0.6220007382734949
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 10 hands"
+              }
+            }
+          }
+        },
+        "15": {
+          "easy": {
+            "config": {
+              "table": "easy.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": true,
+              "shoveFloor": 0,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1234,
+                "draws": 19,
+                "losses": 747,
+                "bySeat": {
+                  "0": 0.605,
+                  "1": 0.6385
+                },
+                "score": 0.62175,
+                "ci95": [
+                  0.600282198355242,
+                  0.6427510006244229
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 59.56856890405533,
+                  "aggressionPercent": 15.081956682333544,
+                  "hands": 32821,
+                  "decisions": 93403
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1113,
+                "draws": 11,
+                "losses": 876,
+                "bySeat": {
+                  "0": 0.55,
+                  "1": 0.5685
+                },
+                "score": 0.55925,
+                "ci95": [
+                  0.5373983190085256,
+                  0.580874510885069
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 53.25033263638092,
+                  "aggressionPercent": 30.70710948998528,
+                  "hands": 31566,
+                  "decisions": 78135
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1046,
+                "draws": 6,
+                "losses": 948,
+                "bySeat": {
+                  "0": 0.5125,
+                  "1": 0.5365
+                },
+                "score": 0.5245,
+                "ci95": [
+                  0.502587229676166,
+                  0.5463188350055735
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 46.73067313869655,
+                  "aggressionPercent": 46.386091803387465,
+                  "hands": 28018,
+                  "decisions": 60281
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.42,
+                "high": 0.58
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.62175,
+                  "ci95": [
+                    0.600282198355242,
+                    0.6427510006244229
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.55925,
+                  "ci95": [
+                    0.5373983190085256,
+                    0.580874510885069
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5245,
+                  "ci95": [
+                    0.502587229676166,
+                    0.5463188350055735
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.5710500000000001,
+              "ci95": [
+                0.557714269122344,
+                0.5843857308776561
+              ],
+              "real": null,
+              "calibrated": 0.5710500000000001,
+              "verdict": "in-band",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              }
+            }
+          },
+          "medium": {
+            "config": {
+              "table": "medium.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1242,
+                "draws": 7,
+                "losses": 751,
+                "bySeat": {
+                  "0": 0.612,
+                  "1": 0.6335
+                },
+                "score": 0.62275,
+                "ci95": [
+                  0.6012912997707657,
+                  0.6437380651142763
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 67.46779580152672,
+                  "aggressionPercent": 15.31677102268902,
+                  "hands": 16768,
+                  "decisions": 44559
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1174,
+                "draws": 5,
+                "losses": 821,
+                "bySeat": {
+                  "0": 0.5975,
+                  "1": 0.579
+                },
+                "score": 0.58825,
+                "ci95": [
+                  0.5665317982011071,
+                  0.6096298429484243
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 58.47042868093638,
+                  "aggressionPercent": 30.930355307386726,
+                  "hands": 16959,
+                  "decisions": 35997
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1148,
+                "draws": 4,
+                "losses": 848,
+                "bySeat": {
+                  "0": 0.571,
+                  "1": 0.579
+                },
+                "score": 0.575,
+                "ci95": [
+                  0.5532113812119087,
+                  0.5965010616913755
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 48.900169204737736,
+                  "aggressionPercent": 46.47918593894542,
+                  "hands": 15957,
+                  "decisions": 27025
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.65,
+                "high": 0.75
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.62275,
+                  "ci95": [
+                    0.6012912997707657,
+                    0.6437380651142763
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.58825,
+                  "ci95": [
+                    0.5665317982011071,
+                    0.6096298429484243
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.575,
+                  "ci95": [
+                    0.5532113812119087,
+                    0.5965010616913755
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.59595,
+              "ci95": [
+                0.5827073064236118,
+                0.6091926935763882
+              ],
+              "real": null,
+              "calibrated": 0.59595,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.628,
+                "ci95": [
+                  0.606590659499124,
+                  0.648918576389148
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 15 hands"
+              }
+            }
+          },
+          "hard": {
+            "config": {
+              "table": "hard.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1258,
+                "draws": 0,
+                "losses": 742,
+                "bySeat": {
+                  "0": 0.635,
+                  "1": 0.623
+                },
+                "score": 0.629,
+                "ci95": [
+                  0.6076003629552105,
+                  0.6499050388384386
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 86.29478590154383,
+                  "aggressionPercent": 15.296803652968036,
+                  "hands": 6866,
+                  "decisions": 14016
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1165,
+                "draws": 1,
+                "losses": 834,
+                "bySeat": {
+                  "0": 0.5865,
+                  "1": 0.579
+                },
+                "score": 0.58275,
+                "ci95": [
+                  0.561000628084143,
+                  0.604182100585814
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 70.4103949569021,
+                  "aggressionPercent": 31.974547623782065,
+                  "hands": 7773,
+                  "decisions": 10058
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1117,
+                "draws": 2,
+                "losses": 881,
+                "bySeat": {
+                  "0": 0.5495,
+                  "1": 0.5685
+                },
+                "score": 0.559,
+                "ci95": [
+                  0.5371474972738347,
+                  0.5806262911434157
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 56.27535056205818,
+                  "aggressionPercent": 45.94174208144796,
+                  "hands": 8629,
+                  "decisions": 7072
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.8,
+                "high": 0.9
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.629,
+                  "ci95": [
+                    0.6076003629552105,
+                    0.6499050388384386
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.58275,
+                  "ci95": [
+                    0.561000628084143,
+                    0.604182100585814
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.559,
+                  "ci95": [
+                    0.5371474972738347,
+                    0.5806262911434157
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.591875,
+              "ci95": [
+                0.5786193614200416,
+                0.6051306385799585
+              ],
+              "real": null,
+              "calibrated": 0.591875,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.628,
+                "ci95": [
+                  0.606590659499124,
+                  0.648918576389148
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 15 hands"
+              }
+            }
+          },
+          "champion": {
+            "config": {
+              "table": "champion.bin.gz",
+              "snapshot": "holdem-fine final.dwht",
+              "abstraction": "fine",
+              "iterations": 5000000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1270,
+                "draws": 1,
+                "losses": 729,
+                "bySeat": {
+                  "0": 0.6205,
+                  "1": 0.65
+                },
+                "score": 0.63525,
+                "ci95": [
+                  0.613913211278436,
+                  0.65606822742382
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 79.75209792901686,
+                  "aggressionPercent": 14.972987655811426,
+                  "hands": 12989,
+                  "decisions": 33133
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1255,
+                "draws": 2,
+                "losses": 743,
+                "bySeat": {
+                  "0": 0.6235,
+                  "1": 0.6325
+                },
+                "score": 0.628,
+                "ci95": [
+                  0.606590659499124,
+                  0.648918576389148
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 65.57088554132056,
+                  "aggressionPercent": 30.950028813698857,
+                  "hands": 14206,
+                  "decisions": 24294
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1188,
+                "draws": 2,
+                "losses": 810,
+                "bySeat": {
+                  "0": 0.589,
+                  "1": 0.6
+                },
+                "score": 0.5945,
+                "ci95": [
+                  0.5728205847882274,
+                  0.615817093269911
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 54.071532268707934,
+                  "aggressionPercent": 46.547008547008545,
+                  "hands": 15154,
+                  "decisions": 17550
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.93,
+                "high": 1
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.63525,
+                  "ci95": [
+                    0.613913211278436,
+                    0.65606822742382
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.628,
+                  "ci95": [
+                    0.606590659499124,
+                    0.648918576389148
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5945,
+                  "ci95": [
+                    0.5728205847882274,
+                    0.615817093269911
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.623475,
+              "ci95": [
+                0.6104193957293582,
+                0.6365306042706418
+              ],
+              "real": null,
+              "calibrated": 0.623475,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.628,
+                "ci95": [
+                  0.606590659499124,
+                  0.648918576389148
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 15 hands"
+              }
+            }
+          }
+        },
+        "30": {
+          "easy": {
+            "config": {
+              "table": "easy.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": true,
+              "shoveFloor": 0,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1329,
+                "draws": 8,
+                "losses": 663,
+                "bySeat": {
+                  "0": 0.662,
+                  "1": 0.671
+                },
+                "score": 0.6665,
+                "ci95": [
+                  0.6455357433435097,
+                  0.6868258799017815
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 59.56856890405533,
+                  "aggressionPercent": 15.081956682333544,
+                  "hands": 32821,
+                  "decisions": 93403
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1240,
+                "draws": 5,
+                "losses": 755,
+                "bySeat": {
+                  "0": 0.635,
+                  "1": 0.6075
+                },
+                "score": 0.62125,
+                "ci95": [
+                  0.5997776835724283,
+                  0.6422574324545479
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 53.25033263638092,
+                  "aggressionPercent": 30.70710948998528,
+                  "hands": 31566,
+                  "decisions": 78135
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1153,
+                "draws": 0,
+                "losses": 847,
+                "bySeat": {
+                  "0": 0.558,
+                  "1": 0.595
+                },
+                "score": 0.5765,
+                "ci95": [
+                  0.5547185522564732,
+                  0.597988139504877
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 46.73067313869655,
+                  "aggressionPercent": 46.386091803387465,
+                  "hands": 28018,
+                  "decisions": 60281
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.42,
+                "high": 0.58
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.6665,
+                  "ci95": [
+                    0.6455357433435097,
+                    0.6868258799017815
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.62125,
+                  "ci95": [
+                    0.5997776835724283,
+                    0.6422574324545479
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5765,
+                  "ci95": [
+                    0.5547185522564732,
+                    0.597988139504877
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.625875,
+              "ci95": [
+                0.6128417604043743,
+                0.6389082395956256
+              ],
+              "real": null,
+              "calibrated": 0.625875,
+              "verdict": "above",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              }
+            }
+          },
+          "medium": {
+            "config": {
+              "table": "medium.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0.5,
+              "premiumProtection": false,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1303,
+                "draws": 1,
+                "losses": 696,
+                "bySeat": {
+                  "0": 0.642,
+                  "1": 0.6615
+                },
+                "score": 0.65175,
+                "ci95": [
+                  0.6305976266569897,
+                  0.672320549483989
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 67.46779580152672,
+                  "aggressionPercent": 15.31677102268902,
+                  "hands": 16768,
+                  "decisions": 44559
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1228,
+                "draws": 1,
+                "losses": 771,
+                "bySeat": {
+                  "0": 0.615,
+                  "1": 0.6135
+                },
+                "score": 0.61425,
+                "ci95": [
+                  0.5927169805254101,
+                  0.6353449741639263
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 58.47042868093638,
+                  "aggressionPercent": 30.930355307386726,
+                  "hands": 16959,
+                  "decisions": 35997
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1223,
+                "draws": 0,
+                "losses": 777,
+                "bySeat": {
+                  "0": 0.607,
+                  "1": 0.616
+                },
+                "score": 0.6115,
+                "ci95": [
+                  0.5899444052131684,
+                  0.632628093236381
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 48.900169204737736,
+                  "aggressionPercent": 46.47918593894542,
+                  "hands": 15957,
+                  "decisions": 27025
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.65,
+                "high": 0.75
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.65175,
+                  "ci95": [
+                    0.6305976266569897,
+                    0.672320549483989
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.61425,
+                  "ci95": [
+                    0.5927169805254101,
+                    0.6353449741639263
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.6115,
+                  "ci95": [
+                    0.5899444052131684,
+                    0.632628093236381
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.6249500000000001,
+              "ci95": [
+                0.6118748847483823,
+                0.638025115251618
+              ],
+              "real": null,
+              "calibrated": 0.6249500000000001,
+              "verdict": "below",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              }
+            }
+          },
+          "hard": {
+            "config": {
+              "table": "hard.bin.gz",
+              "snapshot": "holdem-coarse iter-250000.dwht",
+              "abstraction": "coarse",
+              "iterations": 250000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0.25,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1263,
+                "draws": 0,
+                "losses": 737,
+                "bySeat": {
+                  "0": 0.637,
+                  "1": 0.626
+                },
+                "score": 0.6315,
+                "ci95": [
+                  0.6101250458606758,
+                  0.6523707706964159
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 86.29478590154383,
+                  "aggressionPercent": 15.296803652968036,
+                  "hands": 6866,
+                  "decisions": 14016
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1178,
+                "draws": 0,
+                "losses": 822,
+                "bySeat": {
+                  "0": 0.593,
+                  "1": 0.585
+                },
+                "score": 0.589,
+                "ci95": [
+                  0.5672862630909156,
+                  0.6103725024876485
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 70.4103949569021,
+                  "aggressionPercent": 31.974547623782065,
+                  "hands": 7773,
+                  "decisions": 10058
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1139,
+                "draws": 0,
+                "losses": 861,
+                "bySeat": {
+                  "0": 0.561,
+                  "1": 0.578
+                },
+                "score": 0.5695,
+                "ci95": [
+                  0.54768682606083,
+                  0.5910467043628802
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 56.27535056205818,
+                  "aggressionPercent": 45.94174208144796,
+                  "hands": 8629,
+                  "decisions": 7072
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.8,
+                "high": 0.9
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.6315,
+                  "ci95": [
+                    0.6101250458606758,
+                    0.6523707706964159
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.589,
+                  "ci95": [
+                    0.5672862630909156,
+                    0.6103725024876485
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.5695,
+                  "ci95": [
+                    0.54768682606083,
+                    0.5910467043628802
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.59785,
+              "ci95": [
+                0.5846218833330891,
+                0.6110781166669109
+              ],
+              "real": null,
+              "calibrated": 0.59785,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.6595,
+                "ci95": [
+                  0.6384436849440396,
+                  0.6799447769636117
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 30 hands"
+              }
+            }
+          },
+          "champion": {
+            "config": {
+              "table": "champion.bin.gz",
+              "snapshot": "holdem-fine final.dwht",
+              "abstraction": "fine",
+              "iterations": 5000000,
+              "purify": false,
+              "explore": 0,
+              "beginner": false,
+              "shoveFloor": 0,
+              "callBias": 0,
+              "premiumProtection": true,
+              "probabilityFloor": 0.05
+            },
+            "cells": {
+              "beginner": {
+                "games": 2000,
+                "wins": 1306,
+                "draws": 0,
+                "losses": 694,
+                "bySeat": {
+                  "0": 0.635,
+                  "1": 0.671
+                },
+                "score": 0.653,
+                "ci95": [
+                  0.6318627070878557,
+                  0.6735506764348443
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 79.75209792901686,
+                  "aggressionPercent": 14.972987655811426,
+                  "hands": 12989,
+                  "decisions": 33133
+                }
+              },
+              "average": {
+                "games": 2000,
+                "wins": 1319,
+                "draws": 0,
+                "losses": 681,
+                "bySeat": {
+                  "0": 0.66,
+                  "1": 0.659
+                },
+                "score": 0.6595,
+                "ci95": [
+                  0.6384436849440396,
+                  0.6799447769636117
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 65.57088554132056,
+                  "aggressionPercent": 30.950028813698857,
+                  "hands": 14206,
+                  "decisions": 24294
+                }
+              },
+              "strong": {
+                "games": 2000,
+                "wins": 1282,
+                "draws": 1,
+                "losses": 717,
+                "bySeat": {
+                  "0": 0.6345,
+                  "1": 0.648
+                },
+                "score": 0.64125,
+                "ci95": [
+                  0.6199771442646403,
+                  0.6619812898698784
+                ],
+                "proxyStyle": {
+                  "vpipPercent": 54.071532268707934,
+                  "aggressionPercent": 46.547008547008545,
+                  "hands": 15154,
+                  "decisions": 17550
+                }
+              }
+            },
+            "estimate": {
+              "band": {
+                "low": 0.93,
+                "high": 1
+              },
+              "panel": {
+                "beginner": {
+                  "value": 0.653,
+                  "ci95": [
+                    0.6318627070878557,
+                    0.6735506764348443
+                  ],
+                  "n": 2000
+                },
+                "average": {
+                  "value": 0.6595,
+                  "ci95": [
+                    0.6384436849440396,
+                    0.6799447769636117
+                  ],
+                  "n": 2000
+                },
+                "strong": {
+                  "value": 0.64125,
+                  "ci95": [
+                    0.6199771442646403,
+                    0.6619812898698784
+                  ],
+                  "n": 2000
+                }
+              },
+              "estimate": 0.6538999999999999,
+              "ci95": [
+                0.6410784468513943,
+                0.6667215531486056
+              ],
+              "real": null,
+              "calibrated": 0.6538999999999999,
+              "verdict": "ceiling",
+              "proxies": {
+                "beginner": "puts chips in before the flop in about 55% of hands (it plays nearly every hand it has to act on), stays in with weak hands against a bet, bets or raises about 15% of the time",
+                "average": "puts chips in before the flop in about 50% of hands, calls a little light, bets or raises about 30% of the time when it hits",
+                "strong": "puts chips in before the flop in about 45% of hands (a tighter range), calls only at the pot odds, bets or raises about 45% of the time with the strongest hands raising most"
+              },
+              "ceiling": {
+                "value": 0.6595,
+                "ci95": [
+                  0.6384436849440396,
+                  0.6799447769636117
+                ],
+                "by": "2000 matches of the shipped Champion against the average test player at 30 hands"
+              }
+            }
+          }
+        }
+      },
+      "realCheck": {
+        "5": {
+          "rows": [
+            {
+              "level": "easy",
+              "n": 14,
+              "players": 11,
+              "value": 0.7857142857142857,
+              "ci95": [
+                0.5241076920169465,
+                0.9242861334670647
+              ],
+              "panel": 0.512275,
+              "panelCi95": [
+                0.49879032702716747,
+                0.5257596729728327
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "medium",
+              "n": 3,
+              "players": 2,
+              "value": 0.3333333333333333,
+              "ci95": [
+                0.061491944020930805,
+                0.7923404011921757
+              ],
+              "panel": 0.5170750000000001,
+              "panelCi95": [
+                0.503599141956758,
+                0.5305508580432421
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "hard",
+              "n": 7,
+              "players": 2,
+              "value": 0.7142857142857143,
+              "ci95": [
+                0.358934449531054,
+                0.9177810767507166
+              ],
+              "panel": 0.525,
+              "panelCi95": [
+                0.5115459272708626,
+                0.5384540727291375
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "champion",
+              "n": 2,
+              "players": 2,
+              "value": 0,
+              "ci95": [
+                0,
+                0.6576197760453506
+              ],
+              "panel": 0.532525,
+              "panelCi95": [
+                0.5190707067059455,
+                0.5459792932940546
+              ],
+              "overlaps": true
+            }
+          ],
+          "pooled": {
+            "n": 26,
+            "points": 17,
+            "expected": 13.463125000000002,
+            "z": 1.3882887156763744
+          },
+          "note": "real rows are under the 40 match, 10 player minimum, so they cannot calibrate; they can only contradict the panel"
+        },
+        "10": {
+          "rows": [
+            {
+              "level": "easy",
+              "n": 14,
+              "players": 11,
+              "value": 0.7857142857142857,
+              "ci95": [
+                0.5241076920169465,
+                0.9242861334670647
+              ],
+              "panel": 0.55,
+              "panelCi95": [
+                0.5365892568312222,
+                0.5634107431687779
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "medium",
+              "n": 3,
+              "players": 2,
+              "value": 0.3333333333333333,
+              "ci95": [
+                0.061491944020930805,
+                0.7923404011921757
+              ],
+              "panel": 0.5714,
+              "panelCi95": [
+                0.558052061130758,
+                0.584747938869242
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "hard",
+              "n": 7,
+              "players": 2,
+              "value": 0.7142857142857143,
+              "ci95": [
+                0.358934449531054,
+                0.9177810767507166
+              ],
+              "panel": 0.579275,
+              "panelCi95": [
+                0.565969389527235,
+                0.592580610472765
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "champion",
+              "n": 2,
+              "players": 2,
+              "value": 0,
+              "ci95": [
+                0,
+                0.6576197760453506
+              ],
+              "panel": 0.5971,
+              "panelCi95": [
+                0.5838809079695939,
+                0.610319092030406
+              ],
+              "overlaps": true
+            }
+          ],
+          "pooled": {
+            "n": 26,
+            "points": 17,
+            "expected": 14.663325000000002,
+            "z": 0.9246017151321893
+          },
+          "note": "real rows are under the 40 match, 10 player minimum, so they cannot calibrate; they can only contradict the panel"
+        },
+        "15": {
+          "rows": [
+            {
+              "level": "easy",
+              "n": 14,
+              "players": 11,
+              "value": 0.7857142857142857,
+              "ci95": [
+                0.5241076920169465,
+                0.9242861334670647
+              ],
+              "panel": 0.5710500000000001,
+              "panelCi95": [
+                0.557714269122344,
+                0.5843857308776561
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "medium",
+              "n": 3,
+              "players": 2,
+              "value": 0.3333333333333333,
+              "ci95": [
+                0.061491944020930805,
+                0.7923404011921757
+              ],
+              "panel": 0.59595,
+              "panelCi95": [
+                0.5827073064236118,
+                0.6091926935763882
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "hard",
+              "n": 7,
+              "players": 2,
+              "value": 0.7142857142857143,
+              "ci95": [
+                0.358934449531054,
+                0.9177810767507166
+              ],
+              "panel": 0.591875,
+              "panelCi95": [
+                0.5786193614200416,
+                0.6051306385799585
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "champion",
+              "n": 2,
+              "players": 2,
+              "value": 0,
+              "ci95": [
+                0,
+                0.6576197760453506
+              ],
+              "panel": 0.623475,
+              "panelCi95": [
+                0.6104193957293582,
+                0.6365306042706418
+              ],
+              "overlaps": true
+            }
+          ],
+          "pooled": {
+            "n": 26,
+            "points": 17,
+            "expected": 15.172625000000002,
+            "z": 0.7273438603573695
+          },
+          "note": "real rows are under the 40 match, 10 player minimum, so they cannot calibrate; they can only contradict the panel"
+        },
+        "30": {
+          "rows": [
+            {
+              "level": "easy",
+              "n": 14,
+              "players": 11,
+              "value": 0.7857142857142857,
+              "ci95": [
+                0.5241076920169465,
+                0.9242861334670647
+              ],
+              "panel": 0.625875,
+              "panelCi95": [
+                0.6128417604043743,
+                0.6389082395956256
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "medium",
+              "n": 3,
+              "players": 2,
+              "value": 0.3333333333333333,
+              "ci95": [
+                0.061491944020930805,
+                0.7923404011921757
+              ],
+              "panel": 0.6249500000000001,
+              "panelCi95": [
+                0.6118748847483823,
+                0.638025115251618
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "hard",
+              "n": 7,
+              "players": 2,
+              "value": 0.7142857142857143,
+              "ci95": [
+                0.358934449531054,
+                0.9177810767507166
+              ],
+              "panel": 0.59785,
+              "panelCi95": [
+                0.5846218833330891,
+                0.6110781166669109
+              ],
+              "overlaps": true
+            },
+            {
+              "level": "champion",
+              "n": 2,
+              "players": 2,
+              "value": 0,
+              "ci95": [
+                0,
+                0.6576197760453506
+              ],
+              "panel": 0.6538999999999999,
+              "panelCi95": [
+                0.6410784468513943,
+                0.6667215531486056
+              ],
+              "overlaps": true
+            }
+          ],
+          "pooled": {
+            "n": 26,
+            "points": 17,
+            "expected": 16.12985,
+            "z": 0.35182507069983
+          },
+          "note": "real rows are under the 40 match, 10 player minimum, so they cannot calibrate; they can only contradict the panel"
+        }
+      }
+    }
+  ]
+}

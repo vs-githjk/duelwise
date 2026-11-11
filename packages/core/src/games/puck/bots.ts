@@ -177,7 +177,8 @@ class ShadowBot extends Base {
  */
 const PIP_HOME_Y = 0.12
 const PIP_SHOT_SPEED = 0.4
-const PIP_LEAN = 0.3
+// Nov 10 retune (A3): 0.3 to 0.34 after the people panel put Pip at 55.3% (53.3 to 57.3) against a 42 to 58% band; 0.34 measures 50.6% (48.6 to 52.7), 400 per seat.
+const PIP_LEAN = 0.34
 const PIP_ATTACK_Y = 0.75
 const PIP_SEES_SHOT_Y = 0.8
 const PIP_REACT = 0.5

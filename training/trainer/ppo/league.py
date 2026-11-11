@@ -25,6 +25,29 @@ BOTS = {"fighter": BOT_KINDS, "arena": ("random", "rusher", "holder", "peeker", 
         # PUCK_BOT_KINDS in games/puck/env.ts (the sentinel x head = -1 - index)
         "puck": ("random", "striker", "goalie", "banker", "shadow")}
 TRAINING_BOTS = {"fighter": BOT_KINDS, "arena": tuple(bot for bot in BOTS["arena"] if bot != "human-proxy"), "puck": BOTS["puck"]}
+# People bots (puck, Nov 10 retune): a scripted bot on a person's hands, named "<kind>@<profile>". The env's sentinel is
+# -1 - (16 * (profile + 1) + kind) (PEOPLE_BOT_KINDS and PEOPLE_PROFILES in games/puck/seat-hands.ts; the env test pins both).
+PEOPLE_PROFILES = ("beginner", "average", "strong")
+PEOPLE_BOT_KINDS = ("mouse", "striker", "goalie", "banker", "shadow")
+# Tinderbox and Coldstore (A4): the same names, with the game's own scripted bots as the people's styles. The sentinel's kind part is the bot's
+# index in BOTS[game] (FIGHTER_BOT_KINDS, ARENA_BOT_KINDS), under 16 for both. The panel and the pool use these four to five person-like styles
+# (the exploit loops are gate bots, not people).
+PEOPLE_KINDS = {"puck": PEOPLE_BOT_KINDS, "fighter": ("rushdown", "turtle", "zoner", "fireball"), "arena": ("rusher", "holder", "peeker", "strafe", "holdangle")}
+
+
+def people_bots(profiles: tuple[str, ...], game: str = "puck") -> tuple[str, ...]:
+    """Every people bot name for the given profiles, in sentinel order."""
+    for p in profiles:
+        if p not in PEOPLE_PROFILES:
+            raise ValueError(f"unknown people profile {p!r}; expected one of {PEOPLE_PROFILES}")
+    return tuple(f"{k}@{p}" for p in profiles for k in PEOPLE_KINDS[game])
+
+
+def people_kind_index(base: str, game: str) -> int:
+    """The kind part of a people sentinel: puck's own order, otherwise the bot's index in the game's scripted bots."""
+    return PEOPLE_BOT_KINDS.index(base) if game == "puck" else BOTS[game].index(base)
+
+
 MAX_SNAPSHOTS = 16
 PFSP_POWER = 2.0
 PFSP_FLOOR = 0.02
@@ -33,6 +56,9 @@ WINDOW = 100
 
 def bot_action(kind: str, dims: int = 2, game: str = "fighter") -> list[int]:
     """The action the env reads as 'play this seat with that scripted bot': the sentinel in the first head, zeros after it."""
+    if "@" in kind:
+        base, profile = kind.split("@", 1)
+        return [-1 - (16 * (PEOPLE_PROFILES.index(profile) + 1) + people_kind_index(base, game))] + [0] * (dims - 1)
     return [-1 - BOTS[game].index(kind)] + [0] * (dims - 1)
 
 

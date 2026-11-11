@@ -83,7 +83,7 @@ export function levelVerdict(level: Level, input: LevelInput, pairs: PairResult[
 const PERSONA: Record<Level, string> = { easy: 'Pip', medium: 'Marlow', hard: 'Vesper', champion: 'Sable' }
 
 export const LADDER_NOTE =
-  'Each adjacent pair plays 400 matches per seat of the upper level, with the same reply lag the browser has (one tick late); Elo steps come from ladderToElo with Pip anchored at 1000. Marlow runs Vesper\'s network under Medium limits, so the Vesper v Marlow step measures the limits (reaction time, mallet speed and acceleration, hand noise), not a different brain.'
+  'Each adjacent pair plays 400 matches per seat of the upper level, with the same reply lag the browser has (one tick late); Elo steps come from ladderToElo with Pip anchored at 1000. Marlow plays its own network, trained in the Medium league (v2), under Medium\'s limits: reaction time, mallet speed and acceleration, hand noise.'
 
 export function buildPuckRegistry(input: PuckPublishInput): Registry {
   const artifacts: Record<string, string> = {}
@@ -135,9 +135,11 @@ export function buildPuckRegistry(input: PuckPublishInput): Registry {
         sources.set(li.model.source, li.model.step)
       }
       const [lo, hi] = wilson(w.result.wins + w.result.draws / 2, w.result.games)
+      // A level that ships its own network no longer borrows another's: the `network` hint an In training Marlow carried (Vesper's) must not outlive that.
+      const { network: _borrowed, ...own } = existing
       levels[level] = {
         version: 'v1',
-        config: { ...existing, ...hands, ...(li.model ? { model: li.model.artifact.split('/').pop()!, observation: 'v1', obsFeatures: 23, sampling: 'policy samples', replyLagTicks: m.lag } : { scripted: true }) },
+        config: { ...(li.model ? own : existing), ...hands, ...(li.model ? { model: li.model.artifact.split('/').pop()!, observation: 'v1', obsFeatures: 23, sampling: 'policy samples', replyLagTicks: m.lag } : { scripted: true }) },
       }
       measured[level] = {
         metric: `score vs scripted ${w.bot} bot (weakest seat of the weakest gate bot)`,

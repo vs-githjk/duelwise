@@ -6,6 +6,8 @@ import { ARENA_BARS } from './arena'
 import { BARS, GATE_MATCHES, gateLevel, type BotRow } from './fighter'
 import { wilson } from './ladder'
 import { PUCK_BARS } from './puck'
+import { checkPeopleBlock, type PeopleEstimate } from './people'
+import { readdirSync } from 'node:fs'
 
 // JC3: the registries' gate rows are the eval output, and what is published follows from them. A level whose rows
 // clear every bar (Wilson lower bound, 400 matches) is published and measured; any other level is not.
@@ -42,8 +44,14 @@ for (const [game, allBars] of [['fighter', BARS], ['arena', ARENA_BARS], ['puck'
         const perSeat = rows.every((r) => r.bySeat !== undefined)
         const verdict = gateLevel(level, rows, bars, perSeat)
         const published = Boolean(reg.levels[level])
+        // A9 (ruling Nov 10 18:52): a people-gated Easy or Medium is published without clearing the bot bars; the registry flags it and its people test must be in band.
+        const peopleGated = (gate[level] as { peopleGated?: boolean } | undefined)?.peopleGated === true
+        if (peopleGated) {
+          expect(['easy', 'medium']).toContain(level)
+          expect((reg.measured[level] as { people?: { verdict: string } }).people?.verdict).toBe('in-band')
+        }
         if (published) {
-          expect(verdict.passed).toBe(true)
+          if (!peopleGated) expect(verdict.passed).toBe(true)
           const m = reg.measured[level]!
           // n is the games on the weakest seat (the publisher plays GATE_MATCHES per seat per bot), so it is GATE_MATCHES for both games.
           expect(m.n).toBe(GATE_MATCHES)
@@ -54,7 +62,7 @@ for (const [game, allBars] of [['fighter', BARS], ['arena', ARENA_BARS], ['puck'
           expect(reg.unpublished?.[level]).toBeTruthy()
         }
         // A level is never published without its rows clearing the bars (it may stay unpublished for the Levels rule or a non-gated snapshot).
-        if (!verdict.passed) expect(published).toBe(false)
+        if (!verdict.passed && !peopleGated) expect(published).toBe(false)
       })
     }
   })
@@ -109,3 +117,19 @@ for (const game of ['fighter', 'arena', 'puck'] as const) {
     }
   })
 }
+
+// A1: a `people` block is written only by the measure scripts. Every one that exists must be reproducible from its
+// own parts (weighted panel, band, verdict), so a hand edit fails here. No registry carries one until A3 onward.
+describe('registry people blocks are consistent with their own parts', () => {
+  const dir = join(import.meta.dir, '../../registry')
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'adapters.json')) {
+    const reg = JSON.parse(readFileSync(join(dir, file), 'utf8')) as { measured: Record<string, { people?: PeopleEstimate }> }
+    for (const [level, m] of Object.entries(reg.measured)) {
+      if (!m.people) continue
+      test(`${file} ${level}`, () => expect(checkPeopleBlock(m.people!, level as Level)).toEqual([]))
+    }
+  }
+  test('the check runs over every registry file', () => {
+    expect(readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'adapters.json').length).toBeGreaterThanOrEqual(10)
+  })
+})

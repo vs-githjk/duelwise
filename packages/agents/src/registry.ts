@@ -11,6 +11,40 @@ export const MeanShotsSchema = z.object({
   n: z.number().int().positive(),
 })
 
+const Pair = z.tuple([z.number(), z.number()])
+const ProxyScoreSchema = z.object({ value: z.number().min(0).max(1), ci95: Pair, n: z.number().int().nonnegative() })
+const RealScoreSchema = z.object({
+  n: z.number().int().positive(),
+  players: z.number().int().positive(),
+  value: z.number().min(0).max(1),
+  ci95: Pair,
+  asOf: z.string().min(1),
+})
+/** A1: the estimate of a level's score against ordinary players. Written by the measure scripts only. Rules for it: measure/people.ts. */
+export const PeopleSchema = z.object({
+  band: z.object({ low: z.number(), high: z.number() }),
+  panel: z.object({ beginner: ProxyScoreSchema, average: ProxyScoreSchema, strong: ProxyScoreSchema }),
+  estimate: z.number().min(0).max(1),
+  ci95: Pair,
+  real: RealScoreSchema.nullable(),
+  calibrated: z.number().min(0).max(1),
+  verdict: z.enum(['in-band', 'below', 'above', 'ceiling']),
+  ceiling: z.object({ value: z.number(), ci95: Pair, by: z.string().min(1) }).optional(),
+  /** Plain description of each test player: its hands, reaction and mistakes. */
+  proxies: z.object({ beginner: z.string().min(1), average: z.string().min(1), strong: z.string().min(1) }),
+})
+
+/**
+ * The part of a people block a browser needs to word a level card (the band, the calibrated score and the verdict). The build writes this form into
+ * the browser's copy of each registry file (apps/web/vite.config.ts), so the verbose test-player numbers stay in the registry file and out of every
+ * page's scripts; the server and the tests read the full block.
+ */
+export const PeopleCardSchema = z.object({
+  band: z.object({ low: z.number(), high: z.number() }),
+  calibrated: z.number().min(0).max(1),
+  verdict: z.enum(['in-band', 'below', 'above', 'ceiling']),
+})
+
 export const MeasuredSchema = z.object({
   metric: z.string().min(1),
   value: z.number(),
@@ -22,6 +56,8 @@ export const MeasuredSchema = z.object({
   harness: z.enum(['bun', 'node', 'python']),
   commit: z.string().min(1),
   meanShots: MeanShotsSchema.optional(),
+  /** Optional until A9, then required for every published level. */
+  people: z.union([PeopleSchema, PeopleCardSchema]).optional(),
 })
 
 export const VersionSchema = z.object({

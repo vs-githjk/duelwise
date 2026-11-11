@@ -1,0 +1,39 @@
+{
+  "easy": {
+    "limits": {
+      "delayFrames": 18,
+      "apmCap": null,
+      "minHoldFrames": 8,
+      "aimRateDegPerSec": null,
+      "aimNoiseDeg": 0,
+      "buttonBits": false
+    },
+    "panel": 0.5062500000000001,
+    "ci95": [
+      0.48555361831811233,
+      0.5269463816818879
+    ],
+    "calibrated": 0.5062500000000001,
+    "verdict": "in-band"
+  },
+  "medium": {
+    "limits": {
+      "delayFrames": 15,
+      "apmCap": null,
+      "minHoldFrames": 6,
+      "aimRateDegPerSec": null,
+      "aimNoiseDeg": 0,
+      "buttonBits": false
+    },
+    "sha256": "25a5c8235a8c71fdd5653e26e96dad39162a6bcc58da4d2bb952796b39751479",
+    "source": "runs/puck-league-b-medium/gated/medium/snap-medium-0040009728.pt",
+    "artifact": "apps/web/public/agents/puck/v2/medium.onnx",
+    "panel": 0.727875,
+    "ci95": [
+      0.7099318999580673,
+      0.7458181000419328
+    ],
+    "calibrated": 0.727875,
+    "verdict": "in-band"
+  }
+}

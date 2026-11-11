@@ -1,0 +1,1005 @@
+{
+  "game": "fleet",
+  "baseline": "plan/retune/human-baseline.csv (production, 2026-11-10)",
+  "note": "Written by measure/turn-people-run.ts only. A run labelled current is the pre-read of today's settings; its panel-vs-real gap is the calibration every later run uses.",
+  "calibration": 0,
+  "calibrationFrom": "current (easy, medium, hard, champion)",
+  "runs": [
+    {
+      "label": "current",
+      "at": "2026-11-10T20:57:31.517Z",
+      "override": null,
+      "perSeat": {
+        "easy": 300,
+        "medium": 300,
+        "hard": 300,
+        "champion": 300
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "random-with-follow",
+            "hunt": "random",
+            "target": "follow",
+            "followRate": 0.35
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.35833333333333334,
+                "ci95": [
+                  0.3209780493043258,
+                  0.39749109934447735
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.15166666666666667,
+                "ci95": [
+                  0.12518715734015962,
+                  0.18257816110219163
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.07666666666666666,
+                "ci95": [
+                  0.05796841823368634,
+                  0.10075115537567829
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 215,
+                "draws": 0,
+                "losses": 385,
+                "bySeat": {
+                  "0": 0.36666666666666664,
+                  "1": 0.35
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 91,
+                "draws": 0,
+                "losses": 509,
+                "bySeat": {
+                  "0": 0.15666666666666668,
+                  "1": 0.14666666666666667
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 46,
+                "draws": 0,
+                "losses": 554,
+                "bySeat": {
+                  "0": 0.07666666666666666,
+                  "1": 0.07666666666666666
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.35833333333333334,
+                "ci95": [
+                  0.3209780493043258,
+                  0.39749109934447735
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.15166666666666667,
+                "ci95": [
+                  0.12518715734015962,
+                  0.18257816110219163
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.07666666666666666,
+                "ci95": [
+                  0.05796841823368634,
+                  0.10075115537567829
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.19866666666666669,
+            "ci95": [
+              0.1798018280344518,
+              0.21753150529888157
+            ],
+            "real": null,
+            "calibrated": 0.19866666666666669,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "checkerboard-with-neighbours",
+            "hunt": "checkerboard",
+            "target": "neighbours",
+            "followRate": 1
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.7266666666666667,
+                "ci95": [
+                  0.68964864230918,
+                  0.760800719852735
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.5666666666666667,
+                "ci95": [
+                  0.5267162212338917,
+                  0.6057688852843186
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.3016666666666667,
+                "ci95": [
+                  0.26629818868846405,
+                  0.3395586194198604
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 436,
+                "draws": 0,
+                "losses": 164,
+                "bySeat": {
+                  "0": 0.7266666666666667,
+                  "1": 0.7266666666666667
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 340,
+                "draws": 0,
+                "losses": 260,
+                "bySeat": {
+                  "0": 0.5966666666666667,
+                  "1": 0.5366666666666666
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 181,
+                "draws": 0,
+                "losses": 419,
+                "bySeat": {
+                  "0": 0.29,
+                  "1": 0.31333333333333335
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.7266666666666667,
+                "ci95": [
+                  0.68964864230918,
+                  0.760800719852735
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.5666666666666667,
+                "ci95": [
+                  0.5267162212338917,
+                  0.6057688852843186
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.3016666666666667,
+                "ci95": [
+                  0.26629818868846405,
+                  0.3395586194198604
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.5616666666666666,
+            "ci95": [
+              0.5380412027331575,
+              0.5852921306001758
+            ],
+            "real": null,
+            "calibrated": 0.5616666666666666,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        },
+        "hard": {
+          "level": "hard",
+          "config": {
+            "algorithm": "map-hunt-with-neighbours",
+            "hunt": "map",
+            "target": "neighbours",
+            "followRate": 1
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8416666666666667,
+                "ci95": [
+                  0.8102953203737803,
+                  0.8686908505320475
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.73,
+                "ci95": [
+                  0.6930962639102406,
+                  0.7639773535775849
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.525,
+                "ci95": [
+                  0.4850103849218549,
+                  0.564671530022474
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 505,
+                "draws": 0,
+                "losses": 95,
+                "bySeat": {
+                  "0": 0.8533333333333334,
+                  "1": 0.83
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 438,
+                "draws": 0,
+                "losses": 162,
+                "bySeat": {
+                  "0": 0.73,
+                  "1": 0.73
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 315,
+                "draws": 0,
+                "losses": 285,
+                "bySeat": {
+                  "0": 0.5433333333333333,
+                  "1": 0.5066666666666667
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.8,
+              "high": 0.9
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8416666666666667,
+                "ci95": [
+                  0.8102953203737803,
+                  0.8686908505320475
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.73,
+                "ci95": [
+                  0.6930962639102406,
+                  0.7639773535775849
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.525,
+                "ci95": [
+                  0.4850103849218549,
+                  0.564671530022474
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.7224999999999999,
+            "ci95": [
+              0.7011881983722688,
+              0.7438118016277311
+            ],
+            "real": null,
+            "calibrated": 0.7224999999999999,
+            "verdict": "below",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        },
+        "champion": {
+          "level": "champion",
+          "config": {
+            "algorithm": "map-hunt-and-finish",
+            "hunt": "map",
+            "target": "map",
+            "followRate": 1
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.905,
+                "ci95": [
+                  0.8788951122820243,
+                  0.9259519098161032
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.8066666666666666,
+                "ci95": [
+                  0.7731570896529217,
+                  0.8362744003308455
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.6716666666666666,
+                "ci95": [
+                  0.6331026899042825,
+                  0.7080464593801088
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 543,
+                "draws": 0,
+                "losses": 57,
+                "bySeat": {
+                  "0": 0.9233333333333333,
+                  "1": 0.8866666666666667
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 484,
+                "draws": 0,
+                "losses": 116,
+                "bySeat": {
+                  "0": 0.85,
+                  "1": 0.7633333333333333
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 403,
+                "draws": 0,
+                "losses": 197,
+                "bySeat": {
+                  "0": 0.6733333333333333,
+                  "1": 0.67
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.93,
+              "high": 1
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.905,
+                "ci95": [
+                  0.8788951122820243,
+                  0.9259519098161032
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.8066666666666666,
+                "ci95": [
+                  0.7731570896529217,
+                  0.8362744003308455
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.6716666666666666,
+                "ci95": [
+                  0.6331026899042825,
+                  0.7080464593801088
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.8091666666666667,
+            "ci95": [
+              0.7903258713835057,
+              0.8280074619498277
+            ],
+            "real": null,
+            "calibrated": 0.8091666666666667,
+            "verdict": "ceiling",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            },
+            "ceiling": {
+              "value": 0.8275,
+              "ci95": [
+                0.8103179924132441,
+                0.8434263415977642
+              ],
+              "by": "2000 games of the champion settings against the average test player"
+            }
+          },
+          "runtime": "bun"
+        }
+      },
+      "ceilings": {
+        "champion": {
+          "value": 0.8275,
+          "ci95": [
+            0.8103179924132441,
+            0.8434263415977642
+          ],
+          "n": 2000,
+          "by": "champion settings (the strongest the code has) against the average test player"
+        }
+      }
+    },
+    {
+      "label": "f2",
+      "at": "2026-11-10T21:05:14.187Z",
+      "override": {
+        "easy": {
+          "hunt": "checkerboard",
+          "followRate": 0.9
+        },
+        "medium": {
+          "hunt": "map",
+          "followRate": 0.7
+        }
+      },
+      "perSeat": {
+        "easy": 300,
+        "medium": 300
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "random-with-follow",
+            "hunt": "checkerboard",
+            "target": "follow",
+            "followRate": 0.9
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.7316666666666667,
+                "ci95": [
+                  0.6948210139459633,
+                  0.7655647312048175
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.5616666666666666,
+                "ci95": [
+                  0.5216967538800509,
+                  0.6008519696492937
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.315,
+                "ci95": [
+                  0.2791083136267144,
+                  0.35324551578525204
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 439,
+                "draws": 0,
+                "losses": 161,
+                "bySeat": {
+                  "0": 0.73,
+                  "1": 0.7333333333333333
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 337,
+                "draws": 0,
+                "losses": 263,
+                "bySeat": {
+                  "0": 0.6166666666666667,
+                  "1": 0.5066666666666667
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 189,
+                "draws": 0,
+                "losses": 411,
+                "bySeat": {
+                  "0": 0.33666666666666667,
+                  "1": 0.29333333333333333
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.7316666666666667,
+                "ci95": [
+                  0.6948210139459633,
+                  0.7655647312048175
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.5616666666666666,
+                "ci95": [
+                  0.5216967538800509,
+                  0.6008519696492937
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.315,
+                "ci95": [
+                  0.2791083136267144,
+                  0.35324551578525204
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.5633333333333332,
+            "ci95": [
+              0.5396866599231644,
+              0.586980006743502
+            ],
+            "real": null,
+            "calibrated": 0.5633333333333332,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "checkerboard-with-neighbours",
+            "hunt": "map",
+            "target": "neighbours",
+            "followRate": 0.7
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8016666666666666,
+                "ci95": [
+                  0.7678857299307039,
+                  0.8316093770641976
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.7033333333333334,
+                "ci95": [
+                  0.6655832716841388,
+                  0.7384963031964027
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.47,
+                "ci95": [
+                  0.43038210612137895,
+                  0.5099995959454264
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 481,
+                "draws": 0,
+                "losses": 119,
+                "bySeat": {
+                  "0": 0.7966666666666666,
+                  "1": 0.8066666666666666
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 422,
+                "draws": 0,
+                "losses": 178,
+                "bySeat": {
+                  "0": 0.7266666666666667,
+                  "1": 0.68
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 282,
+                "draws": 0,
+                "losses": 318,
+                "bySeat": {
+                  "0": 0.4766666666666667,
+                  "1": 0.4633333333333333
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8016666666666666,
+                "ci95": [
+                  0.7678857299307039,
+                  0.8316093770641976
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.7033333333333334,
+                "ci95": [
+                  0.6655832716841388,
+                  0.7384963031964027
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.47,
+                "ci95": [
+                  0.43038210612137895,
+                  0.5099995959454264
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.6861666666666667,
+            "ci95": [
+              0.6640980315883941,
+              0.7082353017449393
+            ],
+            "real": null,
+            "calibrated": 0.6861666666666667,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    },
+    {
+      "label": "f1",
+      "at": "2026-11-10T21:07:08.127Z",
+      "override": {
+        "easy": {
+          "hunt": "checkerboard",
+          "followRate": 0.6
+        },
+        "medium": {
+          "hunt": "map",
+          "followRate": 0.5
+        }
+      },
+      "perSeat": {
+        "easy": 300,
+        "medium": 300
+      },
+      "seedBase": 11000000,
+      "levels": {
+        "easy": {
+          "level": "easy",
+          "config": {
+            "algorithm": "random-with-follow",
+            "hunt": "checkerboard",
+            "target": "follow",
+            "followRate": 0.6
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.6816666666666666,
+                "ci95": [
+                  0.6433382911461865,
+                  0.7176836241159366
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.4666666666666667,
+                "ci95": [
+                  0.4270867431532148,
+                  0.5066707035876801
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.265,
+                "ci95": [
+                  0.23126241032155964,
+                  0.30172758920174914
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 409,
+                "draws": 0,
+                "losses": 191,
+                "bySeat": {
+                  "0": 0.69,
+                  "1": 0.6733333333333333
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 280,
+                "draws": 0,
+                "losses": 320,
+                "bySeat": {
+                  "0": 0.53,
+                  "1": 0.4033333333333333
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 159,
+                "draws": 0,
+                "losses": 441,
+                "bySeat": {
+                  "0": 0.2733333333333333,
+                  "1": 0.25666666666666665
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.42,
+              "high": 0.58
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.6816666666666666,
+                "ci95": [
+                  0.6433382911461865,
+                  0.7176836241159366
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.4666666666666667,
+                "ci95": [
+                  0.4270867431532148,
+                  0.5066707035876801
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.265,
+                "ci95": [
+                  0.23126241032155964,
+                  0.30172758920174914
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.4908333333333333,
+            "ci95": [
+              0.46696145701889274,
+              0.5147052096477738
+            ],
+            "real": null,
+            "calibrated": 0.4908333333333333,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        },
+        "medium": {
+          "level": "medium",
+          "config": {
+            "algorithm": "checkerboard-with-neighbours",
+            "hunt": "map",
+            "target": "neighbours",
+            "followRate": 0.5
+          },
+          "result": {
+            "panel": {
+              "beginner": {
+                "value": 0.8116666666666666,
+                "ci95": [
+                  0.7784364471293352,
+                  0.8409314258432978
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.6866666666666666,
+                "ci95": [
+                  0.6484634020001495,
+                  0.7224948962508392
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.43166666666666664,
+                "ci95": [
+                  0.392593046489794,
+                  0.4716097193290404
+                ],
+                "n": 600
+              }
+            },
+            "tallies": {
+              "beginner": {
+                "games": 600,
+                "wins": 487,
+                "draws": 0,
+                "losses": 113,
+                "bySeat": {
+                  "0": 0.8333333333333334,
+                  "1": 0.79
+                }
+              },
+              "average": {
+                "games": 600,
+                "wins": 412,
+                "draws": 0,
+                "losses": 188,
+                "bySeat": {
+                  "0": 0.7266666666666667,
+                  "1": 0.6466666666666666
+                }
+              },
+              "strong": {
+                "games": 600,
+                "wins": 259,
+                "draws": 0,
+                "losses": 341,
+                "bySeat": {
+                  "0": 0.44666666666666666,
+                  "1": 0.4166666666666667
+                }
+              }
+            }
+          },
+          "estimate": {
+            "band": {
+              "low": 0.65,
+              "high": 0.75
+            },
+            "panel": {
+              "beginner": {
+                "value": 0.8116666666666666,
+                "ci95": [
+                  0.7784364471293352,
+                  0.8409314258432978
+                ],
+                "n": 600
+              },
+              "average": {
+                "value": 0.6866666666666666,
+                "ci95": [
+                  0.6484634020001495,
+                  0.7224948962508392
+                ],
+                "n": 600
+              },
+              "strong": {
+                "value": 0.43166666666666664,
+                "ci95": [
+                  0.392593046489794,
+                  0.4716097193290404
+                ],
+                "n": 600
+              }
+            },
+            "estimate": 0.6731666666666667,
+            "ci95": [
+              0.650966346108665,
+              0.6953669872246684
+            ],
+            "real": null,
+            "calibrated": 0.6731666666666667,
+            "verdict": "in-band",
+            "proxies": {
+              "beginner": "fires at random cells and follows a hit with a neighbour 55% of the time",
+              "average": "hunts on a chequerboard, follows a hit up 90% of the time, 10% of the time fires anywhere open",
+              "strong": "hunts on the probability map and always follows a hit, 5% of the time fires anywhere open"
+            }
+          },
+          "runtime": "bun"
+        }
+      }
+    }
+  ],
+  "a6Notes": "A6 notes: real rows n=4 (easy 2/4) and n=1 (medium 0/1) are under the minimum and do not contradict the panel. Pip and Marlow staged by settings. Vesper (72.2%) cannot reach 80% without equalling Sable, whose strongest settings score 82.8% against the average player: ceiling, no change staged."
+}

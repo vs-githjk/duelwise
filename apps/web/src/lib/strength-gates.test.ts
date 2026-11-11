@@ -419,3 +419,38 @@ describe('puck registry', () => {
     expect(shown.levels.easy).toBeDefined()
   })
 })
+
+// A9, ruling Nov 10 18:52: the second check accepts a people-gated Easy or Medium, and only that.
+describe('people-gated Easy and Medium in the realtime second check', () => {
+  type SeatRow = { games: number; wins: number; draws: number; losses: number }
+  type Gate = { levels: Record<string, { peopleGated?: boolean; bots: Array<{ bar: number | null; bySeat?: Record<string, SeatRow> }> }>; ladder: { pairs: unknown[] } }
+  /** The real fighter registry with a level's bot rows pushed under their bars, optionally flagged as people-gated with a people verdict. */
+  const variant = (level: Level, opts: { flag: boolean; verdict: 'in-band' | 'above'; pairs?: unknown[] }) => {
+    const reg = structuredClone(real('fighter')) as Registry & { versions: Array<{ gate: Gate }> }
+    const gate = reg.versions[0]!.gate
+    for (const b of gate.levels[level]!.bots) for (const row of Object.values(b.bySeat ?? {})) Object.assign(row, { wins: 100, draws: 0, losses: row.games - 100 })
+    if (opts.flag) gate.levels[level]!.peopleGated = true
+    else delete gate.levels[level]!.peopleGated
+    if (opts.pairs) gate.ladder.pairs = opts.pairs
+    reg.measured[level]!.people = { ...(reg.measured[level]!.people ?? ({} as never)), verdict: opts.verdict } as never
+    return reg
+  }
+  test('rows under their bars are not verified on their own', () => {
+    expect(verifiedStrength(variant('easy', { flag: false, verdict: 'in-band' }), 'easy')).toBe(false)
+  })
+  test('flagged and in band, Easy and Medium are verified', () => {
+    expect(verifiedStrength(variant('easy', { flag: true, verdict: 'in-band' }), 'easy')).toBe(true)
+    expect(verifiedStrength(variant('medium', { flag: true, verdict: 'in-band' }), 'medium')).toBe(true)
+  })
+  test('flagged but not in band, the exemption does not apply', () => {
+    expect(verifiedStrength(variant('easy', { flag: true, verdict: 'above' }), 'easy')).toBe(false)
+  })
+  test('Hard and Champion never take the path, even when flagged', () => {
+    expect(verifiedStrength(variant('hard', { flag: true, verdict: 'in-band' }), 'hard')).toBe(false)
+    expect(verifiedStrength(variant('champion', { flag: true, verdict: 'in-band' }), 'champion')).toBe(false)
+  })
+  test('the ladder still has to pass: an exempt level that does not beat the one below is not verified', () => {
+    const bad = [{ lower: 'easy', upper: 'medium', score: 0.4, n: 400, lowerBound95: 0.35, bySeat: { '0': { games: 400, wins: 160, draws: 0, losses: 240, score: 0.4, lower: 0.35 }, '1': { games: 400, wins: 160, draws: 0, losses: 240, score: 0.4, lower: 0.35 } } }]
+    expect(verifiedStrength(variant('medium', { flag: true, verdict: 'in-band', pairs: bad }), 'medium')).toBe(false)
+  })
+})

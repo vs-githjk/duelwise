@@ -24,6 +24,7 @@ import { agentVersionFor, isPublished, limitsExplainer, practiceResult, strength
 import { apmCapFor, delayMsFor, limitsText, useFighterMatch, type CharacterChoice } from './useFighterMatch'
 import { formatClock, highlightsFor } from './highlights'
 import { DIR_GLYPH, DIR_NAME, MOVE_INPUT, dirAction } from './moveInputs'
+import { useNearMiss } from '../../lib/use-near-miss'
 
 // Eager glob: a missing registry file is an empty object, not a build error; no level is then playable.
 const found = import.meta.glob('../../../../../packages/agents/registry/fighter.json', { eager: true, import: 'default' })
@@ -209,6 +210,7 @@ function Swatch({ active, label, onClick }: { active: boolean; label: string; on
 
 export default function FighterPage() {
   const match = useFighterMatch((level) => agentVersionFor(sourceRegistry, level), registry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [screen, setScreen] = useState<'prematch' | 'select' | 'match'>('prematch')
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [me, setMe] = useState<CharacterChoice>({ character: 0, colorway: 0 })
@@ -451,6 +453,7 @@ export default function FighterPage() {
                   leaderboard={false}
                   upload={match.upload}
                   unratedReason={match.unratedReason}
+                  nearMiss={nearMiss}
                   recordOk={match.finished?.ok}
                   note={resultTrainingNote('fighter', registry, PRODUCT.trainingDataBasis === 'legitimate-interest')}
                 />

@@ -78,7 +78,9 @@ describe('limiter compliance over recorded games', () => {
       expect(reg.versions[0]!.sha256[name]).toBe(createHash('sha256').update(new Uint8Array(bytes)).digest('hex'))
       const m = reg.measured[level]!
       expect(m.n).toBeGreaterThanOrEqual(GATE_MATCHES)
-      expect(m.ci95[0]).toBeGreaterThanOrEqual(Math.min(...Object.values(BARS[level])))
+      // A9 (ruling Nov 10 18:52): Easy and Medium are gated by their people test and the ladder, so the registry flags them and the bot bars bind only the rest.
+      const detail = (reg.versions[0]!.gate as { levels: Record<string, { peopleGated?: boolean }> }).levels[level]!
+      if (detail.peopleGated !== true) expect(m.ci95[0]).toBeGreaterThanOrEqual(Math.min(...Object.values(BARS[level])))
     }
     for (const level of ['easy', 'medium', 'hard', 'champion'] as const) if (!PUBLISHED_V1.includes(level)) expect(reg.unpublished?.[level]).toMatch(/^in training: /)
   })

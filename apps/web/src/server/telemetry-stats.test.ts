@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOwnerView, humanTargetFromSiteElo, MIN_DRIFT_N, wilsonInterval, type EventRow, type OwnerViewInput } from './telemetry-stats'
+import { buildOwnerView, humanTargetFromPeople, MIN_DRIFT_N, wilsonInterval, type EventRow, type OwnerViewInput } from './telemetry-stats'
 
 const NOW = new Date('2026-10-22T12:00:00.000Z')
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000)
@@ -37,10 +37,19 @@ describe('wilson and targets', () => {
     expect(d - c).toBeLessThan(b - a)
     expect(wilsonInterval(0, 0)).toEqual([0, 1])
   })
-  test('the target is the Elo expected score of the level against a new player, null while unmeasured', () => {
-    expect(humanTargetFromSiteElo(1000)).toBeCloseTo(0.5, 5)
-    expect(humanTargetFromSiteElo(1400)).toBeCloseTo(0.9091, 3)
-    expect(humanTargetFromSiteElo(null)).toBeNull()
+  test('the target is the centre of the level band (D1), null while there is no people block', () => {
+    const band = (low: number, high: number) => ({ band: { low, high }, calibrated: 0.5, verdict: 'in-band' as const })
+    expect(humanTargetFromPeople(band(0.42, 0.58))).toBeCloseTo(0.5, 5)
+    expect(humanTargetFromPeople(band(0.65, 0.75))).toBeCloseTo(0.7, 5)
+    expect(humanTargetFromPeople(band(0.8, 0.9))).toBeCloseTo(0.85, 5)
+    expect(humanTargetFromPeople(band(0.93, 1))).toBeCloseTo(0.965, 5)
+    expect(humanTargetFromPeople(null)).toBeNull()
+    expect(humanTargetFromPeople(undefined)).toBeNull()
+  })
+  test('a level that is off its band is still held to the band centre; only a luck ceiling is held to what was measured', () => {
+    expect(humanTargetFromPeople({ band: { low: 0.65, high: 0.75 }, calibrated: 0.92, verdict: 'above' })).toBeCloseTo(0.7, 5)
+    expect(humanTargetFromPeople({ band: { low: 0.65, high: 0.75 }, calibrated: 0.4, verdict: 'below' })).toBeCloseTo(0.7, 5)
+    expect(humanTargetFromPeople({ band: { low: 0.93, high: 1 }, calibrated: 0.57, verdict: 'ceiling' })).toBeCloseTo(0.57, 5)
   })
 })
 

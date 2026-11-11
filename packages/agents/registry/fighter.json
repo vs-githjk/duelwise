@@ -5,8 +5,8 @@
     {
       "version": "v1",
       "parent": null,
-      "createdAt": "2026-10-31T16:22:22.825Z",
-      "promotedAt": "2026-10-31T16:22:22.825Z",
+      "createdAt": "2026-11-11T01:36:37.984Z",
+      "promotedAt": "2026-11-11T01:36:37.984Z",
       "status": "measured",
       "artifacts": {
         "hard.onnx": "apps/web/public/agents/fighter/v1/hard.onnx",
@@ -26,55 +26,55 @@
             "bots": [
               {
                 "bot": "rushdown",
-                "wins": 792,
+                "wins": 791,
                 "draws": 0,
-                "losses": 8,
-                "score": 0.99,
-                "lower": 0.980392,
+                "losses": 9,
+                "score": 0.98875,
+                "lower": 0.978758,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 394,
+                    "wins": 396,
                     "draws": 0,
-                    "losses": 6,
-                    "score": 0.985,
-                    "lower": 0.967665
+                    "losses": 4,
+                    "score": 0.99,
+                    "lower": 0.974573
                   },
                   "1": {
                     "games": 400,
-                    "wins": 398,
+                    "wins": 395,
                     "draws": 0,
-                    "losses": 2,
-                    "score": 0.995,
-                    "lower": 0.981955
+                    "losses": 5,
+                    "score": 0.9875,
+                    "lower": 0.971076
                   }
                 }
               },
               {
                 "bot": "turtle",
-                "wins": 361,
+                "wins": 222,
                 "draws": 0,
-                "losses": 439,
-                "score": 0.45125,
-                "lower": 0.417082,
+                "losses": 578,
+                "score": 0.2775,
+                "lower": 0.247591,
                 "bar": 0.35,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 179,
+                    "wins": 110,
                     "draws": 0,
-                    "losses": 221,
-                    "score": 0.4475,
-                    "lower": 0.399501
+                    "losses": 290,
+                    "score": 0.275,
+                    "lower": 0.233539
                   },
                   "1": {
                     "games": 400,
-                    "wins": 182,
+                    "wins": 112,
                     "draws": 0,
-                    "losses": 218,
-                    "score": 0.455,
-                    "lower": 0.406859
+                    "losses": 288,
+                    "score": 0.28,
+                    "lower": 0.238251
                   }
                 }
               },
@@ -107,61 +107,62 @@
               }
             ],
             "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
-            "step": 30015488
+            "step": 30015488,
+            "peopleGated": true
           },
           "medium": {
             "bots": [
               {
                 "bot": "rushdown",
-                "wins": 796,
-                "draws": 1,
-                "losses": 3,
-                "score": 0.995625,
-                "lower": 0.988116,
+                "wins": 790,
+                "draws": 0,
+                "losses": 10,
+                "score": 0.9875,
+                "lower": 0.977144,
                 "bar": 0.5,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 399,
+                    "wins": 396,
                     "draws": 0,
-                    "losses": 1,
-                    "score": 0.9975,
-                    "lower": 0.985977
+                    "losses": 4,
+                    "score": 0.99,
+                    "lower": 0.974573
                   },
                   "1": {
                     "games": 400,
-                    "wins": 397,
-                    "draws": 1,
-                    "losses": 2,
-                    "score": 0.99375,
-                    "lower": 0.980046
+                    "wins": 394,
+                    "draws": 0,
+                    "losses": 6,
+                    "score": 0.985,
+                    "lower": 0.967665
                   }
                 }
               },
               {
                 "bot": "turtle",
-                "wins": 722,
+                "wins": 358,
                 "draws": 0,
-                "losses": 78,
-                "score": 0.9025,
-                "lower": 0.87998,
+                "losses": 442,
+                "score": 0.4475,
+                "lower": 0.413376,
                 "bar": 0.5,
                 "bySeat": {
                   "0": {
                     "games": 400,
-                    "wins": 352,
+                    "wins": 172,
                     "draws": 0,
-                    "losses": 48,
-                    "score": 0.88,
-                    "lower": 0.844486
+                    "losses": 228,
+                    "score": 0.43,
+                    "lower": 0.382376
                   },
                   "1": {
                     "games": 400,
-                    "wins": 370,
+                    "wins": 186,
                     "draws": 0,
-                    "losses": 30,
-                    "score": 0.925,
-                    "lower": 0.894952
+                    "losses": 214,
+                    "score": 0.465,
+                    "lower": 0.416686
                   }
                 }
               },
@@ -194,7 +195,8 @@
               }
             ],
             "source": "runs/fighter-league-b5/gated/hard/snap-hard-0030015488.pt",
-            "step": 30015488
+            "step": 30015488,
+            "peopleGated": true
           },
           "hard": {
             "bots": [
@@ -781,16 +783,16 @@
             {
               "lower": "easy",
               "upper": "medium",
-              "score": 0.9,
+              "score": 0.745,
               "n": 400,
-              "lowerBound": 0.866689
+              "lowerBound": 0.700096
             },
             {
               "lower": "medium",
               "upper": "hard",
-              "score": 0.74,
+              "score": 0.9725,
               "n": 400,
-              "lowerBound": 0.694876
+              "lowerBound": 0.951435
             },
             {
               "lower": "hard",
@@ -846,31 +848,121 @@
   "measured": {
     "easy": {
       "metric": "score vs scripted turtle bot (weakest seat of the weakest gate bot)",
-      "value": 0.4475,
+      "value": 0.275,
       "ci95": [
-        0.399501,
-        0.496498
+        0.233539,
+        0.320742
       ],
       "n": 400,
-      "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball, throwtap and fireball25 bots under the same limits and delayed view",
+      "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball, throwtap and fireball25 bots under the same limits and delayed view (recorded, not a publish bar: this level is gated by its people test and the ladder)",
       "siteElo": 1000,
-      "measuredAt": "2026-10-31T16:22:22.825Z",
+      "measuredAt": "2026-11-11T01:36:37.984Z",
       "harness": "bun",
-      "commit": "724aadb"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.42,
+          "high": 0.58
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.62109375,
+            "ci95": [
+              0.560291797226888,
+              0.6783152374893218
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.46875,
+            "ci95": [
+              0.40853465012899953,
+              0.5298893409119787
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.32421875,
+            "ci95": [
+              0.2698445826497339,
+              0.38379036695576807
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.48554687499999993,
+        "ci95": [
+          0.44861875619187813,
+          0.5224749938081217
+        ],
+        "real": null,
+        "calibrated": 0.48554687499999993,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
     },
     "medium": {
       "metric": "score vs scripted turtle bot (weakest seat of the weakest gate bot)",
-      "value": 0.88,
+      "value": 0.43,
       "ci95": [
-        0.844486,
-        0.908285
+        0.382376,
+        0.478956
       ],
       "n": 400,
-      "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball, throwtap and fireball25 bots under the same limits and delayed view",
-      "siteElo": 1381.697004,
-      "measuredAt": "2026-10-31T16:22:22.825Z",
+      "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball, throwtap and fireball25 bots under the same limits and delayed view (recorded, not a publish bar: this level is gated by its people test and the ladder)",
+      "siteElo": 1186.246437,
+      "measuredAt": "2026-11-11T01:36:37.984Z",
       "harness": "bun",
-      "commit": "724aadb"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.65,
+          "high": 0.75
+        },
+        "panel": {
+          "beginner": {
+            "value": 0.85546875,
+            "ci95": [
+              0.8071377776567531,
+              0.8932893242521209
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 0.71875,
+            "ci95": [
+              0.6607529774210059,
+              0.7702790852921473
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.5546875,
+            "ci95": [
+              0.4934438904946746,
+              0.6143141251836137
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.726953125,
+        "ci95": [
+          0.6943518802769444,
+          0.7595543697230556
+        ],
+        "real": null,
+        "calibrated": 0.726953125,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
     },
     "hard": {
       "metric": "score vs scripted fireball25 bot (weakest seat of the weakest gate bot)",
@@ -881,10 +973,55 @@
       ],
       "n": 400,
       "opponents": "scripted rushdown, turtle, random, zoner, throwloop, backwalk, pokeloop, sweepspam, fireball, throwtap and fireball25 bots under the same limits and delayed view",
-      "siteElo": 1563.400352,
-      "measuredAt": "2026-10-31T16:22:22.825Z",
+      "siteElo": 1805.669203,
+      "measuredAt": "2026-11-11T01:36:37.984Z",
       "harness": "bun",
-      "commit": "724aadb"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.8,
+          "high": 0.9
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 0.9921875,
+            "ci95": [
+              0.9719672314529922,
+              0.9978549096516027
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 0.9984375000000001,
+        "ci95": [
+          0.9934096252678288,
+          1
+        ],
+        "real": null,
+        "calibrated": 0.9984375000000001,
+        "verdict": "above",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
     },
     "champion": {
       "metric": "score vs scripted rushdown bot (weakest seat of the weakest gate bot)",
@@ -895,10 +1032,55 @@
       ],
       "n": 400,
       "opponents": "scripted bots that see the live game",
-      "siteElo": 2763.226548,
-      "measuredAt": "2026-10-31T16:22:22.825Z",
+      "siteElo": 3005.495399,
+      "measuredAt": "2026-11-11T01:36:37.984Z",
       "harness": "bun",
-      "commit": "724aadb"
+      "commit": "bf0d02a",
+      "people": {
+        "band": {
+          "low": 0.93,
+          "high": 1
+        },
+        "panel": {
+          "beginner": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "average": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          },
+          "strong": {
+            "value": 1,
+            "ci95": [
+              0.9852161433443503,
+              1
+            ],
+            "n": 256
+          }
+        },
+        "estimate": 1,
+        "ci95": [
+          0.9954433093507014,
+          1
+        ],
+        "real": null,
+        "calibrated": 1,
+        "verdict": "in-band",
+        "proxies": {
+          "beginner": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 18 frames (300 ms) late, at most 160 presses a minute, hold an input at least 6 frames, and slip into a random input 10% of the time",
+          "average": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 15 frames (250 ms) late, at most 240 presses a minute, hold an input at least 4 frames, and slip into a random input 5% of the time",
+          "strong": "scripted rushdown, turtle, zoner, fireball players, one match in four each; react 12 frames (200 ms) late, no cap on presses, hold an input at least 1 frames, and slip into a random input 2% of the time"
+        }
+      }
     }
   },
   "unpublished": {},

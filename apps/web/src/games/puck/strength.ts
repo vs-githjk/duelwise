@@ -6,6 +6,7 @@ import type { Registry } from '@duelwise/agents/src/registry'
 import { playedModel } from '@duelwise/agents/src/puck/models'
 import { personaFor, styleLine } from '../../personas'
 import { LEVEL_LABEL } from '../../lib/level-info'
+import { notYetMeasuredText, peopleGatedSentence } from '../../lib/people-line'
 import { PRACTICE_COPY, agentVersionFor, isPublished, reactionText } from '../fighter/strength'
 
 // What the Glasscut page says about an opponent's strength. It says what was measured, in plain words, and only for a level the
@@ -91,7 +92,7 @@ function botsHaveYourHands(reg: Registry, level: Level): boolean {
 /** Pip in training: a script, so the In training line says what it is rather than calling it an early version. */
 export const SCRIPTED_PRACTICE_COPY = 'In training: a simple script for learning the controls; it has not passed our strength test.'
 
-/** "Beats our test bots in at least 6 of 10 games, including the bank-shot bot; not yet measured against people." */
+/** "Beats our test bots in at least 6 of 10 games, including the bank-shot bot; not yet measured against people." (real players when the card has a people line) */
 export function strengthLine(reg: Registry | null, level: Level): string {
   const m = reg?.measured[level]
   if (!reg?.levels[level] || !m) return reg?.unpublishedConfig?.[level]?.scripted === true ? SCRIPTED_PRACTICE_COPY : PRACTICE_COPY
@@ -99,7 +100,7 @@ export function strengthLine(reg: Registry | null, level: Level): string {
   const bot = /scripted (\w+) bot/.exec(m.metric)?.[1]
   const close = bot && BOT_WORDS[bot] ? `, including ${BOT_WORDS[bot]}` : ''
   const bots = botsHaveYourHands(reg, level) ? 'our test bots, whose mallets are as fast as yours,' : 'our test bots'
-  return `Beats ${bots} in at least ${atLeast} of 10 games${close}; not yet measured against people.`
+  return `Beats ${bots} in at least ${atLeast} of 10 games${close}; ${notYetMeasuredText(reg, level)}.${peopleGatedSentence(reg, level, BOT_WORDS)}`
 }
 
 export interface AgentCard {

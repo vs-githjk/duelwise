@@ -2,6 +2,7 @@ import type { GameId, Level } from '@duelwise/core/src/product'
 import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path.ts'
 import type { Registry } from '@duelwise/agents/src/registry'
 import { PRACTICE_COPY } from '../games/fighter/strength'
+import { peopleLine } from './people-line'
 
 export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard', 'champion']
 
@@ -36,6 +37,8 @@ function cap(word: string): string {
   return w.charAt(0).toUpperCase() + w.slice(1)
 }
 
+export { peopleLine }
+
 /** What the level picker shows for one level. Every field comes from the registry; nothing is invented. */
 export interface LevelInfo {
   /** True until the level has a measured block in the registry. */
@@ -43,6 +46,8 @@ export interface LevelInfo {
   practice?: boolean
   /** Measured strength string such as "site Elo 1000", only when measured. */
   strength?: string
+  /** "Tuned to win about 7 in 10 against an average player in our tests." Only where the people block shows the band was hit (or an honest ceiling). */
+  people?: string
   /** Set when the level failed its gate: this plain sentence is shown and the level is not selectable. */
   inTraining?: string
   /** True when the registry ships a model for the level, published or not. Practice may play it even while it is in training. */
@@ -58,6 +63,7 @@ export function levelInfoFromRegistry(reg: Registry | null): Record<Level, Level
       preview: !published,
       practice: !published && (reg?.game === 'arena' || isPracticeReason(reg?.unpublished?.[level])),
       strength: measured ? `site Elo ${Math.round(measured.siteElo)}` : undefined,
+      people: published ? peopleLine(measured?.people, reg?.game) : undefined,
       loadable: Boolean(reg?.levels[level]),
       inTraining: reg?.unpublished?.[level] ? inTrainingCopy(level, reg.unpublished[level]) : undefined,
     }

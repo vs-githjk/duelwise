@@ -254,6 +254,24 @@ const MAX_FRAMES = 40_000
  * Plays one best-of-3 match between two bots with the env's decision rhythm (a decision every
  * FRAME_SKIP frames, none while the round is not in the FIGHT phase). Seat 0 is bots[0].
  */
+/**
+ * A bot that slips (people hands, A4): with probability `rate` per decision its answer is replaced by a uniformly random packed input.
+ * Default off: a rate of 0 returns the bot itself, so every published measurement stays byte-identical. One draw per decision, always,
+ * so the slip stream does not depend on what the bot did.
+ */
+export function withMistakes(bot: FighterBot, rate: number, rng: Rng): FighterBot {
+  if (!(rate > 0)) return bot
+  return {
+    kind: bot.kind,
+    act(obs) {
+      const slip = rng.float() < rate
+      const wrong = rng.int(N_ACTIONS)
+      const a = bot.act(obs)
+      return slip ? wrong : a
+    },
+  }
+}
+
 export function playBotMatch(seed: number, bots: [FighterBot, FighterBot], opts: { onDecision?: (packed: number) => void } = {}): BotMatch {
   const s = createState(seed)
   while (s.matchOver === 0 && s.frame < MAX_FRAMES) {

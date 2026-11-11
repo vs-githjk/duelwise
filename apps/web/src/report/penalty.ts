@@ -1,6 +1,7 @@
 import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import { KICKS, penaltyCore, type PenaltyState } from '@duelwise/core/src/games/penalty/core'
 import { DIVE_LABEL, outcomeWord, zoneWord } from '../games/penalty/match'
+import { isHumanLoss, nearMiss, NOT_CLOSE, type NearMiss } from './near-miss'
 import type { Moment, PenaltyKickRow, PenaltyView } from './types'
 import { walk } from './walk'
 
@@ -172,4 +173,45 @@ export function penaltyReport(rec: MatchRecordV1, sentence: string, opponent: st
     yourKicks: mine.length,
     note: 'A shootout is five kicks each, so a count here is a handful of kicks, not a measure of skill. Whether a kick went in is partly the roll: a good pick improves the odds, it does not decide the kick.',
   }
+}
+
+const KICK_AT = ['at the top left', 'at the top middle', 'at the top right', 'to the left', 'down the middle', 'to the right', 'at the bottom left', 'at the bottom middle', 'at the bottom right'] as const
+const MISS_WORD = { saved: 'was saved', over: 'went over the bar', wide: 'went wide' } as const
+
+/**
+ * Twelve Yards' near miss: a shootout lost by exactly one goal (the same line the result coach calls close), replayed from the record. It names the player's last
+ * missed kick, since a goal from any of them would have levelled the score, and counts what the kicks show. It never says how likely a kick was to go in:
+ * the goal tables are not on the page, so that would tell the player more than the shootout did.
+ */
+export function penaltyNearMiss(rec: MatchRecordV1): NearMiss | null {
+  if (!isHumanLoss(rec)) return null
+  const steps = walk<PenaltyState, number>(rec)
+  const last = steps.at(-1)?.after
+  if (!last || !penaltyCore.terminal(last)) return null
+  const me = rec.humanSeat
+  const rows = rowsOf(last, me)
+  const mine = rows.filter((r) => r.byMe)
+  const theirs = rows.filter((r) => !r.byMe)
+  const you = mine.filter((r) => r.outcome === 'goal').length
+  const them = theirs.filter((r) => r.outcome === 'goal').length
+  if (them - you !== 1) return NOT_CLOSE
+  const misses = mine.filter((r) => r.outcome !== 'goal')
+  const miss = misses.at(-1) ?? null
+  const saves = theirs.filter((r) => r.outcome === 'saved').length
+  const sudden = rows.some((r) => r.sudden)
+  const round = rows.at(-1)!.round
+  const turning = (owner: boolean): string | null => (miss ? `Kick ${miss.n}: ${owner ? 'your' : "the player's"} kick ${KICK_AT[miss.zone]} ${MISS_WORD[miss.outcome as keyof typeof MISS_WORD]}. A goal there would have levelled the shootout.` : null)
+  const line = (owner: boolean): string => `${owner ? 'You' : 'The player'} ${sudden ? `went out in sudden death, round ${round}` : `finished one goal short, ${you} to ${them}`}.`
+  return nearMiss(true, {
+    turning: turning(true),
+    publicTurning: turning(false),
+    line: line(true),
+    publicLine: line(false),
+    stats: [
+      { label: 'Goal short', value: 1 },
+      ...(misses.length > 0 ? [{ label: misses.length === 1 ? 'Missed kick' : 'Missed kicks', value: misses.length }] : []),
+      ...(saves > 0 ? [{ label: saves === 1 ? 'Save made' : 'Saves made', value: saves }] : []),
+      ...(sudden ? [{ label: 'Sudden death rounds', value: round - KICKS }] : []),
+    ],
+  })
 }

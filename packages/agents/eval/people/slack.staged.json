@@ -1,0 +1,19 @@
+{
+  "medium": {
+    "fromRun": "s2",
+    "override": {
+      "depth": 3
+    },
+    "config": {
+      "algorithm": "search-2-ply",
+      "kind": "search",
+      "depth": 3,
+      "mobility": false,
+      "noise": 4
+    },
+    "verdict": "in-band",
+    "calibrated": 0.7091666666666666,
+    "panel": 0.7091666666666666,
+    "perSeat": 150
+  }
+}
