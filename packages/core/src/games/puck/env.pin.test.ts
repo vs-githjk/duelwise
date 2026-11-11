@@ -5,7 +5,7 @@ import { ALL_BOT_KINDS } from './bots'
 import { createEnv, type PuckEnv } from './env'
 
 // A pinned fingerprint of the training env's behaviour. Sable's live training reloads env.ts, so any refactor of
-// the hands (limiter, noise, bot delay) must leave these hashes unchanged. Do not re-pin to make a refactor pass.
+// the hands (limiter, noise, bot delay) must leave these hashes unchanged. Do not re-pin to make a refactor pass. Repinned once, for the puck-2 pace change (a deliberate sim change: cap 4.0, drag 0.92 per second), and the medium row once more for Marlow's aim noise 0.035 to 0.040 (puck-2 pace).
 
 function fnv(h: number, v: number): number {
   return Math.imul((h ^ v) >>> 0, 16777619) >>> 0
@@ -55,12 +55,12 @@ describe('env rollout fingerprint', () => {
     [undefined, {}, 16],
   ]
   const PINNED: Record<string, string> = {
-    'easy|{}|11': 'f8bf6fcf',
-    'medium|{}|12': '2ece009a',
-    'hard|{}|13': '5c0cf349',
-    'champion|{}|14': '244386b',
-    'champion|{"championBotDelay":9}|15': '105b6c66',
-    'undefined|{}|16': '917af7ce',
+    'easy|{}|11': '8579e5c8',
+    'medium|{}|12': '1e2467d9',
+    'hard|{}|13': 'ffd85f24',
+    'champion|{}|14': 'b6822e07',
+    'champion|{"championBotDelay":9}|15': '4a0fcb5c',
+    'undefined|{}|16': '5b573b21',
   }
   for (const [level, extra, seed] of cases) {
     test(`level ${level ?? 'none'} ${JSON.stringify(extra)} seed ${seed}`, () => {

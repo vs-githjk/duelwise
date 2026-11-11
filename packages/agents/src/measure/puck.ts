@@ -149,6 +149,7 @@ async function makeAgent(spec: SeatSpec, seat: 0 | 1, rec: SeatRecord): Promise<
   const agent = await createBotAgent(spec.kind, profileOf(spec.hands) ? peopleHandsLevel(profileOf(spec.hands)!) : spec.level, {
     seat,
     delayFrames: spec.delay,
+    ...(profileOf(spec.hands) ? { noiseSd: peopleHands(profileOf(spec.hands)!).noiseSd } : {}),
     onView: (frame, viewFrame) => {
       if (frame >= delay) rec.lagHist[Math.min(LAG_BINS - 1, frame - viewFrame)]!++
     },

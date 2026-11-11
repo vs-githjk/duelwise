@@ -1,5 +1,5 @@
 import type { PuckObs } from '@duelwise/core/src/games/puck/core'
-import { CAP_FRAMES, GOALS_TO_WIN, POSSESSION_FRAMES, PUCK_MAX_SPEED, RULE_MALLET_SPEED } from '@duelwise/core/src/games/puck/constants'
+import { CAP_FRAMES, GOALS_TO_WIN, OBS_PUCK_SPEED, POSSESSION_FRAMES, RULE_MALLET_SPEED } from '@duelwise/core/src/games/puck/constants'
 import { FRAME_SKIP, OBS_FEATURES, OWN_FEATURES, VIEW_FEATURES, writeOwn, writeSeatView } from '@duelwise/core/src/games/puck/encode'
 import type { PuckState } from '@duelwise/core/src/games/puck/state'
 
@@ -43,7 +43,7 @@ export function viewDue(frame: number, delayFrames: number): ViewDue {
  */
 export function obsFromSeen(seen: Float32Array): PuckObs {
   return {
-    puck: [(seen[0]! + 1) / 2, seen[1]! + 1, seen[2]! * PUCK_MAX_SPEED, seen[3]! * PUCK_MAX_SPEED],
+    puck: [(seen[0]! + 1) / 2, seen[1]! + 1, seen[2]! * OBS_PUCK_SPEED, seen[3]! * OBS_PUCK_SPEED],
     them: [(seen[4]! + 1) / 2, seen[5]! + 1, seen[6]! * RULE_MALLET_SPEED, seen[7]! * RULE_MALLET_SPEED],
     me: [(seen[VIEW_FEATURES]! + 1) / 2, (seen[VIEW_FEATURES + 1]! + 1) / 2, seen[VIEW_FEATURES + 2]! * RULE_MALLET_SPEED, seen[VIEW_FEATURES + 3]! * RULE_MALLET_SPEED],
     score: [Math.round(seen[8]! * GOALS_TO_WIN), Math.round(seen[9]! * GOALS_TO_WIN)],

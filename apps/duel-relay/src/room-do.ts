@@ -131,7 +131,7 @@ export class RoomDO extends DurableObject<Env> {
     let id: Identity
     try { id = JSON.parse(decodeURIComponent(req.headers.get('x-duel-id') ?? '')) } catch { return new Response('bad identity', { status: 400 }) }
     const rt = await this.isRealtime(id.host?.game)
-    const res = rt ? await this.getRt().connect(id, code) : await this.getHost().connect(id, code)
+    const res = rt ? await this.getRt().connect(id, code, req.headers.get('x-duel-cv') ?? '') : await this.getHost().connect(id, code)
     const pair = new WebSocketPair()
     const [client, server] = [pair[0], pair[1]]
     if (!res.ok) {

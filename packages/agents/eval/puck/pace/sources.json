@@ -1,0 +1,5 @@
+{
+  "medium": { "source": "runs/puck-league-b-medium/gated/medium/snap-medium-0040009728.pt", "step": 40009728, "absolute": "<results>/medium.onnx", "artifact": "apps/web/public/agents/puck/v2/medium.onnx" },
+  "hard": { "source": "runs/puck-league-b-hard/gated/hard/snap-hard-0112001024.pt", "step": 112001024, "absolute": "<results>/hard.onnx", "artifact": "apps/web/public/agents/puck/v1/hard.onnx" },
+  "champion": { "source": "runs/puck-league-a/league/A/snap-A-0278003712.pt", "step": 278003712, "absolute": "<results>/champion.onnx", "artifact": "apps/web/public/agents/puck/v1/champion.onnx" }
+}

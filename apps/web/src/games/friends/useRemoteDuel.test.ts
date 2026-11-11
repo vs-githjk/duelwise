@@ -156,7 +156,7 @@ describe('RemoteDuelClient', () => {
   })
 
   test('terminal close codes end the link with a reason and never retry', async () => {
-    for (const [code, reason] of [[RELAY_CLOSE.noRoom, 'no-room'], [RELAY_CLOSE.full, 'full'], [RELAY_CLOSE.expired, 'expired'], [RELAY_CLOSE.replaced, 'replaced'], [RELAY_CLOSE.dailyLimit, 'daily-limit'], [RELAY_CLOSE.tooManyRooms, 'too-many-rooms'], [RELAY_CLOSE.roomLimit, 'used-up'], [4499, 'used-up']] as const) {
+    for (const [code, reason] of [[RELAY_CLOSE.noRoom, 'no-room'], [RELAY_CLOSE.full, 'full'], [RELAY_CLOSE.expired, 'expired'], [RELAY_CLOSE.replaced, 'replaced'], [RELAY_CLOSE.dailyLimit, 'daily-limit'], [RELAY_CLOSE.tooManyRooms, 'too-many-rooms'], [RELAY_CLOSE.roomLimit, 'used-up'], [RELAY_CLOSE.outdated, 'outdated'], [4499, 'used-up']] as const) {
       const { client, sockets, clock } = rig()
       client.start()
       await flush()

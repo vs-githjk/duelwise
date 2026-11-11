@@ -10,9 +10,21 @@ import { measurePanel, panelEstimate, panelProxies, panelSpec } from './puck-peo
 
 describe('people profiles', () => {
   test('delay, noise and hold are as specified and fall from beginner to strong', () => {
-    expect(peopleHands('beginner')).toEqual({ delayFrames: 18, noiseSd: LEVEL_MALLET.medium.targetNoise, minHoldFrames: LEVEL_LIMITS.puck.medium.minHoldFrames })
-    expect(peopleHands('average')).toEqual({ delayFrames: 15, noiseSd: LEVEL_MALLET.hard.targetNoise, minHoldFrames: LEVEL_LIMITS.puck.hard.minHoldFrames })
-    expect(peopleHands('strong')).toEqual({ delayFrames: 12, noiseSd: LEVEL_MALLET.champion.targetNoise, minHoldFrames: LEVEL_LIMITS.puck.champion.minHoldFrames })
+    // The noise values are frozen literals (the yardstick), not the levels' live aim noise.
+    expect(peopleHands('beginner')).toEqual({ delayFrames: 18, noiseSd: 0.035, minHoldFrames: LEVEL_LIMITS.puck.medium.minHoldFrames })
+    expect(peopleHands('average')).toEqual({ delayFrames: 15, noiseSd: 0.018, minHoldFrames: LEVEL_LIMITS.puck.hard.minHoldFrames })
+    expect(peopleHands('strong')).toEqual({ delayFrames: 12, noiseSd: 0.008, minHoldFrames: LEVEL_LIMITS.puck.champion.minHoldFrames })
+  })
+
+  test('retuning a level\'s aim noise does not move the panel', () => {
+    const before = PEOPLE_PROFILES.map((p) => peopleHands(p).noiseSd)
+    const saved = LEVEL_MALLET.medium.targetNoise
+    try {
+      LEVEL_MALLET.medium.targetNoise = 0.09
+      expect(PEOPLE_PROFILES.map((p) => peopleHands(p).noiseSd)).toEqual(before)
+    } finally {
+      LEVEL_MALLET.medium.targetNoise = saved
+    }
   })
 
   test('every profile moves the rule mallet (faster than Hard, never past the cap) with its own delay', async () => {

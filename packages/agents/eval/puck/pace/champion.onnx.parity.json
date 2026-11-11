@@ -1,0 +1,1 @@
+{"onnx":"/Users/vidyutsriram/projects/duelwise-public/runs/puck-measure/champion.onnx","ckpt":"/Users/vidyutsriram/projects/duelwise-public/runs/puck-league-a/league/A/snap-A-0278003712.pt","observations":40,"worstAbsDiff":0.0000011920928955078125,"tolerance":0.00001,"pass":true}

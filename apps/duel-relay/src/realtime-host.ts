@@ -16,7 +16,7 @@
 import type { DuelResultRecord } from '@duelwise/core/src/duel/result-proof'
 import { N_ACTIONS as ARENA_ACTIONS } from '@duelwise/core/src/games/arena/input'
 import { N_ACTIONS as FIGHTER_ACTIONS } from '@duelwise/core/src/games/fighter/input'
-import { NO_INPUT } from '@duelwise/core/src/games/puck/constants'
+import { NO_INPUT, PUCK_CORE_VERSION } from '@duelwise/core/src/games/puck/constants'
 import { NETPLAY_CORES, type NetplayCore } from '@duelwise/core/src/netplay/session'
 import { toWire } from '@duelwise/core/src/netplay/wire'
 import type { Result, Seat } from '@duelwise/core/src/types'
@@ -203,7 +203,8 @@ export class RealtimeHost {
     return out
   }
 
-  connect(id: Identity, code: string): Promise<RtConnectResult> {
+  /** `cv` is the core version the page was built with. A puck room refuses any other (an old page would replay a different sim): no version closes with 1009, a different one with 4433. */
+  connect(id: Identity, code: string, cv: string | null = null): Promise<RtConnectResult> {
     return this.serial(async () => {
       const pre = await this.load()
       const now = this.d.now()
@@ -213,6 +214,12 @@ export class RealtimeHost {
         return { ok: false as const, code: CLOSE.rate, reason: 'connect-rate' }
       }
       this.connects.set(id.ref, [...recent, now])
+      if ((this.meta?.game ?? id.host?.game) === 'puck' && cv !== PUCK_CORE_VERSION) {
+        // A page from before puck-2 sends no version, and its bundle maps an unknown 4xxx code to "room is full up" (wrong, and a new link from the same page loops).
+        // 1009 is a code every bundle already maps to "Something went wrong. Reload the page and try again." A present, different version is a future page: 4433.
+        if (!cv) return { ok: false as const, code: CLOSE.tooBig, reason: 'outdated' }
+        return { ok: false as const, code: CLOSE.outdated, reason: 'outdated' }
+      }
       const person = id.pid ? { pid: id.pid, ...(id.rt ? { rt: id.rt as Record<string, number> } : {}) } : null
       if (!this.meta) {
         if (!id.host) return { ok: false as const, code: CLOSE.noRoom, reason: 'no-room' }

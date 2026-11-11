@@ -2,7 +2,7 @@
 
 Headless sim in `packages/core/src/games/puck/` (task P1). Internal id `puck`; the shown name is set at promotion. 60 Hz fixed tick,
 4 substeps of 1/240 s, deterministic from (seed, inputs). One implementation serves the browser, the server replay, the
-measurement harness and the trainer (the Python side never simulates). Core version `puck-1`.
+measurement harness and the trainer (the Python side never simulates). Core version `puck-2`.
 
 Every number is an ESTIMATE (chosen by us from air hockey feel, not read from a source) unless marked REPORTED. Nothing here is
 REPORTED yet: no outside page was fetched. All numbers are tuned only in P1 and P4, and the determinism vectors are regenerated when one moves.
@@ -21,8 +21,8 @@ REPORTED yet: no outside page was fetched. All numbers are tuned only in P1 and 
 | Puck radius | 0.04 | ESTIMATE |
 | Mallet radius | 0.065 | ESTIMATE |
 | Goal mouth | 0.34 wide, centred (x from 0.33 to 0.67); the posts are point obstacles of the puck radius | ESTIMATE |
-| Puck top speed | 4.5 W/s, clamped after every hit | ESTIMATE |
-| Puck drag | about 0.985 per second, applied per substep as a fixed factor 0.999937 (no pow in the sim); wall restitution 0.9 | ESTIMATE |
+| Puck top speed | 4.0 W/s, clamped after every hit (4.5 in puck-1; the nets still read puck speed on the 4.5 scale they were trained on) | ESTIMATE |
+| Puck drag | 0.92 kept per second (0.985 in puck-1), applied per substep as a fixed factor 0.9996526369739313 (no pow in the sim); wall restitution 0.9 | ESTIMATE |
 | Mallet rule speed cap | 6 W/s for every seat; per-seat limits can only be lower | ESTIMATE |
 | Mallet acceleration | default 120 W/s^2 (human and rule), lower for agent levels | ESTIMATE |
 | Mallet zone | centre inside its own half with the whole mallet on its side of the centre line: y in [r, 1 - r] for seat 0, [1 + r, 2 - r] for seat 1; x in [r, 1 - r] | ESTIMATE |

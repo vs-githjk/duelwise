@@ -38,6 +38,7 @@ export default {
     const headers = new Headers(req.headers)
     for (const k of [...headers.keys()]) if (k.startsWith('x-duel-')) headers.delete(k)
     headers.set('x-duel-code', m[1]!)
+    headers.set('x-duel-cv', (url.searchParams.get('cv') ?? '').slice(0, 24))
     headers.set('x-duel-id', encodeURIComponent(JSON.stringify(id)))
     const stub = env.ROOMS.get(env.ROOMS.idFromName(m[1]!))
     return stub.fetch(new Request(`https://room.internal/room/${m[1]}`, { method: 'GET', headers }))

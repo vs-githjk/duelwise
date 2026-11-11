@@ -44,10 +44,11 @@ export function puckCoreAt(seat0: Level, seat1: Level): GameCore<any, any, any> 
 }
 
 /** A scripted puck bot played as an agent under `level`'s hands. The answer is one encoded target (or NO_INPUT to hold). */
-export async function createBotAgent(kind: PuckBotKind, level: Level, opts: AgentOpts & { delayFrames?: number; onView?: (frame: number, viewFrame: number) => void } = {}): Promise<PreviewAgent> {
+export async function createBotAgent(kind: PuckBotKind, level: Level, opts: AgentOpts & { delayFrames?: number; noiseSd?: number; onView?: (frame: number, viewFrame: number) => void } = {}): Promise<PreviewAgent> {
   const seat = opts.seat ?? 1
   const cfg = LEVEL_LIMITS.puck[level]
-  const sd = LEVEL_MALLET[level].targetNoise
+  // noiseSd lets a people-panel test player keep its own frozen noise instead of the level's.
+  const sd = opts.noiseSd ?? LEVEL_MALLET[level].targetNoise
   // delayFrames lets the measurement play a bot at a level's hands with a different reaction time (0: the live game, the Champion gate's bots).
   const history = new DelayedStates<PuckObs>(opts.delayFrames ?? cfg.delayFrames, blank, copyObs)
   const view = blank()

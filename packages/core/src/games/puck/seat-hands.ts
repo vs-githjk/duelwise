@@ -25,12 +25,15 @@ export function botHistory(delay: number): DelayedStates<PuckState> | undefined 
 
 /**
  * People profiles (Nov 10 retune, A3): how a beginner, an average and a strong person play air hockey in the browser. All three move the
- * rule mallet (speed 6, default acceleration); they differ in reaction delay, hand noise and how long a target is held. The noise and the
- * hold are the Medium, Hard and Champion levels' own numbers, so there is one table of hands, not a second one to drift.
+ * rule mallet (speed 6, default acceleration); they differ in reaction delay, hand noise and how long a target is held. The hold is the Medium,
+ * Hard and Champion levels' own number. The noise is frozen here, NOT read from LEVEL_MALLET: the panel is the yardstick every level is measured
+ * against, so retuning a level's aim (Marlow went 0.035 to 0.040 in puck-2) must not move the test players. The values are what the levels had
+ * when the panel was built.
  */
 export const PEOPLE_PROFILES = ['beginner', 'average', 'strong'] as const
 export type PeopleProfile = (typeof PEOPLE_PROFILES)[number]
 const PEOPLE_HANDS_LEVEL = { beginner: 'medium', average: 'hard', strong: 'champion' } as const
+const PEOPLE_NOISE_SD = { beginner: 0.035, average: 0.018, strong: 0.008 } as const
 const PEOPLE_DELAY_FRAMES = { beginner: 18, average: 15, strong: 12 } as const
 
 export interface PeopleHands {
@@ -41,7 +44,7 @@ export interface PeopleHands {
 
 export function peopleHands(profile: PeopleProfile): PeopleHands {
   const lv = PEOPLE_HANDS_LEVEL[profile]
-  return { delayFrames: PEOPLE_DELAY_FRAMES[profile], noiseSd: LEVEL_MALLET[lv].targetNoise, minHoldFrames: LEVEL_LIMITS.puck[lv].minHoldFrames }
+  return { delayFrames: PEOPLE_DELAY_FRAMES[profile], noiseSd: PEOPLE_NOISE_SD[profile], minHoldFrames: LEVEL_LIMITS.puck[lv].minHoldFrames }
 }
 
 /** The level whose noise and hold a profile uses (the measurement's bot agents take a level for these). */

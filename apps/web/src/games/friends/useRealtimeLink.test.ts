@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NO_INPUT } from '@duelwise/core/src/games/puck/constants'
+import { NO_INPUT, PUCK_CORE_VERSION } from '@duelwise/core/src/games/puck/constants'
 import { DelayPipe, RealtimeClient, RT_VOID_MS, RT_WAIT_MS, parseNetShim, waitingForFriend, type RealtimeOptions } from './useRealtimeLink'
 import { pingTone } from './PingChip'
 import { RELAY_CLOSE, type Clock, type SocketLike } from './useRemoteDuel'
@@ -70,6 +70,19 @@ async function inMatch(over: Partial<RealtimeOptions> = {}) {
   s.say(go())
   return { ...r, s }
 }
+
+describe('core version (F2)', () => {
+  test('the socket url carries the puck core version, and the relay refusing it ends the link as outdated without retrying', async () => {
+    const { client, sockets } = rig()
+    client.start()
+    await flush()
+    expect(sockets[0]!.url).toBe(`ws://relay.test/room/ABCDEF?t=seat.token&cv=${PUCK_CORE_VERSION}`)
+    expect(PUCK_CORE_VERSION).toBe('puck-2')
+    sockets[0]!.drop(RELAY_CLOSE.outdated)
+    expect(client.getState()).toMatchObject({ status: 'closed', closed: 'outdated' })
+    expect(sockets).toHaveLength(1)
+  })
+})
 
 describe('round trip', () => {
   test('a ping goes out on open, the pong time is the round trip, later samples are smoothed, and the interval is 2 s in the lobby and 1 s in play', async () => {

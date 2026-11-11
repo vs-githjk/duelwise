@@ -1,0 +1,110 @@
+{
+ "label": "noise045",
+ "level": "medium",
+ "lag": 1,
+ "gamesPerSeat": 400,
+ "panel": {
+  "beginner": {
+   "value": 0.84875,
+   "ci95": [
+    0.8222588136998934,
+    0.8719079200943141
+   ],
+   "n": 800
+  },
+  "average": {
+   "value": 0.72875,
+   "ci95": [
+    0.6969021264277531,
+    0.7584115376738239
+   ],
+   "n": 800
+  },
+  "strong": {
+   "value": 0.455,
+   "ci95": [
+    0.4207899409801291,
+    0.4896401578851343
+   ],
+   "n": 800
+  }
+ },
+ "tallies": {
+  "beginner": {
+   "games": 800,
+   "wins": 679,
+   "draws": 0,
+   "losses": 121,
+   "bySeat": {
+    "0": 0.855,
+    "1": 0.8425
+   }
+  },
+  "average": {
+   "games": 800,
+   "wins": 583,
+   "draws": 0,
+   "losses": 217,
+   "bySeat": {
+    "0": 0.725,
+    "1": 0.7325
+   }
+  },
+  "strong": {
+   "games": 800,
+   "wins": 364,
+   "draws": 0,
+   "losses": 436,
+   "bySeat": {
+    "0": 0.455,
+    "1": 0.455
+   }
+  }
+ },
+ "estimate": {
+  "band": {
+   "low": 0.65,
+   "high": 0.75
+  },
+  "panel": {
+   "beginner": {
+    "value": 0.84875,
+    "ci95": [
+     0.8222588136998934,
+     0.8719079200943141
+    ],
+    "n": 800
+   },
+   "average": {
+    "value": 0.72875,
+    "ci95": [
+     0.6969021264277531,
+     0.7584115376738239
+    ],
+    "n": 800
+   },
+   "strong": {
+    "value": 0.455,
+    "ci95": [
+     0.4207899409801291,
+     0.4896401578851343
+    ],
+    "n": 800
+   }
+  },
+  "estimate": 0.71,
+  "ci95": [
+   0.6915790944061304,
+   0.7284209055938695
+  ],
+  "real": null,
+  "calibrated": 0.71,
+  "verdict": "in-band",
+  "proxies": {
+   "beginner": "scripted mouse player on the rule mallet (speed 6); reacts 18 frames (300 ms) late, aims with 0.045 table-widths of noise, holds a target at least 6 frames",
+   "average": "scripted mouse player on the rule mallet (speed 6); reacts 15 frames (250 ms) late, aims with 0.018 table-widths of noise, holds a target at least 4 frames",
+   "strong": "scripted mouse player on the rule mallet (speed 6); reacts 12 frames (200 ms) late, aims with 0.008 table-widths of noise, holds a target at least 2 frames"
+  }
+ },
+ "seconds": 47
+}

@@ -1,0 +1,28 @@
+{
+ "lower": "easy",
+ "upper": "medium",
+ "score": 0.835,
+ "n": 800,
+ "lowerBound95": 0.80769,
+ "bySeat": {
+  "0": {
+   "games": 400,
+   "wins": 327,
+   "draws": 0,
+   "losses": 73,
+   "score": 0.8175
+  },
+  "1": {
+   "games": 400,
+   "wins": 341,
+   "draws": 0,
+   "losses": 59,
+   "score": 0.8525
+  }
+ },
+ "upperLanes": [
+  7509,
+  8101,
+  7658
+ ]
+}

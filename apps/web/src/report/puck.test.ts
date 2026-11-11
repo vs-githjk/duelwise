@@ -7,7 +7,9 @@ import type { MatchRecordV1 } from '@duelwise/core/src/match-record'
 import type { Level } from '@duelwise/core/src/product'
 import { createMatchRecorder } from '../lib/match-recorder'
 import { PuckMatch } from '../games/puck/loop'
+import { replay } from '@duelwise/core/src/replay'
 import { buildReportBody } from './build'
+import { nearMissFor } from './moments'
 import { reportTiles } from './copy'
 import { cardHeadline, shareCardSvg } from './share-card'
 import { closeCallsLine, closeCalls, goalPips, goalTimelineLine, nearMissLine, pickTurning, puckReportMoments, puckTimeline, turningPointFor, type PuckEvent } from './puck'
@@ -214,5 +216,20 @@ describe('the report tiles and the share card say goals, not rounds or inputs', 
     expect(svg).toContain('Champion level, 6 to 7.')
     expect(svg).not.toMatch(/recorded inputs|rounds|2160/)
     expect(svg).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013)}${String.fromCharCode(0x2014)}]`))
+  })
+})
+
+describe('records made on puck-1 after the puck-2 pace change', () => {
+  test('a puck-1 record no longer replays, the report gives the result only, and there is no near miss', async () => {
+    const { rec } = await record(11, 'hard')
+    expect(rec.coreVersion).toBe('puck-2')
+    const old = { ...rec, coreVersion: 'puck-1' }
+    const out = replay(old)
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/core version mismatch: record puck-1, core puck-2/)
+    const body = buildReportBody(old)
+    expect(body.note).toMatch(/older version of the game/)
+    expect(body.moments.map((m) => m.kind)).toEqual(['end'])
+    expect(nearMissFor(old, 'Sable')).toBeNull()
   })
 })

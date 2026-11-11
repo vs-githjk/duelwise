@@ -26,9 +26,10 @@ export const RELAY_CLOSE = {
   tooManyRooms: 4430,
   dailyLimit: 4431,
   roomLimit: 4432,
+  outdated: 4433,
 } as const
 
-export type CloseReason = 'bye' | 'no-room' | 'full' | 'expired' | 'replaced' | 'over' | 'rate' | 'too-many-rooms' | 'daily-limit' | 'bad-game' | 'too-big' | 'used-up' | 'refused' | 'offline'
+export type CloseReason = 'bye' | 'no-room' | 'full' | 'expired' | 'replaced' | 'over' | 'rate' | 'too-many-rooms' | 'daily-limit' | 'bad-game' | 'too-big' | 'used-up' | 'outdated' | 'refused' | 'offline'
 
 export const TERMINAL: Record<number, CloseReason> = {
   [RELAY_CLOSE.bye]: 'bye',
@@ -43,6 +44,7 @@ export const TERMINAL: Record<number, CloseReason> = {
   [RELAY_CLOSE.tooManyRooms]: 'too-many-rooms',
   [RELAY_CLOSE.dailyLimit]: 'daily-limit',
   [RELAY_CLOSE.roomLimit]: 'used-up',
+  [RELAY_CLOSE.outdated]: 'outdated',
 }
 
 export type RemoteStatus = 'connecting' | 'live' | 'reconnecting' | 'closed'
@@ -329,6 +331,7 @@ export const CLOSE_COPY: Record<CloseReason, { title: string; body: string }> = 
   over: { title: 'That game has finished', body: 'Ask your friend to start a new one.' },
   rate: { title: 'Slow down a little', body: 'Too many moves or too many tries in a short time. Wait a minute, then reload the page.' },
   'used-up': { title: 'This game room is full up', body: 'Start a new link to keep playing. Every room has a cap so the free service stays free for everyone.' },
+  outdated: { title: 'This page needs a refresh', body: 'Duelwise was updated, so this page and the game server no longer match. Reload the page, then rejoin the link.' },
   'too-many-rooms': { title: 'Five games are already open', body: 'Finish or close one before you start another.' },
   'daily-limit': { title: 'That is enough games for today', body: 'You can start up to 40 friend games a day. Try again tomorrow.' },
   'bad-game': { title: 'This game cannot be played over a link yet', body: 'Pick another game.' },

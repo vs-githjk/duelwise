@@ -74,7 +74,7 @@ describe('determinism', () => {
       hashes.push(puckCore.hash(s))
     }
     expect(hashes[0]).toBe(hashes[1]!)
-    expect(hashes[0]).toBe('575238fe046a1262')
+    expect(hashes[0]).toBe('7db2ed80dfc691d0')
   })
   test('puckCore.step does not mutate its input and matches stepState', () => {
     const s = puckCore.init(5)
@@ -482,9 +482,9 @@ describe('two mallets squeezing one puck', () => {
       checkInvariants(s, 'squeeze ' + f)
     }
   })
-  test('60 matches of two jittered chasers keep every tick free of overlap', () => {
+  test('70 matches of two jittered chasers keep every tick free of overlap', () => {
     let ticks = 0
-    for (let n = 0; n < 60; n++) {
+    for (let n = 0; n < 70; n++) {
       const rng = makeRng(5000 + n)
       const s = createState(n)
       for (let f = 0; f < 3000 && s.matchOver === 0; f++) {
@@ -565,5 +565,33 @@ describe('shots on target use the scoring mouth', () => {
     expect(POST_L).toBeLessThan(0.35)
     expect(0.35).toBeLessThan(POST_L + PUCK_R)
     expect(shotsStraightUp(0.35)).toBe(0)
+  })
+})
+
+describe('puck pace (puck-2)', () => {
+  test('a free puck keeps 0.92 of its speed over one second of drag', () => {
+    const s = live()
+    puckAt(s, 0.5, 0.9, 0, 0.5)
+    const before = Math.hypot(s.pvx, s.pvy)
+    run(s, 60)
+    expect(Math.hypot(s.pvx, s.pvy) / before).toBeCloseTo(0.92, 6)
+  })
+  test('a mallet hit at full rule speed leaves the puck at no more than 4.0 W/s', () => {
+    for (const seat of [0, 1]) {
+      const s = live()
+      const m = s.m[seat]!
+      m.x = 0.5; m.y = seat === 0 ? 0.5 : 1.5
+      m.vx = 0; m.vy = seat === 0 ? RULE_MALLET_SPEED : -RULE_MALLET_SPEED
+      puckAt(s, 0.5, m.y + (seat === 0 ? 1 : -1) * (R2 + 0.01), 0, 0)
+      const inp: [number, number] = [NO_INPUT, NO_INPUT]
+      inp[seat] = seat === 0 ? code(512, 1000) : code(512, 24)
+      let top = 0
+      for (let f = 0; f < 4; f++) { stepState(s, inp); top = Math.max(top, Math.hypot(s.pvx, s.pvy)) }
+      expect(top).toBeGreaterThan(3.5)
+      expect(top).toBeLessThanOrEqual(4.0 + 1e-9)
+    }
+  })
+  test('the core version says puck-2', () => {
+    expect(puckCore.version).toBe('puck-2')
   })
 })

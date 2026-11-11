@@ -8,12 +8,12 @@
       "aimNoiseDeg": 0,
       "buttonBits": false
     },
-    "panel": 0.5062500000000001,
+    "panel": 0.5301250000000001,
     "ci95": [
-      0.48555361831811233,
-      0.5269463816818879
+      0.509535433413424,
+      0.5507145665865761
     ],
-    "calibrated": 0.5062500000000001,
+    "calibrated": 0.5301250000000001,
     "verdict": "in-band"
   },
   "medium": {
@@ -28,12 +28,13 @@
     "sha256": "25a5c8235a8c71fdd5653e26e96dad39162a6bcc58da4d2bb952796b39751479",
     "source": "runs/puck-league-b-medium/gated/medium/snap-medium-0040009728.pt",
     "artifact": "apps/web/public/agents/puck/v2/medium.onnx",
-    "panel": 0.727875,
+    "panel": 0.728,
     "ci95": [
-      0.7099318999580673,
-      0.7458181000419328
+      0.7099106165602316,
+      0.7460893834397684
     ],
-    "calibrated": 0.727875,
-    "verdict": "in-band"
+    "calibrated": 0.728,
+    "verdict": "in-band",
+    "targetNoise": 0.04
   }
 }

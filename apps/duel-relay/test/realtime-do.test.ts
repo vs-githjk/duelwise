@@ -62,8 +62,8 @@ const tok = (code: string, ref: string, name: string, pid: string, host?: 'fight
 
 interface Client { ws: WebSocket; frames: any[]; closed: Promise<{ code: number; reason: string }>; send(o: unknown): void; of(t: string): any[]; waitFor(pred: (m: any) => boolean, ms?: number): Promise<any> }
 
-async function open(code: string, token: string): Promise<Client> {
-  const ws = new WebSocket(`ws://${base}/room/${code}?t=${encodeURIComponent(token)}`)
+async function open(code: string, token: string, cv: string | null = 'puck-2'): Promise<Client> {
+  const ws = new WebSocket(`ws://${base}/room/${code}?t=${encodeURIComponent(token)}${cv === null ? '' : `&cv=${cv}`}`)
   const frames: any[] = []
   const waiters: Array<{ pred: (m: any) => boolean; res: (m: any) => void }> = []
   const closed = new Promise<{ code: number; reason: string }>((res) => ws.addEventListener('close', (e) => res({ code: e.code, reason: e.reason })))
@@ -167,6 +167,14 @@ describe('realtime room in workerd', () => {
     expect(go.game).toBe('arena')
     ada.ws.close()
     sam.ws.close()
+  })
+
+  test('a puck page with an old core version, or none, is closed through the real worker: a different version 4433, none 1009 (F2)', async () => {
+    for (const [cv, want] of [['puck-1', CLOSE.outdated], [null, CLOSE.tooBig]] as const) {
+      const code = newCode()
+      const old = await open(code, await tok(code, `ref-old-${code}`, 'Old', PID_A, 'puck'), cv)
+      expect(await old.closed).toMatchObject({ code: want })
+    }
   })
 
   test('a ping is answered with pong by the runtime in a realtime room too', async () => {

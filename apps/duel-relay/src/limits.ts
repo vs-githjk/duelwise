@@ -53,6 +53,8 @@ export const CLOSE = {
   dailyLimit: 4431,
   /** A room spent its games or its write budget. Calm: the game is over, start a new link. */
   roomLimit: 4432,
+  /** The page's puck version differs from the relay's (or the page sent none): reload for the new version. */
+  outdated: 4433,
 } as const
 
 export const RELAY_GAMES = ['chess', 'four', 'slack', 'penalty', 'fleet', 'word', 'holdem'] as const

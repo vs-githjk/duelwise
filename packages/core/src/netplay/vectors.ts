@@ -218,7 +218,8 @@ export function runNetVector(v: NetVector): NetResult {
 /**
  * Pinned results from the Bun run (the Bun test checks them; the browser page /dev/determinism checks them in Chromium and WebKit).
  * `minActivity` is a floor under the coverage count, so a log that stopped doing anything would fail loudly. Change a hash only with a
- * reason: a sim change (new hash everywhere) or a fixed sim.
+ * reason: a sim change (new hash everywhere) or a fixed sim. The three puck rows were repinned for puck-2 (cap 4.0, drag 0.92 per second);
+ * puck-sweep's floor went 200 to 150 because the slower puck spends fewer frames near its top speed (193 counted now, 193 > 150).
  */
 export const NET_VECTOR_HASHES: Record<string, { frames: number; hash: string; trace: string; minActivity: number }> = {
   'fighter-mash': { frames: 3000, hash: '81ce5bdf41e151b3', trace: 'b7fcfc18a4bb8980', minActivity: 100 },
@@ -227,9 +228,9 @@ export const NET_VECTOR_HASHES: Record<string, { frames: number; hash: string; t
   'arena-spin': { frames: 3000, hash: '48a55b739090086b', trace: '8c4172d705cf297b', minActivity: 60 },
   'arena-strafe': { frames: 9000, hash: '487e505508ac443c', trace: '8a45a738c2ef1428', minActivity: 120 },
   'arena-mixed': { frames: 20000, hash: '60b0dc3ac1ab7dc1', trace: 'cf72ab69964daf72', minActivity: 400 },
-  'puck-sweep': { frames: 3000, hash: '4156e2bce832ec1d', trace: 'caac723d7ce4d16f', minActivity: 200 },
-  'puck-corners': { frames: 3469, hash: 'ab850d7c2927ac18', trace: 'bd5731455efdf954', minActivity: 500 },
-  'puck-fast': { frames: 3122, hash: '7efc009849b8733c', trace: 'a301606827f35d67', minActivity: 400 },
+  'puck-sweep': { frames: 3000, hash: '7e04c351432dca2f', trace: '3f6a31ec877143af', minActivity: 150 },
+  'puck-corners': { frames: 3239, hash: '593d31e6fcdceba5', trace: 'df3e4cd73ea5a0cc', minActivity: 500 },
+  'puck-fast': { frames: 2931, hash: '89b7f2c02c399e08', trace: 'db1ece4292687c6a', minActivity: 400 },
 }
 
 export interface NetMismatch {
