@@ -17,3 +17,14 @@ describe('possession feature', () => {
     expect(out[12]).toBeCloseTo(-403 / POSSESSION_FRAMES, 5)
   })
 })
+
+describe('puck speed scale', () => {
+  test('the observation divides puck speed by the frozen 4.5 the nets were trained on, not the sim cap', () => {
+    const s = createState(1)
+    s.pvx = 2.25; s.pvy = -1.125
+    const out = new Float32Array(OBS_FEATURES)
+    writeSeatView(s, 0, out, 0)
+    expect(out[2]).toBeCloseTo(0.5, 6)
+    expect(out[3]).toBeCloseTo(-0.25, 6)
+  })
+})

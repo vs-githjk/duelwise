@@ -1,0 +1,343 @@
+{
+ "level": "medium",
+ "lag": 1,
+ "botDelay": 15,
+ "botHands": "level",
+ "gamesPerSeat": 400,
+ "rows": [
+  {
+   "bot": "random",
+   "games": 800,
+   "wins": 781,
+   "draws": 0,
+   "losses": 19,
+   "score": 0.97625,
+   "ci95": [
+    0.9632045370217734,
+    0.9847435833208539
+   ],
+   "bySeat": {
+    "0": {
+     "games": 400,
+     "wins": 391,
+     "draws": 0,
+     "losses": 9,
+     "score": 0.9775
+    },
+    "1": {
+     "games": 400,
+     "wins": 390,
+     "draws": 0,
+     "losses": 10,
+     "score": 0.975
+    }
+   }
+  },
+  {
+   "bot": "striker",
+   "games": 800,
+   "wins": 700,
+   "draws": 0,
+   "losses": 100,
+   "score": 0.875,
+   "ci95": [
+    0.8502753868874097,
+    0.8961404559020607
+   ],
+   "bySeat": {
+    "0": {
+     "games": 400,
+     "wins": 356,
+     "draws": 0,
+     "losses": 44,
+     "score": 0.89
+    },
+    "1": {
+     "games": 400,
+     "wins": 344,
+     "draws": 0,
+     "losses": 56,
+     "score": 0.86
+    }
+   }
+  },
+  {
+   "bot": "goalie",
+   "games": 800,
+   "wins": 731,
+   "draws": 0,
+   "losses": 69,
+   "score": 0.91375,
+   "ci95": [
+    0.8922653752468153,
+    0.9312801046309003
+   ],
+   "bySeat": {
+    "0": {
+     "games": 400,
+     "wins": 363,
+     "draws": 0,
+     "losses": 37,
+     "score": 0.9075
+    },
+    "1": {
+     "games": 400,
+     "wins": 368,
+     "draws": 0,
+     "losses": 32,
+     "score": 0.92
+    }
+   }
+  }
+ ],
+ "aggregate": {
+  "states": [
+   {
+    "frames": 6761020,
+    "shots": 1458,
+    "goalsFor": 10406,
+    "goalsAgainst": 4835,
+    "oppHalf": 3355584
+   },
+   {
+    "frames": 2517532,
+    "shots": 687,
+    "goalsFor": 3770,
+    "goalsAgainst": 1637,
+    "oppHalf": 1218004
+   },
+   {
+    "frames": 1499440,
+    "shots": 454,
+    "goalsFor": 2202,
+    "goalsAgainst": 987,
+    "oppHalf": 714926
+   }
+  ],
+  "lanes": [
+   15088,
+   15643,
+   15102
+  ],
+  "lagHist": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   5912108,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "peakSpeed": 3.600000000000001,
+  "peakAccel": 34.00000000000006,
+  "games": 2400
+ },
+ "c2": [
+  {
+   "state": "ahead",
+   "liveSeconds": 112684,
+   "shots": 1458,
+   "shotsPerMinute": 0.78,
+   "oppHalfShare": 0.496,
+   "goalsFor": 10406,
+   "goalsAgainst": 4835,
+   "pointShare": 0.683
+  },
+  {
+   "state": "level",
+   "liveSeconds": 41959,
+   "shots": 687,
+   "shotsPerMinute": 0.98,
+   "oppHalfShare": 0.484,
+   "goalsFor": 3770,
+   "goalsAgainst": 1637,
+   "pointShare": 0.697
+  },
+  {
+   "state": "behind",
+   "liveSeconds": 24991,
+   "shots": 454,
+   "shotsPerMinute": 1.09,
+   "oppHalfShare": 0.477,
+   "goalsFor": 2202,
+   "goalsAgainst": 987,
+   "pointShare": 0.69
+  }
+ ],
+ "c2ByBot": {
+  "random": [
+   {
+    "state": "ahead",
+    "liveSeconds": 30584,
+    "shots": 372,
+    "shotsPerMinute": 0.73,
+    "oppHalfShare": 0.546,
+    "goalsFor": 3856,
+    "goalsAgainst": 1299,
+    "pointShare": 0.748
+   },
+   {
+    "state": "level",
+    "liveSeconds": 9438,
+    "shots": 169,
+    "shotsPerMinute": 1.07,
+    "oppHalfShare": 0.515,
+    "goalsFor": 1172,
+    "goalsAgainst": 396,
+    "pointShare": 0.747
+   },
+   {
+    "state": "behind",
+    "liveSeconds": 4159,
+    "shots": 99,
+    "shotsPerMinute": 1.43,
+    "oppHalfShare": 0.483,
+    "goalsFor": 530,
+    "goalsAgainst": 176,
+    "pointShare": 0.751
+   }
+  ],
+  "striker": [
+   {
+    "state": "ahead",
+    "liveSeconds": 40694,
+    "shots": 540,
+    "shotsPerMinute": 0.8,
+    "oppHalfShare": 0.474,
+    "goalsFor": 3202,
+    "goalsAgainst": 1819,
+    "pointShare": 0.638
+   },
+   {
+    "state": "level",
+    "liveSeconds": 16399,
+    "shots": 254,
+    "shotsPerMinute": 0.93,
+    "oppHalfShare": 0.473,
+    "goalsFor": 1301,
+    "goalsAgainst": 645,
+    "pointShare": 0.669
+   },
+   {
+    "state": "behind",
+    "liveSeconds": 10720,
+    "shots": 174,
+    "shotsPerMinute": 0.97,
+    "oppHalfShare": 0.469,
+    "goalsFor": 857,
+    "goalsAgainst": 452,
+    "pointShare": 0.655
+   }
+  ],
+  "goalie": [
+   {
+    "state": "ahead",
+    "liveSeconds": 41405,
+    "shots": 546,
+    "shotsPerMinute": 0.79,
+    "oppHalfShare": 0.481,
+    "goalsFor": 3348,
+    "goalsAgainst": 1717,
+    "pointShare": 0.661
+   },
+   {
+    "state": "level",
+    "liveSeconds": 16122,
+    "shots": 264,
+    "shotsPerMinute": 0.98,
+    "oppHalfShare": 0.477,
+    "goalsFor": 1297,
+    "goalsAgainst": 596,
+    "pointShare": 0.685
+   },
+   {
+    "state": "behind",
+    "liveSeconds": 10112,
+    "shots": 181,
+    "shotsPerMinute": 1.07,
+    "oppHalfShare": 0.482,
+    "goalsFor": 815,
+    "goalsAgainst": 359,
+    "pointShare": 0.694
+   }
+  ]
+ },
+ "lanes": {
+  "counts": [
+   15088,
+   15643,
+   15102
+  ],
+  "shareMax": 0.34130430039491194,
+  "entropyBits": 1.5847569630141831
+ },
+ "compliance": {
+  "medianLagFrames": 15,
+  "delayFrames": 15,
+  "peakSpeed": 3.600000000000001,
+  "speedCap": 3.6,
+  "peakAccel": 34.00000000000006,
+  "accelCap": 34
+ },
+ "label": "marlow",
+ "botLimits": "human",
+ "model": "<results>/medium.onnx",
+ "seconds": 92
+}

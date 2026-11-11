@@ -16,6 +16,7 @@ import { ADA, MemLimiter, MemStore, PID_ADA, PID_SAM, SAM, TEST_SECRET, hostOf }
 import type { Identity } from '../src/host'
 
 const DELAY = 2
+const CV = NETPLAY_CORES.puck.core.version
 const T0 = Date.UTC(2026, 10, 11, 15, 0, 0)
 
 class MemBudget implements BudgetPort {
@@ -88,7 +89,7 @@ function rig(opts: { clock?: { t: number }; store?: MemStore; budget?: MemBudget
       return r.take(await r.host.message(ref, typeof obj === 'string' ? obj : JSON.stringify(obj)))
     },
     async join(id, code = 'ABCDEF') {
-      const res = await r.host.connect(id, code)
+      const res = await r.host.connect(id, code, CV)
       if (res.ok) { live.add(id.ref); r.take(res.out) }
       return res as any
     },
@@ -152,7 +153,24 @@ describe('lobby and go', () => {
     const r = rig()
     expect(await r.host.connect(SAM, 'ABCDEF')).toMatchObject({ ok: false, code: CLOSE.noRoom })
     expect(await r.host.connect(hostOf(ADA, 'chess'), 'ABCDEF')).toMatchObject({ ok: false, code: CLOSE.badGame })
-    expect(await r.host.connect(hostOf(ADA, 'puck'), 'ABCDEF')).toMatchObject({ ok: true })
+    expect(await r.host.connect(hostOf(ADA, 'puck'), 'ABCDEF', CV)).toMatchObject({ ok: true })
+  })
+
+  test('a puck room refuses a page with another core version (4433) or none (1009); other games do not care (F2)', async () => {
+    const r = rig()
+    for (const stale of ['puck-1', 'puck-3']) {
+      expect(await r.host.connect(hostOf(ADA, 'puck'), 'ABCDEF', stale)).toMatchObject({ ok: false, code: CLOSE.outdated, reason: 'outdated' })
+    }
+    // No version at all is a page from before puck-2: 1009, which every bundle already shows as "Something went wrong. Reload the page" (4433 would read "room is full up" there).
+    for (const none of ['', null, undefined]) {
+      expect(await r.host.connect(hostOf(ADA, 'puck'), 'ABCDEF', none)).toMatchObject({ ok: false, code: CLOSE.tooBig, reason: 'outdated' })
+    }
+    expect(await rig().host.connect(hostOf(ADA, 'fighter'), 'ABCDEF', null)).toMatchObject({ ok: true })
+    // The guest of a puck room is checked too, with the room's game (a guest token carries none).
+    expect(await r.host.connect(hostOf(ADA, 'puck'), 'ABCDEF', CV)).toMatchObject({ ok: true })
+    expect(await r.host.connect(SAM, 'ABCDEF', 'puck-1')).toMatchObject({ ok: false, code: CLOSE.outdated })
+    expect(await r.host.connect(SAM, 'ABCDEF', '')).toMatchObject({ ok: false, code: CLOSE.tooBig })
+    expect(await r.host.connect(SAM, 'ABCDEF', CV)).toMatchObject({ ok: true })
   })
 
   test('one ready is not enough, and a ready alone in a room is refused', async () => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { InputBatcher } from '@duelwise/core/src/netplay/batch'
 import { REALTIME_TUNING } from '@duelwise/core/src/netplay/tuning'
-import { NO_INPUT } from '@duelwise/core/src/games/puck/constants'
+import { NO_INPUT, PUCK_CORE_VERSION } from '@duelwise/core/src/games/puck/constants'
 import type { Result, Seat } from '@duelwise/core/src/types'
 import type { RealtimeLink } from './opponent'
 import { DEFAULT_BACKOFF, TERMINAL, realClock, type Clock, type CloseReason, type RemoteStatus, type SocketLike } from './useRemoteDuel'
@@ -208,7 +208,7 @@ export class RealtimeClient {
     }
     if (this.stopped || seq !== this.connectSeq) return
     const make = this.o.createSocket ?? ((u: string) => new WebSocket(u) as unknown as SocketLike)
-    const ws = make(`${this.o.relayUrl.replace(/\/+$/, '')}/room/${this.o.code}?t=${encodeURIComponent(token)}`)
+    const ws = make(`${this.o.relayUrl.replace(/\/+$/, '')}/room/${this.o.code}?t=${encodeURIComponent(token)}&cv=${PUCK_CORE_VERSION}`)
     this.socket = ws
     this.opened = false
     ws.onopen = () => {

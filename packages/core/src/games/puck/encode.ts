@@ -1,4 +1,4 @@
-import { CAP_FRAMES, GOALS_TO_WIN, PHASE, POSSESSION_FRAMES, PUCK_MAX_SPEED, RULE_MALLET_SPEED } from './constants'
+import { CAP_FRAMES, GOALS_TO_WIN, PHASE, POSSESSION_FRAMES, OBS_PUCK_SPEED, RULE_MALLET_SPEED } from './constants'
 import type { PuckState } from './state'
 
 // Observation layout and action bins for the training env. Only + - * / sqrt abs min max floor round (the sim's rule).
@@ -29,8 +29,8 @@ export function writeSeatView(s: PuckState, seat: 0 | 1, out: Float32Array, offs
   const them = s.m[1 - seat]!
   out[o] = (ox + f * s.px) * 2 - 1
   out[o + 1] = oy + f * s.py - 1
-  out[o + 2] = (f * s.pvx) / PUCK_MAX_SPEED
-  out[o + 3] = (f * s.pvy) / PUCK_MAX_SPEED
+  out[o + 2] = (f * s.pvx) / OBS_PUCK_SPEED
+  out[o + 3] = (f * s.pvy) / OBS_PUCK_SPEED
   out[o + 4] = (ox + f * them.x) * 2 - 1
   out[o + 5] = oy + f * them.y - 1
   out[o + 6] = (f * them.vx) / RULE_MALLET_SPEED

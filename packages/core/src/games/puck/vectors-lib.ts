@@ -36,7 +36,7 @@ export interface VectorExpect {
 }
 
 export interface VectorFile {
-  version: 'puck-1'
+  version: 'puck-2'
   generator: string
   count: number
   vectors: Array<VectorSpec & { expect: VectorExpect }>
@@ -170,7 +170,7 @@ export function runVector(spec: VectorSpec): VectorExpect {
 
 export function buildFile(): VectorFile {
   const vectors = vectorSpecs().map((v) => ({ ...v, expect: runVector(v) }))
-  return { version: 'puck-1', generator: 'bun scripts/puck-vectors.ts --write', count: vectors.length, vectors }
+  return { version: 'puck-2', generator: 'bun scripts/puck-vectors.ts --write', count: vectors.length, vectors }
 }
 
 export interface Mismatch { id: number; field: string; want: unknown; got: unknown }

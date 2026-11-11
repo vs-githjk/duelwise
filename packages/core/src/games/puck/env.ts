@@ -50,7 +50,7 @@ export interface PuckEnv extends BridgeEnv {
 class Env implements PuckEnv {
   readonly obsShape = [2, OBS_FEATURES]
   readonly actionDims = ACTION_DIMS
-  readonly version = 'puck-env-1'
+  readonly version = 'puck-env-2'
   onFrame?: (env: number, s: PuckState) => void
   readonly botViewFrame: Int32Array
   private readonly states: PuckState[] = []

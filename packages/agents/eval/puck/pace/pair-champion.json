@@ -1,0 +1,28 @@
+{
+ "lower": "hard",
+ "upper": "champion",
+ "score": 0.73875,
+ "n": 800,
+ "lowerBound95": 0.707218,
+ "bySeat": {
+  "0": {
+   "games": 400,
+   "wins": 300,
+   "draws": 0,
+   "losses": 100,
+   "score": 0.75
+  },
+  "1": {
+   "games": 400,
+   "wins": 291,
+   "draws": 0,
+   "losses": 109,
+   "score": 0.7275
+  }
+ },
+ "upperLanes": [
+  21254,
+  27482,
+  22497
+ ]
+}

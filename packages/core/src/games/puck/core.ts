@@ -2,7 +2,7 @@ import type { GameCore, Result, Seat } from '../../types'
 import type { GameId } from '../../product'
 import {
   CAP_FRAMES, DEAD_DRIFT, DEAD_FRAMES, DEAD_SPEED, DEAD_STRIP, END, GOALS_TO_WIN, HARD_CAP_FRAMES, NO_INPUT, PHASE, POSSESSION_FRAMES,
-  PUCK_EVENTS, PUCK_R, READY_FRAMES, SUBSTEPS, TABLE_L, MALLET_R, LEVEL_MALLET,
+  PUCK_CORE_VERSION, PUCK_EVENTS, PUCK_R, READY_FRAMES, SUBSTEPS, TABLE_L, MALLET_R, LEVEL_MALLET,
 } from './constants'
 import { cellToUnit, decodePuckInput, encodePuckInput, isValidCode, type PuckInput } from './input'
 import { substep, zoneYHi, zoneYLo } from './physics'
@@ -154,7 +154,7 @@ export function resultOf(s: PuckState): Result | null {
 export const puckCore: GameCore<PuckState, PuckInput, PuckObs> = {
   // The id stays out of GameId until the game is promoted (P7), like Cairn.
   id: 'puck' as unknown as GameId,
-  version: 'puck-1',
+  version: PUCK_CORE_VERSION,
   // A record replays with the opponent's mallet limits of its level (the page's PuckMatch plays seat 1 under them); you are seat 0 and never limited.
   init: (seed, opts, ctx) => createState(seed, (opts as PuckOptions | undefined) ?? (ctx?.level ? { limits: [null, LEVEL_MALLET[ctx.level]] } : undefined)),
   toAct: (s) => (s.matchOver === 1 ? [] : [0, 1]),

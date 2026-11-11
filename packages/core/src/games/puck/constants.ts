@@ -9,7 +9,13 @@ export const POSSESSION_FRAMES = 420
 export const DEAD_FRAMES = 180
 export const READY_FRAMES = 45
 export const RULE_MALLET_SPEED = 6
-export const PUCK_MAX_SPEED = 4.5
+/** The puck sim's version. Stored with every record and sent in the realtime connect, so a stale page and a newer relay refuse each other. */
+export const PUCK_CORE_VERSION = 'puck-2'
+
+/** Hard top speed of the puck, W/s. 4.5 in puck-1, 4.0 since puck-2. */
+export const PUCK_MAX_SPEED = 4.0
+/** The scale the observation divides puck velocity by. The trained nets learned it at 4.5, so it stays frozen when the sim cap moves. */
+export const OBS_PUCK_SPEED = 4.5
 export const GRID = 1024
 export const NO_INPUT = GRID * GRID
 
@@ -24,7 +30,8 @@ export interface MalletLimits {
 
 export const LEVEL_MALLET: Record<Level, MalletLimits> = {
   easy: { speed: 2.6, accel: 22, targetNoise: 0.06 },
-  medium: { speed: 3.6, accel: 34, targetNoise: 0.035 },
+  // 0.040 since puck-2 (0.035 in puck-1): the slower puck made Marlow easier to beat the people panel, so its aim is a little looser to stay in its band.
+  medium: { speed: 3.6, accel: 34, targetNoise: 0.040 },
   hard: { speed: 4.8, accel: 50, targetNoise: 0.018 },
   champion: { speed: 6.0, accel: 70, targetNoise: 0.008 },
 }
@@ -39,8 +46,8 @@ export const POST_L = (TABLE_W - GOAL_W) / 2
 export const POST_R = TABLE_W - POST_L
 export const WALL_REST = 0.9
 export const MALLET_REST = 0.85
-/** Per-substep drag factor, about 0.985 per second over 240 substeps. */
-export const DRAG_SUB = 0.999937
+/** Per-substep drag factor, 0.92 kept per second over 240 substeps (0.92 ** (1 / 240); a literal, the sim allows no pow). 0.985 per second in puck-1. */
+export const DRAG_SUB = 0.9996526369739313
 export const DT = 1 / (PUCK_TPS * SUBSTEPS)
 /** Acceleration of a seat with no explicit limits (human finger, rule). */
 export const DEFAULT_ACCEL = 120

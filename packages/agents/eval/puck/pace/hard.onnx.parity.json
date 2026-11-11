@@ -1,0 +1,1 @@
+{"onnx":"/Users/vidyutsriram/projects/duelwise-public/runs/puck-measure/hard.onnx","ckpt":"/Users/vidyutsriram/projects/duelwise-public/runs/puck-league-b-hard/gated/hard/snap-hard-0112001024.pt","observations":40,"worstAbsDiff":0.0000019073486328125,"tolerance":0.00001,"pass":true}
