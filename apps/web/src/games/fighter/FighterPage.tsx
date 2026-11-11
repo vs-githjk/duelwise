@@ -3,7 +3,7 @@ import { RotateOverlay, useLandscapeGate, useReleaseLandscape, useRotatePause } 
 import { LevelPicker } from '../../components/LevelPicker'
 import { PlayMode } from '../../components/PlayModeToggle'
 import { visibleRegistry } from '../../lib/strength-gates'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { parseRegistry, type Registry } from '@duelwise/agents/src/registry'
@@ -25,6 +25,12 @@ import { apmCapFor, delayMsFor, limitsText, useFighterMatch, type CharacterChoic
 import { formatClock, highlightsFor } from './highlights'
 import { DIR_GLYPH, DIR_NAME, MOVE_INPUT, dirAction } from './moveInputs'
 import { useNearMiss } from '../../lib/use-near-miss'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { FIGHTER_FRIEND, GAMEPAD_LINE, KEY_LINES } from './friend'
+
+// The friend match is its own chunk: it loads only when two people press Start.
+const FriendFighter = lazy(() => import('../friends/FriendFighter'))
 
 // Eager glob: a missing registry file is an empty object, not a build error; no level is then playable.
 const found = import.meta.glob('../../../../../packages/agents/registry/fighter.json', { eager: true, import: 'default' })
@@ -217,6 +223,9 @@ export default function FighterPage() {
   const [panel, setPanel] = useState<'controls' | 'moves' | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
+  // Who the next match is against. A friend match is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
   const host = useRef<HTMLDivElement>(null)
   // True once the match has left 'setup' since the player pressed Start, so the first render after the
   // screen switch (phase still 'setup') is not mistaken for a match that ended.
@@ -256,7 +265,7 @@ export default function FighterPage() {
   const touch = useTouchDevice()
   usePlayViewport(touch && inMatch)
   const gate = useLandscapeGate(touch)
-  useReleaseLandscape(inMatch, touch)
+  useReleaseLandscape(inMatch || friend !== null, touch)
   const matchLive = inMatch && (match.phase === 'loading' || match.phase === 'playing')
   const rotateBlock = (gate.portrait && matchLive) || gate.waiting
   useRotatePause({ block: gate.portrait && matchLive, playing: match.phase === 'playing', paused: match.paused, pause: match.pause, resume: match.resume })
@@ -282,10 +291,31 @@ export default function FighterPage() {
     if (inMatch && !match.paused) { setPanel(null); setLeaving(false) }
   }, [inMatch, match.paused])
 
+  if (friend) {
+    return (
+      <Suspense fallback={null}>
+        <FriendFighter setup={friend} onDone={() => setFriend(null)} />
+      </Suspense>
+    )
+  }
+
   return (
-    <GameShell matchActive={matchLive} game="fighter" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="In training" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }}>
+    <GameShell friends={screen === 'prematch' && versus === 'friend'} matchActive={matchLive} game="fighter" level={inMatch ? match.level : undefined} preview={inMatch && (match.preview || !published(match.level))} previewLabel="In training" onOpenGuide={() => { if (inMatch && match.phase === 'playing') match.pause() }}>
       {screen === 'prematch' ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
+          <OpponentTabs value={versus} onChange={setVersus} />
+          {versus === 'friend' ? (
+            <>
+              <FriendSetup game={FIGHTER_FRIEND} onStart={(setup) => gate.requestStart(() => setFriend(setup))} />
+              <ul className="grid gap-1 text-sm text-muted" data-testid="friend-device-note">
+                <li><b className="text-ink">Player one:</b> {KEY_LINES.one}</li>
+                <li><b className="text-ink">Player two:</b> {KEY_LINES.two} {KEY_LINES.pause}</li>
+                <li>{GAMEPAD_LINE}</li>
+                <li>{touch ? 'On a tablet you each get a stick and six buttons at your end of the screen. A phone is too small for two sets, so use gamepads there.' : 'On a tablet you each get a stick and six buttons at your end of the screen.'}</li>
+              </ul>
+            </>
+          ) : (
+          <>
           <p className="max-w-prose text-muted">2.5D, best of 3 rounds, 99 seconds each. One control scheme for you and the AI, so neither side gets an input edge.</p>
           <PlayMode />
           <LevelPicker value={picked} onChange={setPicked}
@@ -316,6 +346,8 @@ export default function FighterPage() {
               {match.failure}
             </p>
           ) : null}
+          </>
+          )}
         </div>
       ) : null}
 

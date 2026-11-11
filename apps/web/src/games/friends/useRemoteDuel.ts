@@ -30,7 +30,7 @@ export const RELAY_CLOSE = {
 
 export type CloseReason = 'bye' | 'no-room' | 'full' | 'expired' | 'replaced' | 'over' | 'rate' | 'too-many-rooms' | 'daily-limit' | 'bad-game' | 'too-big' | 'used-up' | 'refused' | 'offline'
 
-const TERMINAL: Record<number, CloseReason> = {
+export const TERMINAL: Record<number, CloseReason> = {
   [RELAY_CLOSE.bye]: 'bye',
   [RELAY_CLOSE.tooBig]: 'too-big',
   [RELAY_CLOSE.badGame]: 'bad-game',
@@ -79,7 +79,7 @@ export interface Clock {
   clearInterval(id: unknown): void
 }
 
-const realClock: Clock = {
+export const realClock: Clock = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
   setInterval: (fn, ms) => setInterval(fn, ms),

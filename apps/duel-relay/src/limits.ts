@@ -1,3 +1,5 @@
+import { FRIEND_HANDS } from '@duelwise/core/src/games/holdem/match'
+
 /** Every cap of the relay in one place. Numbers come from plan/retune-multiplayer-plan.md (Friend play, abuse limits). */
 export const LIMITS = {
   /** Open rooms one caller reference may hold. */
@@ -28,6 +30,8 @@ export const LIMITS = {
   reserveRows: 300,
   /** Hard limit, abuse only: the room closes mid-game past this. */
   hardRowsPerRoom: 2000,
+  /** Hands in a Hold'em match between friends (the room deals this many decks up front). */
+  holdemHands: FRIEND_HANDS,
   /** Display name length, characters. */
   maxNameChars: 40,
 } as const
@@ -51,7 +55,7 @@ export const CLOSE = {
   roomLimit: 4432,
 } as const
 
-export const RELAY_GAMES = ['chess', 'four', 'slack', 'penalty', 'fleet', 'word'] as const
+export const RELAY_GAMES = ['chess', 'four', 'slack', 'penalty', 'fleet', 'word', 'holdem'] as const
 
 /** Sliding one-second window per key. Pure: the caller supplies the clock. */
 export class RateWindow {
@@ -97,3 +101,72 @@ export function pruneCaller(s: CallerState, now: number): CallerState {
 }
 
 export const callerIsEmpty = (s: CallerState): boolean => Object.keys(s.open).length === 0 && s.creates.length === 0
+
+/** The games that run as rollback matches (slice 2, S7): the relay steps a confirmed copy of the sim and signs the result. */
+export const REALTIME_GAMES = ['fighter', 'arena', 'puck'] as const
+export type RealtimeGame = (typeof REALTIME_GAMES)[number]
+export const isRealtimeGame = (g: unknown): g is RealtimeGame => (REALTIME_GAMES as readonly unknown[]).includes(g)
+
+/** Caps of the realtime path only. The turn path keeps LIMITS above, untouched. */
+export const RT_LIMITS = {
+  /** One client message, in UTF-8 bytes. */
+  maxMessageBytes: 512,
+  /** Messages one socket may send in any rolling second (the client sends at most 30). */
+  maxMessagesPerSecond: 40,
+  /** Codes in one `in` message. */
+  maxCodesPerMessage: 64,
+  /** Most frames a seat may be ahead of the confirmed sim (bounds the work one message can cause). */
+  maxAheadFrames: 120,
+  /** The first `in` of a seat may start at most this late (the input delay; earlier frames hold the idle code). */
+  maxStartFrame: 30,
+  /** A match is void after this long, whatever happens (also the only timer a quiet match needs). */
+  matchMs: 15 * 60_000,
+  /** A seat that stays gone this long voids the match (D7). */
+  goneMs: 20_000,
+  /** A client may report its friend lost only when the friend has sent nothing for this long. */
+  silentMs: 15_000,
+  /** Matches one room may play. */
+  maxMatchesPerRoom: 5,
+  /** The sim hash is checked and a snapshot kept every this many confirmed frames. */
+  checkEvery: 60,
+  /** Frames of each seat's inputs kept for a friend that asks for them again (power of two). */
+  history: 1024,
+  /** D6 (taken at the plan's recommendation, reversible): free plan allows 100,000 Durable Object requests a day; realtime may use half. */
+  dayRequests: 50_000,
+  /** D6: realtime minutes one caller may start in a UTC day. */
+  callerMinutesPerDay: 60,
+  /** A seat's messages may not exceed this many a second (the honest batcher sends at most 30) times the match's elapsed seconds, plus the slack below. */
+  maxSeatMessagesPerSecond: 31,
+  seatMessageSlack: 300,
+  /** Callers tracked in the day's counter before it fails closed. */
+  maxCallers: 2000,
+} as const
+
+/** What one match is charged at its start, from the plan's per-game arithmetic (billed requests = incoming messages / 20). */
+export const RT_COST: Record<RealtimeGame, { requests: number; minutes: number }> = {
+  fighter: { requests: 270, minutes: 3 },
+  puck: { requests: 630, minutes: 4 },
+  arena: { requests: 1200, minutes: 7 },
+}
+
+export interface BudgetState { day: string; requests: number; minutes: Record<string, number> }
+export const emptyBudget = (now: number): BudgetState => ({ day: utcDay(now), requests: 0, minutes: {} })
+export const utcDay = (now: number): string => new Date(now).toISOString().slice(0, 10)
+
+/** Pure. The day's budget and the two callers' minutes; resets at 00:00 UTC like the Cloudflare counters it protects. */
+export function reserveBudget(s: BudgetState | undefined, now: number, game: RealtimeGame, refs: string[]): { verdict: 'ok' | 'spent' | 'minutes'; state: BudgetState } {
+  const state: BudgetState = s && s.day === utcDay(now) ? s : emptyBudget(now)
+  const cost = RT_COST[game]
+  if (state.requests + cost.requests > RT_LIMITS.dayRequests) return { verdict: 'spent', state }
+  for (const r of refs) if ((state.minutes[r] ?? 0) + cost.minutes > RT_LIMITS.callerMinutesPerDay) return { verdict: 'minutes', state }
+  const minutes = { ...state.minutes }
+  for (const r of refs) minutes[r] = (minutes[r] ?? 0) + cost.minutes
+  if (Object.keys(minutes).length > RT_LIMITS.maxCallers) return { verdict: 'spent', state }
+  return { verdict: 'ok', state: { day: state.day, requests: state.requests + cost.requests, minutes } }
+}
+
+/** Pure. Adds the requests a finished match used beyond what `go` charged (billed requests = incoming messages / 20). */
+export function addUsage(s: BudgetState | undefined, now: number, extraRequests: number): BudgetState {
+  const state: BudgetState = s && s.day === utcDay(now) ? s : emptyBudget(now)
+  return { ...state, requests: state.requests + Math.max(0, Math.ceil(extraRequests)) }
+}

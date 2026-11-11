@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { STACK } from '@duelwise/core/src/games/holdem/match'
 import type { HoldemAction, HoldemObservation } from '@duelwise/core/src/games/holdem/core'
 import { cn } from '../../lib/cn'
-import { HUMAN } from './useHoldemMatch'
+import { HUMAN } from './seats'
 
 export interface Preset {
   id: 'min' | 'half' | 'pot' | 'allin'

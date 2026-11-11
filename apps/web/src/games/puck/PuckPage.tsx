@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
 import { GOALS_TO_WIN } from '@duelwise/core/src/games/puck/constants'
@@ -17,6 +17,9 @@ import { visibleRegistry } from '../../lib/strength-gates'
 import { cn } from '../../lib/cn'
 import { Avatar } from '../../personas/Avatar'
 import { personaFor } from '../../personas'
+import { FriendSetup, OpponentTabs } from '../friends/FriendSetup'
+import type { LocalSetup } from '../friends/useLocalDuel'
+import { PUCK_FRIEND } from './friend'
 import { MomentBanner, PuckHud, ServeBanner, ThumbStrip } from './hud'
 import { GoalPips } from './GoalPips'
 import { finishedPips, pillAnchor } from './moments'
@@ -26,6 +29,9 @@ import { usePuckMatch } from './usePuckMatch'
 import './puck.css'
 
 // The registry file is read as it stands. A level not published there is a labelled "In training" level (never a strength number).
+// The friend match is its own chunk: it loads only when two people press Start.
+const FriendPuck = lazy(() => import('../friends/FriendPuck'))
+
 const found = import.meta.glob('../../../../../packages/agents/registry/puck.json', { eager: true, import: 'default' })
 const raw = Object.values(found)[0]
 const sourceRegistry: Registry | null = raw ? parseRegistry(raw) : null
@@ -51,11 +57,15 @@ const agentVersion = (level: Level): string => agentVersionFor(sourceRegistry, l
 
 export default function PuckPage() {
   const match = usePuckMatch(agentVersion, registry?.learnsFromHumans === true)
+  const nearMiss = useNearMiss(match.finished?.record)
   const [screen, setScreen] = useState<'prematch' | 'match'>('prematch')
   const [picked, setPicked] = useState<Level>(levelFromUrl)
   const [fixedSeed, setFixedSeed] = useState<number | undefined>(seedFromUrl)
   const [helpOpen, setHelpOpen] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  // Who the next match is against. A friend match is two people on this device: it never touches the match recorder or the server.
+  const [versus, setVersus] = useState<'ai' | 'friend'>('ai')
+  const [friend, setFriend] = useState<LocalSetup | null>(null)
   const stage = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   // True once the match has left 'setup' since the player pressed Start, so the first render after the screen switch
@@ -84,6 +94,14 @@ export default function PuckPage() {
     if (!match.paused) setLeaving(false)
   }, [match.paused])
 
+  if (friend) {
+    return (
+      <Suspense fallback={null}>
+        <FriendPuck setup={friend} onDone={() => setFriend(null)} />
+      </Suspense>
+    )
+  }
+
   const inMatch = screen === 'match'
   const playing = match.phase === 'playing'
   const over = match.phase === 'over'
@@ -93,7 +111,6 @@ export default function PuckPage() {
   const training = match.preview || !published(match.level)
   const card = agentCard(registry, picked)
   const cardNow = agentCard(registry, match.level)
-  const nearMiss = useNearMiss(match.finished?.record)
   const touch = match.pointer === 'touch'
   const goals = match.finished ? finishedPips(match.finished.record) : null
 
@@ -107,9 +124,19 @@ export default function PuckPage() {
   }
 
   return (
-    <GameShell matchActive={matchLive} game="puck" level={inMatch ? match.level : undefined} preview={inMatch && training} previewLabel="In training" onOpenGuide={() => { if (inMatch && playing) match.pause() }}>
+    <GameShell friends={!inMatch && versus === 'friend'} matchActive={matchLive} game="puck" level={inMatch ? match.level : undefined} preview={inMatch && training} previewLabel="In training" onOpenGuide={() => { if (inMatch && playing) match.pause() }}>
       {!inMatch ? (
         <div className="grid gap-5 py-2" data-testid="prematch">
+          <OpponentTabs value={versus} onChange={setVersus} />
+          {versus === 'friend' ? (
+            <>
+              <FriendSetup game={PUCK_FRIEND} onStart={setFriend} />
+              <p className="text-sm text-muted" data-testid="friend-device-note">
+                Best on one phone or tablet, with a thumb each. On a computer, one of you uses the mouse (bottom end) and the other the arrow keys (top end).
+              </p>
+            </>
+          ) : (
+          <>
           <p className="max-w-prose text-muted">
             Air hockey on a glass table. First to {GOALS_TO_WIN} goals, or the lead at six minutes. On a phone, drag anywhere on the table: your mallet moves the way your finger moves, and nothing jumps when you touch down. With a mouse, the mallet follows the cursor.
           </p>
@@ -139,6 +166,8 @@ export default function PuckPage() {
           {match.failure ? (
             <p role="alert" className="rounded-control bg-warn-soft px-3 py-2 text-sm text-warn-ink">{match.failure}</p>
           ) : null}
+          </>
+          )}
         </div>
       ) : null}
 

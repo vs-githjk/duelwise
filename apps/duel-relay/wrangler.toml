@@ -14,9 +14,18 @@ class_name = "RoomDO"
 name = "LIMITER"
 class_name = "LimiterDO"
 
+[[durable_objects.bindings]]
+name = "BUDGET"
+class_name = "BudgetDO"
+
 # SQLite-backed Durable Objects: the only kind the Workers Free plan allows.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RoomDO", "LimiterDO"]
 
 # DUEL_SIGNING_SECRET is a secret: `wrangler secret put DUEL_SIGNING_SECRET`, never written here.
+
+# v2 (slice 2): the realtime budget counter. A new class only; RoomDO and LimiterDO are untouched.
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["BudgetDO"]

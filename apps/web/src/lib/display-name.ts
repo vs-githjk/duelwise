@@ -3,8 +3,9 @@
  * Trim, collapse spaces, 1 to 24 characters, letters, digits, spaces and . _ -; no links or emails; an inline blocklist of slurs and obscenities (see isBlocked).
  */
 
-export const NAME_MAX = 24
-export const NAME_STORAGE_KEY = 'duelwise.name'
+import { NAME_MAX, NAME_STORAGE_KEY } from './display-name-const'
+
+export { NAME_MAX, NAME_STORAGE_KEY }
 
 export type NameCheck = { ok: true; name: string } | { ok: false; error: string }
 

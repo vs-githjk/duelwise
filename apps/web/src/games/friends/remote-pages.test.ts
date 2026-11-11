@@ -5,6 +5,10 @@ import { slackCore } from '@duelwise/core/src/games/slack/core'
 import { fleetCore } from '@duelwise/core/src/games/fleet'
 import { penaltyCore } from '@duelwise/core/src/games/penalty/core'
 import { wordCore } from '@duelwise/core/src/games/word/core'
+import { holdemCore } from '@duelwise/core/src/games/holdem/core'
+import { dealDecks } from '@duelwise/core/src/games/holdem/match'
+import { makeRng } from '@duelwise/core/src/rng'
+import { holdemMineFirst, holdemTableState, holdemReveal, holdemSideSummary } from './holdem-logic'
 import { absoluteCells, chessMoveBetween as chessMove, fourStateFromObs, newStone, slackMoveBetween as slackMove } from './remote-logic'
 
 describe('what a remote page rebuilds from one seat view', () => {
@@ -69,5 +73,76 @@ describe('what a remote page rebuilds from one seat view', () => {
     const pa = penaltyCore.observe(p, 0)
     expect(pa.kicks).toEqual([])
     expect(Object.keys(pa).sort()).toEqual(['goals', 'kicks', 'over', 'role', 'round', 'seat', 'sudden', 'taken'])
+  })
+})
+
+describe('Hold\'em: what the remote page rebuilds from one seat view', () => {
+  const start = () => {
+    const r = makeRng(5)
+    return holdemCore.init(3, { hands: 10, decks: dealDecks(10, (n) => r.int(n)) })
+  }
+  const act = (s: ReturnType<typeof start>, a: Parameters<typeof holdemCore.step>[1][0]) => {
+    const acts: [typeof a, typeof a] = [null, null]
+    acts[s.actor] = a
+    return holdemCore.step(s, acts)
+  }
+
+  test('mine-first: both seats see themselves as seat 0 in bets, totals and chips', () => {
+    let s = start()
+    s = act(s, { type: 'raise', to: 7 })
+    for (const seat of [0, 1] as const) {
+      const o = holdemCore.observe(s, seat)
+      const m = holdemMineFirst(o)
+      expect(m.bet[0]).toBe(s.bet[seat])
+      expect(m.bet[1]).toBe(s.bet[1 - seat])
+      expect(m.total[0]).toBe(s.total[seat])
+      expect(m.net[0]).toBe(s.net[seat])
+      expect(m.hole).toEqual(s.hole[seat])
+      expect(m.minRaiseTo).toBe(o.minRaiseTo)
+    }
+  })
+
+  test('the table state holds my cards in the human slot, the other slot empty, and the dealer on the right side', () => {
+    const s = start()
+    for (const seat of [0, 1] as const) {
+      const t = holdemTableState(holdemCore.observe(s, seat))
+      expect(t.hole[0]).toEqual(s.hole[seat])
+      expect(t.hole[1]).toEqual([])
+      expect(t.button).toBe(s.button === seat ? 0 : 1)
+      expect(t.hand).toBe(0)
+      expect(JSON.stringify(t)).not.toContain(JSON.stringify(s.hole[1 - seat]))
+    }
+  })
+
+  test('a fold: the summary flips to mine-first, shows no cards, and the pot goes to the winner', () => {
+    let s = start()
+    const folder = s.actor
+    const before = s.hole
+    s = act(s, { type: 'fold' })
+    for (const seat of [0, 1] as const) {
+      const o = holdemCore.observe(s, seat)
+      const sum = holdemSideSummary(o.last!, seat)
+      expect(sum.hole).toBeNull()
+      expect(sum.winner).toBe(seat === folder ? 1 : 0)
+      expect(sum.delta).toBe(seat === folder ? -1 : 1)
+      const rv = holdemReveal(o.last!, seat, before[seat], 'Sam', 'show')
+      // the folder put in the small blind (1), the other the big blind (2)
+      expect(rv.total).toEqual(seat === folder ? [1, 2] : [2, 1])
+      expect(rv.hole).toEqual(before[seat])
+      expect(rv.headline).toBe(seat === folder ? 'Sam wins 1, you fold' : 'You win 1, Sam folds')
+    }
+  })
+
+  test('a showdown: both hands are in the summary, mine in slot 0 whichever seat I sit in', () => {
+    let s = start()
+    const first = s.hole
+    while (s.hand === 0 && !holdemCore.terminal(s)) s = act(s, { type: 'call' })
+    for (const seat of [0, 1] as const) {
+      const o = holdemCore.observe(s, seat)
+      const sum = holdemSideSummary(o.last!, seat)
+      expect(sum.showdown).toBe(true)
+      expect(sum.hole![0]).toEqual(first[seat])
+      expect(sum.hole![1]).toEqual(first[1 - seat])
+    }
   })
 })

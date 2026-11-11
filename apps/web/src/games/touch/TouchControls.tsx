@@ -51,7 +51,11 @@ export function usePlayViewport(active: boolean) {
   }, [active])
 }
 
-type Props = { game: 'fighter' | 'arena'; action: (name: string, down: boolean) => void; aim?: (dx: number, dy: number) => void; pause: () => void }
+/**
+ * `seat` is for two people on one tablet (a friend game): seat 0 gets the set at the left end (stick on the outside, buttons inside it) and
+ * seat 1 the mirrored set at the right end. Only seat 0 carries the Pause button. Left out, it is the solo layout, unchanged.
+ */
+type Props = { game: 'fighter' | 'arena'; action: (name: string, down: boolean) => void; aim?: (dx: number, dy: number) => void; pause: () => void; seat?: 0 | 1 }
 
 function capture(el: Element, pointerId: number) {
   // A pointer can already be gone by the time its press is handled, and the press must still land.
@@ -62,7 +66,7 @@ function capture(el: Element, pointerId: number) {
 const FIGHTER_BUTTONS = ['special', 'surge', 'throw', 'light', 'medium', 'heavy']
 const ARENA_BUTTONS = ['fire', 'jump', 'crouch', 'reload', 'scoreboard']
 
-export function TouchControls({ game, action, aim, pause }: Props) {
+export function TouchControls({ game, action, aim, pause, seat }: Props) {
   const actionRef = useRef(action)
   actionRef.current = action
   const stickPointer = useRef<number | null>(null)
@@ -119,9 +123,9 @@ export function TouchControls({ game, action, aim, pause }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const names = game === 'fighter' ? FIGHTER_BUTTONS : ARENA_BUTTONS
-  return <div className={`touch-controls touch-${game}`} data-testid={`${game}-touch-controls`} data-no-capture onContextMenu={e => e.preventDefault()}>
+  return <div className={`touch-controls touch-${game}${seat === undefined ? '' : ` touch-seat-${seat}`}`} data-testid={seat === undefined ? `${game}-touch-controls` : `${game}-touch-controls-${seat}`} data-no-capture onContextMenu={e => e.preventDefault()}>
     {game === 'arena' && <div className="touch-aim" aria-label="Drag to aim" onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); e.currentTarget.dataset.x = String(e.clientX); e.currentTarget.dataset.y = String(e.clientY) }} onPointerMove={e => { if (!e.currentTarget.hasPointerCapture(e.pointerId)) return; const x = Number(e.currentTarget.dataset.x); const y = Number(e.currentTarget.dataset.y); aim?.(e.clientX - x, e.clientY - y); e.currentTarget.dataset.x = String(e.clientX); e.currentTarget.dataset.y = String(e.clientY) }} />}
-    <button className="touch-pause" type="button" onClick={pause}>Pause</button>
+    {seat !== 1 && <button className="touch-pause" type="button" onClick={pause}>Pause</button>}
     <div className="touch-stick" aria-label="Movement stick" onPointerDown={onStickDown} onPointerMove={e => { if (e.pointerId === stickPointer.current) updateStick(e) }} onPointerUp={onStickEnd} onPointerCancel={onStickEnd} onLostPointerCapture={onStickEnd}>
       {game === 'fighter' && <svg className="touch-stick-hints" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="M42 16 50 8l8 8M42 84l8 8 8-8M16 42l-8 8 8 8M84 42l8 8-8 8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
       <span ref={knob} />

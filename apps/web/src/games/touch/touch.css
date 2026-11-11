@@ -24,6 +24,10 @@ html:has(.touch-play-stage) { overflow: hidden; overscroll-behavior: none }
 .touch-fighter [data-move="surge"] { --move: #c3a2ff }
 .touch-fighter [data-move="throw"] { --move: #f5f5f5 }
 .touch-fighter .touch-pause { font-size: 14px; min-width: 60px }
+/* Two people on one tablet: each owns an end. Seat 0 has the stick at the left edge and the buttons inside it; seat 1 mirrors that on the right. */
+.touch-seat-0 .touch-buttons { right: auto; left: calc(max(28px, env(safe-area-inset-left)) + 156px) }
+.touch-seat-1 .touch-stick { left: auto; right: max(28px, env(safe-area-inset-right)) }
+.touch-seat-1 .touch-buttons { right: calc(max(28px, env(safe-area-inset-right)) + 156px) }
 .touch-play-stage .fh-pill { width: 400px }
 .touch-pause { position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)) }
 .touch-play-stage .ab-menu { z-index: 25; right: max(8px, env(safe-area-inset-right)); top: max(60px, env(safe-area-inset-top)); width: min(280px, 55%); max-height: 45%; }

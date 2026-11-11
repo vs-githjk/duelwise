@@ -1,3 +1,5 @@
+import { dealDecks } from '@duelwise/core/src/games/holdem/match'
+import { makeRng } from '@duelwise/core/src/rng'
 import { signDuelResult } from '@duelwise/core/src/duel/result-proof'
 import type { Seat } from '@duelwise/core/src/types'
 
@@ -94,6 +96,7 @@ export function rig(opts: { store?: MemStore; limiter?: MemLimiter; clock?: { t:
     store, limiter,
     now: () => clock.t,
     randomSeed: () => ++seedCounter,
+    randomDecks: (hands) => { const rng = makeRng(++seedCounter); return dealDecks(hands, (n) => rng.int(n)) },
     randomSeat: () => opts.hostSeat ?? 0,
     live: (ref) => r.live.has(ref),
     signResult: (rec) => signDuelResult(rec, TEST_SECRET),

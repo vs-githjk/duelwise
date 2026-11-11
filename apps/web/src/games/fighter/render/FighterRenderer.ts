@@ -13,6 +13,8 @@ import { CHARACTERS, FighterRig, loadCharacterAssets, type CharacterAssets, type
 import { createStage, type Stage } from './stage'
 import { ProjectileFx, travelDirection } from './projectile'
 import { Vfx, type HitKind } from './vfx'
+import { effectsFromEvents, kindOfMove } from './present'
+import type { PresentEvent } from '@duelwise/core/src/netplay/events'
 
 // The 2.5D fighter renderer. It reads sim state only, never changes it. The sim's own numbers drive
 // everything visual: hitstop freezes the pose, MOVES[...].startup/active line the strike pose up with
@@ -69,13 +71,6 @@ const BLEND_SECONDS = 0.06
 /** The super holds the camera on the attacker for 20 frames (design v2 camera spec). */
 const SUPER_HOLD_FRAMES = 20
 const REACTION_IDS = new Set<number>([M.HITSTUN, M.BLOCKSTUN, M.KNOCKDOWN, M.THROWN, M.PARRIED, M.TECH])
-
-function kindOfMove(id: number): HitKind {
-  if (id === M.STAND_L || id === M.CROUCH_L || id === M.AIR_L) return 'light'
-  if (id === M.STAND_M || id === M.CROUCH_M || id === M.AIR_M) return 'medium'
-  if (id === M.SPARK || id === M.EMBER) return 'medium'
-  return 'heavy'
-}
 
 /**
  * The strike spark for a hit that landed in `next`, classified by the move that caused it. On the
@@ -139,6 +134,8 @@ export class FighterRenderer implements SimRenderer<FighterState> {
   private koFrames = 0
   private stepFrame = -1
   private hudPending: HudSnapshot | null = null
+  /** True once a RollbackSession feeds this renderer through onPresent: render() then never derives effects from the step itself. */
+  private presentMode = false
   private disposed = false
   /** Milliseconds the last render() call took on the CPU (frame time hook for the benchmark). */
   lastRenderMs = 0
@@ -285,6 +282,44 @@ export class FighterRenderer implements SimRenderer<FighterState> {
       this.rig.kick(this.vfx.pendingShake.amount, this.vfx.pendingShake.frames)
       this.vfx.pendingShake = null
     }
+    this.publishHud(next, hits)
+  }
+
+  /**
+   * Rollback play: the effects of one display tick, from the session's presentation events instead of Fighter.events. `fire` spawns a
+   * spark (even on a predicted frame); `cancel` fades the spark that event made. Call this before render() every tick, with the
+   * state being drawn. Sets presentMode, so the AI and one-device paths (onStep) are untouched.
+   */
+  onPresent(events: readonly PresentEvent[], next: FighterState): void {
+    this.presentMode = true
+    if (next.frame < this.stepFrame) this.koFrames = 0
+    if (next.frame !== this.stepFrame && this.koFrames > 0) this.koFrames--
+    this.stepFrame = next.frame
+    const tagOf = (e: PresentEvent): number => e.frame * 64 + (31 - Math.clz32(e.kind)) * 2 + e.seat
+    for (const e of events) if (e.op === 'cancel') this.vfx.cancel(tagOf(e))
+    const hits: HitKind[] = []
+    for (const e of events) {
+      if (e.op !== 'fire') continue
+      const f = next.fighters[e.seat]!
+      if (e.kind === EV.MOVE_START && f.moveId === M.EMBER) this.rig.freeze(SUPER_HOLD_FRAMES, f.pos.x)
+    }
+    for (const eff of effectsFromEvents(events)) {
+      const f = next.fighters[eff.seat]!
+      const cx = f.pos.x / UNIT
+      const cy = (f.pos.y + 100) / UNIT
+      const off = eff.kind === 'block' ? f.facing * 0.3 : eff.kind === 'deflect' ? f.facing * 0.35 : eff.kind === 'throw' || eff.kind === 'ko' ? 0 : -f.facing * 0.15
+      hits.push(eff.kind)
+      this.vfx.spawn(eff.kind, cx + off, cy, f.facing, tagOf(eff.event))
+      if (eff.kind === 'ko') this.koFrames = 45
+    }
+    if (this.vfx.pendingShake) {
+      this.rig.kick(this.vfx.pendingShake.amount, this.vfx.pendingShake.frames)
+      this.vfx.pendingShake = null
+    }
+    this.publishHud(next, hits)
+  }
+
+  private publishHud(next: FighterState, hits: HitKind[]): void {
     const [a, b] = next.fighters as [Fighter, Fighter]
     this.hudPending = {
       frame: next.frame,
@@ -311,7 +346,10 @@ export class FighterRenderer implements SimRenderer<FighterState> {
     this.clock += dt
 
     const jumped = this.lastFrame < 0 || next.frame < this.lastFrame || next.frame - this.lastFrame > 4
-    if (next.frame !== this.stepFrame) this.onStep(prev, next)
+    if (next.frame !== this.stepFrame) {
+      if (this.presentMode) this.onPresent([], next)
+      else this.onStep(prev, next)
+    }
     this.lastFrame = next.frame
     const advanced = prev.frame === next.frame - 1
     const a = Math.min(1, Math.max(0, alpha))

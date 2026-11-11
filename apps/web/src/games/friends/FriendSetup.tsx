@@ -5,6 +5,7 @@ import { cn } from '../../lib/cn'
 import { TWO_DEVICE_KEPT } from '../../lib/friend-copy'
 import { NAME_MAX, NAME_STORAGE_KEY } from '../../lib/display-name'
 import { CHALLENGE_GAMES } from '../../lib/challenge-games'
+import { REALTIME_CHALLENGE_GAMES } from '../../lib/realtime-games'
 import type { FriendGame } from './opponent'
 import { relayUrl } from './session'
 import type { LocalSetup } from './useLocalDuel'
@@ -78,7 +79,7 @@ function NameField({ label, value, onChange, placeholder }: { label: string; val
  */
 export function FriendSetup({ game, onStart }: { game: FriendGame; onStart: (setup: LocalSetup) => void }) {
   // "Send a link" needs the relay (off in a build that has none) and a game the relay knows.
-  const canLink = relayUrl() !== null && (CHALLENGE_GAMES as readonly string[]).includes(game.id)
+  const canLink = relayUrl() !== null && ([...CHALLENGE_GAMES, ...REALTIME_CHALLENGE_GAMES] as readonly string[]).includes(game.id)
   const [how, setHow] = useState<'device' | 'link'>('device')
   const [one, setOne] = useState(deviceName)
   const [two, setTwo] = useState('')

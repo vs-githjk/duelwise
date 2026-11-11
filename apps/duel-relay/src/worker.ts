@@ -5,6 +5,7 @@ import { LIMITS } from './limits'
 
 export { RoomDO } from './room-do'
 export { LimiterDO } from './limiter-do'
+export { BudgetDO } from './budget-do'
 export type { Env } from './room-do'
 
 const json = (status: number, body: unknown): Response =>

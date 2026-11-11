@@ -9,6 +9,7 @@ import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { ROOM_CODE, signDuelToken } from '@duelwise/core/src/duel/token'
 import { checkName } from '../lib/display-name'
 import { CHALLENGE_GAMES } from '../lib/challenge-games'
+import { REALTIME_CHALLENGE_GAMES } from '../lib/realtime-games'
 
 export { signDuelToken, verifyDuelToken, ROOM_CODE } from '@duelwise/core/src/duel/token'
 
@@ -91,7 +92,7 @@ async function mint(d: ChallengeDeps, raw: { name?: unknown; deviceId?: unknown 
 /** A host token for a brand new room code. The relay creates the room when the host's socket first connects. */
 export async function createChallenge(d: ChallengeDeps, input: { game: unknown; name?: unknown; deviceId?: unknown }): Promise<Minted> {
   const game = input.game
-  if (typeof game !== 'string' || !(CHALLENGE_GAMES as readonly string[]).includes(game) || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) {
+  if (typeof game !== 'string' || !([...CHALLENGE_GAMES, ...REALTIME_CHALLENGE_GAMES] as readonly string[]).includes(game) || !Object.prototype.hasOwnProperty.call(PRODUCT.games, game)) {
     return { ok: false, error: 'bad-game' }
   }
   return mint(d, input, d.code(), { game: game as GameId }, 'Player 1')
