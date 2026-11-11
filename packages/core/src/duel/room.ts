@@ -208,15 +208,17 @@ export function resign<S>(room: DuelRoom<S>, seat: Seat): void {
 
 /**
  * A rematch needs both seats. The vote that completes it brings the new game's seed (the host draws it fresh from its
- * own CSPRNG each call; only the completing call's seed is used). Sides swap. Returns true when the new game started.
+ * own CSPRNG each call; only the completing call's seed and options are used). Sides swap. Returns true when the new game started.
  */
-export function voteRematch<S>(room: DuelRoom<S>, seat: Seat, seed: number, core?: GameCore<S, any, any>): boolean {
+export function voteRematch<S>(room: DuelRoom<S>, seat: Seat, seed: number, core?: GameCore<S, any, any>, options?: Record<string, unknown>): boolean {
   if (room.status !== 'over' || room.seats[0] === null || room.seats[1] === null) return false
   room.rematch[seat] = true
   if (!(room.rematch[0] && room.rematch[1])) return false
   const c = coreOf(room, core)
   room.seats = [room.seats[1], room.seats[0]]
   room.seed = seed
+  // A game that holds cards in its options (Hold'em's decks) deals the next game from fresh ones, never the finished game's.
+  if (options) room.options = { ...options }
   room.state = c.init(seed, room.options)
   room.log = []
   room.n = 0

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { GameId, Level } from '@duelwise/core/src/product'
 import { LEVELS } from './level-info'
-import { NAME_STORAGE_KEY } from './display-name'
+import { NAME_STORAGE_KEY } from './display-name-const'
 
 /**
  * What this browser remembers about the player: a name, the call for each game, and the adventure path. All of it is a mirror

@@ -1,9 +1,10 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { cn } from '../../lib/cn'
 import { NAME_MAX } from '../../lib/display-name'
 import { CHALLENGE_GAMES } from '../../lib/challenge-games'
+import { REALTIME_CHALLENGE_GAMES } from '../../lib/realtime-games'
 import type { ChallengeError, Minted } from '../../server/duel-token'
 import { CLOSE_COPY, useRemoteDuel, type RemoteDuelHandle } from './useRemoteDuel'
 import { forgetSeat, friendDeviceId, readName, readSeat, relayUrl, remoteOptions, writeSeat } from './session'
@@ -116,6 +117,15 @@ interface Hosting {
   startedAt: number
 }
 
+/** A realtime game's host: the same room as the guest's, with the link and QR code shown until the friend arrives. */
+function RealtimeHosting({ hosting }: { hosting: Hosting }) {
+  return (
+    <Suspense fallback={<p className="py-10 text-muted">Opening your game</p>}>
+      <RealtimeRoom code={hosting.code} game={hosting.game as RealtimeGame} host={{ token: hosting.token, exp: hosting.exp, startedAt: hosting.startedAt }} />
+    </Suspense>
+  )
+}
+
 function HostRoom({ hosting, renderGame, onLeave }: { hosting: Hosting; renderGame?: RenderGame; onLeave: () => void }) {
   const relay = relayUrl()!
   const opts = useMemo(
@@ -182,7 +192,10 @@ export function CreateChallenge({ game, initial, renderGame }: { game?: GameId; 
   useEffect(() => {
     if (game) setPick(game)
   }, [game])
-  if (hosting && relay) return <HostRoom hosting={hosting} renderGame={renderGame} onLeave={() => setHosting(null)} />
+  if (hosting && relay) {
+    if (isRealtimeGame(hosting.game)) return <RealtimeHosting hosting={hosting} />
+    return <HostRoom hosting={hosting} renderGame={renderGame} onLeave={() => setHosting(null)} />
+  }
 
   const create = async () => {
     setBusy(true)
@@ -252,7 +265,32 @@ export function CreateChallenge({ game, initial, renderGame }: { game?: GameId; 
 }
 
 /** The page behind duelwise.app/f/<code>, after the name welcome: connect as the second player. */
+// A realtime invitation is /f/<code>?g=<game> (S8): a realtime room never sends the turn-game `view` that says which game it is, so the link does.
+// Decided here, below the route, so the landing page's scripts do not grow; the realtime room is its own chunk.
+const RealtimeRoom = lazy(() => import('./RealtimeRoom').then((m) => ({ default: m.RealtimeRoom })))
+
+type RealtimeGame = (typeof REALTIME_CHALLENGE_GAMES)[number]
+const isRealtimeGame = (g: string | null | undefined): g is RealtimeGame => g != null && (REALTIME_CHALLENGE_GAMES as readonly string[]).includes(g)
+
+function realtimeGame(): RealtimeGame | null {
+  if (typeof window === 'undefined') return null
+  const g = new URLSearchParams(window.location.search).get('g')
+  return isRealtimeGame(g) ? g : null
+}
+
 export function JoinRoom({ code, renderGame }: { code: string; renderGame?: RenderGame }) {
+  const g = realtimeGame()
+  if (g) {
+    return (
+      <Suspense fallback={<p className="py-10 text-muted">Opening the game</p>}>
+        <RealtimeRoom code={code} game={g} />
+      </Suspense>
+    )
+  }
+  return <JoinTurnRoom code={code} renderGame={renderGame} />
+}
+
+function JoinTurnRoom({ code, renderGame }: { code: string; renderGame?: RenderGame }) {
   const relay = relayUrl()
   const [attempt, setAttempt] = useState(0)
   const opts = useMemo(

@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react'
 // One chunk per game, loaded when the room says which game it is. Static imports here put all six pages on the preload list of /f and /f/<code>,
 // and that list is written into the entry script every visitor (the home page too) downloads.
 const RemoteChess = lazy(() => import('./RemoteChess').then((m) => ({ default: m.RemoteChess })))
+const RemoteHoldem = lazy(() => import('./RemoteHoldem').then((m) => ({ default: m.RemoteHoldem })))
 const RemoteFleet = lazy(() => import('./RemoteFleet').then((m) => ({ default: m.RemoteFleet })))
 const RemoteFour = lazy(() => import('./RemoteFour').then((m) => ({ default: m.RemoteFour })))
 const RemotePenalty = lazy(() => import('./RemotePenalty').then((m) => ({ default: m.RemotePenalty })))
@@ -40,6 +41,8 @@ function RemotePage({ ctx, onLeave }: { ctx: RoomContext; onLeave: () => void })
       return <RemoteFleet ctx={ctx} onLeave={onLeave} />
     case 'word':
       return <RemoteWord ctx={ctx} onLeave={onLeave} />
+    case 'holdem':
+      return <RemoteHoldem ctx={ctx} onLeave={onLeave} />
     default:
       return null
   }

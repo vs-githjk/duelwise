@@ -22,6 +22,37 @@ export const DEFAULT_KEYS: KeyMap = {
   pause: ['Escape'],
 }
 
+// Two people on one keyboard (a friend game). The maps share no key code. Player 1 keeps WASD and takes F G H for the three attacks and
+// R T Y for special, surge and throw; player 2 keeps the arrows and takes J K L and U I O (the number pad also works). Escape or P pauses
+// for both. The solo map above is left as it is.
+export const P1_KEYS: KeyMap = {
+  up: ['KeyW'],
+  down: ['KeyS'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  light: ['KeyF'],
+  medium: ['KeyG'],
+  heavy: ['KeyH'],
+  special: ['KeyR'],
+  surge: ['KeyT'],
+  throw: ['KeyY'],
+  pause: ['Escape'],
+}
+
+export const P2_KEYS: KeyMap = {
+  up: ['ArrowUp'],
+  down: ['ArrowDown'],
+  left: ['ArrowLeft'],
+  right: ['ArrowRight'],
+  light: ['KeyJ', 'Numpad1'],
+  medium: ['KeyK', 'Numpad2'],
+  heavy: ['KeyL', 'Numpad3'],
+  special: ['KeyU', 'Numpad4'],
+  surge: ['KeyI', 'Numpad5'],
+  throw: ['KeyO', 'Numpad6'],
+  pause: ['KeyP'],
+}
+
 /** Labels for the controls overlay, in the order the keys are shown. */
 export const ACTION_LABEL: Record<Action, string> = {
   up: 'Jump',

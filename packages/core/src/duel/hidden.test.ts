@@ -3,6 +3,7 @@ import { getCore } from '../games/index'
 import type { GameId } from '../product'
 import { makeRng } from '../rng'
 import type { Seat } from '../types'
+import { dealDecks } from '../games/holdem/match'
 import { createRoom, join, submit, viewFor, type DuelRoom } from './room'
 
 const ada = { ref: 'ref-ada', name: 'Ada', connected: true }
@@ -172,5 +173,121 @@ describe('hidden information: no view holds the other seat\'s secret', () => {
     expect(v1.ships.length).toBe(5)
     expect(JSON.stringify(v0.ships)).toBe(JSON.stringify(r.state.ships[0]))
     expect(JSON.stringify(v1.ships)).toBe(JSON.stringify(r.state.ships[1]))
+  })
+
+  describe('Hold\'em', () => {
+    const HANDS = 10
+    const holdemRoom = (seed: number): DuelRoom<any> => {
+      const rng = makeRng(seed * 31 + 5)
+      const r = createRoom(getCore('holdem'), seed, ada, (seed & 1) as Seat, { hands: HANDS, decks: dealDecks(HANDS, (n) => rng.int(n)) })
+      join(r, sam)
+      return r
+    }
+    const OBS_KEYS = ['seat', 'hand', 'handsTotal', 'hole', 'board', 'street', 'bet', 'total', 'isButton', 'toMove', 'minRaiseTo', 'maxRaiseTo', 'net', 'last'].sort()
+
+    test('no view holds the other seat\'s hole cards or any undealt card until a showdown shows them (200 matches)', () => {
+      let folds = 0
+      let showdowns = 0
+      for (let seed = 1; seed <= GAMES; seed++) {
+        const r = holdemRoom(seed)
+        const rng = makeRng(seed)
+        let lastHand = -1
+        while (r.status === 'playing') {
+          const toAct = r.state.actor as Seat
+          const v = viewFor(r, toAct)
+          for (const seat of [0, 1] as const) {
+            const view = viewFor(r, seat)
+            const obs = view.obs as { hole: number[]; board: number[]; last: { hole: number[][] | null; showdown: boolean; board: number[] } | null }
+            // Only these fields exist, so no other field can carry a card; then the card fields are checked one by one.
+            expect(Object.keys(obs).sort()).toEqual(OBS_KEYS)
+            expect(obs.hole).toEqual(r.state.hole[seat])
+            expect(obs.board).toEqual(r.state.board)
+            // The board is only what is dealt: never a card of the undealt deck.
+            for (const c of obs.board) expect(r.state.deck.includes(c)).toBe(false)
+            // The other seat's current hole cards are in no card field of this view.
+            const theirs: number[] = r.state.hole[1 - seat]
+            for (const c of theirs) {
+              expect(obs.hole.includes(c)).toBe(false)
+              expect(obs.board.includes(c)).toBe(false)
+            }
+            if (obs.last) {
+              // a folded hand is never revealed; a showdown reveals exactly the two hands of that hand
+              if (obs.last.showdown) expect(obs.last.hole).not.toBeNull()
+              else expect(obs.last.hole).toBeNull()
+            }
+            expect(JSON.stringify(view)).not.toMatch(/"(deck|decks|state|log|pending|entropy|options)"/)
+            expect(view.seed).toBeNull()
+          }
+          if (r.state.hand !== lastHand) {
+            lastHand = r.state.hand
+            const last = (viewFor(r, 0).obs as { last: { showdown: boolean } | null }).last
+            if (last) last.showdown ? showdowns++ : folds++
+          }
+          // (code 2 concedes the whole match; the room has Resign for that, and a match that runs its hands is what is checked here)
+          const moves = v.legal.filter((c) => c !== 2)
+          const a = moves[rng.int(moves.length)]!
+          const boardBefore = r.state.board.length
+          const handBefore = r.state.hand
+          expect(submit(r, toAct, a, v.n).ok).toBe(true)
+          if (r.state.hand !== handBefore || (r.status as string) === 'over') {
+            // the finished hand's summary shows the board as it was dealt when the hand ended, and a fold deals nothing more
+            const sum = (viewFor(r, 0).obs as { last: { showdown: boolean; board: number[] } }).last
+            if (!sum.showdown) expect(sum.board.length).toBe(boardBefore)
+          }
+        }
+        expect(r.status).toBe('over')
+      }
+      // the run covered both ways a hand ends
+      expect(folds).toBeGreaterThan(50)
+      expect(showdowns).toBeGreaterThan(50)
+    })
+
+    test('a hand that ends in a fold shows the folder\'s cards to nobody, in the next hand\'s view or any later one', () => {
+      for (let seed = 1; seed <= 60; seed++) {
+        const r = holdemRoom(seed)
+        // the actor folds the first hand at once
+        const first = r.state.actor as Seat
+        const folded: number[] = r.state.hole[first].slice()
+        const v = viewFor(r, first)
+        const fold = v.legal.find((c) => c === 0)
+        expect(fold).toBe(0)
+        expect(submit(r, first, 0, v.n).ok).toBe(true)
+        for (const seat of [0, 1] as const) {
+          const obs = viewFor(r, seat).obs as { last: { hole: unknown; showdown: boolean; winner: number }; hole: number[] }
+          expect(obs.last.hole).toBeNull()
+          expect(obs.last.showdown).toBe(false)
+          expect(obs.last.winner).toBe(1 - first)
+          // the folder's and the winner's old hole cards appear in neither view as cards held in hand
+          expect(JSON.stringify(viewFor(r, seat).obs)).not.toContain(`"hole":[[${folded.join(',')}]`)
+        }
+      }
+    })
+
+    test('a showdown shows both hands of that hand, and only of that hand', () => {
+      let seen = 0
+      for (let seed = 1; seed <= 80; seed++) {
+        const r = holdemRoom(seed)
+        // both seats call down every hand until one reaches a showdown
+        let guard = 0
+        let prev: number[][] | null = null
+        while (r.status === 'playing' && guard++ < 200) {
+          const seat = r.state.actor as Seat
+          const v = viewFor(r, seat)
+          const before = r.state.hand
+          prev = [r.state.hole[0].slice(), r.state.hole[1].slice()]
+          expect(submit(r, seat, 1, v.n).ok).toBe(true)
+          if (r.state.hand !== before || (r.status as string) === 'over') {
+            for (const s of [0, 1] as const) {
+              const last = (viewFor(r, s).obs as { last: { hole: number[][] | null; showdown: boolean } }).last
+              expect(last.showdown).toBe(true)
+              expect(last.hole).toEqual(prev)
+            }
+            seen++
+            break
+          }
+        }
+      }
+      expect(seen).toBeGreaterThan(40)
+    })
   })
 })

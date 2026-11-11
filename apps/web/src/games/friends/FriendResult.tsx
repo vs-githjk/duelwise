@@ -18,8 +18,12 @@ export function friendReason(result: Result, names: [string, string]): string {
       return 'The board is full, so it is a draw.'
     case 'resigned':
       return loser ? `${loser} resigned.` : 'Resigned.'
-    default:
+    default: {
+      // The core words a chip margin "ahead by N chips after M hands" (replays compare that text exactly, so it stays); the person reads the right plural.
+      const chips = /^ahead by (\d+) chips after (\d+) hands$/.exec(reason)
+      if (chips) return `Ahead by ${chips[1]} ${chips[1] === '1' ? 'chip' : 'chips'} after ${chips[2]} ${chips[2] === '1' ? 'hand' : 'hands'}.`
       return reason ? `${reason[0]!.toUpperCase()}${reason.slice(1)}${/[.!?]$/.test(reason) ? '' : '.'}` : ''
+    }
   }
 }
 

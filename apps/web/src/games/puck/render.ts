@@ -69,6 +69,8 @@ export class PuckRenderer {
   private touching = false
   private oppDeep: string | null = null
   private oppSoft: string | null = null
+  /** The seat whose end of the table is drawn at the bottom (and painted as yours). 0 everywhere but a two-device match played from seat 1. */
+  private me: 0 | 1 = 0
   /** Milliseconds of the last draw call, for the dev HUD. */
   lastDrawMs = 0
 
@@ -83,6 +85,16 @@ export class PuckRenderer {
     this.oppDeep = OPPONENT_MALLET[level].deep
     this.oppSoft = OPPONENT_MALLET[level].soft
     // The far goal bar is the opponent's colour, and it lives in the still layer.
+    if (this.w > 0) this.paintLayer()
+  }
+
+  /**
+   * Draws the table from `seat`'s side: that seat's end at the bottom, its mallet and goal in your colour. Seat 1 sees the table turned
+   * half a turn, so the sim state is drawn as it is and nothing else changes. Call before `resize`/`snap`; it repaints the still layer.
+   */
+  setView(seat: 0 | 1): void {
+    if (this.me === seat) return
+    this.me = seat
     if (this.w > 0) this.paintLayer()
   }
 
@@ -150,6 +162,7 @@ export class PuckRenderer {
     const l = this.layout
     const k = this.dpr
     if (l.landscape) c.setTransform(0, l.scale * k, l.scale * k, 0, l.x * k, l.y * k)
+    else if (this.me === 1) c.setTransform(-l.scale * k, 0, 0, l.scale * k, (l.x + l.scale) * k, l.y * k)
     else c.setTransform(l.scale * k, 0, 0, -l.scale * k, l.x * k, (l.y + 2 * l.scale) * k)
   }
 
@@ -177,15 +190,15 @@ export class PuckRenderer {
     c.fillRect(0, 0, 1, TABLE_L)
     c.globalAlpha = 0.55
     c.fillStyle = t.actionSoft
-    c.fillRect(0, 0, 1, 1)
+    c.fillRect(0, this.me === 0 ? 0 : 1, 1, 1)
     c.globalAlpha = 0.35
     c.fillStyle = t.peachSoft
-    c.fillRect(0, 1, 1, 1)
+    c.fillRect(0, this.me === 0 ? 1 : 0, 1, 1)
     c.globalAlpha = 1
     // Goal mouths: a bar across the end line, in each side's colour.
-    c.fillStyle = t.action
+    c.fillStyle = this.me === 0 ? t.action : this.oppDeep ?? t.peachDeep
     c.fillRect((1 - GOAL_W) / 2, 0, GOAL_W, 0.02)
-    c.fillStyle = this.oppDeep ?? t.peachDeep
+    c.fillStyle = this.me === 0 ? this.oppDeep ?? t.peachDeep : t.action
     c.fillRect((1 - GOAL_W) / 2, TABLE_L - 0.02, GOAL_W, 0.02)
     // Centre line, circle and dot, and the creases in front of each goal.
     c.strokeStyle = t.line
@@ -258,7 +271,7 @@ export class PuckRenderer {
         c.globalAlpha = 0.6 * k * k
         const y0 = f.seat === 0 ? TABLE_L : 0
         const g = c.createLinearGradient(0, y0, 0, f.seat === 0 ? TABLE_L - 0.22 : 0.22)
-        g.addColorStop(0, f.seat === 0 ? t.peachDeep : t.action)
+        g.addColorStop(0, (f.seat === 0) === (this.me === 0) ? t.peachDeep : t.action)
         g.addColorStop(1, 'rgba(255, 255, 255, 0)')
         c.fillStyle = g
         c.fillRect((1 - GOAL_W) / 2 - 0.06, f.seat === 0 ? TABLE_L - 0.22 : 0, GOAL_W + 0.12, 0.22)
@@ -284,8 +297,10 @@ export class PuckRenderer {
     c.globalAlpha = 1
 
     // Mallets.
-    this.mallet(c, lerp(4), lerp(5), this.oppDeep ?? t.peachDeep, this.oppSoft ?? t.peachSoft, false)
-    this.mallet(c, lerp(2), lerp(3), t.action, t.actionSoft, this.touching)
+    const mine = this.me === 0 ? 2 : 4
+    const theirs = this.me === 0 ? 4 : 2
+    this.mallet(c, lerp(theirs), lerp(theirs + 1), this.oppDeep ?? t.peachDeep, this.oppSoft ?? t.peachSoft, false)
+    this.mallet(c, lerp(mine), lerp(mine + 1), t.action, t.actionSoft, this.touching)
 
     // Puck: soft shadow, ink disc, a lighter ring and a highlight.
     c.fillStyle = 'rgba(31, 26, 23, 0.18)'
@@ -298,7 +313,7 @@ export class PuckRenderer {
     if (this.phase === PHASE.READY) {
       const pulse = (nowMs % 700) / 700
       c.globalAlpha = 0.6 * (1 - pulse)
-      c.strokeStyle = s.serveSeat === 0 ? t.action : t.peachDeep
+      c.strokeStyle = s.serveSeat === this.me ? t.action : t.peachDeep
       c.lineWidth = 3 * px
       c.beginPath(); c.arc(puckX, puckY, PUCK_R * (1.4 + pulse), 0, Math.PI * 2); c.stroke()
       c.globalAlpha = 1

@@ -53,6 +53,8 @@ export interface HostDeps {
   now: () => number
   /** A fresh 32-bit seed from the platform CSPRNG. */
   randomSeed: () => number
+  /** `hands` fresh decks (full 52-card permutations, one per hand) shuffled from the platform CSPRNG. Hold'em rooms deal from these, never from the seed. */
+  randomDecks: (hands: number) => number[][]
   /** A fresh fair coin from the platform CSPRNG. */
   randomSeat: () => Seat
   /** Whether this caller reference has an open socket right now. The adapter reads it from the runtime, so it is never stale after a wake. */
@@ -224,6 +226,11 @@ export class RoomHost {
     return out
   }
 
+  /** Core options a game needs from the room: Hold'em carries its decks (secret, stored, never in a view). Other games need none. */
+  private roomOptions(game: GameId): Record<string, unknown> | undefined {
+    return game === 'holdem' ? { hands: LIMITS.holdemHands, decks: this.d.randomDecks(LIMITS.holdemHands) } : undefined
+  }
+
   connect(id: Identity, code: string): Promise<ConnectResult> {
     return this.serial(async () => {
       await this.load()
@@ -241,7 +248,7 @@ export class RoomHost {
         if (verdict !== 'ok') return { ok: false as const, code: verdict === 'daily' ? CLOSE.dailyLimit : CLOSE.tooManyRooms, reason: verdict }
         const core = getCore(id.host.game)
         const hostSeat = this.d.randomSeat()
-        this.room = createRoom(core, this.d.randomSeed(), { ref: id.ref, name: id.name.slice(0, LIMITS.maxNameChars), connected: true }, hostSeat)
+        this.room = createRoom(core, this.d.randomSeed(), { ref: id.ref, name: id.name.slice(0, LIMITS.maxNameChars), connected: true }, hostSeat, this.roomOptions(id.host.game))
         this.meta = { code, ownerRef: id.ref, createdAt: now, lastActive: now, games: 1, writes: 1, ...(id.pid ? { people: { [id.ref]: { pid: id.pid, ...(id.rt ? { rt: id.rt } : {}) } } } : {}) }
         await this.flush()
         await this.d.store.setAlarm(this.deadline())
@@ -313,7 +320,7 @@ export class RoomHost {
           if (room.status !== 'over') return err('not-over')
           if (room.rematch[seat]) { await this.ensureProof(); return this.views().filter((o) => o.ref === ref) } // a repeat vote changes nothing: no write
           if (room.rematch[1 - seat] && (this.meta!.games >= LIMITS.maxGamesPerRoom || this.meta!.writes > LIMITS.maxRowsPerRoom - LIMITS.reserveRows)) return this.closeRoom(CLOSE.roomLimit, 'game-limit')
-          const started = voteRematch(room, seat, this.d.randomSeed(), getCore(room.game))
+          const started = voteRematch(room, seat, this.d.randomSeed(), getCore(room.game), room.rematch[1 - seat] ? this.roomOptions(room.game) : undefined)
           if (started) this.meta!.games++
           return (await this.mark({ force: started })) ?? (await this.viewsWithProof())
         }

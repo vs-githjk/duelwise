@@ -1,5 +1,6 @@
 import { visibleRegistry } from '../../lib/strength-gates'
 import { useEffect, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { holdemCore } from '@duelwise/core/src/games/holdem/core'
 import { luckLine, luckOfMatchAsync } from '@duelwise/core/src/games/holdem/luck'
 import { PRODUCT, type Level } from '@duelwise/core/src/product'
@@ -16,6 +17,7 @@ import { LEVEL_LABEL, levelInfoFromRegistry } from '../../lib/level-info'
 import { personaFor } from '../../personas'
 import { BetControls } from './BetControls'
 import { HandHistory } from './HandHistory'
+import { relayUrl } from '../friends/session'
 import { optionsFor, readChoice, saveChoice, type LengthChoice } from './length'
 import { MatchLength } from './MatchLength'
 import { progressNumbers } from './progress'
@@ -210,6 +212,14 @@ export default function HoldemPage() {
           <p className="text-muted">
             Heads-up no-limit Texas Hold&apos;em. Blinds 1 and 2, and both stacks reset to 100 chips every hand. Pick a match of 5, 10, 15 or 30 hands. If a player loses all 100 chips in one hand, the match ends at once and that player loses. Otherwise whoever has more chips after the last hand wins. You can leave the table after any finished hand: the match is scored on the chips so far, but it is unrated.
           </p>
+          {relayUrl() !== null ? (
+            <p className="text-sm text-muted" data-testid="holdem-friend-link">
+              Playing a friend? Hold&apos;em needs two devices, so each of you keeps your cards to yourself.{' '}
+              <Link to="/f" search={{ game: 'holdem' }} className="font-semibold text-ink underline">
+                Send a link
+              </Link>
+            </p>
+          ) : null}
           <MatchLength value={length} onChange={setLength} disabled={match.phase === 'starting'} />
           <PlayMode disabled={match.phase === 'starting'} practiceHint="If you bust, buy back in for free as often as you like." />
           <p className="rounded-control bg-surface-2 px-3 py-2 text-sm font-semibold" data-testid="chips-only-note">

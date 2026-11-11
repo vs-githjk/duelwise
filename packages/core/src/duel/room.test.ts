@@ -4,6 +4,7 @@ import type { MatchRecordV1 } from '../match-record'
 import { getCore } from '../games/index'
 import type { GameId } from '../product'
 import { makeRng } from '../rng'
+import { dealDecks } from '../games/holdem/match'
 import type { Seat } from '../types'
 import { createRoom, fromSnapshot, join, resign, resultOf, seatOf, setConnected, submit, toSnapshot, viewFor, voteRematch, type DuelRoom } from './room'
 
@@ -260,5 +261,45 @@ describe('room core: snapshot and restore (a hibernating host)', () => {
     expect(back.status).toBe('over')
     expect(viewFor(back, 1).result!.reason).toBe('resigned')
     expect(back.series).toEqual(room.series)
+  })
+})
+
+describe('room core: Hold\'em dealt from the room\'s decks', () => {
+  const decksFor = (n: number, seed: number) => {
+    const r = makeRng(seed)
+    return dealDecks(n, (k) => r.int(k))
+  }
+
+  test('a rematch deals from the options the completing vote brings, and the first game\'s decks are gone', () => {
+    const first = decksFor(5, 1)
+    const room = start('holdem', 7, 0, { hands: 5, decks: first })
+    resign(room, 1)
+    const next = decksFor(5, 2)
+    expect(voteRematch(room, 0, 11, undefined, { hands: 5, decks: decksFor(5, 3) })).toBe(false)
+    expect(voteRematch(room, 1, 12, undefined, { hands: 5, decks: next })).toBe(true)
+    expect(room.options).toEqual({ hands: 5, decks: next })
+    const d = next[0]!
+    expect(room.state.hole[1 - room.state.button]).toEqual([d[51], d[49]])
+  })
+
+  test('a rematch without new options keeps the room\'s options (the other games)', () => {
+    const room = start('four', 1, 0)
+    resign(room, 1)
+    voteRematch(room, 0, 5)
+    voteRematch(room, 1, 6)
+    expect(room.options).toBeUndefined()
+  })
+
+  test('the snapshot of a Hold\'em room rebuilds the same game from its stored decks', () => {
+    const room = start('holdem', 7, 0, { hands: 5, decks: decksFor(5, 1) })
+    const rng = makeRng(4)
+    for (let i = 0; i < 6 && room.status === 'playing'; i++) {
+      for (const seat of [0, 1] as const) {
+        const v = viewFor(room, seat)
+        if (v.canAct) submit(room, seat, v.legal[rng.int(v.legal.length)]!, v.n)
+      }
+    }
+    const back = fromSnapshot(getCore('holdem'), JSON.parse(JSON.stringify(toSnapshot(room))))
+    for (const seat of [0, 1] as const) expect(viewFor(back, seat)).toEqual(viewFor(room, seat))
   })
 })

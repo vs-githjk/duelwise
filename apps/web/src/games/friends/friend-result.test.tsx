@@ -10,7 +10,7 @@ mock.module('@tanstack/react-router', () => ({
     </a>
   ),
 }))
-const { FriendResult } = await import('./FriendResult')
+const { FriendResult, friendReason } = await import('./FriendResult')
 
 const base = {
   result: { winner: 0 as const, score: [1, 0] as [number, number], reason: 'checkmate' },
@@ -73,5 +73,16 @@ describe('the friend result', () => {
   test('no em or en dash in the copy it renders', () => {
     const html = renderToStaticMarkup(<FriendResult {...base} game="four" record={ready()} />)
     expect(html).not.toMatch(/[\u2013\u2014]/)
+  })
+})
+
+describe('friendReason: chip margins read with the right plural', () => {
+  const r = (reason: string) => ({ winner: 0 as const, score: [1, 0] as [number, number], reason })
+  const names: [string, string] = ['Ada', 'Sam']
+  test('1 chip, n chips, and the other reasons unchanged', () => {
+    expect(friendReason(r('ahead by 1 chips after 10 hands'), names)).toBe('Ahead by 1 chip after 10 hands.')
+    expect(friendReason(r('ahead by 5 chips after 10 hands'), names)).toBe('Ahead by 5 chips after 10 hands.')
+    expect(friendReason(r('chips level after 10 hands'), names)).toBe('Chips level after 10 hands.')
+    expect(friendReason(r('checkmate'), names)).toBe('Checkmate.')
   })
 })

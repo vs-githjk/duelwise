@@ -124,10 +124,10 @@ describe('worker: who gets in', () => {
     expect((await fetch(`http://${base}/room/${code}?t=${t}`, { headers: { ...h, Origin: 'https://evil.example' } })).status).toBe(403)
   })
 
-  test('a guest token cannot create a room, and puck (a realtime game) cannot be hosted', async () => {
+  test('a guest token cannot create a room, and a game the relay does not carry cannot be hosted', async () => {
     const a = await open('GUESTA', await tok('GUESTA', 'r9', 'Guest'))
     expect(await a.closed).toMatchObject({ code: CLOSE.noRoom })
-    const b = await open('PUCKAA', await tok('PUCKAA', 'r9', 'Ada', { host: 'puck' }))
+    const b = await open('PUCKAA', await tok('PUCKAA', 'r9', 'Ada', { host: 'nope' as any })) // puck now runs the realtime path (S7), so a game id no branch carries stands in
     expect(await b.closed).toMatchObject({ code: CLOSE.badGame })
   })
 })

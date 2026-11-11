@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PRODUCT, type GameId } from '@duelwise/core/src/product'
 import { CHALLENGE_GAMES } from '../../lib/challenge-games'
+import { REALTIME_CHALLENGE_GAMES } from '../../lib/realtime-games'
 import { CreateChallenge } from '../../games/friends/Challenge'
 import { renderRemoteGame } from '../../games/friends/RemoteGame'
 
@@ -17,5 +18,7 @@ export const Route = createFileRoute('/f/')({
 
 function Start() {
   const { game } = Route.useSearch()
-  return <CreateChallenge {...(game && (CHALLENGE_GAMES as readonly string[]).includes(game) ? { initial: game } : {})} renderGame={renderRemoteGame} />
+  // A realtime game has no chooser entry: its own setup page sends people here with the game fixed.
+  const fixed = game && (REALTIME_CHALLENGE_GAMES as readonly string[]).includes(game) ? { game } : game && (CHALLENGE_GAMES as readonly string[]).includes(game) ? { initial: game } : {}
+  return <CreateChallenge {...fixed} renderGame={renderRemoteGame} />
 }

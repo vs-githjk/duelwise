@@ -95,6 +95,23 @@ export function screenDeltaToWorld(l: Layout, dx: number, dy: number): [number, 
   return l.landscape ? [dy / l.scale, dx / l.scale] : [dx / l.scale, -dy / l.scale]
 }
 
+/** Where a finger or cursor at screen point (sx, sy) aims the mallet, in table units. `offsetPx` puts the mallet that far ahead of the finger (toward the opponent). */
+export function directAim(l: Layout, sx: number, sy: number, offsetPx: number): [number, number] {
+  let px = sx
+  let py = sy
+  if (l.landscape) px += offsetPx
+  else py -= offsetPx
+  return screenToWorld(l, px, py)
+}
+
+/** A table point clamped to seat 0's mallet zone (the walls and the centre line), in the seat's own view. */
+export function clampToZone(x: number, y: number): [number, number] {
+  const cx = x < MALLET_R ? MALLET_R : x > 1 - MALLET_R ? 1 - MALLET_R : x
+  const lo = zoneYLo(0)
+  const hi = zoneYHi(0)
+  return [cx, y < lo ? lo : y > hi ? hi : y]
+}
+
 export interface ControlOptions {
   /** Touch maps the finger straight to the table with the mallet `offsetPx` ahead of it (dev compare). */
   direct?: boolean
@@ -206,22 +223,12 @@ export class MalletControl {
   }
 
   private aim(sx: number, sy: number): void {
-    let px = sx
-    let py = sy
-    if (this.opts.direct) {
-      const off = this.opts.offsetPx ?? 0
-      if (this.layout.landscape) px += off
-      else py -= off
-    }
-    const [wx, wy] = screenToWorld(this.layout, px, py)
+    const [wx, wy] = directAim(this.layout, sx, sy, this.opts.direct ? (this.opts.offsetPx ?? 0) : 0)
     this.set(wx, wy)
   }
 
   private set(x: number, y: number): void {
-    const cx = x < MALLET_R ? MALLET_R : x > 1 - MALLET_R ? 1 - MALLET_R : x
-    const lo = zoneYLo(0)
-    const hi = zoneYHi(0)
-    const cy = y < lo ? lo : y > hi ? hi : y
+    const [cx, cy] = clampToZone(x, y)
     if (cx !== this.tx || cy !== this.ty) {
       this.tx = cx
       this.ty = cy

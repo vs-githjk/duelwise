@@ -104,8 +104,16 @@ describe('refusals and names', () => {
     expect(await joinChallenge(deps({ secret: '' }), { code: 'ABCDEF', name: 'Ada', deviceId: DEVICE })).toEqual({ ok: false, error: 'unavailable' })
   })
 
-  test('only the six relay games, a good code, a device id', async () => {
-    expect(await createChallenge(deps(), { game: 'holdem', name: 'Ada', deviceId: DEVICE })).toEqual({ ok: false, error: 'bad-game' })
+  test('the three realtime games mint a host token for the realtime relay path (S7)', async () => {
+    for (const game of ['fighter', 'arena', 'puck'] as const) {
+      const r = await createChallenge(deps(), { game, name: 'Ada', deviceId: DEVICE })
+      expect(r.ok).toBe(true)
+      if (r.ok) expect(await verifyDuelToken(r.token, SECRET, Date.now())).toMatchObject({ host: { game } })
+    }
+  })
+
+  test('only the seven relay games (Hold\'em included; the three realtime games mint above), a good code, a device id', async () => {
+    expect(await createChallenge(deps(), { game: 'holdem', name: 'Ada', deviceId: DEVICE })).toMatchObject({ ok: true })
     expect(await createChallenge(deps(), { game: 'nope', name: 'Ada', deviceId: DEVICE })).toEqual({ ok: false, error: 'bad-game' })
     expect(await joinChallenge(deps(), { code: 'abc', name: 'Ada', deviceId: DEVICE })).toEqual({ ok: false, error: 'bad-code' })
     expect(await createChallenge(deps(), { game: 'chess', name: 'Ada', deviceId: 'short' })).toEqual({ ok: false, error: 'no-device' })

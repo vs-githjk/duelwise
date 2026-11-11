@@ -6,7 +6,8 @@ import { personaFor } from '../../personas'
 import { Card, CardSlot } from './Cards'
 import { ChipStack } from './Chips'
 import { handStrength } from './strength'
-import { AGENT, HUMAN, type Reveal } from './useHoldemMatch'
+import { AGENT, HUMAN } from './seats'
+import type { Reveal } from './useHoldemMatch'
 
 export function visibleOpponentCards(summary: HandSummary | null): Array<number | null> {
   return summary?.hole ? summary.hole[AGENT] : [null, null]
@@ -60,7 +61,10 @@ export type TableTurn = 'you' | 'ai' | 'reveal' | 'over'
 export interface TableProps {
   state: HoldemState
   reveal: Reveal | null
-  level: Level
+  /** The AI's level, which names and draws the opponent. Absent at a friend table, where `names` says who sits there. */
+  level?: Level
+  /** A friend table: the two people's names (the AI table says "You" and the persona). */
+  names?: { me: string; opp: string }
   turn: TableTurn
 }
 
@@ -128,8 +132,8 @@ function Seat({
  * finished hand is held (`reveal`) it shows that hand's cards and result instead of the new deal.
  * The data attributes are the same numbers the table draws, so a test can check them.
  */
-export function Table({ state, reveal, level, turn }: TableProps) {
-  const name = personaFor(level).name
+export function Table({ state, reveal, level, names, turn }: TableProps) {
+  const name = names?.opp ?? personaFor(level ?? 'easy').name
   const showing = reveal !== null
   const pushed = reveal?.stage === 'push'
   const total = showing ? reveal.total : state.total
@@ -168,7 +172,7 @@ export function Table({ state, reveal, level, turn }: TableProps) {
         bet={bet[AGENT]}
         dealer={state.button === AGENT}
         cards={theirs}
-        deal={!showing}
+        deal={!showing && turn !== 'over'}
         winner={winner === AGENT}
         dealKey={handKey}
       />
@@ -190,12 +194,12 @@ export function Table({ state, reveal, level, turn }: TableProps) {
       </div>
       <Seat
         who="me"
-        name="You"
+        name={names?.me ?? 'You'}
         stack={stacks[HUMAN]}
         bet={bet[HUMAN]}
         dealer={state.button === HUMAN}
         cards={mine}
-        deal={!showing}
+        deal={!showing && turn !== 'over'}
         winner={winner === HUMAN}
         dealKey={handKey}
         strength={strength}

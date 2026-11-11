@@ -64,6 +64,8 @@ class Fx {
   age = 0
   frames = 1
   active = false
+  /** Which presentation event made this spark (rollback play), or -1. A cancelled event cuts its spark short. */
+  tag = -1
   spec: Spec = HIT_SPECS.light
   facing = 1
 
@@ -90,7 +92,8 @@ class Fx {
     this.group.visible = false
   }
 
-  start(kind: HitKind, spec: Spec, x: number, y: number, facing: number): void {
+  start(kind: HitKind, spec: Spec, x: number, y: number, facing: number, tag = -1): void {
+    this.tag = tag
     this.spec = spec
     this.facing = facing
     this.frames = spec.frames
@@ -199,16 +202,23 @@ export class Vfx {
   }
 
   /** World position in render units (sim / 100). */
-  spawn(kind: HitKind, x: number, y: number, facing: number): void {
+  spawn(kind: HitKind, x: number, y: number, facing: number, tag = -1): void {
     const spec = HIT_SPECS[kind]
     let fx = this.pool.find((f) => !f.active)
     if (!fx) {
       fx = this.pool[this.next]!
       this.next = (this.next + 1) % POOL
     }
-    fx.start(kind, spec, x, y, facing)
+    fx.start(kind, spec, x, y, facing, tag)
     this.spawned++
     if (spec.shake > 0) this.pendingShake = { amount: spec.shake, frames: 6 }
+  }
+
+  /** A re-run took back the event that made spark `tag`: let it fade out over its next 2 frames instead of playing on. */
+  cancel(tag: number): void {
+    for (const fx of this.pool) {
+      if (fx.active && fx.tag === tag) fx.frames = Math.min(fx.frames, fx.age + 2)
+    }
   }
 
   /** Advance by `dt` seconds (effects run in real time, also during hitstop). */

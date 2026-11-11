@@ -1,9 +1,9 @@
 import { useEffect, useId, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { NAME_MAX } from '../lib/display-name'
+import { NAME_MAX } from '../lib/display-name-const'
 import { cn } from '../lib/cn'
 import { readName, readWelcomed, writeWelcomed } from '../lib/progress'
-import { saveNameChecked } from './IdentityCard'
+import { saveNameLazily } from '../lib/save-name-lazy'
 
 const root = getRouteApi('__root__')
 
@@ -36,7 +36,8 @@ export function Welcome({ onDone, intro, cta = 'Pick a game' }: { onDone: () => 
   const submit = async () => {
     if (value.trim() === '') return finish()
     setBusy(true)
-    const r = await saveNameChecked(value)
+    // The name rule (and its blocklist) loads only when a name is submitted, not with the landing page; a failed load is an error line, not a stuck button.
+    const r = await saveNameLazily(value)
     setBusy(false)
     if (!r.ok) return setError(r.error)
     finish()

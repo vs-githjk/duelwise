@@ -104,7 +104,9 @@ function watch(p: Page): string[] {
   return errors
 }
 
+const settle = (p: Page) => p.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))))
 async function shot(p: Page, vp: string, name: string) {
+  if (SHOTS) await settle(p)
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/${name}-${vp}.png`, fullPage: true })
 }
 
@@ -404,6 +406,102 @@ for (const vp of VIEWPORTS) {
       for (const p of [a, b]) for (const f of p.frames) if (f.t === 'view' && f.status !== 'over') expect(f.obs?.answer ?? null).toBeNull()
       expect(answer).toMatch(/^[a-z]{5}$/)
       await shot(b.page, vp.name, 'result-word')
+      noRoomInternals(a)
+      noRoomInternals(b)
+      expect(errors).toEqual([])
+      await room.close()
+    })
+
+    test(`Hold'em: a whole 10-hand match, a drop in the middle, a folded hand stays hidden, nothing dealt reaches a frame early (${vp.name})`, async ({ browser }) => {
+      test.setTimeout(240_000)
+      const room = await startRoom(browser, 'holdem', vp, touch())
+      const { ada: a, sam: b } = room
+      const errors = [...watch(a.page), ...watch(b.page)]
+      const HANDS = 10
+      const RANK_WORD = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
+      const SUIT_WORD = ['clubs', 'diamonds', 'hearts', 'spades']
+      const label = (c: number) => `${RANK_WORD[c >> 2]} of ${SUIT_WORD[c & 3]}`
+      await expect(a.page.getByTestId('holdem-table')).toBeVisible()
+      await expect(b.page.getByTestId('holdem-table')).toBeVisible()
+      await expect(a.page.getByTestId('holdem-progress')).toContainText(`of ${HANDS}`)
+      await shot(a.page, vp.name, 'in-game-holdem')
+      const viewsOf = (p: Person) => p.frames.filter((f) => f.t === 'view')
+      const handNow = async (p: Person) => Number(await p.page.getByTestId('holdem-remote').getAttribute('data-hand'))
+      let dropped = false
+      let sawHiddenCheck = false
+      const resultUp = async () => (await a.page.getByTestId('friend-result').isVisible()) && (await b.page.getByTestId('friend-result').isVisible())
+      for (let guard = 0; guard < 600 && !(await resultUp()); guard++) {
+        for (const p of [a, b]) {
+          if (!(await p.page.getByTestId('bet-controls').isVisible())) continue
+          const hand = await handNow(p)
+          const nBefore = await p.page.getByTestId('remote-game').getAttribute('data-n')
+          if (!sawHiddenCheck) {
+            // Before anyone has acted: this table shows the other person's two cards face down, and its page holds no label of their cards.
+            sawHiddenCheck = true
+            const other = p === a ? b : a
+            const theirs: number[] = viewsOf(other).at(-1)!.obs.hole
+            const html = await p.page.locator('body').innerHTML()
+            for (const c of theirs) expect(html).not.toContain(label(c))
+            await expect(p.page.getByTestId('seat-opp').getByTestId('card-back')).toHaveCount(2)
+          }
+          if (!dropped && hand >= 3) {
+            dropped = true
+            await b.drop()
+            await expect(b.page.getByTestId('remote-status')).toHaveAttribute('data-state', 'ok', { timeout: 20_000 })
+          }
+          // every third hand the player facing a bet folds it away; every other hand is called or checked down to a showdown
+          const fold = p.page.getByTestId('bet-fold')
+          if (hand % 3 === 0 && (await fold.isEnabled())) await fold.click()
+          else await p.page.getByTestId('bet-call').click()
+          await expect(p.page.getByTestId('remote-game')).not.toHaveAttribute('data-n', String(nBefore), { timeout: 15_000 })
+        }
+        // hold the first showdown to read, cut every other pause short
+        for (const p of [a, b]) {
+          const skip = p.page.getByTestId('holdem-skip')
+          if ((await skip.isVisible()) && (await handNow(p)) > 2) await skip.click({ trial: false }).catch(() => undefined)
+        }
+        await a.page.waitForTimeout(40)
+      }
+      for (const p of [a, b]) {
+        await expect(p.page.getByTestId('friend-result')).toBeVisible({ timeout: 20_000 })
+        await expect(p.page.getByTestId('friend-result-title')).toBeVisible()
+      }
+      await shot(b.page, vp.name, 'result-holdem')
+      // The frame scan. Nothing the room keeps to itself reached a seat before the end.
+      for (const p of [a, b]) {
+        for (const f of viewsOf(p)) {
+          if (f.status !== 'over') {
+            expect(f.seed).toBeNull()
+            expect(JSON.stringify(f)).not.toMatch(/"(decks?|options|entropy|state|log|pending|deck)"/)
+          }
+          expect(Object.keys(f.obs).sort()).toEqual(['bet', 'board', 'hand', 'handsTotal', 'hole', 'isButton', 'last', 'maxRaiseTo', 'minRaiseTo', 'net', 'seat', 'street', 'toMove', 'total'])
+        }
+      }
+      // A hand that ended in a fold: the folder's cards are in none of the other person's frames of that hand, and nobody was ever shown a pair for it.
+      const holeOf = (p: Person, h: number): string | null => {
+        const v = viewsOf(p).find((x) => x.obs.hand === h)
+        return v ? JSON.stringify(v.obs.hole) : null
+      }
+      const summaries = new Map<number, { showdown: boolean }>()
+      for (const p of [a, b]) for (const f of viewsOf(p)) if (f.obs.last) summaries.set(f.obs.last.hand, f.obs.last)
+      let folded = 0
+      let shown = 0
+      for (const [h, sum] of summaries) {
+        for (const p of [a, b]) {
+          const other = p === a ? b : a
+          for (const f of viewsOf(p)) {
+            if (f.obs.hand === h) expect(JSON.stringify(f.obs.hole)).not.toBe(holeOf(other, h))
+            if (f.obs.last?.hand === h && !sum.showdown) expect(f.obs.last.hole).toBeNull()
+            if (f.obs.last?.hand === h && sum.showdown) expect(f.obs.last.hole).not.toBeNull()
+          }
+        }
+        sum.showdown ? shown++ : folded++
+      }
+      expect(summaries.size).toBe(HANDS)
+      expect(folded).toBeGreaterThan(0)
+      expect(shown).toBeGreaterThan(0)
+      // The end: the seed is shown, and the hands are dealt by the room so it cannot rebuild a card.
+      for (const p of [a, b]) expect(viewsOf(p).at(-1)!.status).toBe('over')
       noRoomInternals(a)
       noRoomInternals(b)
       expect(errors).toEqual([])

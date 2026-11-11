@@ -1,5 +1,6 @@
 import { GOALS_TO_WIN, MALLET_R, PUCK_EVENTS, PUCK_MAX_SPEED, PUCK_R } from '@duelwise/core/src/games/puck/constants'
 import type { PuckState } from '@duelwise/core/src/games/puck/state'
+import { PSEUDO, PUCK_GOAL, PUCK_POST, type PresentEvent } from '@duelwise/core/src/netplay/events'
 import type { Seat } from '@duelwise/core/src/types'
 import { getVolume, isMuted, resumeAudioContext, sharedAudioContext } from '../../lib/audio'
 import { playStinger } from '../../lib/music'
@@ -113,6 +114,32 @@ export function cuesForTick(prev: Snap, s: PuckState, human: Seat): CueReq[] {
   const end = (s.py <= RAIL_REACH || s.py >= 2 - RAIL_REACH) && prev.pvy * s.pvy < 0
   if (side || end) out.push({ cue: 'wall', gain: Math.min(1, 0.35 + change / PUCK_MAX_SPEED), delayMs: 0 })
   return out
+}
+
+/**
+ * The cues rollback presentation events ask for, in the order cuesForTick would give them for the same frames. Only `fire` makes a sound:
+ * every cue here plays at once, and the two with a delay (the match point pulse) come from final events, which fire only from a
+ * confirmed frame, so a cancel never has a scheduled cue to drop. A strike or rail knock that a re-run takes back has already sounded;
+ * that is the price of answering your own hit at once.
+ */
+export function cuesFromEvents(evs: readonly PresentEvent[], human: Seat): CueReq[] {
+  const out: CueReq[] = []
+  for (const e of evs) {
+    if (e.op !== 'fire') continue
+    if (e.kind === PUCK_GOAL) out.push({ cue: e.seat === human ? 'goalYou' : 'goalThem', gain: 1, delayMs: 0 })
+    else if (e.kind === PSEUDO.MATCH_POINT) out.push({ cue: 'matchPoint', gain: 1, delayMs: MATCH_POINT_DELAY_MS })
+    else if (e.kind === PSEUDO.SUDDEN) out.push({ cue: 'matchPoint', gain: 1, delayMs: 0 })
+    else if (e.kind === PSEUDO.SERVE) out.push({ cue: 'serve', gain: 1, delayMs: 0 })
+    else if (e.kind === PUCK_POST) out.push({ cue: 'post', gain: 1, delayMs: 0 })
+    else if (e.kind === PSEUDO.STRIKE) out.push({ cue: 'hit', gain: hitGain(e.arg / 1000), delayMs: 0 })
+    else if (e.kind === PSEUDO.RAIL) out.push({ cue: 'wall', gain: Math.min(1, 0.35 + e.arg / 1000 / PUCK_MAX_SPEED), delayMs: 0 })
+  }
+  return out
+}
+
+/** Plays what a batch of rollback events sounds like. */
+export function playPresent(evs: readonly PresentEvent[], human: Seat): void {
+  for (const r of cuesFromEvents(evs, human)) playPuckCue(r)
 }
 
 // ---- voices -------------------------------------------------------------------------------------------------------

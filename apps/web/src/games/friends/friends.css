@@ -3,3 +3,26 @@
 [data-testid='friend-aside'] li[data-active] b { color: var(--action); }
 /* The curtain in Twelve Yards stands exactly where the goal stands (the scene is 300 of 328 wide units tall), so a hand-over moves nothing below it. */
 .pen-scene-wrap > .friend-curtain { height: calc(300 * 100cqw / 328); min-height: 0; padding-block: 12px; }
+
+/* Glasscut for two on one device: the score rows sit in the space fitLocalLayout leaves above and below the table. The top player's row is turned to face them. */
+.fp-stage[data-friend] { cursor: default }
+.fp-top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: start; gap: 8px; pointer-events: none }
+.fp-bottom { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); display: grid; justify-items: center; pointer-events: none }
+.fp-chip { display: grid; grid-template-columns: auto auto; grid-template-areas: 'name score' 'clock score'; align-items: center; column-gap: 12px; row-gap: 0; justify-self: center; padding: 4px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); min-width: 0; max-width: 100%; pointer-events: none }
+.fp-chip[data-seat='1'] { transform: rotate(180deg) }
+.fp-name { grid-area: name; font: 600 12px var(--font-sans); color: var(--muted); max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.fp-score { grid-area: score; font: 700 2rem/1 var(--font-display); font-variant-numeric: tabular-nums; min-width: 0.7em; text-align: center }
+.fp-chip[data-seat='0'] .fp-score { color: var(--action) }
+.fp-chip[data-seat='1'] .fp-score { color: var(--opp, var(--peach-deep)) }
+.fp-clock { grid-area: clock; font: 13px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink) }
+.fp-clock[data-sudden] { color: var(--action); font-family: var(--font-sans); font-weight: 700 }
+.fp-hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font: 600 13px var(--font-sans); color: var(--ink); pointer-events: none; white-space: nowrap; animation: fp-fade 400ms ease-out 4s forwards }
+@keyframes fp-fade { to { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .fp-hint { animation-duration: 1ms } }
+
+/* Tinderbox for two on one device: the solo page's "who is the AI" pill has no meaning here, so the stage hides it. */
+.fighter-stage-root[data-friend] .fh-pill { display: none }
+/* Two devices: both chips stay upright (the table is turned for seat 1, the chips are not), and the link chip sits under the top row. */
+.fp-chip[data-up] { transform: none }
+.rp-ping { position: absolute; right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); pointer-events: none }
+.rp-note { top: 38% }

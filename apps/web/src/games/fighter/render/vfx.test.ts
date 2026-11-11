@@ -75,3 +75,16 @@ test('a deflect keeps its bold ring and has no flash', () => {
   vfx.update(1 / 60)
   expect(ring.material.opacity).toBeGreaterThan(0.7)
 })
+
+test('cancelling an event fades the spark it made within two frames and leaves others alone (S6)', () => {
+  const vfx = new Vfx()
+  vfx.spawn('heavy', 0, 1, 1, 77)
+  vfx.spawn('heavy', 1, 1, 1, 78)
+  vfx.update(1 / 60)
+  vfx.cancel(77)
+  vfx.update(3 / 60)
+  expect(vfx.activeCount()).toBe(1)
+  vfx.cancel(999)
+  vfx.update(1 / 60)
+  expect(vfx.activeCount()).toBe(1)
+})

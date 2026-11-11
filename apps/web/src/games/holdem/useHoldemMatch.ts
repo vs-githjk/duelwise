@@ -10,6 +10,7 @@ import { detectDevice, useMatchRecorder, type FinishedMatch, type Upload } from 
 import { playCue } from './sounds'
 import { describeAction, describeHand } from './describe'
 import { AGENT, HUMAN } from './seats'
+import { HOLD } from './hold'
 
 export { AGENT, HUMAN }
 export { describeAction, describeHand }
@@ -49,8 +50,7 @@ export interface Reveal {
   headline: string
 }
 
-/** Pauses of the held hand in milliseconds. Reduced motion removes movement only, never these reading times. */
-export const HOLD = { street: 1000, showShowdown: 1800, showFold: 1000, pushShowdown: 900, pushFold: 700 } as const
+export { HOLD }
 
 export interface HoldemMatch {
   phase: Phase

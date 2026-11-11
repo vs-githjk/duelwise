@@ -14,7 +14,32 @@ export interface DuelLink {
   close(): void
 }
 
-export type Opponent = { kind: 'agent' } | { kind: 'local'; names: [string, string] } | { kind: 'remote'; link: DuelLink }
+/**
+ * The link of a two-device realtime match (S8, `useRealtimeLink.ts`): rollback netcode over the relay. The page owns a RollbackSession and
+ * feeds it from this link: friend inputs in (`onRemote`), its own held input out (`pushInput`), the relay's snapshot to `session.resync`.
+ */
+export interface RealtimeLink {
+  /** Queues the held input of `frame` (the frame `session.addLocal` returned). Sends a message when the batching rule says one is due. */
+  pushInput(frame: number, code: number): void
+  /** The friend's codes starting at `frame`, in order, as the relay forwards them. */
+  onRemote(cb: (frame: number, codes: number[]) => void): () => void
+  /** The relay's state at `frame` when this side's hash differed (or on request after a reconnect), as JSON; pour it with `fromWire`. */
+  onSnap(cb: (frame: number, state: unknown) => void): () => void
+  /** Attach the hash of the confirmed state at `frame` (a multiple of 60) to the next message. */
+  reportHash(frame: number, hash: string): void
+  /** Smoothed round trip to the relay in ms, 0 when unknown: feed `session.setRoundTrip` and the ping chip. */
+  rtt(): number
+  ready(pick?: number): void
+  rematch(): void
+  resign(): void
+  close(): void
+}
+
+export type Opponent =
+  | { kind: 'agent' }
+  | { kind: 'local'; names: [string, string] }
+  | { kind: 'remote'; link: DuelLink }
+  | { kind: 'remote-rt'; link: RealtimeLink }
 
 /** What a turn game tells the friend screens about itself: its core and the words for its two sides. */
 export interface FriendGame {
