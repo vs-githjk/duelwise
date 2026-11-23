@@ -57,7 +57,7 @@ export async function ownerViewHandler(
   const friendRows = await db
     .select({ at: schema.telemetryEvent.at, matchId: schema.telemetryEvent.matchId, game: schema.telemetryEvent.game })
     .from(schema.telemetryEvent)
-    .where(and(gte(schema.telemetryEvent.at, from), eq(schema.telemetryEvent.kind, 'friend_match_finished')))
+    .where(and(gte(schema.telemetryEvent.at, from), eq(schema.telemetryEvent.kind, 'friend_match_finished'), p.game ? eq(schema.telemetryEvent.game, p.game) : undefined))
     .orderBy(sql`${schema.telemetryEvent.at} desc`)
     .limit(EVENT_CAP)
   const friends = buildFriendGames({
