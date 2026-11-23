@@ -175,6 +175,8 @@ export interface OwnerViewBody extends OwnerView {
   zoneAsked: boolean
   who: Lens
   kpisBy: Record<'human' | 'owner' | 'test' | 'total', Kpis>
+  /** Finished friend games, apart from the match numbers (every class: friend events carry no player). */
+  friends: FriendGames
 }
 
 const share = (a: number, b: number): number | null => (b > 0 ? a / b : null)
@@ -238,32 +240,67 @@ function trainingOf(result: RecentRow['result'], optedOut: boolean): RecentRow['
   return optedOut ? 'Stats only' : 'Stored'
 }
 
-export function buildOwnerView(input: OwnerViewInput): OwnerView {
-  const { now, range } = input
-  const zone = input.zone ?? 'UTC'
+/**
+ * The current and comparison periods of a range. 24 h is a rolling day of hourly buckets. 7 and 30 days are whole calendar days in the zone:
+ * today plus the days before it, from local midnight of the first day. The comparison period is the same number of days just before, cut off
+ * after the same elapsed time as the current period, so a flat week reads as no change at any hour.
+ */
+function periodOf(now: Date, range: Range, zone: string) {
   const hourly = range === '24h'
   const count = hourly ? 24 : range === '7d' ? 7 : 30
-  // 24 h is a rolling day of hourly buckets. 7 and 30 days are whole calendar days in the zone: today plus the days before it,
-  // from local midnight of the first day. The comparison period is the same number of days just before, cut off after the same elapsed time as the current period, so a flat week reads as no change at any hour.
   const dayKeys = Array.from({ length: count }, (_, i) => addDays(dayKeyIn(now, zone), -(count - 1 - i)))
   const span = RANGE_MS['24h']
   const since = hourly ? now.getTime() - span : dayStartIn(dayKeys[0]!, zone)
   const prevSince = hourly ? since - span : dayStartIn(addDays(dayKeys[0]!, -count), zone)
+  const prevEnd = Math.min(since, prevSince + (now.getTime() - since))
+  const step = hourly ? span / count : 0
+  const slot = new Map(dayKeys.map((k, i) => [k, i]))
+  const bucketOf = (at: Date): number | undefined => (hourly ? Math.min(count - 1, Math.floor((at.getTime() - since) / step)) : slot.get(dayKeyIn(at, zone)))
+  return { hourly, count, step, since, prevSince, prevEnd, bucketOf }
+}
+
+/** Finished two-device friend games: a count only (the events carry no player), never rated and never part of the match numbers above. */
+export interface FriendGames {
+  value: number
+  previous: number
+  series: number[]
+  byGame: Array<{ game: GameId; count: number }>
+}
+
+/** Friend games in the period, the period before, per bucket and per game. A game filter applies; a level filter does not, since friend games have no level. */
+export function buildFriendGames(input: { events: EventRow[]; now: Date; zone?: string; range: Range; game?: GameId | undefined }): FriendGames {
+  const { since, prevSince, prevEnd, count, bucketOf } = periodOf(input.now, input.range, input.zone ?? 'UTC')
+  const rows = input.events.filter((e) => e.kind === 'friend_match_finished' && (!input.game || e.game === input.game))
+  const cur = rows.filter((e) => e.at.getTime() >= since && e.at.getTime() <= input.now.getTime())
+  const series = Array.from({ length: count }, () => 0)
+  for (const e of cur) {
+    const i = bucketOf(e.at)
+    if (i !== undefined) series[i]!++
+  }
+  return {
+    value: cur.length,
+    previous: rows.filter((e) => e.at.getTime() >= prevSince && e.at.getTime() < prevEnd).length,
+    series,
+    byGame: GAMES.map((game) => ({ game, count: cur.filter((e) => e.game === game).length })).filter((g) => g.count > 0).sort((a, b) => b.count - a.count),
+  }
+}
+
+export function buildOwnerView(input: OwnerViewInput): OwnerView {
+  const { now, range } = input
+  const zone = input.zone ?? 'UTC'
+  const { hourly, count, step, since, prevSince, prevEnd, bucketOf } = periodOf(now, range, zone)
   const filtered = input.events.filter((e) => (!input.game || e.game === input.game) && (!input.level || e.level === input.level))
   const cur = filtered.filter((e) => e.at.getTime() >= since && e.at.getTime() <= now.getTime())
-  const prevEnd = Math.min(since, prevSince + (now.getTime() - since))
   const prev = filtered.filter((e) => e.at.getTime() >= prevSince && e.at.getTime() < prevEnd)
   const isNew = (ref: string) => (input.firstSeen.get(ref)?.getTime() ?? Infinity) >= since
 
   // Buckets: hourly for 24 h, one per calendar day otherwise. Labels are on the clock and calendar of the asked zone.
   const buckets: EventRow[][] = Array.from({ length: count }, () => [])
-  const step = hourly ? span / count : 0
-  const slot = new Map(dayKeys.map((k, i) => [k, i]))
   for (const e of cur) {
-    const i = hourly ? Math.min(count - 1, Math.floor((e.at.getTime() - since) / step)) : slot.get(dayKeyIn(e.at, zone))
+    const i = bucketOf(e.at)
     if (i !== undefined) buckets[i]!.push(e)
   }
-  const bucketLabels = buckets.map((_, i) => (hourly ? `${timeIn(new Date(since + (i + 1) * step).toISOString(), zone).slice(0, 2)}:00` : shortDayKey(dayKeys[i]!)))
+  const bucketLabels = buckets.map((_, i) => (hourly ? `${timeIn(new Date(since + (i + 1) * step).toISOString(), zone).slice(0, 2)}:00` : shortDayKey(addDays(dayKeyIn(now, zone), -(count - 1 - i)))))
   const per = buckets.map((b) => kpiSet(b, isNew))
 
   const k = kpiSet(cur, isNew)

@@ -120,13 +120,31 @@ describe('email reveal', () => {
 })
 
 describe('friend games are counted apart from rated matches', () => {
+  const get = async (q: Record<string, unknown> = { range: '7d' }) => (await ownerViewHandler(db, OWNER, ENV, q, () => null, NOW)).body as import('./telemetry-stats').OwnerViewBody
+  const friend = (minutesAgo: number, game = 'chess', id = crypto.randomUUID()) => ({
+    id: crypto.randomUUID(), at: new Date(NOW.getTime() - minutesAgo * 60_000), kind: 'friend_match_finished' as const, matchId: id, game, level: 'friend', persona: 'friend',
+    device: 'unknown', trainingBasis: 'legitimate-interest', optedOut: true, playerRef: 'friend', playerKind: 'friend',
+  })
   test('a friend_match_finished event never reaches the owner match numbers or the player list', async () => {
-    const get = async () => (await ownerViewHandler(db, OWNER, ENV, { range: '7d' }, () => null, NOW)).body as import('./telemetry-stats').OwnerViewBody
-    const before = JSON.stringify(await get())
-    await db.insert(schema.telemetryEvent).values({
-      id: crypto.randomUUID(), at: new Date(NOW.getTime() - 5 * 60_000), kind: 'friend_match_finished', matchId: 'ABCDEF.1.1', game: 'chess', level: 'friend', persona: 'friend',
-      device: 'unknown', trainingBasis: 'legitimate-interest', optedOut: true, playerRef: 'friend', playerKind: 'friend',
-    })
-    expect(JSON.stringify(await get())).toBe(before)
+    const { friends: _a, ...before } = await get()
+    await db.insert(schema.telemetryEvent).values(friend(5))
+    const { friends, ...after } = await get()
+    expect(JSON.stringify(after)).toBe(JSON.stringify(before))
+    expect(friends.value).toBe(1)
+  })
+  test('friend games are counted per game and per day, with the period before, and follow the game filter', async () => {
+    await db.insert(schema.telemetryEvent).values([friend(5), friend(10), friend(15, 'four'), friend(8 * 24 * 60)])
+    const v = await get()
+    expect(v.friends.value).toBe(3)
+    expect(v.friends.previous).toBe(1)
+    expect(v.friends.byGame).toEqual([{ game: 'chess', count: 2 }, { game: 'four', count: 1 }])
+    expect(v.friends.series.reduce((a, b) => a + b, 0)).toBe(3)
+    expect(v.friends.series.at(-1)).toBe(3)
+    expect((await get({ range: '7d', game: 'four' })).friends.value).toBe(1)
+    expect((await get({ range: '24h' })).friends.value).toBe(3)
+  })
+  test('the same count whichever lens the panels show', async () => {
+    await db.insert(schema.telemetryEvent).values([friend(5), friend(6)])
+    for (const who of ['human', 'owner', 'test', 'all']) expect((await get({ range: '7d', who })).friends.value).toBe(2)
   })
 })

@@ -246,3 +246,50 @@ export function DevicesPanel({ v }: { v: OwnerView }) {
     </Card>
   )
 }
+
+/**
+ * Every game people played in the period: games against the AI (human traffic) plus finished two-device friend games.
+ * Friend games are a count only, so they add to games played but never to players, win rates or anything else on the page.
+ */
+export function GamesPlayedPanel({ v, level }: { v: OwnerViewBody; level: Level | undefined }) {
+  const ai = v.kpisBy.human.matches
+  const f = v.friends
+  const friendsShown = level === undefined
+  const friendCount = friendsShown ? f.value : 0
+  const total = ai.value + friendCount
+  const previous = ai.previous + (friendsShown ? f.previous : 0)
+  const delta = previous > 0 ? Math.round(((total - previous) / previous) * 100) : null
+  const friendDelta = f.previous > 0 ? Math.round(((f.value - f.previous) / f.previous) * 100) : null
+  const series = ai.series.map((n, i) => (n ?? 0) + (friendsShown ? (f.series[i] ?? 0) : 0))
+  const b = (x: ReactNode) => <b className="font-semibold text-ink">{x}</b>
+  return (
+    <Card title="Games played" note="games against the AI plus finished friend games" testId="owner-games-played">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid content-start gap-1" data-testid="games-played-total">
+          <p className="text-sm text-muted">All games</p>
+          <p className="font-display text-display-md tabular">{total}</p>
+          <p className={cn('text-sm', delta !== null && delta > 0 ? 'text-good-ink' : 'text-muted')}>{delta === null ? 'no earlier period to compare' : `${signed(delta)}% vs the period before`}</p>
+          <Sparkline values={series} />
+        </div>
+        <div className="grid content-start gap-1" data-testid="games-played-ai">
+          <p className="text-sm text-muted">Against the AI</p>
+          <p className="font-display text-display-sm tabular">{ai.value}<span className="ml-2 font-sans text-sm font-semibold text-muted">Human</span></p>
+          <p className="text-xs text-muted">Not counted here: Owner {b(v.kpisBy.owner.matches.value)} · Test {b(v.kpisBy.test.matches.value)}</p>
+        </div>
+        <div className="grid content-start gap-1" data-testid="games-played-friends">
+          <p className="text-sm text-muted">With friends, two devices</p>
+          <p className="font-display text-display-sm tabular">{friendsShown ? f.value : '-'}</p>
+          {friendsShown ? (
+            <>
+              <p className="text-sm text-muted">{friendDelta === null ? 'no earlier period to compare' : `${signed(friendDelta)}% vs the period before`}</p>
+              {f.byGame.length ? <p className="text-xs text-muted">{f.byGame.map((g, i) => <span key={g.game}>{i ? ' · ' : ''}{PRODUCT.games[g.game].displayName} {b(g.count)}</span>)}</p> : null}
+            </>
+          ) : (
+            <p className="text-sm text-muted">Friend games have no level, so a level filter leaves them out.</p>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-muted">Friend games carry no player, so they include any you played yourself and do not add to player counts. Games two people play on one device are never sent to the server and are not counted.</p>
+    </Card>
+  )
+}

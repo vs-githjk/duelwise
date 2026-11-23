@@ -1,10 +1,10 @@
-import { and, gte, min, ne, sql } from 'drizzle-orm'
+import { and, eq, gte, min, ne, sql } from 'drizzle-orm'
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { PRODUCT, type GameId, type Level } from '@duelwise/core/src/product'
 import * as schema from '../db/schema'
 import type { HandlerResponse } from './match-handlers'
 import { isOwner, playerRef } from './telemetry'
-import { buildOwnerView, RANGE_MS, type EventRow, type Lens, type OwnerViewBody, type Range } from './telemetry-stats'
+import { buildFriendGames, buildOwnerView, RANGE_MS, type EventRow, type Lens, type OwnerViewBody, type Range } from './telemetry-stats'
 import { classCte, zoneFor } from './traffic-sql'
 
 type Db = PgDatabase<any, typeof schema>
@@ -53,6 +53,17 @@ export async function ownerViewHandler(
     at: r.at, kind: r.kind, matchId: r.matchId, game: r.game, level: r.level, persona: r.persona, device: r.device, durationMs: r.durationMs,
     outcome: r.outcome, reason: r.reason, optedOut: r.optedOut, playerRef: r.playerRef, playerKind: r.playerKind,
   }))
+  // Friend games are read apart: they are a count only and never enter the match numbers, the player counts or the classes below.
+  const friendRows = await db
+    .select({ at: schema.telemetryEvent.at, matchId: schema.telemetryEvent.matchId, game: schema.telemetryEvent.game })
+    .from(schema.telemetryEvent)
+    .where(and(gte(schema.telemetryEvent.at, from), eq(schema.telemetryEvent.kind, 'friend_match_finished')))
+    .orderBy(sql`${schema.telemetryEvent.at} desc`)
+    .limit(EVENT_CAP)
+  const friends = buildFriendGames({
+    events: friendRows.map((r) => ({ at: r.at, kind: 'friend_match_finished' as const, matchId: r.matchId, game: r.game, level: 'friend', persona: 'friend', device: 'unknown', durationMs: null, outcome: null, reason: null, optedOut: true, playerRef: 'friend', playerKind: 'friend' })),
+    now, zone, range: p.range, game: p.game,
+  })
   const firstRows = await db
     .select({ ref: schema.telemetryEvent.playerRef, first: min(schema.telemetryEvent.at) })
     .from(schema.telemetryEvent)
@@ -84,7 +95,7 @@ export async function ownerViewHandler(
   const owner = by('owner')
   const test = by('test')
   const lens = p.who === 'human' ? human : p.who === 'owner' ? owner : p.who === 'test' ? test : total
-  return { status: 200, body: { ...lens, zone, zoneFallback, zoneAsked: q.tz !== undefined, lastEventAt: total.lastEventAt, who: p.who, kpisBy: { human: human.kpis, owner: owner.kpis, test: test.kpis, total: total.kpis } } }
+  return { status: 200, body: { ...lens, zone, zoneFallback, zoneAsked: q.tz !== undefined, lastEventAt: total.lastEventAt, who: p.who, kpisBy: { human: human.kpis, owner: owner.kpis, test: test.kpis, total: total.kpis }, friends } }
 }
 
 /**

@@ -8,7 +8,7 @@ import { personaFor } from '../../personas'
 import { timeIn, zoneLabel } from '../../server/owner-zone'
 import { ago, recentCsv } from './format'
 import { ZoneProvider } from './zone'
-import { DevicesPanel, DriftPanel, KpiRow, LengthPanel, PerGamePanel, WinsPanel } from './Panels'
+import { DevicesPanel, DriftPanel, GamesPlayedPanel, KpiRow, LengthPanel, PerGamePanel, WinsPanel } from './Panels'
 import { RecentPanel, WhoPlayedPanel } from './Tables'
 import { AdminSection } from './Admin'
 import { Card } from './Card'
@@ -181,6 +181,7 @@ function OwnerDashboardBody({ v, filters, onFilters, onRefresh }: DashboardProps
       ) : null}
 
       <ActiveCards zone={v.zone} />
+      <GamesPlayedPanel v={v} level={filters.level} />
       <KpiRow v={v} />
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Traffic shown in the panels below" data-testid="owner-lens">
         <span className="text-sm text-muted">Panels below show</span>
