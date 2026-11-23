@@ -262,13 +262,17 @@ export function GamesPlayedPanel({ v, level }: { v: OwnerViewBody; level: Level 
   const friendDelta = f.previous > 0 ? Math.round(((f.value - f.previous) / f.previous) * 100) : null
   const series = ai.series.map((n, i) => (n ?? 0) + (friendsShown ? (f.series[i] ?? 0) : 0))
   const b = (x: ReactNode) => <b className="font-semibold text-ink">{x}</b>
+  // Say which days these are, so the count is never read as all time.
+  const days = v.range === '24h' ? 'the last 24 hours' : `${v.bucketLabels[0]} to ${v.bucketLabels[v.bucketLabels.length - 1]}, ${v.range === '7d' ? '7' : '30'} days`
+  const before = v.range === '24h' ? 'the 24 hours before' : `the ${v.range === '7d' ? '7' : '30'} days before`
+  const vs = (d: number | null) => (d === null ? 'nothing in the period before to compare' : `${signed(d)}% vs ${before}`)
   return (
-    <Card title="Games played" note="games against the AI plus finished friend games" testId="owner-games-played">
+    <Card title="Games played" note={`${days}, not all time; change the period at the top`} testId="owner-games-played">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid content-start gap-1" data-testid="games-played-total">
-          <p className="text-sm text-muted">All games</p>
+          <p className="text-sm text-muted">All games in {v.range === '24h' ? 'the last 24 hours' : `these ${v.range === '7d' ? '7' : '30'} days`}</p>
           <p className="font-display text-display-md tabular">{total}</p>
-          <p className={cn('text-sm', delta !== null && delta > 0 ? 'text-good-ink' : 'text-muted')}>{delta === null ? 'no earlier period to compare' : `${signed(delta)}% vs the period before`}</p>
+          <p className={cn('text-sm', delta !== null && delta > 0 ? 'text-good-ink' : 'text-muted')}>{vs(delta)}</p>
           <Sparkline values={series} />
         </div>
         <div className="grid content-start gap-1" data-testid="games-played-ai">
@@ -281,7 +285,7 @@ export function GamesPlayedPanel({ v, level }: { v: OwnerViewBody; level: Level 
           <p className="font-display text-display-sm tabular">{friendsShown ? f.value : '-'}</p>
           {friendsShown ? (
             <>
-              <p className="text-sm text-muted">{friendDelta === null ? 'no earlier period to compare' : `${signed(friendDelta)}% vs the period before`}</p>
+              <p className="text-sm text-muted">{vs(friendDelta)}</p>
               {f.byGame.length ? <p className="text-xs text-muted">{f.byGame.map((g, i) => <span key={g.game}>{i ? ' · ' : ''}{PRODUCT.games[g.game].displayName} {b(g.count)}</span>)}</p> : null}
             </>
           ) : (
@@ -289,7 +293,7 @@ export function GamesPlayedPanel({ v, level }: { v: OwnerViewBody; level: Level 
           )}
         </div>
       </div>
-      <p className="text-xs text-muted">Friend games carry no player, so they include any you played yourself and do not add to player counts. Games two people play on one device are never sent to the server and are not counted.</p>
+      <p className="text-xs text-muted">All games = games real players finished against the AI plus friend games finished on two devices. Your own and test games against the AI are left out. Friend games carry no player, so they include any you played yourself and do not add to player counts. Games two people play on one device never reach the server and are not counted.</p>
     </Card>
   )
 }

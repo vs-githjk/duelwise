@@ -4,6 +4,8 @@ import { GamesPlayedPanel } from '../components/owner/Panels'
 /** Local-only look at the owner "Games played" panel with made-up numbers. Not bundled in production. */
 const matches = (value: number, previous: number, series: number[]) => ({ matches: { value, previous, series } }) as unknown as Kpis
 const v = {
+  range: '7d',
+  bucketLabels: ['Nov 16', 'Nov 17', 'Nov 18', 'Nov 19', 'Nov 20', 'Nov 21', 'Nov 22'],
   kpisBy: {
     human: matches(14, 180, [6, 1, 1, 1, 2, 1, 2]),
     owner: matches(29, 40, [0, 0, 0, 0, 0, 0, 0]),
