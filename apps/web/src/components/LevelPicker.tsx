@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import type { Level } from '@duelwise/core/src/product'
+import type { GameId, Level } from '@duelwise/core/src/product'
+import { RATED_NOT_OPEN } from '@duelwise/core/src/rated-path'
 import { cn } from '../lib/cn'
 import { LEVELS, LEVEL_LABEL, type LevelInfo } from '../lib/level-info'
 import { Avatar } from '../personas/Avatar'
@@ -56,9 +57,10 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   const practiceMode = usePractice()
   const gated = game !== undefined && state.hydrated && !open && !practiceMode
   const pathLocked = (level: Level) => gated && !path[level] && current !== level
-  const touched = useRef(false)
+  // A level named in the address (a 'Play Sable next' link, ?level=) is the player's own choice, so neither default below replaces it.
+  const touched = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('level'))
   // Every stop cleared: nothing is left to unlock, so an untouched picker starts on the strongest opponent that can be played, not Pip.
-  const start = game !== undefined && state.hydrated && !practiceMode ? allClearedStart(path, (l) => Boolean(levels[l]?.inTraining)) : null
+  const start = game !== undefined && state.hydrated && !practiceMode && !(RATED_NOT_OPEN as readonly GameId[]).includes(game) ? allClearedStart(path, (l) => Boolean(levels[l]?.inTraining)) : null
   useEffect(() => {
     if (start && !touched.current && value !== start) onChange(start)
     // eslint-disable-next-line react-hooks/exhaustive-deps
