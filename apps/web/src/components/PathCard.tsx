@@ -7,9 +7,10 @@ import { Avatar } from '../personas/Avatar'
 import { personaFor } from '../personas'
 
 /** The line under "Your path": the unlock rule when stops are locked, and the truth when practice (or a game with no rated matches) opens them all. */
-export function pathNote(game: GameId, practiceMode: boolean): string {
+export function pathNote(game: GameId, practiceMode: boolean, allCleared = false): string {
   if ((RATED_NOT_OPEN as readonly GameId[]).includes(game)) return `${PRODUCT.games[game].displayName} has no rated matches yet, so every opponent is open as practice.`
   if (practiceMode) return 'Practice opens every opponent. Only rated wins clear a stop.'
+  if (allCleared) return 'All four cleared. Play anyone.'
   return 'Clear Pip to unlock Marlow, then Vesper, then Sable.'
 }
 
@@ -26,7 +27,7 @@ export function PathCard({ game, state, practice, practiceMode = false, classNam
     <section className={cn('grid gap-3 rounded-card border border-line bg-surface p-4 shadow-card md:p-5', className)} aria-label={`Your path at ${PRODUCT.games[game].displayName}`} data-testid="path-card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-display-sm">Your path</h2>
-        <p className="text-sm text-muted" data-testid="path-note">{pathNote(game, practiceMode)}</p>
+        <p className="text-sm text-muted" data-testid="path-note">{pathNote(game, practiceMode, LEVELS.every((l) => path[l]))}</p>
       </div>
       <ol className="relative grid grid-cols-4 gap-2" data-testid="path-stops">
         <span className="pointer-events-none absolute left-[12.5%] right-[12.5%] top-[38px] z-0 h-0.5 bg-line max-sm:top-[30px]" aria-hidden="true" />

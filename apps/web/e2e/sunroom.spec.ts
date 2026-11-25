@@ -78,6 +78,24 @@ test.describe('adventure path (locks are on)', () => {
     await expect(page.getByTestId('call-picker').locator('input:checked')).toHaveCount(0)
   })
 
+  test('a player who has cleared all four is told so and starts on Sable, not Pip; picking Pip still works', async ({ page }) => {
+    // The path comes from the server for a real player; here the server's answer is held back so the seeded all-cleared path stands.
+    const isGetMyPath = (url: string) => Buffer.from(url.split('/_serverFn/')[1]?.split('?')[0] ?? '', 'base64url').toString().includes('"getMyPath_')
+    let held = 0
+    await page.route('**/_serverFn/**', (route) => (isGetMyPath(route.request().url()) ? (held++, route.abort()) : route.continue()))
+    await page.addInitScript(() => localStorage.setItem('duelwise.path', JSON.stringify({ penalty: { easy: true, medium: true, hard: true, champion: true } })))
+    await page.goto('/play/twelve-yards')
+    await expect(page.getByTestId('path-note')).toHaveText('All four cleared. Play anyone.')
+    await expect(page.getByRole('button', { name: 'Start match vs Sable' })).toBeVisible()
+    await page.getByTestId('path-card').screenshot({ path: test.info().outputPath('all-cleared.png') })
+    await page.getByTestId('level-picker').locator('label[data-persona="easy"]').click()
+    await expect(page.getByRole('button', { name: 'Start match vs Pip' })).toBeVisible()
+    await expect.poll(() => held).toBeGreaterThan(0)
+    await page.waitForTimeout(500)
+    await expect(page.getByRole('button', { name: 'Start match vs Pip' })).toBeVisible()
+    await expect(page.getByTestId('path-note')).toHaveText('All four cleared. Play anyone.')
+  })
+
   test('?any=1 opens every stop for testing and is never linked from the page', async ({ page }) => {
     await page.goto('/play/word-duel')
     await expect(page.locator('a[href*="any=1"]')).toHaveCount(0)

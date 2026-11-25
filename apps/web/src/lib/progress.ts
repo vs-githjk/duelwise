@@ -94,6 +94,15 @@ export function defaultCall(path: PathMap): Level {
   return LEVELS[Math.min(LEVELS.indexOf(cur) + 1, LEVELS.length - 1)]!
 }
 
+/**
+ * Where an untouched rated picker starts once every stop is cleared: the strongest opponent that can be played (not Pip, since nothing is
+ * left to unlock). Null while any stop is still to clear, so the usual "start on the current stop" rule applies.
+ */
+export function allClearedStart(path: PathMap, inTraining: (level: Level) => boolean): Level | null {
+  if (!LEVELS.every((l) => path[l])) return null
+  return [...LEVELS].reverse().find((l) => !inTraining(l)) ?? null
+}
+
 /** The stop a returning player faces next, or null for a new player (nothing cleared yet) and for one who has cleared them all. */
 export function nextUp(path: PathMap): Level | null {
   if (!LEVELS.some((l) => path[l])) return null

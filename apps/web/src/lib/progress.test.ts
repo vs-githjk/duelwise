@@ -36,3 +36,13 @@ test('nextUp names the next opponent only for a player who has cleared something
   expect(nextUp({ easy: true, medium: true, hard: false, champion: false })).toBe('hard')
   expect(nextUp({ easy: true, medium: true, hard: true, champion: true })).toBeNull()
 })
+
+import { allClearedStart } from './progress'
+test('once every stop is cleared the picker starts on Sable, or the strongest one not in training; before that it leaves the usual rule alone', () => {
+  const all = { easy: true, medium: true, hard: true, champion: true }
+  const none = () => false
+  expect(allClearedStart(all, none)).toBe('champion')
+  expect(allClearedStart(all, (l) => l === 'champion')).toBe('hard')
+  expect(allClearedStart({ ...all, champion: false }, none)).toBeNull()
+  expect(allClearedStart({ easy: false, medium: false, hard: false, champion: false }, none)).toBeNull()
+})

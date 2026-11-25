@@ -5,6 +5,10 @@ describe('pathNote', () => {
   test('a rated path says how to unlock the next opponent', () => {
     expect(pathNote('chess', false)).toBe('Clear Pip to unlock Marlow, then Vesper, then Sable.')
   })
+  test('a rated path with all four cleared says so, instead of how to unlock Pip', () => {
+    expect(pathNote('chess', false, true)).toBe('All four cleared. Play anyone.')
+    expect(pathNote('chess', true, true)).toBe('Practice opens every opponent. Only rated wins clear a stop.')
+  })
   test('practice opens every opponent, so the card does not promise a lock', () => {
     expect(pathNote('chess', true)).toBe('Practice opens every opponent. Only rated wins clear a stop.')
   })

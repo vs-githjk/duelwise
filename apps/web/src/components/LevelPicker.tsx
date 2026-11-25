@@ -8,7 +8,7 @@ import { useOpponent } from '../personas/context'
 import { personaFor, styleLine } from '../personas'
 import { showsPreviewBadge } from '../lib/honest-copy'
 import { EloExplainer } from './SiteElo'
-import { usePath } from '../lib/progress'
+import { allClearedStart, usePath } from '../lib/progress'
 import { usePractice } from '../lib/practice'
 import { CallPicker } from './IdentityCard'
 import { PathCard } from './PathCard'
@@ -57,6 +57,12 @@ export function LevelPicker({ value, onChange, levels = {}, disabled = false, st
   const gated = game !== undefined && state.hydrated && !open && !practiceMode
   const pathLocked = (level: Level) => gated && !path[level] && current !== level
   const touched = useRef(false)
+  // Every stop cleared: nothing is left to unlock, so an untouched picker starts on the strongest opponent that can be played, not Pip.
+  const start = game !== undefined && state.hydrated && !practiceMode ? allClearedStart(path, (l) => Boolean(levels[l]?.inTraining)) : null
+  useEffect(() => {
+    if (start && !touched.current && value !== start) onChange(start)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start, value])
   useEffect(() => {
     if (!gated || !current) return
     // The player has not picked yet, or picked a stop that is locked: start on the current stop.
